@@ -1,0 +1,131 @@
+// Package python provides a gRPC-based bridge to the Python sidecar.
+// The Python sidecar must be running (python -m src.server) for bridge operations to succeed.
+// When Python is unavailable, bridge methods return clear errors rather than crashing.
+package python
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
+
+	pb "quantflow/internal/python/proto"
+)
+
+// BridgeOptions configures the PythonBridge connection.
+type BridgeOptions struct {
+	Address        string
+	DialTimeout    time.Duration
+	RequestTimeout time.Duration
+	MaxRetries     int
+}
+
+// DefaultOptions returns sensible defaults for local development.
+func DefaultOptions() BridgeOptions {
+	return BridgeOptions{
+		Address:        "localhost:50051",
+		DialTimeout:    5 * time.Second,
+		RequestTimeout: 30 * time.Second,
+		MaxRetries:     3,
+	}
+}
+
+// PythonBridge manages the gRPC connection to the Python sidecar.
+type PythonBridge struct {
+	conn         *grpc.ClientConn
+	FactorClient pb.FactorServiceClient
+	LLMClient    pb.LLMServiceClient
+	HealthClient pb.HealthServiceClient
+	DataClient      pb.DataServiceClient
+	SentimentClient pb.SentimentServiceClient
+	opts            BridgeOptions
+}
+
+// NewPythonBridge dials the Python sidecar and returns a bridge.
+// Returns an error if the sidecar is unreachable or the connection fails.
+func NewPythonBridge(opts BridgeOptions) (*PythonBridge, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), opts.DialTimeout)
+	defer cancel()
+
+	conn, err := grpc.DialContext(ctx, opts.Address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("python bridge: dial %s: %w", opts.Address, err)
+	}
+
+	return &PythonBridge{
+		conn:         conn,
+		FactorClient: pb.NewFactorServiceClient(conn),
+		LLMClient:    pb.NewLLMServiceClient(conn),
+		HealthClient: pb.NewHealthServiceClient(conn),
+		DataClient:      pb.NewDataServiceClient(conn),
+		SentimentClient: pb.NewSentimentServiceClient(conn),
+		opts:            opts,
+	}, nil
+}
+
+// Ping checks whether the Python sidecar is responsive.
+func (b *PythonBridge) Ping(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, b.opts.RequestTimeout)
+	defer cancel()
+
+	resp, err := b.HealthClient.Ping(ctx, &pb.PingRequest{})
+	if err != nil {
+		return fmt.Errorf("ping: %w", err)
+	}
+	if !resp.Healthy {
+		return fmt.Errorf("python sidecar reports unhealthy")
+	}
+	return nil
+}
+
+// IsHealthy returns true if the Python sidecar is responding to pings.
+func (b *PythonBridge) IsHealthy(ctx context.Context) bool {
+	return b.Ping(ctx) == nil
+}
+
+// GetStatus returns detailed status information from the Python sidecar.
+func (b *PythonBridge) GetStatus(ctx context.Context) (*pb.StatusResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, b.opts.RequestTimeout)
+	defer cancel()
+	return b.HealthClient.GetStatus(ctx, &pb.GetStatusRequest{})
+}
+
+// Close closes the gRPC connection. Call when shutting down.
+func (b *PythonBridge) Close() error {
+	return b.conn.Close()
+}
+
+// RequestTimeout returns the configured request timeout.
+func (b *PythonBridge) RequestTimeout() time.Duration { return b.opts.RequestTimeout }
+
+// MaxRetries returns the configured max retry count.
+func (b *PythonBridge) MaxRetries() int { return b.opts.MaxRetries }
+
+// isTransient returns true if the gRPC error is likely transient (worth retrying).
+func isTransient(err error) bool {
+	// Use the canonical gRPC status code first.
+	if code := status.Code(err); code != codes.Unknown {
+		switch code {
+		case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted, codes.Aborted:
+			return true
+		default:
+			return false
+		}
+	}
+	// Fall back to substring matching for non-gRPC transport errors.
+	s := err.Error()
+	for _, marker := range []string{"connection refused", "connection reset", "EOF"} {
+		if strings.Contains(s, marker) {
+			return true
+		}
+	}
+	return false
+}
