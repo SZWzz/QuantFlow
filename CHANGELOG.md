@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2026.6.18] - 2026-06-18
 
 ### Added
+- [Frontend] researchStore: Pinia store for Research & Sentiment module with Wails bridge (GetSentiment, GetStockResearch, GetSentimentHistory) and frontend-mock fallback
 - [Python] SentimentService gRPC implementation — AnalyzeSentiment (single text via NLPPipeline with fallback to neutral on empty input) and BatchAnalyzeSentiment (concurrent fan-out across symbols). Errors returned in response, not raised as gRPC exceptions, matching the factor/engine.py pattern.
 - [Docs] Created proposal implementation status map (`docs/specs/2026-06-18-proposal-implementation-status.md`) — annotated every module in NEW_PROJECT_PROPOSAL.md with ✅/🔶/📋 markers
 - [Docs] Created 7 pending-development specs covering all unbuilt and partially-built modules: Research & Sentiment, Alternative Data, Missing Frontend Panels, Missing Workflow Nodes, Brokers & Trading, AI/MCP/Skills, and Misc enhancements — each with motivation, component list, acceptance criteria, and effort estimate
