@@ -91,4 +91,11 @@ func RegisterAll(r *workflow.NodeRegistry) {
 
 	// Phase 13: Research
 	r.RegisterWithCategory("sentiment", NewSentimentNode, "research")
+
+	// Phase 14: Research Nodes
+	r.RegisterWithCategory("stock_research", NewStockResearchNode, "research")
+	r.RegisterWithCategory("financials", NewFinancialsNode, "research")
+	r.RegisterWithCategory("peer_compare", NewPeerCompareNode, "research")
+	r.RegisterWithCategory("analyst_estimates", NewAnalystEstimatesNode, "research")
+	r.RegisterWithCategory("insider_trades", NewInsiderTradesNode, "research")
 }
