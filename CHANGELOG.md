@@ -8,8 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2026.6.18] - 2026-06-18
 
 ### Added
+- [Research] Sentiment analysis module: NLP pipeline (Python) + SentimentEngine (Go) + SentimentNode (workflow)
+- [Research] 6 workflow nodes: sentiment, stock_research, financials, peer_compare, analyst_estimates, insider_trades
+- [Research] ResearchRepo with SQLite persistence (migration 011)
+- [Research] Degraded mode: all research features work without Python sidecar (mock data)
 - [Frontend] researchStore: Pinia store for Research & Sentiment module with Wails bridge (GetSentiment, GetStockResearch, GetSentimentHistory) and frontend-mock fallback
-- [Frontend] Added 5 research panel components: FinancialsPanel (income/balance/ratios card layout), PeerComparisonPanel (peer metrics comparison table), AnalystEstimatesPanel (analyst ratings table with consensus badge), InsiderTradingPanel (insider trades table with net activity indicator), CongressTradingPanel (congress trades table with party/chamber filters)
+- [Frontend] Added 7 research panel components: SentimentPanel (sentiment timeline and scores), StockResearchPanel (company research overview), FinancialsPanel (income/balance/ratios card layout), PeerComparisonPanel (peer metrics comparison table), AnalystEstimatesPanel (analyst ratings table with consensus badge), InsiderTradingPanel (insider trades table with net activity indicator), CongressTradingPanel (congress trades table with party/chamber filters)
 - [Python] SentimentService gRPC implementation — AnalyzeSentiment (single text via NLPPipeline with fallback to neutral on empty input) and BatchAnalyzeSentiment (concurrent fan-out across symbols). Errors returned in response, not raised as gRPC exceptions, matching the factor/engine.py pattern.
 - [Docs] Created proposal implementation status map (`docs/specs/2026-06-18-proposal-implementation-status.md`) — annotated every module in NEW_PROJECT_PROPOSAL.md with ✅/🔶/📋 markers
 - [Docs] Created 7 pending-development specs covering all unbuilt and partially-built modules: Research & Sentiment, Alternative Data, Missing Frontend Panels, Missing Workflow Nodes, Brokers & Trading, AI/MCP/Skills, and Misc enhancements — each with motivation, component list, acceptance criteria, and effort estimate
@@ -23,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Go] Added app_test.go: verifies all 12 adapters register, mootdx reports IsAvailable()==false without a Python bridge (graceful degradation), and GetQuote/FetchOHLCV error cleanly when the registry is uninitialized.
 
 ### Changed
+- [Engine] PythonBridge now includes SentimentClient
 - [MarketData] MootdxAdapter.IsAvailable is now a cheap nil-check on the DataClient (no TDX round-trip). Previously it probed a live quote for `600519`, which doubled the TDX TCP connections per CN quote (the registry calls IsAvailable, then FetchQuote). The real liveness signal is FetchQuote itself; on failure the fallback chain moves on.
 - [Python] The mootdx `Quotes` client is now cached at module level (double-checked locking via `threading.Lock`) instead of being rebuilt on every fetch — `mootdx_config.setup()` + `Quotes.factory()` (the expensive TDX-server probe) now run once. A broken client is reset on `bars()`/`minute()` failure and rebuilt on the next call.
 
