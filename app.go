@@ -409,6 +409,63 @@ func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval strin
 	return a.marketReg.FetchOHLCVWithFallback(ctx, marketName, symbol, interval, start, end)
 }
 
+// — Research —
+
+// GetSentiment returns sentiment analysis for a symbol.
+func (a *App) GetSentiment(symbol string) (*research.SentimentOutput, error) {
+	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db))
+	return engine.AnalyzeSentiment(context.Background(), symbol, "", "news", "en")
+}
+
+// GetSentimentHistory returns historical sentiment for a symbol.
+func (a *App) GetSentimentHistory(symbol string, days int) ([]research.SentimentOutput, error) {
+	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db))
+	return engine.GetSentimentHistory(context.Background(), symbol, days)
+}
+
+// GetStockResearch returns multi-dimensional research data for a symbol.
+func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockResearchResult, error) {
+	repo := research.NewResearchRepo(a.db)
+	finSvc := research.NewFinancialsService()
+	peerSvc := research.NewPeerComparisonService()
+	estSvc := research.NewAnalystEstimatesService()
+	insSvc := research.NewInsiderTradingService()
+
+	result := &research.StockResearchResult{
+		Symbol: symbol,
+		Overview: map[string]interface{}{
+			"symbol": symbol, "name": symbol,
+			"sector": "Mock", "market_cap": "N/A",
+		},
+	}
+
+	for _, tab := range tabs {
+		switch tab {
+		case "financials":
+			fd, _ := finSvc.GetFinancials(context.Background(), symbol)
+			result.Financials = fd
+			result.Ratios = finSvc.ComputeRatios(fd)
+		case "peers":
+			peers, _ := peerSvc.GetPeers(context.Background(), symbol)
+			result.Peers = peers
+		case "estimates":
+			est, _ := estSvc.GetEstimates(context.Background(), symbol)
+			result.Estimates = est
+		case "insider":
+			txns, _ := insSvc.GetInsiderTrades(context.Background(), symbol)
+			result.InsiderTxns = txns
+		case "sentiment":
+			if a.bridge != nil {
+				engine := research.NewSentimentEngine(a.bridge, repo)
+				s, _ := engine.AnalyzeSentiment(context.Background(), symbol, "", "news", "en")
+				result.Sentiment = s
+			}
+		}
+	}
+
+	return result, nil
+}
+
 // Shutdown performs graceful cleanup: closes the Python sidecar connection,
 // shared DB connection, and releases any resources held by the application.
 func (a *App) Shutdown() {
