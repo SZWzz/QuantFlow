@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package quantflow;
+
+option go_package = "quantflow/internal/python/proto;proto";
+
+// SentimentService provides NLP sentiment analysis for financial text content.
+// Supports analysis of news articles, social media posts, earnings call transcripts,
+// and other financial text sources for stocks across A-share, HK, US, and crypto markets.
+service SentimentService {
+  // AnalyzeSentiment analyzes a single text content for sentiment.
+  rpc AnalyzeSentiment(AnalyzeSentimentRequest) returns (AnalyzeSentimentResponse);
+
+  // BatchAnalyzeSentiment performs sentiment analysis across multiple symbols.
+  rpc BatchAnalyzeSentiment(BatchAnalyzeRequest) returns (BatchAnalyzeResponse);
+}
+
+message AnalyzeSentimentRequest {
+  string symbol = 1;
+  string text_content = 2;
+  string text_type = 3;
+  string language = 4;
+  int32 max_sources = 5;
+}
+
+message SentimentResult {
+  double score = 1;
+  string label = 2;
+  double confidence = 3;
+  repeated string keywords = 4;
+  repeated string entities = 5;
+  string source = 6;
+}
+
+message AnalyzeSentimentResponse {
+  string symbol = 1;
+  double overall_score = 2;
+  string overall_label = 3;
+  repeated SentimentResult results = 4;
+  double compute_time_ms = 5;
+  string error = 6;
+}
+
+message BatchAnalyzeRequest {
+  repeated string symbols = 1;
+  string text_type = 2;
+  string language = 3;
+}
+
+message BatchAnalyzeResponse {
+  repeated AnalyzeSentimentResponse responses = 1;
+  string error = 2;
+}
