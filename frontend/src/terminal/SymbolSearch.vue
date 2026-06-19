@@ -1,0 +1,248 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useSymbolSearch, type StockEntry } from '@/lib/symbolSearch'
+
+const props = defineProps<{
+  modelValue?: string
+  placeholder?: string
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  'select': [entry: StockEntry]
+}>()
+
+const { query, results, loading } = useSymbolSearch()
+const open = ref(false)
+const selectedIndex = ref(-1)
+const inputRef = ref<HTMLInputElement | null>(null)
+const listRef = ref<HTMLUListElement | null>(null)
+
+const displayValue = ref(props.modelValue ?? '')
+const selectedName = ref('')
+
+// Sync external modelValue changes
+computed(() => props.modelValue)
+
+// When user picks a result
+function select(entry: StockEntry) {
+  displayValue.value = entry.code
+  selectedName.value = entry.name
+  query.value = ''
+  open.value = false
+  selectedIndex.value = -1
+  emit('update:modelValue', entry.code)
+  emit('select', entry)
+}
+
+// Keyboard navigation
+function onKeydown(e: KeyboardEvent) {
+  if (!open.value || results.value.length === 0) {
+    if (e.key === 'Enter') {
+      emit('update:modelValue', displayValue.value)
+    }
+    return
+  }
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault()
+      selectedIndex.value = Math.min(selectedIndex.value + 1, results.value.length - 1)
+      break
+    case 'ArrowUp':
+      e.preventDefault()
+      selectedIndex.value = Math.max(selectedIndex.value - 1, 0)
+      break
+    case 'Enter':
+      e.preventDefault()
+      if (selectedIndex.value >= 0 && selectedIndex.value < results.value.length) {
+        select(results.value[selectedIndex.value])
+      }
+      break
+    case 'Escape':
+      open.value = false
+      selectedIndex.value = -1
+      break
+  }
+}
+
+function onFocus() {
+  if (displayValue.value) {
+    query.value = displayValue.value
+  }
+  open.value = true
+}
+
+function onBlur() {
+  // Delay close so click on result can fire
+  setTimeout(() => {
+    open.value = false
+    selectedIndex.value = -1
+  }, 150)
+}
+
+function onInput(e: Event) {
+  const val = (e.target as HTMLInputElement).value
+  displayValue.value = val
+  query.value = val
+  selectedName.value = ''
+  open.value = true
+  selectedIndex.value = -1
+}
+
+function marketBadge(market: string): string {
+  switch (market) {
+    case 'SH': return '沪'
+    case 'SZ': return '深'
+    case 'BJ': return '京'
+    case 'HK': return '港'
+    case 'US': return '美'
+    default: return market
+  }
+}
+
+function marketColor(market: string): string {
+  switch (market) {
+    case 'SH': return '#ef4444'  // red
+    case 'SZ': return '#22c55e'  // green
+    case 'BJ': return '#3b82f6'  // blue
+    case 'HK': return '#f59e0b'  // amber
+    case 'US': return '#8b5cf6'  // purple
+    default: return '#6b7280'
+  }
+}
+
+// Close on outside click
+function onClickOutside(e: MouseEvent) {
+  const el = (e.target as HTMLElement)
+  if (inputRef.value && !inputRef.value.contains(el) && listRef.value && !listRef.value.contains(el)) {
+    open.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', onClickOutside))
+onUnmounted(() => document.removeEventListener('click', onClickOutside))
+</script>
+
+<template>
+  <div class="symbol-search">
+    <div class="input-wrapper">
+      <input
+        ref="inputRef"
+        class="search-input"
+        :value="selectedName || displayValue"
+        :placeholder="placeholder ?? '输入代码/名称/拼音...'"
+        @input="onInput"
+        @focus="onFocus"
+        @blur="onBlur"
+        @keydown="onKeydown"
+        autocomplete="off"
+      />
+      <span v-if="loading" class="spinner">⏳</span>
+    </div>
+
+    <ul v-if="open && results.length > 0" ref="listRef" class="dropdown">
+      <li
+        v-for="(entry, i) in results"
+        :key="entry.code"
+        :class="['dropdown-item', { active: i === selectedIndex }]"
+        @mousedown.prevent="select(entry)"
+      >
+        <span class="market-badge" :style="{ background: marketColor(entry.market) }">
+          {{ marketBadge(entry.market) }}
+        </span>
+        <span class="item-code">{{ entry.code }}</span>
+        <span class="item-name">{{ entry.name }}</span>
+      </li>
+    </ul>
+
+    <div v-if="open && query && !loading && results.length === 0" class="dropdown empty">
+      未找到匹配股票
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.symbol-search {
+  position: relative;
+  width: 100%;
+}
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-input {
+  width: 100%;
+  padding: 6px 28px 6px 10px;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  background: #1f2937;
+  color: #e5e7eb;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+.search-input:focus {
+  border-color: #3b82f6;
+}
+.search-input::placeholder {
+  color: #6b7280;
+}
+.spinner {
+  position: absolute;
+  right: 8px;
+  font-size: 12px;
+}
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 2px 0 0 0;
+  padding: 4px 0;
+  list-style: none;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  background: #1f2937;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.dropdown.empty {
+  padding: 12px;
+  color: #6b7280;
+  font-size: 13px;
+  text-align: center;
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.dropdown-item:hover,
+.dropdown-item.active {
+  background: #374151;
+}
+.market-badge {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+.item-code {
+  font-weight: 600;
+  color: #60a5fa;
+  font-variant-numeric: tabular-nums;
+  width: 60px;
+  flex-shrink: 0;
+}
+.item-name {
+  color: #e5e7eb;
+}
+</style>

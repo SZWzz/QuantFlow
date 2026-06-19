@@ -171,6 +171,84 @@ func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interv
 	return bars, nil
 }
 
+// EastMoneyStockInfo holds basic company information from EastMoney push2 API.
+// Based on a-stock-data SKILL §6.3.
+type EastMoneyStockInfo struct {
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Industry    string  `json:"industry"`     // 行业分类
+	TotalShares float64 `json:"total_shares"` // 总股本(股)
+	FloatShares float64 `json:"float_shares"` // 流通股(股)
+	MarketCap   float64 `json:"market_cap"`   // 总市值(元)
+	FloatCap    float64 `json:"float_cap"`    // 流通市值(元)
+	ListDate    string  `json:"list_date"`    // 上市日期 YYYYMMDD
+	Price       float64 `json:"price"`        // 最新价(元)
+}
+
+// FetchStockInfo returns basic company information for a stock.
+func (a *EastMoneyAdapter) FetchStockInfo(ctx context.Context, symbol string) (*EastMoneyStockInfo, error) {
+	secid := toEastMoneySecID(symbol)
+	url := fmt.Sprintf("%s?secid=%s&fields=f43,f57,f58,f84,f85,f116,f117,f127,f189",
+		eastmoneyURL, secid)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("eastmoney stock_info: %w", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("Referer", "https://quote.eastmoney.com/")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("eastmoney stock_info: http: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("eastmoney stock_info: HTTP %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data struct {
+			F57  string      `json:"f57"`  // 代码
+			F58  string      `json:"f58"`  // 名称
+			F127 string      `json:"f127"` // 行业
+			F84  float64     `json:"f84"`  // 总股本(股)
+			F85  float64     `json:"f85"`  // 流通股(股)
+			F116 float64     `json:"f116"` // 总市值(元)
+			F117 float64     `json:"f117"` // 流通市值(元)
+			F189 interface{} `json:"f189"` // 上市日期 (int or string)
+			F43  float64     `json:"f43"`  // 最新价(分)
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("eastmoney stock_info: parse: %w", err)
+	}
+
+	info := &EastMoneyStockInfo{
+		Code:        result.Data.F57,
+		Name:        result.Data.F58,
+		Industry:    result.Data.F127,
+		TotalShares: result.Data.F84,
+		FloatShares: result.Data.F85,
+		MarketCap:   result.Data.F116,
+		FloatCap:    result.Data.F117,
+		Price:       result.Data.F43 / 100.0, // 分→元
+	}
+
+	// List date can be int (e.g., 20010827) or string ("2001-08-27")
+	switch v := result.Data.F189.(type) {
+	case float64:
+		if v > 19000000 {
+			info.ListDate = fmt.Sprintf("%08.0f", v) // YYYYMMDD
+		}
+	case string:
+		info.ListDate = strings.ReplaceAll(v, "-", "")
+	}
+
+	return info, nil
+}
+
 func (a *EastMoneyAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "600519")
 	return err
@@ -178,12 +256,11 @@ func (a *EastMoneyAdapter) HealthCheck(ctx context.Context) error {
 
 // toEastMoneySecID converts a symbol like "600519.SH" or "000001.SZ" to EastMoney secid "1.600519" or "0.000001".
 func toEastMoneySecID(symbol string) string {
-	symbol = strings.TrimSuffix(symbol, ".SH")
-	symbol = strings.TrimSuffix(symbol, ".SZ")
-	if strings.HasPrefix(symbol, "6") {
-		return "1." + symbol
+	id, err := market.NormalizeCN(symbol)
+	if err != nil {
+		return "0." + symbol
 	}
-	return "0." + symbol
+	return id.ToEastMoney()
 }
 
 type eastMoneyResponse struct {

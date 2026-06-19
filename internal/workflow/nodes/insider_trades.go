@@ -127,6 +127,9 @@ func mockInsiderTradeOutput(symbol string) map[string]any {
 	return map[string]any{
 		"transactions": []research.InsiderTransaction{},
 		"net_activity": "neutral",
-		"signal":       map[string]any{"action": "hold", "confidence": 0.0},
+		"signal": map[string]any{
+			"action":     "hold",
+			"confidence": 0.0,
+		},
 	}
 }

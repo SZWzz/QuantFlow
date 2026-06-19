@@ -6,7 +6,7 @@ import (
 )
 
 func TestSentimentEngine_MockFallback(t *testing.T) {
-	engine := NewSentimentEngine(nil, nil) // No bridge, no repo
+	engine := NewSentimentEngine(nil, nil, nil) // No bridge, no repo
 
 	output, err := engine.AnalyzeSentiment(context.Background(), "AAPL", "", "news", "en")
 	if err != nil {
@@ -24,14 +24,14 @@ func TestSentimentEngine_MockFallback(t *testing.T) {
 }
 
 func TestSentimentEngine_IsBridgeAvailable(t *testing.T) {
-	engine := NewSentimentEngine(nil, nil)
+	engine := NewSentimentEngine(nil, nil, nil)
 	if engine.IsBridgeAvailable() {
 		t.Error("expected bridge unavailable when nil")
 	}
 }
 
 func TestMockSentiment_ReturnsNeutral(t *testing.T) {
-	engine := NewSentimentEngine(nil, nil)
+	engine := NewSentimentEngine(nil, nil, nil)
 	output, err := engine.AnalyzeSentiment(context.Background(), "TEST", "", "social", "en")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -45,7 +45,7 @@ func TestMockSentiment_ReturnsNeutral(t *testing.T) {
 }
 
 func TestSentimentEngine_BatchAnalyze(t *testing.T) {
-	engine := NewSentimentEngine(nil, nil)
+	engine := NewSentimentEngine(nil, nil, nil)
 	symbols := []string{"AAPL", "MSFT", "GOOGL"}
 	results, err := engine.BatchAnalyze(context.Background(), symbols, "news", "en")
 	if err != nil {

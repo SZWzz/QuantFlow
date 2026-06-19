@@ -37,4 +37,18 @@ describe('useDataStore', () => {
     store.toggleOffline()
     expect(store.isOffline).toBe(true)
   })
+
+  it('should start with null marketOverview', () => {
+    const store = useDataStore()
+    expect(store.marketOverview).toBeNull()
+  })
+
+  it('should fetch market overview with mock data', async () => {
+    const store = useDataStore()
+    await store.fetchMarketOverview()
+    expect(store.marketOverview).not.toBeNull()
+    expect(store.marketOverview!.indices.length).toBeGreaterThan(0)
+    expect(store.marketOverview!.breadth.advancers).toBeGreaterThan(0)
+    expect(store.marketOverview!.sectors.length).toBeGreaterThan(0)
+  })
 })

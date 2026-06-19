@@ -128,6 +128,108 @@ func (a *MootdxAdapter) HealthCheck(ctx context.Context) error {
 	return err
 }
 
+// ── F10 categories ─────────────────────────────────────────────────────────
+
+// F10Categories returns the 9 supported F10 data categories.
+func F10Categories() []string {
+	return []string{"最新提示", "公司概况", "财务分析", "股东研究", "股本结构", "资本运作", "业内点评", "行业分析", "公司大事"}
+}
+
+// ── Finance ───────────────────────────────────────────────────────────────────
+
+// MootdxFinance holds the 37-field quarterly finance snapshot from TDX.
+// Key fields are parsed strongly; remaining fields are kept in Raw.
+type MootdxFinance struct {
+	Symbol string  `json:"symbol"`
+	EPS    float64 `json:"eps"`    // 每股收益
+	BVPS   float64 `json:"bvps"`   // 每股净资产
+	ROE    float64 `json:"roe"`    // 净资产收益率(%)
+	Profit float64 `json:"profit"` // 净利润(元)
+	Income float64 `json:"income"` // 主营收入(元)
+	// Raw holds all 37+ fields from mootdx verbatim.
+	Raw map[string]string `json:"raw"`
+}
+
+// FetchFinance fetches quarterly finance snapshot data via mootdx (37 fields).
+func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*MootdxFinance, error) {
+	if a.dataClient == nil {
+		return nil, fmt.Errorf("mootdx: Python sidecar not connected")
+	}
+
+	resp, err := a.dataClient.FetchData(ctx, &pb.FetchDataRequest{
+		Source:   "mootdx",
+		DataType: "finance",
+		Symbols:  []string{symbol},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]interface{}
+	if err := json.Unmarshal(resp.Data, &results); err != nil {
+		return nil, fmt.Errorf("mootdx finance: parse: %w", err)
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("mootdx: no finance data for %s", symbol)
+	}
+
+	r := results[0]
+	fin := &MootdxFinance{
+		Symbol: symbol,
+		Raw:    make(map[string]string),
+	}
+	for k, v := range r {
+		s := fmt.Sprint(v)
+		fin.Raw[k] = s
+		switch k {
+		case "每股收益":
+			fin.EPS = parseFloatSafe(s)
+		case "每股净资产":
+			fin.BVPS = parseFloatSafe(s)
+		case "净资产收益率":
+			fin.ROE = parseFloatSafe(s)
+		case "净利润":
+			fin.Profit = parseFloatSafe(s)
+		case "主营收入":
+			fin.Income = parseFloatSafe(s)
+		}
+	}
+	return fin, nil
+}
+
+// ── F10 ──────────────────────────────────────────────────────────────────────
+
+// FetchF10 fetches company text data from TDX F10.
+// category must be one of the 9 F10Categories().
+func (a *MootdxAdapter) FetchF10(ctx context.Context, symbol, category string) (string, error) {
+	if a.dataClient == nil {
+		return "", fmt.Errorf("mootdx: Python sidecar not connected")
+	}
+
+	resp, err := a.dataClient.FetchData(ctx, &pb.FetchDataRequest{
+		Source:   "mootdx",
+		DataType: "f10",
+		Symbols:  []string{symbol},
+		Params:   map[string]string{"category": category},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	var results []struct {
+		Symbol   string `json:"symbol"`
+		Category string `json:"category"`
+		Text     string `json:"text"`
+	}
+	if err := json.Unmarshal(resp.Data, &results); err != nil {
+		return "", fmt.Errorf("mootdx f10: parse: %w", err)
+	}
+	if len(results) == 0 || results[0].Text == "" {
+		return "", fmt.Errorf("mootdx: no F10(%s) data for %s", category, symbol)
+	}
+	return results[0].Text, nil
+}
+
 // ── Response types ─────────────────────────────────────────────────────────────
 
 type mootdxQuote struct {

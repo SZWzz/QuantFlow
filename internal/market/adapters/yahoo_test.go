@@ -6,8 +6,8 @@ import (
 
 func TestYahooAdapter_Name(t *testing.T) {
 	a := NewYahooAdapter()
-	if a.Name() != "yfinance" {
-		t.Errorf("Name() = %s, want yfinance", a.Name())
+	if a.Name() != "yahoo" {
+		t.Errorf("Name() = %s, want yahoo", a.Name())
 	}
 }
 

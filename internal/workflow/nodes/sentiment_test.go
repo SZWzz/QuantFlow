@@ -76,3 +76,39 @@ func TestSentimentNode_Execute_MissingSymbol(t *testing.T) {
 		t.Error("expected error for missing symbol")
 	}
 }
+
+func TestSentimentToSignal_Thresholds(t *testing.T) {
+	// Low confidence: always hold
+	s := sentimentToSignal(0.8, 0.2)
+	if s["action"] != "hold" {
+		t.Errorf("low confidence must hold, got %v", s["action"])
+	}
+
+	// High confidence + strong positive → buy
+	s = sentimentToSignal(0.5, 0.8)
+	if s["action"] != "buy" {
+		t.Errorf("strong positive must buy, got %v", s["action"])
+	}
+
+	// High confidence + strong negative → sell
+	s = sentimentToSignal(-0.5, 0.8)
+	if s["action"] != "sell" {
+		t.Errorf("strong negative must sell, got %v", s["action"])
+	}
+
+	// High confidence + near zero → hold
+	s = sentimentToSignal(0.05, 0.8)
+	if s["action"] != "hold" {
+		t.Errorf("near zero must hold, got %v", s["action"])
+	}
+
+	// Boundary: exactly at threshold
+	s = sentimentToSignal(0.15, 0.4)
+	if s["action"] != "hold" {
+		t.Errorf("boundary value (> threshold) should be hold? got %v", s["action"])
+	}
+	s = sentimentToSignal(0.1501, 0.4)
+	if s["action"] != "buy" {
+		t.Errorf("just above threshold should buy, got %v", s["action"])
+	}
+}

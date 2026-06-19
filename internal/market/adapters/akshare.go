@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+	"sync"
 	"time"
 
 	"quantflow/internal/market"
@@ -13,9 +15,11 @@ import (
 
 // AKShareAdapter fetches data via Tencent Finance HTTP API.
 // Named "akshare" for the fallback chain. Uses Tencent's free HTTP interface
-// which provides independent data redundancy from Sina/EastMoney.
+// which provides CN A-shares, HK stocks, and US (limited) — no API key required.
 type AKShareAdapter struct {
 	client *http.Client
+	hkAvailable bool
+	hkMu        sync.RWMutex
 }
 
 // NewAKShareAdapter creates a new AKShare adapter (Tencent-backed).
@@ -68,8 +72,112 @@ func (a *AKShareAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 }
 
 func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
-	return nil, fmt.Errorf("akshare: OHLCV not supported (real-time quotes only via Tencent backend, use tushare or yahoo for historical data)")
+	code := toTencentCode(symbol)
+	// Determine period: day/week/month
+	period := "day"
+	switch interval {
+	case "1wk", "1w", "week":
+		period = "week"
+	case "1mo", "1M", "month":
+		period = "month"
+	}
+	// Tencent K-line API via proxy.finance.qq.com (works for both CN and HK from China).
+	url := fmt.Sprintf("https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newkline/newkline?param=%s,%s,,,320", code, period)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("akshare OHLCV: %w", err)
+	}
+	req.Header.Set("Referer", "http://gu.qq.com/"+code)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, market.NewTransientErrorf("akshare OHLCV: http error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("akshare OHLCV: HTTP %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<18)) // 256KB
+	if err != nil {
+		return nil, fmt.Errorf("akshare OHLCV: read error: %w", err)
+	}
+
+	return parseTencentKline(symbol, body)
 }
+
+// parseTencentKline parses Tencent's K-line JSON response.
+// Format: {"code":0,"msg":"","data":{"hk00700":{"day":[...]|"week":[...]|"month":[...]}}}
+func parseTencentKline(symbol string, body []byte) ([]market.OHLCVBar, error) {
+	var result struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+		Data map[string]struct {
+			Day   [][]string `json:"day"`
+			Week  [][]string `json:"week"`
+			Month [][]string `json:"month"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("akshare OHLCV parse: %w", err)
+	}
+	if result.Code != 0 {
+		return nil, fmt.Errorf("akshare OHLCV: API error code %d: %s", result.Code, result.Msg)
+	}
+
+	// Find the first stock entry
+	var klines [][]string
+	for _, v := range result.Data {
+		if len(v.Day) > 0 {
+			klines = v.Day
+		} else if len(v.Week) > 0 {
+			klines = v.Week
+		} else if len(v.Month) > 0 {
+			klines = v.Month
+		}
+		break
+	}
+	if len(klines) == 0 {
+		return nil, fmt.Errorf("akshare OHLCV: no K-line data for %s", symbol)
+	}
+
+	bars := make([]market.OHLCVBar, 0, len(klines))
+	for _, row := range klines {
+		if len(row) < 6 {
+			continue
+		}
+		// Tencent K-line format: [date, open, close, high, low, volume]
+		date := strings.Trim(row[0], "\"")
+		open := parseFloatSafe(row[1])
+		high := parseFloatSafe(row[3])
+		low := parseFloatSafe(row[4])
+		closeV := parseFloatSafe(row[2])
+		volume := parseFloatSafe(row[5])
+
+		if open == 0 && closeV == 0 {
+			continue
+		}
+
+		bars = append(bars, market.OHLCVBar{
+			Symbol: symbol,
+			Date:   date,
+			Open:   open,
+			High:   high,
+			Low:    low,
+			Close:  closeV,
+			Volume: volume,
+		})
+	}
+
+	if len(bars) == 0 {
+		return nil, fmt.Errorf("akshare OHLCV: empty data after parse for %s", symbol)
+	}
+	return bars, nil
+}
+
 
 func (a *AKShareAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "600519")

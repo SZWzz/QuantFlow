@@ -88,12 +88,13 @@ func (n *SentimentNode) Execute(ctx context.Context, inputs map[string]any, para
 func (n *SentimentNode) Validate() error { return nil }
 
 // sentimentToSignal converts sentiment score to a trading signal.
+// Uses the same ±0.15 threshold as the NLP pipeline for consistency.
 func sentimentToSignal(score, confidence float64) map[string]any {
 	action := "hold"
-	if confidence > 0.4 {
-		if score > 0.3 {
+	if confidence > 0.3 {
+		if score > 0.15 {
 			action = "buy"
-		} else if score < -0.3 {
+		} else if score < -0.15 {
 			action = "sell"
 		}
 	}
