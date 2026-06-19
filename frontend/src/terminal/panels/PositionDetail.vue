@@ -1,17 +1,27 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { useSymbolContext } from '@/stores/symbolContext'
 import * as echarts from 'echarts'
 import VChart from 'vue-echarts'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-const symbol = ref(props.params?.symbol || 'AAPL')
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
+
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 const market = ref('US')
 const currency = ref('USD')
 
 const detail = ref({ quantity: 100, avg_price: 188.50, market_price: 195.32, market_value: 19532, pnl: 682, pnl_pct: 3.62, alloc_pct: 26.7 })
 
 const fmt = (n: number, dec = 2) => n.toFixed(dec)
+
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (pg.linked && newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+  }
+})
 
 const priceChartOption = computed(() => ({
   backgroundColor: 'transparent',
