@@ -129,10 +129,10 @@ function applyPreset(preset: number) {
       break
     case 2: // Split horizontal
       if (tabs.length >= 2) {
-        Object.assign(terminal.layout, createContainer('root', 'row', [))
+        Object.assign(terminal.layout, createContainer('root', 'row', [
           createTabLeaf('left', tabs[0]),
           createTabLeaf('right', tabs[1]),
-        ])
+        ]))
       }
       break
     case 3: // 2x2 grid
@@ -150,10 +150,10 @@ function applyPreset(preset: number) {
       break
     case 4: // Classic: sidebar + main
       if (tabs.length >= 2) {
-        Object.assign(terminal.layout, createContainer('root', 'row', [))
+        Object.assign(terminal.layout, createContainer('root', 'row', [
           createTabLeaf('sidebar', tabs[0]),
           createTabLeaf('main', tabs[1]),
-        ])
+        ]))
         terminal.layout.splitRatios = [0.25, 0.75]
       }
       break
