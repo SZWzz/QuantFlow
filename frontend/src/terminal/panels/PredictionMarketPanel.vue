@@ -1,0 +1,441 @@
+<!-- frontend/src/terminal/panels/PredictionMarketPanel.vue -->
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import VChart from 'vue-echarts'
+import 'echarts'
+
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+interface Outcome {
+  id: string
+  label: string
+  price: number
+  change_24h: number
+}
+
+interface Event {
+  id: string
+  title: string
+  category: string
+  volume: number
+  liquidity: number
+  end_date: string
+  status: string
+  outcomes: Outcome[]
+  description: string
+}
+
+interface PricePoint {
+  timestamp: number
+  price: number
+}
+
+const categories = ['all', 'economics', 'crypto', 'politics', 'sports', 'tech', 'entertainment'] as const
+const activeCategory = ref('all')
+const events = ref<Event[]>([])
+const loading = ref(true)
+const selectedEvent = ref<Event | null>(null)
+const priceHistory = ref<PricePoint[]>([])
+const signalInfo = ref<{ action: string; confidence: number; description: string } | null>(null)
+
+const categoryLabels: Record<string, string> = {
+  all: '全部', economics: '经济', crypto: '加密', politics: '政治',
+  sports: '体育', tech: '科技', entertainment: '娱乐'
+}
+
+async function loadEvents() {
+  loading.value = true
+  const cat = activeCategory.value === 'all' ? '' : activeCategory.value
+  try {
+    const go = (window as any).go
+    if (go?.main?.App?.GetPredictionMarkets) {
+      const result = await go.main.App.GetPredictionMarkets(cat, 30)
+      events.value = result.events || []
+    } else {
+      events.value = getMockEvents(cat)
+    }
+  } catch {
+    events.value = getMockEvents(cat)
+  }
+  loading.value = false
+}
+
+async function loadDetail(event: Event) {
+  selectedEvent.value = event
+  try {
+    const go = (window as any).go
+    if (go?.main?.App?.GetPredictionEventDetail) {
+      const result = await go.main.App.GetPredictionEventDetail(event.id)
+      if (result.prices?.length > 0) {
+        priceHistory.value = result.prices
+        return
+      }
+    }
+  } catch { /* mock fallback below */ }
+  // Mock price history
+  priceHistory.value = generateMockPrices(event)
+}
+
+async function loadSignals() {
+  try {
+    const go = (window as any).go
+    if (go?.main?.App?.GetPredictionSignals) {
+      const result = await go.main.App.GetPredictionSignals('', 0.05)
+      signalInfo.value = result.signal || null
+    }
+  } catch { /* no signal available */ }
+}
+
+onMounted(() => {
+  loadEvents()
+  loadSignals()
+})
+
+// Chart option for selected event's probability
+const chartOption = computed(() => {
+  if (!selectedEvent.value || priceHistory.value.length === 0) return {}
+  const dates = priceHistory.value.map(p => new Date(p.timestamp).toLocaleDateString('zh-CN'))
+  const prices = priceHistory.value.map(p => +(p.price * 100).toFixed(1))
+  return {
+    tooltip: {
+      trigger: 'axis' as const,
+      formatter: (params: any) => `${params[0].axisValue}<br/>概率: ${params[0].value}%`
+    },
+    grid: { left: 20, right: 20, top: 10, bottom: 20 },
+    xAxis: { type: 'category' as const, data: dates, show: false },
+    yAxis: {
+      type: 'value' as const, min: 0, max: 100,
+      axisLabel: { formatter: '{value}%', fontSize: 10 }
+    },
+    series: [{
+      type: 'line', data: prices, smooth: true,
+      areaStyle: { color: 'rgba(59, 130, 246, 0.1)' },
+      lineStyle: { color: '#3b82f6', width: 2 },
+      itemStyle: { color: '#3b82f6' },
+      showSymbol: false
+    }]
+  }
+})
+
+const sortedEvents = computed(() => {
+  return [...events.value].sort((a, b) => b.volume - a.volume)
+})
+
+function formatVolume(v: number): string {
+  if (v >= 1_000_000) return '$' + (v / 1_000_000).toFixed(1) + 'M'
+  if (v >= 1_000) return '$' + (v / 1_000).toFixed(0) + 'K'
+  return '$' + v.toFixed(0)
+}
+
+function formatChange(c: number): string {
+  const pct = (c * 100).toFixed(1)
+  return c >= 0 ? `+${pct}%` : `${pct}%`
+}
+
+function formatEndDate(d: string): string {
+  if (!d) return ''
+  const date = new Date(d)
+  const now = new Date()
+  const days = Math.ceil((date.getTime() - now.getTime()) / 86400000)
+  if (days < 0) return '已到期'
+  if (days === 0) return '今日到期'
+  return `${days}天后`
+}
+
+function changeClass(c: number): string {
+  return c >= 0 ? 'text-green' : 'text-red'
+}
+
+// ── Mock data ─────────────────────────────────────────────────────
+function getMockEvents(category: string): Event[] {
+  const all: Event[] = [
+    {
+      id: 'fed-rate-cut-july-2026', title: 'Fed cuts rates by July 2026?',
+      category: 'economics', volume: 2_500_000, liquidity: 1_800_000,
+      end_date: '2026-07-31T23:59:59Z', status: 'open',
+      outcomes: [
+        { id: 'yes-1', label: 'Yes', price: 0.35, change_24h: 0.03 },
+        { id: 'no-1', label: 'No', price: 0.65, change_24h: -0.03 },
+      ],
+      description: 'Market predicts probability of a Federal Reserve rate cut by July 2026.'
+    },
+    {
+      id: 'bitcoin-100k-q3-2026', title: 'Bitcoin breaks $100K by Q3 2026?',
+      category: 'crypto', volume: 4_200_000, liquidity: 3_100_000,
+      end_date: '2026-09-30T23:59:59Z', status: 'open',
+      outcomes: [
+        { id: 'yes-2', label: 'Yes', price: 0.28, change_24h: -0.05 },
+        { id: 'no-2', label: 'No', price: 0.72, change_24h: 0.05 },
+      ],
+      description: 'Will Bitcoin price exceed $100,000 before the end of Q3 2026?'
+    },
+    {
+      id: 'cpi-above-3pct', title: 'CPI inflation above 3.0% in Q2 2026?',
+      category: 'economics', volume: 1_800_000, liquidity: 1_500_000,
+      end_date: '2026-06-30T23:59:59Z', status: 'open',
+      outcomes: [
+        { id: 'yes-3', label: 'Yes', price: 0.42, change_24h: 0.02 },
+        { id: 'no-3', label: 'No', price: 0.58, change_24h: -0.02 },
+      ],
+      description: 'Will US CPI year-over-year inflation remain above 3.0% in Q2 2026?'
+    },
+    {
+      id: 'ethereum-etf-approval', title: 'Ethereum ETF options approved by end of 2026?',
+      category: 'crypto', volume: 1_100_000, liquidity: 900_000,
+      end_date: '2026-12-31T23:59:59Z', status: 'open',
+      outcomes: [
+        { id: 'yes-4', label: 'Yes', price: 0.55, change_24h: 0.08 },
+        { id: 'no-4', label: 'No', price: 0.45, change_24h: -0.08 },
+      ],
+      description: 'SEC approves options trading on spot Ethereum ETFs by end of 2026?'
+    },
+    {
+      id: 'china-gdp-below-4pct', title: 'China GDP growth below 4% in 2026?',
+      category: 'economics', volume: 950_000, liquidity: 700_000,
+      end_date: '2026-12-31T23:59:59Z', status: 'open',
+      outcomes: [
+        { id: 'yes-5', label: 'Yes', price: 0.18, change_24h: 0.01 },
+        { id: 'no-5', label: 'No', price: 0.82, change_24h: -0.01 },
+      ],
+      description: "Will China's 2026 GDP growth rate fall below 4%?"
+    },
+  ]
+  if (!category || category === 'all') return all
+  return all.filter(e => e.category === category)
+}
+
+function generateMockPrices(event: Event): PricePoint[] {
+  const points: PricePoint[] = []
+  const now = Date.now()
+  const basePrice = event.outcomes[0]?.price ?? 0.5
+  for (let i = 0; i < 30; i++) {
+    const ts = now - (30 - i) * 86400000
+    const noise = (Math.random() - 0.5) * 0.1
+    const price = Math.max(0.01, Math.min(0.99, basePrice + noise))
+    points.push({ timestamp: ts, price })
+  }
+  return points
+}
+</script>
+
+<template>
+  <div class="prediction-market-panel" :data-panel-id="panelId">
+    <!-- Header -->
+    <div class="panel-header">
+      <h3>📊 预测市场</h3>
+      <div class="header-actions">
+        <span v-if="signalInfo && signalInfo.action !== 'hold'" class="signal-badge" :class="signalInfo.action">
+          {{ signalInfo.action === 'buy' ? '🟢' : '🔴' }} {{ signalInfo.description }}
+        </span>
+        <button class="btn-sm" @click="loadEvents()">🔄 刷新</button>
+      </div>
+    </div>
+
+    <!-- Category tabs -->
+    <div class="category-tabs">
+      <button
+        v-for="cat in categories" :key="cat"
+        :class="['tab', { active: activeCategory === cat }]"
+        @click="activeCategory = cat; loadEvents()"
+      >
+        {{ categoryLabels[cat] }}
+      </button>
+    </div>
+
+    <!-- Main content: table + detail -->
+    <div class="content-area">
+      <!-- Events table -->
+      <div class="events-table" :class="{ 'with-detail': selectedEvent }">
+        <div v-if="loading" class="empty-state">加载中...</div>
+        <div v-else-if="sortedEvents.length === 0" class="empty-state">暂无预测市场数据</div>
+        <table v-else>
+          <thead>
+            <tr>
+              <th>事件</th>
+              <th>Yes 概率</th>
+              <th>24h 变化</th>
+              <th>交易量</th>
+              <th>到期</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="event in sortedEvents" :key="event.id"
+              :class="{ selected: selectedEvent?.id === event.id, 'signal-row': event.outcomes[0] && Math.abs(event.outcomes[0].change_24h) > 0.05 }"
+              @click="loadDetail(event)"
+            >
+              <td class="event-title">
+                <span class="category-tag">{{ categoryLabels[event.category] || event.category }}</span>
+                {{ event.title }}
+              </td>
+              <td class="prob">{{ (event.outcomes[0]?.price * 100).toFixed(1) }}%</td>
+              <td :class="event.outcomes[0] ? changeClass(event.outcomes[0].change_24h) : ''">
+                {{ event.outcomes[0] ? formatChange(event.outcomes[0].change_24h) : '-' }}
+              </td>
+              <td class="vol">{{ formatVolume(event.volume) }}</td>
+              <td class="end-date">{{ formatEndDate(event.end_date) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Detail panel -->
+      <div v-if="selectedEvent" class="detail-panel">
+        <div class="detail-header">
+          <h4>{{ selectedEvent.title }}</h4>
+          <button class="btn-close" @click="selectedEvent = null">&times;</button>
+        </div>
+        <p class="detail-desc">{{ selectedEvent.description }}</p>
+
+        <!-- Outcomes -->
+        <div class="outcomes-grid">
+          <div v-for="o in selectedEvent.outcomes" :key="o.id" class="outcome-card">
+            <span class="outcome-label">{{ o.label }}</span>
+            <span class="outcome-price">{{ (o.price * 100).toFixed(1) }}%</span>
+            <span :class="['outcome-change', changeClass(o.change_24h)]">{{ formatChange(o.change_24h) }}</span>
+          </div>
+        </div>
+
+        <!-- Probability chart -->
+        <div class="chart-container" v-if="priceHistory.length > 0">
+          <VChart :option="chartOption" style="height: 200px" autoresize />
+        </div>
+        <div v-else class="empty-state small">暂无价格历史</div>
+
+        <!-- Meta -->
+        <div class="detail-meta">
+          <span>交易量: {{ formatVolume(selectedEvent.volume) }}</span>
+          <span>到期: {{ formatEndDate(selectedEvent.end_date) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.prediction-market-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.panel-header h3 { margin: 0; font-size: 14px; }
+
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.signal-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-bg-subtle);
+}
+.signal-badge.buy { color: #16a34a; }
+.signal-badge.sell { color: #dc2626; }
+
+.btn-sm {
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.btn-sm:hover { background: var(--color-bg-hover); }
+
+.category-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+.tab {
+  padding: 3px 10px;
+  font-size: 11px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab.active { background: var(--color-accent); color: #fff; }
+.tab:hover:not(.active) { background: var(--color-bg-hover); }
+
+.content-area { display: flex; flex: 1; overflow: hidden; }
+.events-table { flex: 1; overflow-y: auto; min-width: 0; }
+.events-table.with-detail { flex: 0 0 55%; }
+
+table { width: 100%; border-collapse: collapse; }
+thead { position: sticky; top: 0; background: var(--color-bg-panel); z-index: 1; }
+th { padding: 6px 12px; text-align: left; font-weight: 600; font-size: 11px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border); }
+td { padding: 6px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+tr { cursor: pointer; }
+tr:hover { background: var(--color-bg-hover); }
+tr.selected { background: var(--color-bg-selected); }
+tr.signal-row { border-left: 3px solid #f59e0b; }
+
+.event-title { min-width: 200px; }
+.category-tag {
+  display: inline-block;
+  padding: 0 4px;
+  font-size: 10px;
+  border-radius: 3px;
+  background: var(--color-bg-subtle);
+  margin-right: 4px;
+}
+
+.prob { font-weight: 600; font-variant-numeric: tabular-nums; }
+.vol { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.end-date { color: var(--color-text-tertiary); font-size: 11px; }
+.text-green { color: #16a34a; }
+.text-red { color: #dc2626; }
+
+.detail-panel {
+  flex: 1;
+  border-left: 1px solid var(--color-border);
+  padding: 12px;
+  overflow-y: auto;
+  min-width: 280px;
+}
+.detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.detail-header h4 { margin: 0; font-size: 14px; }
+.btn-close {
+  background: none; border: none; font-size: 18px;
+  color: var(--color-text-secondary); cursor: pointer;
+}
+
+.detail-desc { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px; line-height: 1.5; }
+
+.outcomes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.outcome-card {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px; border-radius: 6px; background: var(--color-bg-subtle);
+}
+.outcome-label { font-size: 11px; color: var(--color-text-secondary); }
+.outcome-price { font-size: 20px; font-weight: 700; }
+.outcome-change { font-size: 11px; }
+
+.chart-container { margin-bottom: 12px; }
+
+.detail-meta {
+  display: flex; gap: 16px;
+  font-size: 11px; color: var(--color-text-tertiary);
+}
+
+.empty-state {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; color: var(--color-text-tertiary);
+}
+.empty-state.small { padding: 20px; font-size: 12px; }
+</style>
