@@ -26,6 +26,11 @@ watch([() => terminal.activeSymbol, () => terminal.lastSymbolUpdate], ([newSymbo
   }
 })
 
+// Regenerate data on interval change
+watch(interval, () => {
+  ohlcvData.value = generateMockData(interval.value === '1d' ? 90 : 60)
+})
+
 // Generate mock OHLCV data
 function generateMockData(rows: number) {
   const data: (string | number)[][] = []
@@ -47,40 +52,46 @@ function generateMockData(rows: number) {
 
 const ohlcvData = ref(generateMockData(90))
 
-const option = computed(() => ({
-  backgroundColor: 'transparent',
-  grid: [
-    { left: '8%', right: '3%', top: '5%', height: '60%' },
-    { left: '8%', right: '3%', top: '72%', height: '20%' },
-  ],
-  xAxis: [
-    { type: 'category', data: ohlcvData.value.map(d => d[0]), gridIndex: 0, axisLabel: { show: false } },
-    { type: 'category', data: ohlcvData.value.map(d => d[0]), gridIndex: 1, axisLabel: { color: '#64748b', fontSize: 10 } },
-  ],
-  yAxis: [
-    { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: '#64748b', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
-    { type: 'value', gridIndex: 1, axisLabel: { color: '#64748b', fontSize: 10 }, splitLine: { show: false } },
-  ],
-  series: [
-    {
-      type: 'candlestick',
-      data: ohlcvData.value.map(d => [d[1], d[2], d[3], d[4]]),
-      gridIndex: 0,
-      itemStyle: { color: '#22c55e', color0: '#ef4444', borderColor: '#22c55e', borderColor0: '#ef4444' },
-    },
-    {
-      type: 'bar',
-      data: ohlcvData.value.map(d => d[5]),
-      gridIndex: 1,
-      itemStyle: { color: d => (d as any)[1] > (d as any)[2] ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)' },
-    },
-  ],
-  tooltip: { trigger: 'axis' as const },
-  dataZoom: [
-    { type: 'inside', xAxisIndex: [0, 1], start: 50, end: 100 },
-    { type: 'slider', xAxisIndex: [0, 1], start: 50, end: 100, height: 20, bottom: 0 },
-  ],
-}))
+const option = computed(() => {
+  const dates = ohlcvData.value.map((d: any) => d[0])
+  const kdata = ohlcvData.value.map((d: any) => [d[1], d[2], d[3], d[4]]) // [open, close, low, high]
+  const vdata = ohlcvData.value.map((d: any, i: number) => {
+    const open = d[1] as number
+    const close = d[2] as number
+    return { value: d[5], itemStyle: { color: close >= open ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)' } }
+  })
+
+  return {
+    backgroundColor: 'transparent',
+    grid: [
+      { left: 60, right: 10, top: 10, height: '62%' },
+      { left: 60, right: 10, top: '78%', height: '15%' },
+    ],
+    xAxis: [
+      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#334155' } } },
+      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#334155' } } },
+    ],
+    yAxis: [
+      { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: '#64748b', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+      { type: 'value', gridIndex: 1, axisLabel: { color: '#64748b', fontSize: 10 }, splitLine: { show: false } },
+    ],
+    series: [
+      {
+        type: 'candlestick', name: 'K线',
+        data: kdata, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
+        itemStyle: { color: '#22c55e', color0: '#ef4444', borderColor: '#22c55e', borderColor0: '#ef4444' },
+      },
+      {
+        type: 'bar', name: 'Volume',
+        data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
+      },
+    ],
+    tooltip: { trigger: 'axis' as const },
+    dataZoom: [
+      { type: 'inside', xAxisIndex: [0, 1], start: 50, end: 100 },
+    ],
+  }
+})
 
 onMounted(() => {
   if (terminal.activeSymbol && terminal.activeSymbol !== symbol.value) {
