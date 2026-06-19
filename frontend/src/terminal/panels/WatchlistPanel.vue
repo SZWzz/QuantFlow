@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useDataStore, type QuoteSnapshot } from '@/stores/data'
-import { useTerminalStore } from '@/stores/terminal'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
-const terminal = useTerminalStore()
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbols = ref<string[]>(['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMD', 'BABA', '0700.HK'])
 const newSymbol = ref('')
@@ -21,7 +22,7 @@ function removeSymbol(sym: string) {
 }
 
 function selectSymbol(sym: string) {
-  terminal.setActiveSymbol(sym)
+  ctx.setGroupSymbol(pg.groupId, sym)
 }
 
 function formatPrice(p: number): string { return p.toFixed(2) }
@@ -56,7 +57,7 @@ const mockQuotes: Record<string, QuoteSnapshot> = {
         :class="{
           up: (mockQuotes[sym]?.change || 0) >= 0,
           down: (mockQuotes[sym]?.change || 0) < 0,
-          active: terminal.activeSymbol === sym,
+          active: ctx.getGroupSymbol(pg.groupId) === sym,
         }"
         @click="selectSymbol(sym)"
       >
