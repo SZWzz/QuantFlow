@@ -8,10 +8,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2026.6.19] - 2026-06-19
 
 ### Added
-- [Docs] .gitignore — 清理 agent 产物和临时文件
+- [Frontend] MarketOverviewPanel — 7 index cards + market breadth bar + sector rankings, 30s auto-refresh via dataStore.fetchMarketOverview()
+- [Frontend] MarketDepthPanel — 5-level bid/ask order book + 20-tick timeline with B/S direction badges
+- [Frontend] HeatmapPanel — ECharts treemap (or CSS grid fallback), 30 sectors colored by change%, sized by market cap
+- [Frontend] TickerTapePanel — Horizontal CSS-scrolling quote bar with 22 A-share stocks, pause on hover
+- [Frontend] CryptoOverviewPanel — BTC/ETH dominance bars + top 20 crypto table with sortable columns + auto-refresh
+- [Frontend] EquityCurvePanel — ECharts dual-axis NAV + benchmark + drawdown area chart + 5 stats cards (Sharpe/Calmar)
+- [Frontend] SurfaceChartPanel — ECharts heatmap volatility surface (SVI parametric) + IV smile slice view
+- [Frontend] CorrelationPanel — Pearson matrix heatmap from symbol list input, ECharts or HTML fallback table
+- [Frontend] DistributionPanel — Return histogram + normal fit + 5 stats cards (Mean/Std Dev/Skewness/Kurtosis/JB)
+- [Frontend] DrawingPanel — HTML5 Canvas with 5 drawing tools (trendline/horizontal/Fibonacci/text) + localStorage persistence
+- [Frontend] MonteCarloPanel — GBM simulation via stats.ts, paths chart + terminal distribution + VaR/CVaR stats
+- [Frontend] RebalancePanel — Current vs target allocation comparison + editable target table + delta trade list
+- [Frontend] OrderBlotterPanel — Filterable order table (6 statuses) + cancel button + fill rate stats, 10s auto-refresh
+- [Frontend] ExecutionPanel — Trade history table with pagination (Load More), 5s auto-refresh
+- [Frontend] BasketOrderPanel — Multi-symbol basket builder + CSV import + sequential execution with progress log
+- [Frontend] BrokerStatusPanel — 6 broker cards (Paper/Futu/Binance + Alpaca/IBKR/OKX dimmed) + Test Connection + 30s refresh
+- [Frontend] ActionCenterPanel — Event feed with 5 event types (stop-loss/profit/dividend/split/approval) + dismiss/confirm
+- [Frontend] stats.ts library — pearsonMatrix, histogramBins, simulateGBM, computeDrawdowns, sharpeRatio (pure TS, zero deps)
+- [Frontend] dataStore extended — MarketOverview interface + fetchMarketOverview() with realistic mock indices/sectors
+- [Frontend] portfolioStore extended — Order/Trade/EquityCurvePoint interfaces + fetchOrders/Trades/EquityCurve + cancelOrder
+- [Frontend] vitest.config.ts + vitest.setup.ts — Global ResizeObserver mock for ECharts tests
+- [Frontend] 17 panels + 3 library files + 17 test files — 164 tests passing (was 76, now +88)
+- [Python] NLPPipeline: 三层英文情绪回退 (VADER → TextBlob → 关键词匹配) + 中文 SnowNLP，所有依赖可选，缺失时自动降级
+- [Python] NLPPipeline: vader_lexicon 自动一次性下载 (5s超时)，网络不可用时不阻塞
+- [Research] SentimentToSignal 阈值统一为 ±0.15，与 NLPPipeline label 阈值一致
+- [MarketData] NewsAdapter 接口 + EastMoneyNewsAdapter (东财个股新闻 JSONP) + EastMoneyGlobalNewsAdapter (7×24 全球快讯) — 为 NLP 情绪分析提供文本源
+- [Workflow] NewsFetcherNode — 输入 symbol，自动拉取新闻文本并输出到 SentimentNode.news_text
+- [Research] SentimentEngine 集成新闻自动拉取：textContent 为空时自动通过 NewsAdapter 获取新闻 → NLP 分析
+- [MarketData] EastMoneyRateLimiter 全局限流器 (500ms 间隔 + 抖动，QPS ≤ 2)，防止东财 IP 封禁
+- [Docs] 全栈数据源整合 Spec (docs/specs/2026-06-19-data-source-integration.md) — 七层 27 端点映射到 QuantFlow 适配器
+- [MarketData] THSHotAdapter (同花顺热点强势股+题材归因 reason tags) + THSNorthboundAdapter (北向资金分钟级流向+本地CSV自缓存)
+- [MarketData] EastMoneyConceptAdapter (个股概念/行业/地域板块归属, slist spt=3) + EastMoneySignalsAdapter (龙虎榜个股+全市场+限售解禁+行业排名, datacenter API)
+- [MarketData] EastMoneyFundFlowAdapter (个股资金流: push2分钟级 + push2his 120日日级) + EastMoneyCapitalAdapter (融资融券+大宗交易+股东户数+分红送转)
+- [MarketData] SinaFinancialsAdapter (新浪财报三表: 资产负债表/利润表/现金流量表, quotes.sina.cn)
+- [Research] PeerComparisonService 接入概念板块适配器 (真实行业数据替代 mock) + FinancialsService 接入新浪财报 + AnalystEstimatesService 接入同花顺热点
+- [MarketData] EastMoney datacenter 统一查询 helper (queryDatacenter), 复用龙虎榜/解禁/融资融券/大宗/股东/分红端点
+- [MarketData] EastMoneyReportAdapter (东财研报 API: 列表+评级+三年EPS预测+PDF链接, reportapi.eastmoney.com)
+- [MarketData] THSConsensusAdapter (同花顺一致预期 EPS: HTML表格解析, basic.10jqka.com.cn)
+- [MarketData] CninfoAdapter (巨潮资讯公告: 全文检索+动态orgId映射, cninfo.com.cn, 6198只股)
+- [MarketData] 完整 Phase 3: 研报层 + 公告层适配器 (3新文件 + 7测试用例)
+- [Research] FinancialsService 接入 SinaFinancialsAdapter：真实新浪财报三表 → FinancialData 解析（含中文科目关键词匹配）
+- [Research] AnalystEstimatesService 接入 EastMoneyReportAdapter + THSConsensusAdapter：真实研报评级 + 一致预期 EPS
+- [Research] 新增 CapitalService：封装 EastMoneyCapitalAdapter（融资融券/大宗交易/股东户数/分红送转）
+- [Research] 新增 FundFlowService：封装 EastMoneyFundFlowAdapter（分钟级+日级资金流）
+- [Research] 新增 NorthboundService：封装 THSNorthboundAdapter（北向资金分钟级+历史CSV缓存）
+- [Research] 新增 AnnouncementService：封装 CninfoAdapter（巨潮公告全文检索）
+- [MarketData] startup() 创建所有 13 个适配器并接入对应 Service，消除 6 个"有构造函数但从未创建"的适配器
+- [Workflow] research_deps.go 新增 SetCapitalService/SetFundFlowService/SetNorthboundService/SetAnnouncementService/SetGlobalNewsAdapter
+- [MarketData] IwencaiAdapter (爱问财 NL 语义搜索: 研报/公告/新闻跨主题检索, openapi.iwencai.com, 需 IWENCAI_API_KEY) — 唯一支持 "人形机器人 行星滚柱丝杠" 式跨标的主题搜索能力
+- [Terminal] App.SearchResearch() 导出方法支持前端调用 iwencai 语义搜索（channel: report/announcement/news）
+- [MarketData] iwencai 去重逻辑 (同uid保留最高score) + 双格式 extra 解析 (object/string)
+- [MarketData] EastMoneyAdapter.FetchStockInfo() — push2 个股基本信息 (行业/总股本/流通股/市值/上市日期, SKILL.md §6.3)
+- [MarketData] MootdxAdapter.FetchFinance() + FetchF10() — 37字段季报快照 (EPS/ROE/净利) + 9类公司资料文本 (SKILL.md §6.1/§6.2)
+- [Python] DataService 新增 finance + f10 data_type dispatch — mootdx 财务/F10 通过 Python gRPC sidecar 暴露给 Go 适配器
+- [Research] FinancialsService 优先走 mootdx Finance（37字段快照），fallback 新浪财报 → mock
+- [Terminal] App.GetCapitalData/FundFlow/NorthboundFlow/Announcements/DragonTiger/DailyDragonTiger/LockupExpiry/IndustryRanks/ConceptBlocks — 9个新导出方法暴露 6 个已有 Service 到前端
+- [Terminal] App.GetStockResearch("overview") 使用真实 EastMoney stock_info 替代 mock
+- [Terminal] App.getMootdxAdapter() helper — 从 registry 获取 mootdx 适配器
 
 ### Changed
 - [All] 批量提交全部 untracked 源文件，使本地代码与仓库一致
+
+### Fixed
+- [MarketData] BaiduAdapter: 修复 ResultCode 类型不稳定 (int vs string) — FetchQuote + FetchOHLCV 新增 resultCodeOK() 统一判断 (SKILL.md FAQ 已知坑)
+- [MarketData] THSConsensusAdapter: 修复 GBK 编码未解码问题 (body 直接当 UTF-8 解析导致中文乱码) + 重构表格解析为 row-based（更精确匹配年度+预测机构+均值+最大值）
+- [All] 批量提交全部 untracked 源文件，使本地代码与仓库一致
+
+### Fixed
+- [Python] requirements.txt 补充 nltk 和 snownlp 依赖（之前缺失导致情绪分析始终返回 neutral）
+- [Research] pbToSentimentOutput 使用 proto 真实 confidence 值，不再硬编码 0.7
+- [Research] BatchAnalyze 改为 goroutine 并发执行（之前是串行 for 循环，与文档不一致）
+- [Python] 强化 test_sentiment.py：新增 6 个测试，断言具体 label/score 值（不再只验证结构）
+- [MarketData] queryDatacenter filter 参数添加 URL 编码 (url.QueryEscape)：修复 CapitalService 全部 4 个方法 + SignalsService 龙虎榜/解禁返回 HTML 的问题
+- [MarketData] EastMoneyNewsAdapter innerParams JSON 添加 URL 编码：修复个股新闻始终 HTTP 400 的问题
+- [MarketData] THSHotAdapter Market 字段类型从 string 改为 interface{}：修复 JSON 解析失败（API 返回 number 而非 string）
+- [MarketData] 新增 SymbolIdentity + NormalizeCN 统一股票代码翻译器：接受 600519/600519.SH/sh600519/600519.SS 等 8 种格式，输出 canonical code+market，提供 ToEastMoney/ToTencent/ToSina/ToBaidu/ToMootdx/ToYahoo 等 9 个转换方法
+- [MarketData] 新增 SymbolSearchService：从东财拉取全 A 股（5534）+ 港股（2584）+ 美股（13462）列表，三市场共 ~21000 只，分页抓取，构建内存索引，支持代码/名称/拼音模糊搜索，按相关度排序
+- [Terminal] 新增 App.SearchSymbols Wails 导出方法 + 前端 SymbolSearch 组件：输入框实时联想（200ms 防抖），支持键盘导航，含 mock 降级
+- [Python] 修复 deep_engine.py PyTorch 未安装时 nn.Module 引用错误；修复 nlp_pipeline.py vader 下载 42s 超时（改为线程 join(3s) 硬超时）；修复 fetcher.py mootdx 三级 fallback server + pandas truthiness 错误
+- [Workflow] SentimentNode 信号阈值从 ±0.3 修正为 ±0.15，与 NLP pipeline 对齐
+- [Research] 修复 Financials 数据结构不匹配：引入 FinancialsBundle 嵌套 {data, ratios}，与前端 FinancialsPanel 期望一致
+- [Research] 修复 InsiderTransaction 缺失 Value 字段：前端 InsiderTradingPanel 期望 value 列显示交易金额
+- [Research] 修复 insider_trades → insider JSON 键名不匹配：前端 StockResearchResult 使用 insider 读取内部交易数据
+- [Research] 修复 PeerComparisonData.margin 字段名不匹配（net_margin → margin），前端 PeerComparisonPanel 使用 p.margin
+- [Terminal] 新增 GetCongressTrades() Wails 导出方法：修复 CongressTradingPanel 永远走 mock 分支的问题
 
 ## [2026.6.18] - 2026-06-18
 
