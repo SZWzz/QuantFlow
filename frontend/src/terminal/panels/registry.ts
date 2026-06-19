@@ -60,6 +60,8 @@ register('action-center', () => import('./ActionCenterPanel.vue'))
 register('prediction-market', () => import('./PredictionMarketPanel.vue'))
 register('geopolitics', () => import('./GeopoliticsPanel.vue'))
 register('gov-data', () => import('./GovDataPanel.vue'))
+// Satellite: NASA POWER solar/wind + FIRMS wildfire
+register('satellite', () => import('./SatellitePanel.vue'))
 
 export function getPanelComponent(panelId: string): Component | undefined {
   return panelRegistry.get(panelId)

@@ -10,6 +10,10 @@
 
 ### 新增
 
+- [MarketData] SatelliteAdapter：卫星替代数据适配器，集成 NASA POWER API（太阳能 GHI / 风速）和 NASA FIRMS（野火数据），免费无需 API Key，5 个预定义能源区域（德州风能走廊、北海风电场、戈壁太阳能基地、撒哈拉太阳能带、美国中西部农业带）
+- [Research] SatelliteService：卫星能源数据服务，支持区域快照/详情/30 天时间序列/异常检测信号，5 分钟 TTL 缓存，完整的 mock 数据回退
+- [Workflow] SatelliteNode：卫星数据工作流节点，区域输入 → energy_signal/solar_ghi/wind_speed 输出，alternative_data 分类
+- [Frontend] SatellitePanel Vue 组件：卫星能源面板，5 个区域卡片（太阳辐射 + 风速仪表盘 + 趋势箭头 + 野火计数），ECharts 30 天太阳/风速双轴折线图，Wails IPC 回退模式
 - [Frontend] GeopoliticsPanel Vue 组件：地缘政治风险面板，2 列卡片网格展示 10 个地缘政治主题，支持风险等级筛选（全部/高/中/低），ECharts 情绪趋势图，Wails IPC 模拟回退模式
 
 - [券商] AlpacaBroker（美股）：完整 trading.Broker 实现 — Connect/GetAccount/GetOrders/GetPositions/SubmitOrder/CancelOrder，默认 paper trading，环境变量配置
