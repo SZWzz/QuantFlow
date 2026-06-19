@@ -5,12 +5,15 @@ import { use } from 'echarts/core'
 import { CandlestickChart, BarChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import * as echarts from 'echarts'
 import { useTerminalStore } from '@/stores/terminal'
 
 use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const terminal = useTerminalStore()
+
+const hasEcharts = computed(() => !!(echarts && VChart))
 
 const symbol = ref(props.params?.symbol || terminal.activeSymbol || 'AAPL')
 const interval = ref(props.params?.interval || '1d')
@@ -98,7 +101,8 @@ onMounted(() => {
       </div>
     </div>
     <div class="chart-body">
-      <VChart :option="option" autoresize />
+      <VChart v-if="hasEcharts" :key="symbol" :option="option" autoresize class="kline-chart" />
+      <div v-else class="chart-fallback">Chart loading...</div>
     </div>
   </div>
 </template>
@@ -128,5 +132,7 @@ onMounted(() => {
 .interval-btn.active {
   background: var(--color-accent); color: #fff; border-color: var(--color-accent);
 }
-.chart-body { flex: 1; overflow: hidden; padding: 8px; }
+.chart-body { flex: 1; min-height: 0; padding: 8px; position: relative; }
+.kline-chart { width: 100%; height: 100%; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>
