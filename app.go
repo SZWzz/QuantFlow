@@ -452,6 +452,7 @@ func (a *App) registerMarketAdapters() {
 	a.marketReg.Register(adapters.NewAKShareAdapter())
 	// US / HK / CRYPTO chains.
 	a.marketReg.Register(adapters.NewYahooAdapter())
+	a.marketReg.Register(adapters.NewFinnhubAdapter())
 	a.marketReg.Register(adapters.NewPolygonAdapter())
 	a.marketReg.Register(adapters.NewOKXAdapter())
 	a.marketReg.Register(adapters.NewBinanceAdapter())
