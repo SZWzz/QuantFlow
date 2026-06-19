@@ -4,11 +4,13 @@ import { useDataStore } from '@/stores/data'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useSessionStore } from '@/stores/session'
 import { useTerminalStore } from '@/stores/terminal'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const data = useDataStore()
 const workflow = useWorkflowStore()
 const session = useSessionStore()
 const terminal = useTerminalStore()
+const ctx = useSymbolContext()
 
 const time = ref(new Date().toLocaleTimeString())
 let timer: ReturnType<typeof setInterval> | null = null
@@ -16,7 +18,9 @@ let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => { timer = setInterval(() => time.value = new Date().toLocaleTimeString(), 1000) })
 onUnmounted(() => { if (timer) clearInterval(timer) })
 
-const symbolLabel = computed(() => terminal.activeSymbol ? `$${terminal.activeSymbol}` : 'No Symbol')
+const activeGroups = computed(() =>
+  Object.values(ctx.linkGroups).filter(g => g.activeSymbol)
+)
 </script>
 
 <template>
@@ -25,8 +29,12 @@ const symbolLabel = computed(() => terminal.activeSymbol ? `$${terminal.activeSy
       <span class="status-item connected" :class="{ offline: data.isOffline }">
         ● {{ data.isOffline ? 'Offline' : 'Connected' }}
       </span>
-      <span class="status-item symbol" :class="{ active: !!terminal.activeSymbol }">
-        {{ symbolLabel }}
+    </div>
+    <div class="status-groups">
+      <span v-for="g in activeGroups" :key="g.id" class="group-badge"
+        :style="{ borderColor: g.color }">
+        <span class="group-dot" :style="{ background: g.color }"></span>
+        {{ g.activeSymbol }}
       </span>
     </div>
     <div class="status-center">
@@ -57,6 +65,11 @@ const symbolLabel = computed(() => terminal.activeSymbol ? `$${terminal.activeSy
 .status-item { font-variant-numeric: tabular-nums; }
 .status-item.connected { color: var(--color-up); }
 .status-item.connected.offline { color: var(--color-down); }
-.status-item.symbol { color: var(--color-text-tertiary); min-width: 80px; }
-.status-item.symbol.active { color: var(--color-brand); font-weight: 600; }
+.status-groups { display: flex; gap: 8px; }
+.group-badge {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 6px; border: 1px solid; border-radius: var(--radius-sm);
+  font-size: var(--font-xs); font-weight: 600;
+}
+.group-dot { width: 6px; height: 6px; border-radius: 50%; }
 </style>

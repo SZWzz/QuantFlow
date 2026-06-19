@@ -3,6 +3,7 @@ import { computed, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import { useTerminalStore } from '@/stores/terminal'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{
   tabs: DockTabState[]
@@ -16,6 +17,15 @@ const emit = defineEmits<{
 }>()
 
 const terminal = useTerminalStore()
+const ctx = useSymbolContext()
+
+function tabGroupDot(panelId: string): { show: boolean; color: string } {
+  const symbol = ctx.getActiveSymbolForPanel(panelId)
+  if (!symbol) return { show: false, color: '' }
+  const groupId = ctx.getPanelGroupId(panelId)
+  const group = ctx.linkGroups[groupId]
+  return { show: true, color: group?.color || '' }
+}
 
 const activePanel = computed(() => props.tabs.find((t) => t.id === props.activeTab))
 
@@ -44,6 +54,11 @@ function closeTab(tabId: string) {
           @click="emit('select-tab', tab.id)"
         >
           <span class="tab-icon">{{ tab.icon }}</span>
+          <span
+            v-if="tabGroupDot(tab.panelId).show"
+            class="tab-group-dot"
+            :style="{ background: tabGroupDot(tab.panelId).color }"
+          ></span>
           <span class="tab-label">{{ tab.label }}</span>
           <span
             class="tab-close"
@@ -121,6 +136,10 @@ function closeTab(tabId: string) {
 }
 
 .tab-icon { font-size: 12px; flex-shrink: 0; }
+
+.tab-group-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
 
 .tab-label {
   overflow: hidden;

@@ -7,6 +7,7 @@ import CommandBar from './CommandBar.vue'
 import DockView from './DockView/DockView.vue'
 import PushPinBar from './PushPinBar.vue'
 import StatusBar from './StatusBar.vue'
+import SymbolBar from './SymbolBar.vue'
 
 const session = useSessionStore()
 const terminal = useTerminalStore()
@@ -47,6 +48,7 @@ function onSwitchToWorkflow() {
       </div>
     </header>
 
+    <SymbolBar />
     <main class="terminal-content">
       <PushPinBar />
       <DockView />
