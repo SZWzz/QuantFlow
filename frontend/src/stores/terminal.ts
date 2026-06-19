@@ -71,14 +71,33 @@ export const useTerminalStore = defineStore('terminal', () => {
   function closeTab(leafId: string, tabId: string) {
     const leaf = findLeaf(layout, leafId)
     if (leaf && leaf.type === 'tab' && leaf.tabs) {
-      leaf.tabs = leaf.tabs.filter((t) => t.id !== tabId)
-      if (leaf.activeTab === tabId && leaf.tabs.length > 0) {
-        leaf.activeTab = leaf.tabs[0].id
+      const idx = leaf.tabs.findIndex((t) => t.id === tabId)
+      if (idx !== -1) {
+        leaf.tabs.splice(idx, 1)
+        if (leaf.activeTab === tabId && leaf.tabs.length > 0) {
+          leaf.activeTab = leaf.tabs[0].id
+        }
       }
       // Also remove from activePanels
-      activePanels.value = activePanels.value.filter(
-        (p) => p.instanceId !== tabId
-      )
+      const panelIdx = activePanels.value.findIndex((p) => p.instanceId === tabId)
+      if (panelIdx !== -1) {
+        activePanels.value.splice(panelIdx, 1)
+      }
+    }
+    // If no tabs left in root, restore welcome
+    if (layout.type === 'tab' && (!layout.tabs || layout.tabs.length === 0)) {
+      layout.tabs = [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }]
+      layout.activeTab = 'welcome'
+    }
+  }
+
+  function moveTab(leafId: string, fromIdx: number, toIdx: number) {
+    const leaf = findLeaf(layout, leafId)
+    if (leaf && leaf.type === 'tab' && leaf.tabs) {
+      const [moved] = leaf.tabs.splice(fromIdx, 1)
+      if (moved) {
+        leaf.tabs.splice(toIdx, 0, moved)
+      }
     }
   }
 
@@ -112,6 +131,7 @@ export const useTerminalStore = defineStore('terminal', () => {
     toggleFocusMode,
     selectTab,
     closeTab,
+    moveTab,
     updateSplitRatios,
   }
 })

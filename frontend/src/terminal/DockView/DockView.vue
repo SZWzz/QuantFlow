@@ -78,6 +78,10 @@ function onCloseTab(leafId: string, tabId: string) {
   terminal.closeTab(leafId, tabId)
 }
 
+function onMoveTab(leafId: string, fromIdx: number, toIdx: number) {
+  terminal.moveTab(leafId, fromIdx, toIdx)
+}
+
 function onSplitRatio(containerId: string, index: number, ratios: number[]) {
   terminal.updateSplitRatios(containerId, ratios)
 }
@@ -206,6 +210,7 @@ onUnmounted(() => {
         @select-tab="onSelectTab"
         @close-tab="onCloseTab"
         @split-ratio="onSplitRatio"
+        @move-tab="onMoveTab"
       />
     </div>
   </div>
