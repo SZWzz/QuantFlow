@@ -7,6 +7,7 @@ function register(id: string, loader: () => Promise<any>) {
   panelRegistry.set(id, defineAsyncComponent(loader))
 }
 
+register('welcome', () => import('./WelcomePanel.vue'))
 register('watchlist', () => import('./WatchlistPanel.vue'))
 register('quote-detail', () => import('./QuoteDetailPanel.vue'))
 register('candlestick', () => import('./CandlestickPanel.vue'))

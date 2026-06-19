@@ -216,14 +216,15 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: var(--color-bg-app);
 }
 
 .dock-view-toolbar {
   display: flex;
   align-items: center;
   padding: 2px 8px;
-  background: #16213e;
-  border-bottom: 1px solid #0f3460;
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .preset-buttons {
@@ -233,17 +234,18 @@ onUnmounted(() => {
 
 .preset-buttons button {
   padding: 2px 8px;
-  border: 1px solid #2a3a5c;
+  border: 1px solid var(--color-border);
   background: transparent;
-  color: #5a6380;
-  border-radius: 3px;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
+  transition: all var(--transition-fast);
 }
 
 .preset-buttons button:hover {
-  border-color: #58a6ff;
-  color: #58a6ff;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .dock-view-content {

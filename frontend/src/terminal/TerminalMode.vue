@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useTerminalStore } from '@/stores/terminal'
@@ -13,6 +13,12 @@ const terminal = useTerminalStore()
 const router = useRouter()
 
 const showCommandBar = ref(false)
+
+// Sync route with mode changes
+watch(() => session.ui.mode, (mode) => {
+  if (mode === 'workflow') router.push('/workflow')
+  else router.push('/')
+}, { immediate: true })
 
 function onOpenPanel(panelId: string, params?: Record<string, any>) {
   terminal.openPanel(panelId, params)
