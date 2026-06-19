@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, type Component } from 'vue'
+import { computed, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import { useTerminalStore } from '@/stores/terminal'
@@ -13,12 +13,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'select-tab', tabId: string): void
   (e: 'close-tab', tabId: string): void
-  (e: 'move-tab', fromIdx: number, toIdx: number): void
 }>()
 
 const terminal = useTerminalStore()
-const dragIdx = ref<number | null>(null)
-const dragOverIdx = ref<number | null>(null)
 
 const activePanel = computed(() => props.tabs.find((t) => t.id === props.activeTab))
 
@@ -29,35 +26,9 @@ const activeComponent = computed<Component | undefined>(() => {
 
 const activeParams = computed(() => activePanel.value?.params)
 
-function onCloseTab(tabId: string, event: MouseEvent) {
-  event.stopPropagation()
-  emit('close-tab', tabId)
-}
-
-function onDragStart(idx: number) {
-  dragIdx.value = idx
-}
-
-function onDragOver(idx: number, event: DragEvent) {
-  event.preventDefault()
-  dragOverIdx.value = idx
-}
-
-function onDragLeave() {
-  dragOverIdx.value = null
-}
-
-function onDrop(idx: number) {
-  if (dragIdx.value !== null && dragIdx.value !== idx) {
-    emit('move-tab', dragIdx.value, idx)
-  }
-  dragIdx.value = null
-  dragOverIdx.value = null
-}
-
-function onDragEnd() {
-  dragIdx.value = null
-  dragOverIdx.value = null
+// Close directly via store — bypasses fragile event propagation chain
+function closeTab(tabId: string) {
+  terminal.closeTab(props.leafId, tabId)
 }
 </script>
 
@@ -66,39 +37,19 @@ function onDragEnd() {
     <div class="tab-header">
       <div class="tab-list">
         <button
-          v-for="(tab, idx) in tabs"
+          v-for="tab in tabs"
           :key="tab.id"
           class="tab-btn"
-          :class="{
-            active: tab.id === activeTab,
-            dragging: dragIdx === idx,
-            'drag-over': dragOverIdx === idx,
-          }"
-          :draggable="true"
+          :class="{ active: tab.id === activeTab }"
           @click="emit('select-tab', tab.id)"
-          @dragstart="onDragStart(idx)"
-          @dragover="onDragOver(idx, $event)"
-          @dragleave="onDragLeave"
-          @drop="onDrop(idx)"
-          @dragend="onDragEnd"
         >
           <span class="tab-icon">{{ tab.icon }}</span>
           <span class="tab-label">{{ tab.label }}</span>
           <span
             class="tab-close"
-            @mousedown="onCloseTab(tab.id, $event)"
+            @click.stop="closeTab(tab.id)"
             title="Close"
           >✕</span>
-        </button>
-      </div>
-      <div class="tab-actions">
-        <button
-          v-if="tabs.length > 0"
-          class="close-active-btn"
-          @click="emit('close-tab', activeTab)"
-          title="Close active panel"
-        >
-          ✕
         </button>
       </div>
     </div>
@@ -126,7 +77,6 @@ function onDragEnd() {
   flex-direction: column;
   height: 100%;
   background: var(--color-bg-panel);
-  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -149,12 +99,13 @@ function onDragEnd() {
   gap: 4px;
   padding: 5px 10px;
   border: none;
+  border-right: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-tertiary);
   font-size: var(--font-xs);
+  font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  border-right: 1px solid var(--color-border);
   min-width: 0;
   transition: background var(--transition-fast);
   user-select: none;
@@ -169,14 +120,6 @@ function onDragEnd() {
   color: var(--color-text-primary);
 }
 
-.tab-btn.dragging {
-  opacity: 0.4;
-}
-
-.tab-btn.drag-over {
-  border-left: 2px solid var(--color-accent);
-}
-
 .tab-icon { font-size: 12px; flex-shrink: 0; }
 
 .tab-label {
@@ -189,43 +132,18 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   font-size: 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
-  opacity: 0.4;
+  opacity: 0.5;
   transition: all var(--transition-fast);
+  cursor: pointer;
 }
 
 .tab-close:hover {
   opacity: 1;
-  background: var(--color-down-soft);
-  color: var(--color-down);
-}
-
-.tab-actions {
-  display: flex;
-  align-items: center;
-  padding: 0 4px;
-}
-
-.close-active-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  transition: all var(--transition-fast);
-}
-
-.close-active-btn:hover {
   background: var(--color-down-soft);
   color: var(--color-down);
 }

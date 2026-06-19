@@ -69,22 +69,56 @@ export const useTerminalStore = defineStore('terminal', () => {
   }
 
   function closeTab(leafId: string, tabId: string) {
-    const leaf = findLeaf(layout, leafId)
-    if (leaf && leaf.type === 'tab' && leaf.tabs) {
-      const idx = leaf.tabs.findIndex((t) => t.id === tabId)
-      if (idx !== -1) {
-        leaf.tabs.splice(idx, 1)
-        if (leaf.activeTab === tabId && leaf.tabs.length > 0) {
-          leaf.activeTab = leaf.tabs[0].id
+    // Recursively remove tab and clean up empty leaves
+    function removeFromTree(node: DockLayoutTree): boolean {
+      if (node.type === 'tab' && node.tabs) {
+        const idx = node.tabs.findIndex((t) => t.id === tabId)
+        if (idx !== -1) {
+          node.tabs.splice(idx, 1)
+          if (node.activeTab === tabId) {
+            node.activeTab = node.tabs.length > 0 ? node.tabs[0].id : ''
+          }
+          return true
         }
       }
-      // Also remove from activePanels
-      const panelIdx = activePanels.value.findIndex((p) => p.instanceId === tabId)
-      if (panelIdx !== -1) {
-        activePanels.value.splice(panelIdx, 1)
+      if (node.children) {
+        for (const child of node.children) {
+          if (removeFromTree(child)) return true
+        }
+      }
+      return false
+    }
+
+    const found = removeFromTree(layout)
+
+    // Clean up activePanels
+    const panelIdx = activePanels.value.findIndex((p) => p.instanceId === tabId)
+    if (panelIdx !== -1) {
+      activePanels.value.splice(panelIdx, 1)
+    }
+
+    // Collapse: if container has only one child after removal, promote it
+    if (layout.type === 'container' && layout.children) {
+      // Remove empty tab leaves
+      layout.children = layout.children.filter(c => {
+        if (c.type === 'tab' && (!c.tabs || c.tabs.length === 0)) return false
+        if (c.type === 'container' && (!c.children || c.children.length === 0)) return false
+        return true
+      })
+      // If only one child left, flatten
+      if (layout.children.length === 1) {
+        const child = layout.children[0]
+        layout.id = child.id
+        layout.type = child.type
+        layout.direction = child.direction
+        layout.splitRatios = child.splitRatios
+        layout.children = child.children
+        layout.tabs = child.tabs
+        layout.activeTab = child.activeTab
       }
     }
-    // If no tabs left in root, restore welcome
+
+    // If no tabs left, restore welcome
     if (layout.type === 'tab' && (!layout.tabs || layout.tabs.length === 0)) {
       layout.tabs = [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }]
       layout.activeTab = 'welcome'
