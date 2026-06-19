@@ -23,6 +23,21 @@ export const useTerminalStore = defineStore('terminal', () => {
   const pushPins = ref<PushPin[]>([])
   const focusMode = ref(false)
 
+  // ── Symbol Context (Bloomberg-style cross-panel linkage) ─────
+  // When a panel publishes a symbol, all linked subscriber panels
+  // automatically update to show data for that symbol.
+  const activeSymbol = ref<string | null>(null)
+  const lastSymbolUpdate = ref(0) // timestamp to force watchers
+
+  function setActiveSymbol(symbol: string) {
+    if (!symbol) return
+    const s = symbol.trim().toUpperCase()
+    if (s !== activeSymbol.value) {
+      activeSymbol.value = s
+      lastSymbolUpdate.value = Date.now()
+    }
+  }
+
   const layout = reactive<DockLayoutTree>({
     id: 'root',
     type: 'tab',
@@ -116,8 +131,8 @@ export const useTerminalStore = defineStore('terminal', () => {
   }
 
   return {
-    activePanels, commandHistory, pushPins, focusMode, layout,
-    openPanel, closePanel, addCommand, toggleFocusMode,
+    activePanels, commandHistory, pushPins, focusMode, activeSymbol, lastSymbolUpdate, layout,
+    openPanel, closePanel, addCommand, toggleFocusMode, setActiveSymbol,
     selectTab, closeTab, moveTab, updateSplitRatios, applyLayout,
   }
 })

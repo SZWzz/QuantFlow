@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useResearchStore } from '@/stores/research'
+import { useTerminalStore } from '@/stores/terminal'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
-const symbol = ref(props.params?.symbol || 'AAPL')
+const terminal = useTerminalStore()
+const symbol = ref(props.params?.symbol || terminal.activeSymbol || 'AAPL')
+
+// Subscribe to symbol context
+watch(() => terminal.activeSymbol, (newSym) => {
+  if (newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+  }
+})
 
 const financials = computed(() => store.research?.financials)
 
