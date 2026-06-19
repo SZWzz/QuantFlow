@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useResearchStore } from '@/stores/research'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
-const symbol = ref(props.params?.symbol || 'AAPL')
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 const activeTab = ref('overview')
 
 const tabs = [
@@ -20,7 +23,17 @@ watch(symbol, (newVal) => {
   if (newVal) store.fetchStockResearch(newVal)
 }, { immediate: true })
 
-function refresh() { store.fetchStockResearch(symbol.value) }
+// Subscribe to symbol context via link group
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+  }
+})
+
+function refresh() {
+  ctx.setGroupSymbol(pg.groupId, symbol.value)
+  store.fetchStockResearch(symbol.value)
+}
 </script>
 
 <template>
