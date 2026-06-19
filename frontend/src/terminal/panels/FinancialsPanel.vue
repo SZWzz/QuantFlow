@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useResearchStore } from '@/stores/research'
-import { useTerminalStore } from '@/stores/terminal'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
-const terminal = useTerminalStore()
-const symbol = ref(props.params?.symbol || terminal.activeSymbol || 'AAPL')
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 
-// Subscribe to symbol context
-watch(() => terminal.activeSymbol, (newSym) => {
+// Subscribe to symbol context via link group
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   if (newSym && newSym !== symbol.value) {
     symbol.value = newSym
   }
@@ -21,7 +22,10 @@ watch(symbol, (newVal) => {
   if (newVal) store.fetchStockResearch(newVal, ['financials'])
 }, { immediate: true })
 
-function refresh() { store.fetchStockResearch(symbol.value, ['financials']) }
+function refresh() {
+  ctx.setGroupSymbol(pg.groupId, symbol.value)
+  store.fetchStockResearch(symbol.value, ['financials'])
+}
 
 function formatNum(v: number | undefined | null): string {
   if (v == null) return '--'
