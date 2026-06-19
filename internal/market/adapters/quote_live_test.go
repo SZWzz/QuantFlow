@@ -42,6 +42,7 @@ func TestAllQuoteAdapters_FetchQuote(t *testing.T) {
 		// (no dedicated HK-only adapter; yahoo and others cover HK)
 
 		// ── CRYPTO ─────────────────────────────────────────────────
+		{name: "gateio", adapter: NewGateIOAdapter(), symbol: "BTCUSDT", market: "CRYPTO", wantAuth: false},
 		{name: "okx", adapter: NewOKXAdapter(), symbol: "BTC-USDT", market: "CRYPTO", wantAuth: false},
 		{name: "binance", adapter: NewBinanceAdapter(), symbol: "BTCUSDT", market: "CRYPTO", wantAuth: false},
 		{name: "coingecko", adapter: NewCoinGeckoAdapter(), symbol: "bitcoin", market: "CRYPTO", wantAuth: false},

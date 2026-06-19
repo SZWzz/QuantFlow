@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Trading] AlpacaBroker (US equities): full trading.Broker implementation with real REST API — Connect/GetAccount/GetOrders/GetPositions/SubmitOrder/CancelOrder, paper trading by default, env-var config (ALPACA_API_KEY/SECRET_KEY/BASE_URL), wired to OMS in startup()
 - [MarketData] YahooAdapter v8 fix: cookie jar + crumb mechanism + HTML detection + query1/query2 fallback + full browser User-Agent + HK/CN symbol normalization (0700.HK, 600519.SS)
 - [MarketData] AkShareAdapter extended: Tencent K-line OHLCV support (day/week/month) for CN and HK stocks via web.ifzq.gtimg.cn, toTencentCode supports HK codes
+- [MarketData] GateIOAdapter: crypto real-time quotes + OHLCV via Gate.io (free, no auth, accessible from mainland China), auto symbol conversion (BTCUSDT→BTC_USDT), primary crypto adapter
 - [MarketData] FinnhubAdapter: US real-time quotes + OHLCV via Finnhub free API (60 req/min), FINNHUB_API_KEY env-var config, wired to adapter registry
 - [Docs] US/HK data source enhancement spec — research report + 2-phase plan (fix Yahoo + add Finnhub + extend AkShare for HK + Futu market data)
 - [Frontend] MarketOverviewPanel — 7 index cards + market breadth bar + sector rankings, 30s auto-refresh via dataStore.fetchMarketOverview()

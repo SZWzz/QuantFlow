@@ -454,6 +454,7 @@ func (a *App) registerMarketAdapters() {
 	a.marketReg.Register(adapters.NewYahooAdapter())
 	a.marketReg.Register(adapters.NewFinnhubAdapter())
 	a.marketReg.Register(adapters.NewPolygonAdapter())
+	a.marketReg.Register(adapters.NewGateIOAdapter()) // primary crypto (accessible from CN)
 	a.marketReg.Register(adapters.NewOKXAdapter())
 	a.marketReg.Register(adapters.NewBinanceAdapter())
 	a.marketReg.Register(adapters.NewCoinGeckoAdapter())
