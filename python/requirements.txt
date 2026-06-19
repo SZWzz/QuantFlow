@@ -1,0 +1,9 @@
+grpcio>=1.60
+grpcio-tools>=1.60
+protobuf>=4.25
+pandas>=2.1
+numpy>=1.26
+pyarrow>=14.0
+# Optional: TDX (通达信) A-share data source via mootdx. Omit if unused;
+# the Go MootdxAdapter degrades gracefully (IsAvailable()==false) without it.
+mootdx>=0.9

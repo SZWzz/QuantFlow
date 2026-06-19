@@ -1,0 +1,26 @@
+{
+  "id": "multi-asset-demo",
+  "name": "Multi-Asset SMA Scanner",
+  "description": "Runs SMA crossover detection on multiple symbols using a loop node",
+  "nodes": [
+    {
+      "id": "symbols",
+      "node_type": "loop",
+      "params": {}
+    },
+    {
+      "id": "indicator",
+      "node_type": "sma",
+      "params": { "period": 10 }
+    },
+    {
+      "id": "output",
+      "node_type": "log_output",
+      "params": { "prefix": "[scanner] " }
+    }
+  ],
+  "edges": [
+    { "from_node": "symbols", "from_port": "batched", "to_node": "indicator", "to_port": "input" },
+    { "from_node": "indicator", "from_port": "output", "to_node": "output", "to_port": "input" }
+  ]
+}

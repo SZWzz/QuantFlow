@@ -1,0 +1,219 @@
+package adapters
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
+	"quantflow/internal/market"
+)
+
+const (
+	eastmoneyURL      = "https://push2.eastmoney.com/api/qt/stock/get"
+	eastmoneyKlineURL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+)
+
+// EastMoneyAdapter fetches A-share data from EastMoney (free, no auth).
+type EastMoneyAdapter struct {
+	client *http.Client
+}
+
+// NewEastMoneyAdapter creates a new EastMoney adapter.
+func NewEastMoneyAdapter() *EastMoneyAdapter {
+	return &EastMoneyAdapter{
+		client: &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+func (a *EastMoneyAdapter) Name() string      { return "eastmoney" }
+func (a *EastMoneyAdapter) Markets() []string  { return []string{"CN"} }
+func (a *EastMoneyAdapter) RequiresAuth() bool { return false }
+
+func (a *EastMoneyAdapter) IsAvailable(ctx context.Context) bool {
+	req, _ := http.NewRequestWithContext(ctx, "GET",
+		eastmoneyURL+"?secid=1.600519&fields=f43,f44", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
+}
+
+func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*market.QuoteSnapshot, error) {
+	secid := toEastMoneySecID(symbol)
+	url := fmt.Sprintf("%s?secid=%s&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58,f116,f117,f162,f167,f169,f170,f171",
+		eastmoneyURL, secid)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("eastmoney: %w", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("Referer", "https://quote.eastmoney.com/")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, market.NewTransientErrorf("eastmoney: http error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("eastmoney: HTTP %d", resp.StatusCode)
+	}
+
+	var result eastMoneyResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("eastmoney: parse error: %w", err)
+	}
+
+	if result.Data == nil {
+		return nil, fmt.Errorf("eastmoney: no data for %s", symbol)
+	}
+
+	d := result.Data
+	return &market.QuoteSnapshot{
+		Symbol:    symbol,
+		Last:      d.F43 / 100.0,  // f43: 最新价 (分)
+		Open:      d.F46 / 100.0,  // f46: 开盘价
+		High:      d.F44 / 100.0,  // f44: 最高价
+		Low:       d.F45 / 100.0,  // f45: 最低价
+		Volume:    d.F47,           // f47: 成交量 (手)
+		Change:    d.F169 / 100.0,  // f169: 涨跌额
+		ChangePct: d.F170 / 100.0,  // f170: 涨跌幅
+		Timestamp: time.Now().UnixMilli(),
+	}, nil
+}
+
+func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+	secid := toEastMoneySecID(symbol)
+
+	// Map interval to EastMoney klt code
+	klt := "101" // 日K
+	switch strings.ToUpper(interval) {
+	case "1W":
+		klt = "102" // 周K
+	case "1M", "1MONTH":
+		klt = "103" // 月K
+	}
+
+	// fqt=2: 后复权 (backward-adjusted). Unlike 前复权 (fqt=1), which embeds
+	// future split/dividend info into historical prices (look-ahead risk for
+	// backtesting), 后复权 adjusts past prices to be consistent with the most
+	// recent price — preserving the relative returns without leaking future info.
+	url := fmt.Sprintf("%s?secid=%s&klt=%s&fqt=2&beg=%s&end=%s&fields=f51,f52,f53,f54,f55,f56,f57",
+		eastmoneyKlineURL, secid, klt,
+		time.Unix(start, 0).Format("20060102"),
+		time.Unix(end, 0).Format("20060102"))
+
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("Referer", "https://quote.eastmoney.com/")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, market.NewTransientErrorf("eastmoney kline: http error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return nil, fmt.Errorf("eastmoney kline: HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	var klineResp eastMoneyKlineResponse
+	if err := json.NewDecoder(resp.Body).Decode(&klineResp); err != nil {
+		return nil, fmt.Errorf("eastmoney kline: parse error: %w", err)
+	}
+
+	if klineResp.Data == nil || klineResp.Data.Klines == nil {
+		return nil, fmt.Errorf("eastmoney kline: no data for %s", symbol)
+	}
+
+	endDate := time.Unix(end, 0)
+	bars := make([]market.OHLCVBar, 0, len(klineResp.Data.Klines))
+	for _, kline := range klineResp.Data.Klines {
+		// Each kline is comma-separated: f51,f52,f53,f54,f55,f56,f57
+		// f51=date, f52=open, f53=close, f54=high, f55=low, f56=volume, f57=amount
+		fields := strings.Split(kline, ",")
+		if len(fields) < 6 {
+			continue
+		}
+
+		// Parse date for post-filtering (prevents look-ahead: EastMoney may return
+		// data beyond requested end date).
+		barDate, err := time.Parse("2006-01-02", fields[0])
+		if err != nil {
+			continue
+		}
+		if barDate.After(endDate) {
+			continue // discard bars beyond the requested range
+		}
+
+		// Volume from EastMoney is in 手 (lots, 1 lot = 100 shares). Normalize to
+		// shares for consistency with other CN adapters (TuShare, Sina, Tencent).
+		bars = append(bars, market.OHLCVBar{
+			Symbol: symbol,
+			Date:   fields[0],
+			Open:   parseFloatSafe(fields[1]),
+			Close:  parseFloatSafe(fields[2]),
+			High:   parseFloatSafe(fields[3]),
+			Low:    parseFloatSafe(fields[4]),
+			Volume: parseFloatSafe(fields[5]) * 100,
+		})
+	}
+
+	return bars, nil
+}
+
+func (a *EastMoneyAdapter) HealthCheck(ctx context.Context) error {
+	_, err := a.FetchQuote(ctx, "600519")
+	return err
+}
+
+// toEastMoneySecID converts a symbol like "600519.SH" or "000001.SZ" to EastMoney secid "1.600519" or "0.000001".
+func toEastMoneySecID(symbol string) string {
+	symbol = strings.TrimSuffix(symbol, ".SH")
+	symbol = strings.TrimSuffix(symbol, ".SZ")
+	if strings.HasPrefix(symbol, "6") {
+		return "1." + symbol
+	}
+	return "0." + symbol
+}
+
+type eastMoneyResponse struct {
+	Data *eastMoneyData `json:"data"`
+}
+
+type eastMoneyKlineResponse struct {
+	Data *eastMoneyKlineData `json:"data"`
+}
+
+type eastMoneyKlineData struct {
+	Code   string   `json:"code"`
+	Name   string   `json:"name"`
+	Klines []string `json:"klines"`
+}
+
+type eastMoneyData struct {
+	F43  float64 `json:"f43"`  // 最新价
+	F44  float64 `json:"f44"`  // 最高价
+	F45  float64 `json:"f45"`  // 最低价
+	F46  float64 `json:"f46"`  // 开盘价
+	F47  float64 `json:"f47"`  // 成交量
+	F48  float64 `json:"f48"`  // 成交额
+	F50  float64 `json:"f50"`  // 量比
+	F57  string  `json:"f57"`  // 名称
+	F58  string  `json:"f58"`  // 股票名称
+	F116 float64 `json:"f116"` // 总市值
+	F117 float64 `json:"f117"` // 流通市值
+	F162 float64 `json:"f162"` // 市盈率
+	F167 float64 `json:"f167"` // 换手率
+	F169 float64 `json:"f169"` // 涨跌额
+	F170 float64 `json:"f170"` // 涨跌幅
+}

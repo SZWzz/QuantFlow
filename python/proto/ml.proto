@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package quantflow;
+
+option go_package = "quantflow/internal/python/proto;proto";
+
+// MLService provides machine learning model training and inference.
+service MLService {
+  rpc Train(TrainRequest) returns (TrainResponse);
+  rpc Predict(PredictRequest) returns (PredictResponse);
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+  rpc AlphaMining(AlphaMiningRequest) returns (AlphaMiningResponse);
+  rpc RLTrain(RLTrainRequest) returns (stream RLTrainUpdate);
+  rpc RLPredict(RLPredictRequest) returns (RLPredictResponse);
+  rpc RiskModel(RiskModelRequest) returns (RiskModelResponse);
+}
+
+message TrainRequest {
+  string model_type = 1;
+  bytes features = 2;
+  bytes targets = 3;
+  map<string, string> hyperparams = 4;
+  string target_type = 5;
+  int32 forecast_horizon = 6;
+}
+
+message TrainResponse {
+  string model_id = 1;
+  bytes model_bytes = 2;
+  string model_file_path = 3;
+  map<string, double> metrics = 4;
+  int64 train_time_ms = 5;
+  repeated FeatureImportance feature_importance = 6;
+}
+
+message FeatureImportance {
+  string feature_name = 1;
+  double importance = 2;
+}
+
+message PredictRequest {
+  string model_id = 1;
+  bytes features = 2;
+}
+
+message PredictResponse {
+  repeated double predictions = 1;
+  int64 predict_time_ms = 2;
+}
+
+message EvaluateRequest {
+  string model_id = 1;
+  bytes features = 2;
+  bytes actuals = 3;
+}
+
+message EvaluateResponse {
+  map<string, double> metrics = 1;
+  int64 evaluate_time_ms = 2;
+}
+
+message AlphaMiningRequest {
+  repeated string base_factor_names = 1;
+  bytes factor_data = 2;
+  bytes returns_data = 3;
+  int32 population_size = 4;
+  int32 generations = 5;
+  double crossover_rate = 6;
+  double mutation_rate = 7;
+  string fitness_metric = 8;
+  int32 top_k = 9;
+}
+
+message AlphaMiningResponse {
+  repeated DiscoveredFactor factors = 1;
+  int64 mining_time_ms = 2;
+}
+
+message DiscoveredFactor {
+  string formula = 1;
+  double ic = 2;
+  double ir = 3;
+  double sharpe = 4;
+}
+
+message RLTrainRequest {
+  string algorithm = 1;
+  map<string, string> hyperparams = 2;
+  bytes ohlcv_data = 3;
+  int32 total_episodes = 4;
+  int32 episode_length = 5;
+  string action_space = 6;
+}
+
+message RLTrainUpdate {
+  int32 episode = 1;
+  double reward = 2;
+  double sharpe = 3;
+  double epsilon = 4;
+  int32 steps = 5;
+}
+
+message RLPredictRequest {
+  string model_id = 1;
+  bytes observation = 2;
+}
+
+message RLPredictResponse {
+  int32 action = 1;
+  double action_value = 2;
+  map<string, double> action_probs = 3;
+}
+
+message RiskModelRequest {
+  string model_type = 1;
+  bytes returns_data = 2;
+  map<string, string> params = 3;
+}
+
+message RiskModelResponse {
+  bytes result_data = 1;
+  map<string, double> metrics = 2;
+  int64 compute_time_ms = 3;
+}

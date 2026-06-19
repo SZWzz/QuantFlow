@@ -1,0 +1,38 @@
+# Binary
+quantflow
+
+# Frontend build outputs
+frontend/dist/
+frontend/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+python/venv/
+# Python bytecode cache — cover all subdirs (src/, tests/, etc.), not just roots
+python/**/__pycache__/
+*.pyc
+python/.pytest_cache/
+python/**/*.egg-info/
+
+# Agent / tool artifacts
+.codegraph/
+.superpowers/
+CLAUDE.md
+
+# Stray temp files
+1
+问题.md

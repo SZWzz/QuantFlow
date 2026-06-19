@@ -1,0 +1,67 @@
+package main
+
+import (
+	"context"
+	"testing"
+
+	"quantflow/internal/market"
+)
+
+// TestApp_RegisterMarketAdapters_AllWired verifies startup's adapter registration
+// populates every data source so the fallback chains (mootdx first for CN) are real.
+// Runs without a Python bridge: mootdx then has a nil DataClient and must report
+// IsAvailable()==false (graceful degradation), while the others are still registered.
+func TestApp_RegisterMarketAdapters_AllWired(t *testing.T) {
+	a := &App{
+		marketReg: market.NewAdapterRegistry(),
+		bridge:    nil, // no Python sidecar → mootdx degrades
+	}
+	a.registerMarketAdapters()
+
+	want := 12
+	if got := a.marketReg.Count(); got != want {
+		t.Fatalf("registered adapter count = %d, want %d", got, want)
+	}
+
+	// Every adapter in the CN fallback chain must be registered, mootdx first.
+	for _, name := range []string{"mootdx", "sina", "tushare", "eastmoney", "tencent", "baidu", "akshare"} {
+		if a.marketReg.Get(name) == nil {
+			t.Errorf("adapter %q not registered", name)
+		}
+	}
+	// US / HK / CRYPTO adapters too.
+	for _, name := range []string{"yfinance", "polygon", "okx", "binance", "coingecko"} {
+		// Note: the Yahoo adapter's Name() is "yfinance" (see adapters/yahoo.go).
+		if a.marketReg.Get(name) == nil {
+			t.Errorf("adapter %q not registered", name)
+		}
+	}
+
+	// mootdx with a nil DataClient must be unavailable (no TDX probe, no panic).
+	mootdx := a.marketReg.Get("mootdx")
+	if mootdx == nil {
+		t.Fatal("mootdx adapter not registered")
+	}
+	if mootdx.IsAvailable(context.Background()) {
+		t.Error("mootdx should be unavailable when the Python bridge is absent (nil DataClient)")
+	}
+}
+
+// TestApp_GetQuote_NoRegistryErrors guards the IPC guard: GetQuote must fail
+// cleanly when the registry was never initialized.
+func TestApp_GetQuote_NoRegistryErrors(t *testing.T) {
+	a := &App{} // marketReg is nil
+	_, _, err := a.GetQuote(context.Background(), "CN", "600519")
+	if err == nil {
+		t.Fatal("GetQuote should error when market registry is nil")
+	}
+}
+
+// TestApp_FetchOHLCV_NoRegistryErrors guards the IPC guard for OHLCV.
+func TestApp_FetchOHLCV_NoRegistryErrors(t *testing.T) {
+	a := &App{} // marketReg is nil
+	_, _, err := a.FetchOHLCV(context.Background(), "CN", "600519", "1D", 0, 0)
+	if err == nil {
+		t.Fatal("FetchOHLCV should error when market registry is nil")
+	}
+}

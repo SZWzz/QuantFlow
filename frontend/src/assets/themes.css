@@ -1,0 +1,57 @@
+/* ===== Theme: Dark (default) ===== */
+:root, .theme-dark {
+  --bg: #1a1a2e;
+  --card: #16213e;
+  --input: #0f2137;
+  --text: #e0e0e0;
+  --muted: #5a6380;
+  --up: #3fb950;
+  --down: #f85149;
+  --accent: #58a6ff;
+  --border: #1a3a5c;
+  --hover: #16213e;
+}
+
+/* ===== Theme: Light ===== */
+.theme-light {
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --input: #f9fafb;
+  --text: #111827;
+  --muted: #6b7280;
+  --up: #059669;
+  --down: #dc2626;
+  --accent: #2563eb;
+  --border: #e5e7eb;
+  --hover: #f3f4f6;
+}
+
+/* ===== Density: Default ===== */
+:root, .density-default {
+  --spacing: 8px;
+  --font-kpi: 16px;
+  --row-height: 36px;
+  --padding-panel: 10px;
+  --font-sm: 12px;
+  --font-xs: 10px;
+}
+
+/* ===== Density: Compact ===== */
+.density-compact {
+  --spacing: 4px;
+  --font-kpi: 14px;
+  --row-height: 28px;
+  --padding-panel: 6px;
+  --font-sm: 11px;
+  --font-xs: 9px;
+}
+
+/* ===== Density: Comfortable ===== */
+.density-comfortable {
+  --spacing: 12px;
+  --font-kpi: 18px;
+  --row-height: 44px;
+  --padding-panel: 16px;
+  --font-sm: 13px;
+  --font-xs: 11px;
+}

@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package quantflow;
+
+option go_package = "quantflow/internal/python/proto;proto";
+
+// LLMService provides LLM inference capabilities via streaming gRPC.
+service LLMService {
+  // Chat performs a streaming chat completion. Each response carries
+  // incremental tokens or tool call deltas.
+  rpc Chat(LLMChatRequest) returns (stream LLMChatResponse);
+
+  // ListModels returns all available LLM models and their capabilities.
+  rpc ListModels(LLMListModelsRequest) returns (LLMListModelsResponse);
+
+  // CountTokens returns the token count for a set of messages (for budget management).
+  rpc CountTokens(CountTokensRequest) returns (CountTokensResponse);
+}
+
+message LLMChatRequest {
+  string model = 1;                    // "openai/gpt-4o", "anthropic/claude-sonnet-4-6", etc.
+  repeated ChatMessage messages = 2;
+  repeated LLMTool tools = 3;          // available tools with JSON Schema parameters
+  string system_prompt = 4;            // system-level instruction
+  float temperature = 5;               // 0.0–2.0, default 0.7
+  int32 max_tokens = 6;                // max completion tokens, 0 = provider default
+  string stream_id = 7;                // correlation ID forwarded to frontend events
+}
+
+message ChatMessage {
+  string role = 1;                     // "system" | "user" | "assistant" | "tool"
+  string content = 2;
+  string tool_call_id = 3;             // set when role="tool", links back to assistant tool_call
+  repeated ToolCall tool_calls = 4;    // set when role="assistant" and LLM wants to call tools
+}
+
+message ToolCall {
+  string id = 1;                       // unique ID for this tool call
+  string name = 2;                     // capability name
+  string arguments = 3;                // JSON-encoded arguments
+}
+
+message LLMTool {
+  string name = 1;
+  string description = 2;
+  string parameters_json = 3;          // JSON Schema for the tool's parameters
+}
+
+message LLMChatResponse {
+  string delta_content = 1;            // incremental text token
+  ToolCallDelta tool_call_delta = 2;   // incremental tool call chunk
+  string finish_reason = 3;            // "stop" | "tool_calls" | "length" | "error"
+  int32 prompt_tokens = 4;             // set on final chunk only
+  int32 completion_tokens = 5;         // set on final chunk only
+}
+
+message ToolCallDelta {
+  int32 index = 1;                     // which tool call this delta belongs to
+  string id = 2;                       // set on first chunk
+  string name = 3;                     // set on first chunk
+  string arguments_delta = 4;          // incremental JSON fragment
+}
+
+message LLMListModelsRequest {}
+
+message LLMModelInfo {
+  string id = 1;                       // "openai/gpt-4o"
+  string provider = 2;                 // "openai" | "anthropic" | "deepseek" | "ollama"
+  string display_name = 3;             // "GPT-4o"
+  int32 context_window = 4;            // max context tokens
+  bool supports_tools = 5;             // whether this model supports function calling
+  bool supports_vision = 6;
+}
+
+message LLMListModelsResponse {
+  repeated LLMModelInfo models = 1;
+}
+
+message CountTokensRequest {
+  string model = 1;
+  repeated ChatMessage messages = 2;
+  string system_prompt = 3;
+}
+
+message CountTokensResponse {
+  int32 token_count = 1;
+  string error = 2;
+}

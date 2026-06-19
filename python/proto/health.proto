@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package quantflow;
+
+option go_package = "quantflow/internal/python/proto;proto";
+
+// HealthService provides liveness and status checks for the Python sidecar.
+service HealthService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc GetStatus(GetStatusRequest) returns (StatusResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  bool healthy = 1;
+  string version = 2;
+  int64 uptime_seconds = 3;
+}
+
+message GetStatusRequest {}
+
+message StatusResponse {
+  bool healthy = 1;
+  string version = 2;
+  int64 uptime_seconds = 3;
+  int32 active_requests = 4;
+  int64 memory_mb = 5;
+}

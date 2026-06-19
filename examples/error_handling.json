@@ -1,0 +1,29 @@
+{
+  "id": "error-demo",
+  "name": "Error Handling Demo",
+  "description": "Demonstrates graceful failure when a node gets bad input",
+  "nodes": [
+    {
+      "id": "load_missing",
+      "node_type": "data_loader",
+      "params": {
+        "source": "csv",
+        "path": "examples/nonexistent_file.csv"
+      }
+    },
+    {
+      "id": "sma",
+      "node_type": "sma",
+      "params": { "period": 20 }
+    },
+    {
+      "id": "print",
+      "node_type": "log_output",
+      "params": {}
+    }
+  ],
+  "edges": [
+    { "from_node": "load_missing", "from_port": "ohlcv", "to_node": "sma", "to_port": "input" },
+    { "from_node": "sma", "from_port": "output", "to_node": "print", "to_port": "input" }
+  ]
+}

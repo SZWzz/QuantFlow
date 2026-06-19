@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package quantflow;
+
+option go_package = "quantflow/internal/python/proto;proto";
+
+// DataService provides Python-side data fetching capabilities.
+// Used when Go adapters need Python-specific data sources (AKShare, TuShare, etc.)
+// v1: minimal stub for future expansion.
+service DataService {
+  rpc FetchData(FetchDataRequest) returns (FetchDataResponse);
+}
+
+message FetchDataRequest {
+  string source = 1;                 // "akshare", "tushare", etc.
+  string data_type = 2;              // "quote", "ohlcv", "fundamentals", "financials"
+  repeated string symbols = 3;
+  string start_date = 4;
+  string end_date = 5;
+  map<string, string> params = 6;
+}
+
+message FetchDataResponse {
+  bytes data = 1;                    // Arrow IPC bytes
+  string source = 2;
+  int64 fetch_time_ms = 3;
+  string error = 4;
+}

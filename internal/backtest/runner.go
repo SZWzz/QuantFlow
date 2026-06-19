@@ -1,0 +1,227 @@
+package backtest
+
+import (
+	"context"
+	"fmt"
+	"sort"
+
+	"quantflow/internal/trading"
+)
+
+// Strategy defines the signal logic for a backtest.
+type Strategy struct {
+	ID         string
+	Name       string
+	SignalFunc func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal
+	RiskConfig trading.RiskConfig
+}
+
+// Runner executes a bar-by-bar backtest using historical OHLCV data.
+type Runner struct {
+	config  Config
+	oms     *trading.OMS
+	matcher *trading.OrderMatcher
+	risk    *trading.RiskPipeline
+}
+
+// NewRunner creates a new backtest runner with the given configuration.
+func NewRunner(config Config) *Runner {
+	return &Runner{
+		config:  config,
+		oms:     trading.NewOMS(),
+		matcher: trading.NewOrderMatcher(),
+		risk:    trading.NewRiskPipeline(config.ToRiskConfig()),
+	}
+}
+
+// OMS returns the Order Management System for external access.
+func (r *Runner) OMS() *trading.OMS {
+	return r.oms
+}
+
+// Run executes the backtest strategy against historical OHLCV bars.
+// Bars must be pre-sorted by date. The runner processes each bar sequentially,
+// generating signals, applying risk checks, matching orders, and tracking equity.
+func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLCVBar) (*Result, error) {
+	if len(bars) == 0 {
+		return nil, fmt.Errorf("no OHLCV data provided")
+	}
+
+	// Sort bars by date
+	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
+
+	portfolio := NewPortfolio(r.config.InitialCash)
+	var equityCurve []EquityPoint
+	var tradeRecords []TradeRecord
+
+	for _, bar := range bars {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
+		// Update market prices in OMS for current positions
+		r.oms.UpdateMarketPrice(bar.Symbol, bar.Close)
+
+		// 1. Check stop-loss/take-profit on existing positions
+		if pos := r.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
+			if r.risk.CheckStopLoss(pos, bar.Close) {
+				// Close position at market
+				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
+				if err == nil {
+					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
+					tradeRecords = append(tradeRecords, TradeRecord{
+						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+						Quantity: pos.Quantity, Price: bar.Close,
+					})
+				}
+				// Update portfolio
+				portfolio.Cash += bar.Close * pos.Quantity * (1 - r.config.Commission)
+				delete(portfolio.Positions, bar.Symbol)
+				delete(portfolio.AvgPrice, bar.Symbol)
+				goto recordEquity
+			}
+			if r.risk.CheckTakeProfit(pos, bar.Close) {
+				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
+				if err == nil {
+					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
+					tradeRecords = append(tradeRecords, TradeRecord{
+						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+						Quantity: pos.Quantity, Price: bar.Close,
+						PnL:      (bar.Close - pos.AvgPrice) * pos.Quantity,
+					})
+				}
+				portfolio.Cash += bar.Close * pos.Quantity * (1 - r.config.Commission)
+				delete(portfolio.Positions, bar.Symbol)
+				delete(portfolio.AvgPrice, bar.Symbol)
+				goto recordEquity
+			}
+		}
+
+		// 2. Generate signal from strategy
+		if strategy.SignalFunc != nil {
+			signal := strategy.SignalFunc(bar, portfolio)
+			if signal != nil && signal.Direction != "hold" {
+				if signal.Direction == "buy" {
+					r.processBuySignal(bar, signal, portfolio, &tradeRecords)
+				} else if signal.Direction == "sell" {
+					r.processSellSignal(bar, signal, portfolio, &tradeRecords)
+				}
+			}
+		}
+
+	recordEquity:
+		// 3. Record daily equity
+		prices := map[string]float64{bar.Symbol: bar.Close}
+		equityCurve = append(equityCurve, EquityPoint{
+			Date:   bar.Date,
+			Equity: portfolio.Equity(prices),
+			Cash:   portfolio.Cash,
+		})
+	}
+
+	metrics := ComputeMetrics(equityCurve, tradeRecords)
+
+	return &Result{
+		Config:      r.config,
+		EquityCurve: equityCurve,
+		Trades:      tradeRecords,
+		Metrics:     metrics,
+	}, nil
+}
+
+func (r *Runner) processBuySignal(bar trading.OHLCVBar, signal *trading.Signal, portfolio *Portfolio, trades *[]TradeRecord) {
+	qty := signal.Quantity
+	if qty <= 0 {
+		qty = 100 // Default: 100 shares
+	}
+
+	effectivePrice := bar.Close * (1 + r.config.Slippage)
+	cost := effectivePrice*qty + effectivePrice*qty*r.config.Commission
+
+	if cost > portfolio.Cash {
+		return // insufficient funds
+	}
+
+	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	if err != nil {
+		return
+	}
+
+	// Risk check
+	pos := r.oms.GetPosition(bar.Symbol)
+	portfolioValue := portfolio.Cash
+	for sym, q := range portfolio.Positions {
+		portfolioValue += q * bar.Close
+		_ = sym
+	}
+	// Temporarily set order price for risk check
+	order.Price = effectivePrice
+	if err := r.risk.CheckOrder(order, pos, portfolioValue); err != nil {
+		r.oms.CancelOrder(order.ID)
+		return
+	}
+
+	if _, err := r.oms.FillOrder(order.ID, qty, effectivePrice); err != nil {
+		return
+	}
+
+	portfolio.Cash -= cost
+	oldQty := portfolio.Positions[bar.Symbol]
+	oldAvg := portfolio.AvgPrice[bar.Symbol]
+	newQty := oldQty + qty
+	portfolio.Positions[bar.Symbol] = newQty
+	if newQty > 0 {
+		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + qty*effectivePrice) / newQty
+	}
+
+	*trades = append(*trades, TradeRecord{
+		Date: bar.Date, Symbol: bar.Symbol, Side: "buy",
+		Quantity: qty, Price: effectivePrice,
+	})
+}
+
+func (r *Runner) processSellSignal(bar trading.OHLCVBar, signal *trading.Signal, portfolio *Portfolio, trades *[]TradeRecord) {
+	qty := signal.Quantity
+	heldQty := portfolio.Positions[bar.Symbol]
+	if qty <= 0 {
+		qty = heldQty // Sell all
+	}
+	if qty > heldQty {
+		qty = heldQty
+	}
+	if qty <= 0 {
+		return
+	}
+
+	effectivePrice := bar.Close * (1 - r.config.Slippage)
+	revenue := effectivePrice*qty - effectivePrice*qty*r.config.Commission
+
+	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)
+	if err != nil {
+		return
+	}
+
+	if _, err := r.oms.FillOrder(order.ID, qty, effectivePrice); err != nil {
+		return
+	}
+
+	portfolio.Cash += revenue
+	oldQty := portfolio.Positions[bar.Symbol]
+	avgPrice := portfolio.AvgPrice[bar.Symbol]
+	newQty := oldQty - qty
+	pnl := revenue - avgPrice*qty
+
+	if newQty <= 0 {
+		delete(portfolio.Positions, bar.Symbol)
+		delete(portfolio.AvgPrice, bar.Symbol)
+	} else {
+		portfolio.Positions[bar.Symbol] = newQty
+	}
+
+	*trades = append(*trades, TradeRecord{
+		Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+		Quantity: qty, Price: effectivePrice, PnL: pnl,
+	})
+}

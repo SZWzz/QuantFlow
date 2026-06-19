@@ -5,6 +5,14 @@ All notable changes to QuantFlow Terminal will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026.6.19] - 2026-06-19
+
+### Added
+- [Docs] .gitignore — 清理 agent 产物和临时文件
+
+### Changed
+- [All] 批量提交全部 untracked 源文件，使本地代码与仓库一致
+
 ## [2026.6.18] - 2026-06-18
 
 ### Added
