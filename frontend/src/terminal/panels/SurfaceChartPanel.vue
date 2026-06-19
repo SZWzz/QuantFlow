@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
+import { useSymbolContext } from '@/stores/symbolContext'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { LineChart, HeatmapChart } from 'echarts/charts'
@@ -16,7 +17,10 @@ use([LineChart, HeatmapChart, TitleComponent, TooltipComponent, GridComponent, L
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-const symbol = ref(props.params?.symbol || '600519')
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
+
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const daysBack = ref(30)
 
 const hasEcharts = computed(() => {
@@ -65,6 +69,13 @@ function regenerateSurface() {
 
 onMounted(() => {
   regenerateSurface()
+})
+
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (pg.linked && newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+    regenerateSurface()
+  }
 })
 
 // ---------------------------------------------------------------------------
