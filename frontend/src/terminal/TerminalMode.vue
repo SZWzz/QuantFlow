@@ -172,6 +172,7 @@ function onNavigate(path: string) {
 /* ── Content ─────────────────────────────────────────────────── */
 .terminal-content {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;

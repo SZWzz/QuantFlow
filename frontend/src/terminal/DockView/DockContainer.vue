@@ -77,6 +77,7 @@ function onChildSplitRatio(containerId: string, index: number, ratios: number[])
   display: flex;
   height: 100%;
   width: 100%;
+  min-height: 0;
 }
 
 .dock-container.direction-row {

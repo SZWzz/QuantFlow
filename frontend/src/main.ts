@@ -4,6 +4,9 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { i18n } from './lib/i18n'
 import App from './App.vue'
 
+// Global design tokens — must load before component styles
+import './assets/themes.css'
+
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [

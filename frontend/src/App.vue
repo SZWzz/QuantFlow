@@ -11,5 +11,9 @@ const session = useSessionStore()
 </template>
 
 <style>
-@import '@/assets/themes.css';
+.app {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
 </style>

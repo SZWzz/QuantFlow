@@ -85,7 +85,7 @@ function onMouseUp() {
 
 .dock-splitter:hover .splitter-handle,
 .dock-splitter.dragging .splitter-handle {
-  background: #58a6ff;
+  background: var(--color-accent);
 }
 
 .dock-splitter.horizontal .splitter-handle {

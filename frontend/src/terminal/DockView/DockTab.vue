@@ -66,14 +66,14 @@ const activeParams = computed(() => activePanel.value?.params)
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1a1a2e;
-  border-radius: 4px;
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .tab-header {
-  background: #16213e;
-  border-bottom: 1px solid #0f3460;
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tab-list {
@@ -88,21 +88,22 @@ const activeParams = computed(() => activePanel.value?.params)
   padding: 5px 10px;
   border: none;
   background: transparent;
-  color: #5a6380;
-  font-size: 11px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-xs);
   cursor: pointer;
   white-space: nowrap;
-  border-right: 1px solid #0f3460;
+  border-right: 1px solid var(--color-border);
   min-width: 0;
+  transition: background var(--transition-fast);
 }
 
 .tab-btn.active {
-  background: #1a1a2e;
-  color: #c9d1d9;
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
 }
 
 .tab-btn:hover {
-  color: #c9d1d9;
+  color: var(--color-text-primary);
 }
 
 .tab-icon {
@@ -114,6 +115,7 @@ const activeParams = computed(() => activePanel.value?.params)
   opacity: 0;
   padding: 2px;
   border-radius: 2px;
+  transition: opacity var(--transition-fast);
 }
 
 .tab-btn:hover .tab-close {
@@ -122,12 +124,13 @@ const activeParams = computed(() => activePanel.value?.params)
 
 .tab-close:hover {
   opacity: 1;
-  color: #e94560;
+  color: var(--color-brand);
 }
 
 .tab-content {
   flex: 1;
   overflow: auto;
+  min-height: 0;
 }
 
 .empty-content {
@@ -135,8 +138,8 @@ const activeParams = computed(() => activePanel.value?.params)
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #2a3a5c;
-  font-size: 13px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-base);
 }
 
 .panel-placeholder {
@@ -144,7 +147,7 @@ const activeParams = computed(() => activePanel.value?.params)
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #3a4a6c;
-  font-size: 13px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-base);
 }
 </style>
