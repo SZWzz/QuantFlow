@@ -81,14 +81,15 @@ func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 	case "1mo", "1M", "month":
 		period = "month"
 	}
-	// Tencent K-line API: returns up to 320 bars
-	url := fmt.Sprintf("http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=%s,%s,,,320", code, period)
+	// Tencent K-line API via proxy.finance.qq.com (works for both CN and HK from China).
+	url := fmt.Sprintf("https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newkline/newkline?param=%s,%s,,,320", code, period)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("akshare OHLCV: %w", err)
 	}
 	req.Header.Set("Referer", "http://gu.qq.com/"+code)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
 
 	resp, err := a.client.Do(req)
 	if err != nil {

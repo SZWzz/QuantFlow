@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [MarketData] YahooAdapter v8 fix: cookie jar + crumb mechanism + HTML detection + query1/query2 fallback + full browser User-Agent + HK/CN symbol normalization (0700.HK, 600519.SS)
 - [MarketData] AkShareAdapter extended: Tencent K-line OHLCV support (day/week/month) for CN and HK stocks via web.ifzq.gtimg.cn, toTencentCode supports HK codes
 - [MarketData] GateIOAdapter: crypto real-time quotes + OHLCV via Gate.io (free, no auth, accessible from mainland China), auto symbol conversion (BTCUSDT→BTC_USDT), primary crypto adapter
+- [MarketData] SinaAdapter HK support: extended toSinaCode + toSinaHKCode for 5-digit HK codes, parseSinaHKQuote for HK field mapping (open/prevClose/high/low/bid/ask/vol), live test: Tencent(00700)=440.20
+- [MarketData] AkShare/Tencent K-line fix: switched to proxy.finance.qq.com/newkline endpoint (works for both CN and HK stocks, old fqkline endpoint was broken)
 - [MarketData] FinnhubAdapter: US real-time quotes + OHLCV via Finnhub free API (60 req/min), FINNHUB_API_KEY env-var config, wired to adapter registry
 - [Docs] US/HK data source enhancement spec — research report + 2-phase plan (fix Yahoo + add Finnhub + extend AkShare for HK + Futu market data)
 - [Frontend] MarketOverviewPanel — 7 index cards + market breadth bar + sector rankings, 30s auto-refresh via dataStore.fetchMarketOverview()

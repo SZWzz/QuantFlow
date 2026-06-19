@@ -15,13 +15,33 @@ func parseFloatSafe(s string) float64 {
 	return f
 }
 
-// toSinaCode converts a symbol to Sina format. Delegates to the unified SymbolIdentity.
+// toSinaCode converts a symbol to Sina format.
+// Delegates to SymbolIdentity for CN A-shares; handles HK directly.
 func toSinaCode(symbol string) string {
+	// HK stocks: "00700" → "hk00700", "00700.HK" → "hk00700"
+	if isHKCode(symbol) {
+		return toSinaHKCode(symbol)
+	}
+	// CN A-shares: use SymbolIdentity
 	id, err := market.NormalizeCN(symbol)
 	if err != nil {
-		return strings.ToLower(symbol) // best-effort fallback
+		return strings.ToLower(symbol)
 	}
 	return id.ToSina()
+}
+
+// isHKCode detects HK stock symbols (5-digit numeric codes, optionally with .HK suffix).
+func isHKCode(symbol string) bool {
+	s := strings.TrimSuffix(strings.ToUpper(symbol), ".HK")
+	if len(s) != 5 {
+		return false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // parseSinaQuote parses Sina's CSV-like response format.
