@@ -106,4 +106,7 @@ func RegisterAll(r *workflow.NodeRegistry) {
 
 	// GovData: FRED economic indicators + SEC EDGAR filings
 	r.RegisterWithCategory("gov_data", NewGovDataNode, "alternative_data")
+
+	// Satellite: NASA POWER solar/wind + FIRMS wildfire
+	r.RegisterWithCategory("satellite", NewSatelliteNode, "alternative_data")
 }

@@ -70,6 +70,9 @@ type App struct {
 	govDataAdpt adapters.GovDataAdapter // economic indicator data source (FRED + SEC)
 	govDataSvc  *research.GovDataService
 
+	satelliteAdpt adapters.SatelliteAdapter // satellite energy data source (NASA POWER + FIRMS)
+	satelliteSvc  *research.SatelliteService
+
 	// Research services (wired in startup, degrade gracefully without adapters).
 	capitalSvc      *research.CapitalService
 	fundFlowSvc     *research.FundFlowService
@@ -256,6 +259,12 @@ t	searchSvc, err := market.NewSymbolSearchService(context.Background())
 		a.govDataSvc = research.NewGovDataService(a.govDataAdpt)
 		nodes.SetGovDataService(a.govDataSvc)
 		slog.Info("govdata service initialized")
+
+		// Alternative data: satellite (NASA POWER + FIRMS)
+		a.satelliteAdpt = adapters.NewSatelliteAdapter()
+		a.satelliteSvc = research.NewSatelliteService(a.satelliteAdpt)
+		nodes.SetSatelliteService(a.satelliteSvc)
+		slog.Info("satellite service initialized")
 	return nil
 }
 
@@ -835,6 +844,43 @@ func (a *App) GetGeopoliticsDetail(topicID, timespan string) (map[string]interfa
 		return nil, fmt.Errorf("geopolitics service not initialized")
 	}
 	return a.geopoliticsSvc.GetTopicDetail(context.Background(), topicID, timespan)
+}
+
+// ── Satellite (卫星能源数据) ─────────────────────────────────────────────
+
+// GetSatelliteSnapshots returns satellite energy data snapshots for all 5 regions.
+func (a *App) GetSatelliteSnapshots() (map[string]interface{}, error) {
+	if a.satelliteSvc == nil {
+		return nil, fmt.Errorf("satellite service not initialized")
+	}
+	snapshots, err := a.satelliteSvc.GetRegionSnapshots(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"regions": snapshots, "count": len(snapshots)}, nil
+}
+
+// GetSatelliteDetail returns detailed satellite data for a single region.
+func (a *App) GetSatelliteDetail(regionID string) (map[string]interface{}, error) {
+	if a.satelliteSvc == nil {
+		return nil, fmt.Errorf("satellite service not initialized")
+	}
+	ctx := context.Background()
+	snapshot, _, err := a.satelliteSvc.GetRegionDetail(ctx, regionID)
+	if err != nil {
+		return nil, err
+	}
+	solarPts, windPts, err := a.satelliteSvc.GetRegionEnergyData(ctx, regionID)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"snapshot":    snapshot,
+		"solar_data":  solarPoints,
+		"wind_data":   windPts,
+		"solar_chart": solarPts,
+		"wind_chart":  windPts,
+	}, nil
 }
 
 // getMootdxAdapter retrieves the mootdx adapter from the market registry.
