@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useSymbolContext } from '@/stores/symbolContext'
 import { useResearchStore } from '@/stores/research'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
-const symbol = ref(props.params?.symbol || 'AAPL')
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 
 const trades = computed(() => store.research?.insider ?? [])
 
@@ -25,6 +28,12 @@ const netActivity = computed(() => {
 watch(symbol, (newVal) => {
   if (newVal) store.fetchStockResearch(newVal, ['insider'])
 }, { immediate: true })
+
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (pg.linked && newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+  }
+})
 
 function refresh() { store.fetchStockResearch(symbol.value, ['insider']) }
 
