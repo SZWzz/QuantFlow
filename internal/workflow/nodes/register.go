@@ -99,4 +99,7 @@ func RegisterAll(r *workflow.NodeRegistry) {
 	r.RegisterWithCategory("peer_compare", NewPeerCompareNode, "research")
 	r.RegisterWithCategory("analyst_estimates", NewAnalystEstimatesNode, "research")
 	r.RegisterWithCategory("insider_trades", NewInsiderTradesNode, "research")
+
+	// Phase 15: Alternative Data
+	r.RegisterWithCategory("prediction_market", NewPredictionMarketNode, "alternative_data")
 }

@@ -61,6 +61,9 @@ type App struct {
 	cninfoAdpt     *adapters.CninfoAdapter
 	iwencaiAdpt    *adapters.IwencaiAdapter
 
+	polymarketAdpt      adapters.PolymarketAdapter  // prediction market data source
+	predictionMarketSvc *research.PredictionMarketService
+
 	// Research services (wired in startup, degrade gracefully without adapters).
 	capitalSvc      *research.CapitalService
 	fundFlowSvc     *research.FundFlowService
@@ -229,6 +232,12 @@ t	searchSvc, err := market.NewSymbolSearchService(context.Background())
 		nodes.SetNorthboundService(a.northboundSvc)
 		a.announcementSvc = research.NewAnnouncementService(a.cninfoAdpt)
 		nodes.SetAnnouncementService(a.announcementSvc)
+
+		// Alternative data: prediction market (Polymarket)
+		a.polymarketAdpt = adapters.NewPolymarketAdapter()
+		a.predictionMarketSvc = research.NewPredictionMarketService(a.polymarketAdpt)
+		nodes.SetPredictionMarketService(a.predictionMarketSvc)
+		slog.Info("prediction market service initialized")
 	return nil
 }
 
@@ -705,6 +714,52 @@ func (a *App) GetConceptBlocks(symbol string) ([]adapters.ConceptBlock, error) {
 		return nil, fmt.Errorf("concept adapter not initialized")
 	}
 	return a.conceptAdpt.FetchConceptBlocks(context.Background(), symbol)
+}
+
+// ── Prediction Market (预测市场) ──────────────────────────────────────
+
+// GetPredictionMarkets returns prediction market events for a category.
+// category: "", "economics", "crypto", "politics", "sports", "tech", "all".
+func (a *App) GetPredictionMarkets(category string, limit int) (map[string]interface{}, error) {
+	if a.predictionMarketSvc == nil {
+		return nil, fmt.Errorf("prediction market service not initialized")
+	}
+	events, err := a.predictionMarketSvc.GetEvents(context.Background(), category, limit)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"events": events, "count": len(events)}, nil
+}
+
+// GetPredictionEventDetail returns detail + price history for a prediction event.
+func (a *App) GetPredictionEventDetail(eventID string) (map[string]interface{}, error) {
+	if a.predictionMarketSvc == nil {
+		return nil, fmt.Errorf("prediction market service not initialized")
+	}
+	ctx := context.Background()
+	event, err := a.predictionMarketSvc.GetEventDetail(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	prices, _ := a.predictionMarketSvc.GetPriceHistory(ctx, eventID, "1d", 30)
+	return map[string]interface{}{"event": event, "prices": prices}, nil
+}
+
+// GetPredictionSignals extracts trading signals from prediction market data.
+func (a *App) GetPredictionSignals(category string, minProbChange float64) (map[string]interface{}, error) {
+	if a.predictionMarketSvc == nil {
+		return nil, fmt.Errorf("prediction market service not initialized")
+	}
+	output, err := a.predictionMarketSvc.ExtractSignals(context.Background(), category, minProbChange)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"events":       output.Events,
+		"signal":       output.Signal,
+		"category":     output.Category,
+		"generated_at": output.GeneratedAt.Format(time.RFC3339),
+	}, nil
 }
 
 // getMootdxAdapter retrieves the mootdx adapter from the market registry.
