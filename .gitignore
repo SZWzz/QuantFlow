@@ -28,11 +28,6 @@ python/**/__pycache__/
 python/.pytest_cache/
 python/**/*.egg-info/
 
-# Agent / tool artifacts
-.codegraph/
-.superpowers/
-CLAUDE.md
-
 # Stray temp files
 1
 问题.md

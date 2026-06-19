@@ -1,0 +1,88 @@
+<h2>阶段 1 重组方案对比</h2>
+<p class="subtitle">约束: Solo 开发 + 业余时间 + 工作流引擎优先</p>
+
+<div class="section">
+  <h3>Proposal 原方案的问题</h3>
+  <p>原阶段 1 是 <strong>12 周 × 4 线并行</strong>（团队假设），单人业余下会陷入：</p>
+  <ul>
+    <li>同时学 Wails + Vue 3 + vue-flow + Go workflow — 上下文切换成本极高</li>
+    <li>前端 UI 在没有后端数据时只能做 mock，后期大量返工</li>
+    <li>工作流引擎是核心差异点，但被排在中间位置，前端反而先做</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>三种重组策略</h3>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>引擎优先 — Engine-First</h3>
+      <p>工作流引擎 → Go 骨架 → CLI/测试驱动验证 → (之后再做 UI)</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4>
+          <ul>
+            <li>最快的核心价值交付——第 2 个里程碑就能看到工作流跑起来</li>
+            <li>纯 Go 开发，不碰前端，上下文集中</li>
+            <li>CLI/test 驱动，每次推进都有可验证的产出</li>
+            <li>后续加 UI 时引擎接口已稳定</li>
+          </ul>
+        </div>
+        <div class="cons"><h4>Cons</h4>
+          <ul>
+            <li>没有可视化界面，demo 只能在终端里跑</li>
+            <li>Wails 集成留到最后，可能有适配成本</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>壳先行 — Shell-First</h3>
+      <p>Wails 骨架 + 最小 UI → 再填引擎 → 再完善面板</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4>
+          <ul>
+            <li>从第一天就能看到桌面应用</li>
+            <li>Wails IPC 接口早期验证</li>
+          </ul>
+        </div>
+        <div class="cons"><h4>Cons</h4>
+          <ul>
+            <li>前期大量时间花在 UI mock 上，核心引擎迟迟不动</li>
+            <li>Vue 3 + Wails 学习曲线占用早期精力</li>
+            <li>没有后端数据的 UI 开发返工率高</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>最小切片 — Thin Vertical Slice</h3>
+      <p>Go 骨架 + 1 个节点 + 1 条 DAG → Wails 壳 + 1 个面板 → 连起来</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4>
+          <ul>
+            <li>每个切片端到端可感知</li>
+            <li>尽早发现集成问题</li>
+          </ul>
+        </div>
+        <div class="cons"><h4>Cons</h4>
+          <ul>
+            <li>每层都只做一点点，频繁切换语言/框架</li>
+            <li>阶段 1 结束时每层深度都不够</li>
+            <li>后续扩展时早期 API 可能不匹配</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
