@@ -13,11 +13,11 @@ const terminal = useTerminalStore()
 
 // Initialize layout from store or create default
 const layout = computed(() => {
-  return terminal.layout.value
+  return terminal.layout
 })
 
 function initDefaultLayout() {
-  const root = terminal.layout?.value
+  const root = terminal.layout
   if (!root) return
   if (root.type === 'tab' && (!root.tabs || root.tabs.length === 0)) {
     root.tabs = [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }]
@@ -27,7 +27,7 @@ function initDefaultLayout() {
 
 // Add a panel to the layout — if single tab, split; otherwise add to active leaf
 function addPanel(tab: DockTabState) {
-  const root = terminal.layout.value
+  const root = terminal.layout
 
   if (root.type === 'tab') {
     if (!root.tabs || root.tabs.length === 0) {
@@ -38,7 +38,7 @@ function addPanel(tab: DockTabState) {
       // Single tab → split into 2 horizontally
       const existingLeaf = createTabLeaf('leaf-existing', root.tabs[0])
       const newLeaf = createTabLeaf(`leaf-${tab.id}`, tab)
-      terminal.layout.value = createContainer('root', 'row', [existingLeaf, newLeaf])
+      terminal.layout = createContainer('root', 'row', [existingLeaf, newLeaf])
     } else {
       // Multiple tabs already — add to this tab group
       root.tabs.push(tab)
@@ -125,11 +125,11 @@ function applyPreset(preset: number) {
 
   switch (preset) {
     case 1: // Single
-      terminal.layout.value = createTabLeaf('root', tabs[0])
+      terminal.layout = createTabLeaf('root', tabs[0])
       break
     case 2: // Split horizontal
       if (tabs.length >= 2) {
-        terminal.layout.value = createContainer('root', 'row', [
+        terminal.layout = createContainer('root', 'row', [
           createTabLeaf('left', tabs[0]),
           createTabLeaf('right', tabs[1]),
         ])
@@ -145,16 +145,16 @@ function applyPreset(preset: number) {
           createTabLeaf('bl', tabs[2]),
           createTabLeaf('br', tabs[3]),
         ])
-        terminal.layout.value = createContainer('root', 'column', [top, bottom])
+        terminal.layout = createContainer('root', 'column', [top, bottom])
       }
       break
     case 4: // Classic: sidebar + main
       if (tabs.length >= 2) {
-        terminal.layout.value = createContainer('root', 'row', [
+        terminal.layout = createContainer('root', 'row', [
           createTabLeaf('sidebar', tabs[0]),
           createTabLeaf('main', tabs[1]),
         ])
-        terminal.layout.value.splitRatios = [0.25, 0.75]
+        terminal.layout.splitRatios = [0.25, 0.75]
       }
       break
   }
@@ -162,7 +162,7 @@ function applyPreset(preset: number) {
 
 function getExistingTabs(): DockTabState[] {
   const tabs: DockTabState[] = []
-  collectTabs(terminal.layout.value, tabs)
+  collectTabs(terminal.layout, tabs)
   return tabs
 }
 
