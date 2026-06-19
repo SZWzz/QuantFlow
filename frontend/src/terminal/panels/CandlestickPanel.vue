@@ -6,20 +6,21 @@ import { CandlestickChart, BarChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import * as echarts from 'echarts'
-import { useTerminalStore } from '@/stores/terminal'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
-const terminal = useTerminalStore()
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const hasEcharts = computed(() => !!(echarts && VChart))
 
-const symbol = ref(props.params?.symbol || terminal.activeSymbol || 'AAPL')
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 const interval = ref(props.params?.interval || '1d')
 
-// Subscribe to symbol context changes
-watch([() => terminal.activeSymbol, () => terminal.lastSymbolUpdate], ([newSymbol]) => {
+// Subscribe to symbol context via link group
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
   if (newSymbol && newSymbol !== symbol.value) {
     symbol.value = newSymbol
     ohlcvData.value = generateMockData(90)
@@ -94,8 +95,9 @@ const option = computed(() => {
 })
 
 onMounted(() => {
-  if (terminal.activeSymbol && terminal.activeSymbol !== symbol.value) {
-    symbol.value = terminal.activeSymbol
+  const groupSym = ctx.getGroupSymbol(pg.groupId)
+  if (groupSym && groupSym !== symbol.value) {
+    symbol.value = groupSym
     ohlcvData.value = generateMockData(90)
   }
 })
