@@ -8,11 +8,20 @@
 
 ## [2026.6.19] - 2026-06-19
 
+### 新增
+
+- [Terminal] Symbol Context 联动系统：Bloomberg 式 Link Group 架构，4 个颜色编码 Group（红/绿/黄/蓝），跨面板 symbol 自动联动
+- [Terminal] symbolContextStore：Pinia store 管理 4 个 LinkGroup + panel-to-group binding + symbol history（最近 10 个）+ Linked/Unlinked 状态
+- [Terminal] SymbolBar：快速 symbol 输入栏 + 4 Group 切换标签，对标 Bloomberg 命令行
+- [Terminal] StatusBar 增强：显示所有活跃 Group 的 symbol + 颜色标识
+- [Terminal] DockTab 增强：面板标签页显示 Group 颜色圆点指示器
+
 ### 变更
 
-- [Frontend] 迁移 5 个面板从 terminalStore.activeSymbol 到 symbolContext store：WatchlistPanel（发布者）、QuoteDetailPanel（订阅者）、CandlestickPanel（订阅者）、FinancialsPanel（发布者）、StockResearchPanel（发布者）
-
-### 新增
+- [Frontend] 15 个面板迁移到 symbolContext 联动系统：
+  - **5 个 Publisher**（可发布 symbol 到 Group）：WatchlistPanel、QuoteDetailPanel、StockResearchPanel、OrderEntryPanel、FinancialsPanel
+  - **10 个 Subscriber**（自动跟随 Group symbol）：CandlestickPanel、SentimentPanel、PeerComparisonPanel、AnalystEstimatesPanel、InsiderTradingPanel、MarketDepthPanel、PositionDetail、DrawingPanel、DistributionPanel、SurfaceChartPanel、PredictionDashboardPanel
+- [Frontend] terminalStore：移除 deprecated activeSymbol / lastSymbolUpdate / setActiveSymbol（已迁移到 symbolContextStore）
 
 - [MarketData] SatelliteAdapter：卫星替代数据适配器，集成 NASA POWER API（太阳能 GHI / 风速）和 NASA FIRMS（野火数据），免费无需 API Key，5 个预定义能源区域（德州风能走廊、北海风电场、戈壁太阳能基地、撒哈拉太阳能带、美国中西部农业带）
 - [Research] SatelliteService：卫星能源数据服务，支持区域快照/详情/30 天时间序列/异常检测信号，5 分钟 TTL 缓存，完整的 mock 数据回退
