@@ -34,7 +34,11 @@
 - [工作流] NewsFetcherNode：输入代码→自动拉取新闻→输出给 SentimentNode
 - [行情] EastMoneyRateLimiter：全局限流器（QPS≤2，500ms 间隔+抖动）
 - [Terminal] 9 个新 Wails 导出方法：GetCapitalData/FundFlow/NorthboundFlow/Announcements 等
-- [文档] 数据源整合/前后端修复/剩余缺口修复/爱问财/代码归一化等 7 篇 Spec
+- [另类数据] Polymarket 预测市场适配器：Gamma API 免费接入，5 类事件（经济/加密/政治/体育/科技），概率走势图
+- [另类数据] PredictionMarketService：5 分钟 TTL 缓存 + 概率突破信号提取（默认阈值 5%）
+- [前端] PredictionMarketPanel：类别过滤 + 概率走势 ECharts + 信号徽标（第 47 个面板）
+- [工作流] prediction_market 节点：类别/阈值输入 → 事件列表 + 交易信号输出（类别：alternative_data）
+- [文档] 数据源整合/前后端修复/剩余缺口修复/爱问财/代码归一化/预测市场等 8 篇 Spec
 
 ### 修复
 
