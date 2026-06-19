@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
+import { ref, triggerRef } from 'vue'
 import type { DockLayoutTree, DockTabState } from '@/terminal/DockView/types'
 
 export interface PanelState {
@@ -23,13 +23,18 @@ export const useTerminalStore = defineStore('terminal', () => {
   const pushPins = ref<PushPin[]>([])
   const focusMode = ref(false)
 
-  // DockView layout — starts with welcome screen
-  const layout = reactive<DockLayoutTree>({
+  // DockView layout — ref for reliable reactivity with deep trees
+  const layout = ref<DockLayoutTree>({
     id: 'root',
     type: 'tab',
     tabs: [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }],
     activeTab: 'welcome',
   })
+
+  /** Force re-render after mutation by triggering ref. */
+  function notifyLayout() {
+    triggerRef(layout)
+  }
 
   function openPanel(panelId: string, params?: Record<string, any>) {
     const instanceId = `${panelId}-${Date.now()}`
@@ -52,25 +57,37 @@ export const useTerminalStore = defineStore('terminal', () => {
 
   function addCommand(cmd: string) {
     commandHistory.value.unshift(cmd)
-    if (commandHistory.value.length > 20) {
-      commandHistory.value.pop()
-    }
+    if (commandHistory.value.length > 20) commandHistory.value.pop()
   }
 
   function toggleFocusMode() {
     focusMode.value = !focusMode.value
   }
 
-  // DockView actions
+  // ── Layout manipulation ──────────────────────────────────────
+
+  function findLeaf(node: DockLayoutTree, id: string): DockLayoutTree | null {
+    if (node.id === id) return node
+    if (node.children) {
+      for (const child of node.children) {
+        const found = findLeaf(child, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   function selectTab(leafId: string, tabId: string) {
-    const leaf = findLeaf(layout, leafId)
+    const leaf = findLeaf(layout.value, leafId)
     if (leaf && leaf.type === 'tab') {
       leaf.activeTab = tabId
+      notifyLayout()
     }
   }
 
   function closeTab(_leafId: string, tabId: string) {
-    // Find and remove the tab from anywhere in the tree
+    const root = layout.value
+
     function removeFrom(node: DockLayoutTree): boolean {
       if (node.type === 'tab' && node.tabs) {
         const idx = node.tabs.findIndex((t) => t.id === tabId)
@@ -79,7 +96,6 @@ export const useTerminalStore = defineStore('terminal', () => {
           if (node.activeTab === tabId) {
             node.activeTab = node.tabs.length > 0 ? node.tabs[0].id : ''
           }
-          // Restore welcome if leaf became empty
           if (node.tabs.length === 0) {
             node.tabs = [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }]
             node.activeTab = 'welcome'
@@ -95,56 +111,39 @@ export const useTerminalStore = defineStore('terminal', () => {
       return false
     }
 
-    removeFrom(layout)
+    removeFrom(root)
 
     // Clean up activePanels
     const panelIdx = activePanels.value.findIndex((p) => p.instanceId === tabId)
     if (panelIdx !== -1) {
       activePanels.value.splice(panelIdx, 1)
     }
+
+    notifyLayout()
   }
 
   function moveTab(leafId: string, fromIdx: number, toIdx: number) {
-    const leaf = findLeaf(layout, leafId)
+    const leaf = findLeaf(layout.value, leafId)
     if (leaf && leaf.type === 'tab' && leaf.tabs) {
       const [moved] = leaf.tabs.splice(fromIdx, 1)
       if (moved) {
         leaf.tabs.splice(toIdx, 0, moved)
+        notifyLayout()
       }
     }
   }
 
   function updateSplitRatios(containerId: string, ratios: number[]) {
-    const node = findLeaf(layout, containerId)
+    const node = findLeaf(layout.value, containerId)
     if (node && node.type === 'container') {
       node.splitRatios = ratios
+      notifyLayout()
     }
-  }
-
-  function findLeaf(node: DockLayoutTree, id: string): DockLayoutTree | null {
-    if (node.id === id) return node
-    if (node.children) {
-      for (const child of node.children) {
-        const found = findLeaf(child, id)
-        if (found) return found
-      }
-    }
-    return null
   }
 
   return {
-    activePanels,
-    commandHistory,
-    pushPins,
-    focusMode,
-    layout,
-    openPanel,
-    closePanel,
-    addCommand,
-    toggleFocusMode,
-    selectTab,
-    closeTab,
-    moveTab,
-    updateSplitRatios,
+    activePanels, commandHistory, pushPins, focusMode, layout,
+    openPanel, closePanel, addCommand, toggleFocusMode,
+    selectTab, closeTab, moveTab, updateSplitRatios,
   }
 })
