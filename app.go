@@ -45,7 +45,29 @@ type App struct {
 	portfolioSvc *portfolio.Service
 
 	// Market data: adapter registry + fallback chains (wired in startup).
-	marketReg *market.AdapterRegistry
+	marketReg     *market.AdapterRegistry
+	newsAdpt      adapters.NewsAdapter // news source for sentiment analysis
+	globalNewsAdpt *adapters.EastMoneyGlobalNewsAdapter
+	conceptAdpt   *adapters.EastMoneyConceptAdapter
+	signalsAdpt   *adapters.EastMoneySignalsAdapter
+	capitalAdpt   *adapters.EastMoneyCapitalAdapter
+	fundFlowAdpt  *adapters.EastMoneyFundFlowAdapter
+	sinaFinAdpt   *adapters.SinaFinancialsAdapter
+	reportAdpt     *adapters.EastMoneyReportAdapter
+	consensusAdpt  *adapters.THSConsensusAdapter
+	thsHotAdpt     *adapters.THSHotAdapter
+	northboundAdpt *adapters.THSNorthboundAdapter
+	cninfoAdpt     *adapters.CninfoAdapter
+	iwencaiAdpt    *adapters.IwencaiAdapter
+
+	// Research services (wired in startup, degrade gracefully without adapters).
+	capitalSvc      *research.CapitalService
+	fundFlowSvc     *research.FundFlowService
+	northboundSvc   *research.NorthboundService
+	announcementSvc *research.AnnouncementService
+
+	// Symbol search (in-memory index, built at startup).
+	searchSvc *market.SymbolSearchService
 }
 
 // startup is called by Wails when the application starts.
@@ -145,20 +167,55 @@ func (a *App) startup() error {
 
 	// Initialize research services (degrade gracefully without Python)
 	researchRepo := research.NewResearchRepo(a.db)
+	a.newsAdpt = adapters.NewEastMoneyNewsAdapter()
+	a.globalNewsAdpt = adapters.NewEastMoneyGlobalNewsAdapter()
+	nodes.SetGlobalNewsAdapter(a.globalNewsAdpt)
+	a.conceptAdpt = adapters.NewEastMoneyConceptAdapter()
+	a.signalsAdpt = adapters.NewEastMoneySignalsAdapter()
+		a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
+		a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
+		a.northboundAdpt = adapters.NewTHSNorthboundAdapter()
+t	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
+
+		// Phase 3: Research report + announcement adapters
+		a.reportAdpt = adapters.NewEastMoneyReportAdapter()
+		a.consensusAdpt = adapters.NewTHSConsensusAdapter()
+		a.cninfoAdpt = adapters.NewCninfoAdapter()
+		a.iwencaiAdpt = adapters.NewIwencaiAdapter()
+
+	nodes.SetNewsAdapter(a.newsAdpt)
 	if a.bridge != nil {
-		sentimentEngine := research.NewSentimentEngine(a.bridge, researchRepo)
+		sentimentEngine := research.NewSentimentEngine(a.bridge, researchRepo, a.newsAdpt)
 		nodes.SetSentimentEngine(sentimentEngine)
 		slog.Info("sentiment engine initialized with Python bridge")
 	} else {
+		sentimentEngine := research.NewSentimentEngine(nil, researchRepo, a.newsAdpt)
+		nodes.SetSentimentEngine(sentimentEngine)
 		slog.Info("sentiment engine initialized in mock mode (no Python bridge)")
 	}
-	nodes.SetFinancialsService(research.NewFinancialsService())
-	nodes.SetPeerComparisonService(research.NewPeerComparisonService())
-	nodes.SetAnalystEstimatesService(research.NewAnalystEstimatesService())
+	nodes.SetFinancialsService(research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter()))
+	nodes.SetPeerComparisonService(research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt))
+	nodes.SetAnalystEstimatesService(research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt))
 	nodes.SetInsiderTradingService(research.NewInsiderTradingService())
 	nodes.SetCongressTradingService(research.NewCongressTradingService())
 	slog.Info("research services initialized")
 
+		// Symbol search service (in-memory A-share index)
+t	searchSvc, err := market.NewSymbolSearchService(context.Background())
+		if err != nil {
+			slog.Warn("symbol search service init failed", "error", err)
+		} else {
+			a.searchSvc = searchSvc
+			slog.Info("symbol search service initialized", "stocks", searchSvc.Size())
+		}
+		a.capitalSvc = research.NewCapitalService(a.capitalAdpt)
+		nodes.SetCapitalService(a.capitalSvc)
+		a.fundFlowSvc = research.NewFundFlowService(a.fundFlowAdpt)
+		nodes.SetFundFlowService(a.fundFlowSvc)
+		a.northboundSvc = research.NewNorthboundService(a.northboundAdpt)
+		nodes.SetNorthboundService(a.northboundSvc)
+		a.announcementSvc = research.NewAnnouncementService(a.cninfoAdpt)
+		nodes.SetAnnouncementService(a.announcementSvc)
 	return nil
 }
 
@@ -413,38 +470,53 @@ func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval strin
 
 // GetSentiment returns sentiment analysis for a symbol.
 func (a *App) GetSentiment(symbol string) (*research.SentimentOutput, error) {
-	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db))
+	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db), a.newsAdpt)
 	return engine.AnalyzeSentiment(context.Background(), symbol, "", "news", "en")
 }
 
 // GetSentimentHistory returns historical sentiment for a symbol.
 func (a *App) GetSentimentHistory(symbol string, days int) ([]research.SentimentOutput, error) {
-	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db))
+	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db), a.newsAdpt)
 	return engine.GetSentimentHistory(context.Background(), symbol, days)
 }
 
 // GetStockResearch returns multi-dimensional research data for a symbol.
 func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockResearchResult, error) {
 	repo := research.NewResearchRepo(a.db)
-	finSvc := research.NewFinancialsService()
-	peerSvc := research.NewPeerComparisonService()
-	estSvc := research.NewAnalystEstimatesService()
+	finSvc := research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
+	peerSvc := research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt)
+	estSvc := research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt)
 	insSvc := research.NewInsiderTradingService()
 
 	result := &research.StockResearchResult{
 		Symbol: symbol,
 		Overview: map[string]interface{}{
 			"symbol": symbol, "name": symbol,
-			"sector": "Mock", "market_cap": "N/A",
+			"sector": "N/A", "market_cap": "N/A",
 		},
+	}
+
+	// Try EastMoney stock_info for overview data
+	if a.eastmoneyAdpt != nil {
+		if info, err := a.eastmoneyAdpt.FetchStockInfo(context.Background(), symbol); err == nil {
+			result.Overview["name"] = info.Name
+			result.Overview["sector"] = info.Industry
+			result.Overview["market_cap"] = fmt.Sprintf("%.0f亿", info.MarketCap/1e8)
+			result.Overview["total_shares"] = fmt.Sprintf("%.2f亿股", info.TotalShares/1e8)
+			result.Overview["float_shares"] = fmt.Sprintf("%.2f亿股", info.FloatShares/1e8)
+			result.Overview["list_date"] = info.ListDate
+			result.Overview["price"] = info.Price
+		}
 	}
 
 	for _, tab := range tabs {
 		switch tab {
 		case "financials":
 			fd, _ := finSvc.GetFinancials(context.Background(), symbol)
-			result.Financials = fd
-			result.Ratios = finSvc.ComputeRatios(fd)
+			result.Financials = &research.FinancialsBundle{
+				Data:   fd,
+				Ratios: finSvc.ComputeRatios(fd),
+			}
 		case "peers":
 			peers, _ := peerSvc.GetPeers(context.Background(), symbol)
 			result.Peers = peers
@@ -455,15 +527,186 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 			txns, _ := insSvc.GetInsiderTrades(context.Background(), symbol)
 			result.InsiderTxns = txns
 		case "sentiment":
-			if a.bridge != nil {
-				engine := research.NewSentimentEngine(a.bridge, repo)
-				s, _ := engine.AnalyzeSentiment(context.Background(), symbol, "", "news", "en")
-				result.Sentiment = s
-			}
+			engine := research.NewSentimentEngine(a.bridge, repo, a.newsAdpt)
+			s, _ := engine.AnalyzeSentiment(context.Background(), symbol, "", "news", "en")
+			result.Sentiment = s
 		}
 	}
 
 	return result, nil
+}
+
+// GetCongressTrades returns recent US Congress trading activity.
+// Used by the CongressTradingPanel frontend.
+func (a *App) GetCongressTrades() ([]research.CongressTrade, error) {
+	svc := research.NewCongressTradingService()
+	return svc.GetCongressTrades(context.Background())
+}
+
+// SearchSymbols searches A-share stocks by code, name, or pinyin abbreviation.
+// Returns up to 20 matches sorted by relevance.
+func (a *App) SearchSymbols(query string) ([]market.StockEntry, error) {
+	if a.searchSvc == nil {
+		return nil, fmt.Errorf("symbol search not initialized")
+	}
+	return a.searchSvc.Search(query, 20), nil
+}
+
+// SearchResearch performs NL semantic search over research reports, announcements,
+// and news via the iwencai (爱问财) API. Requires IWENCAI_API_KEY to be configured.
+// channel: "report", "announcement", or "news". size: max results (capped at 50).
+func (a *App) SearchResearch(query string, channel string, size int) ([]adapters.IwencaiArticle, error) {
+	if a.iwencaiAdpt == nil {
+		return nil, fmt.Errorf("iwencai adapter not initialized")
+	}
+	if !a.iwencaiAdpt.IsAvailable(context.Background()) {
+		return nil, fmt.Errorf("iwencai not available: IWENCAI_API_KEY not set or endpoint unreachable")
+	}
+	return a.iwencaiAdpt.Search(context.Background(), query, channel, size)
+}
+
+// ── Capital Data (融资融券 / 大宗交易 / 股东户数 / 分红) ──────────────────
+
+// GetCapitalData returns capital/fundamental data for a symbol: margin trading,
+// block trades, holder changes, and dividend history.
+func (a *App) GetCapitalData(symbol string) (map[string]interface{}, error) {
+	if a.capitalSvc == nil {
+		return nil, fmt.Errorf("capital service not initialized")
+	}
+	ctx := context.Background()
+	result := map[string]interface{}{}
+	if data, err := a.capitalSvc.GetMarginTrading(ctx, symbol, 30); err == nil {
+		result["margin_trading"] = data
+	}
+	if data, err := a.capitalSvc.GetBlockTrades(ctx, symbol, 20); err == nil {
+		result["block_trades"] = data
+	}
+	if data, err := a.capitalSvc.GetHolderChanges(ctx, symbol, 10); err == nil {
+		result["holder_changes"] = data
+	}
+	if data, err := a.capitalSvc.GetDividendHistory(ctx, symbol, 20); err == nil {
+		result["dividend_history"] = data
+	}
+	return result, nil
+}
+
+// ── Fund Flow (资金流向) ──────────────────────────────────────────────────
+
+// GetFundFlow returns capital flow data for a symbol.
+// flowType: "minute" (今日分钟级) or "daily" (120日日级).
+func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
+	if a.fundFlowSvc == nil {
+		return nil, fmt.Errorf("fund flow service not initialized")
+	}
+	ctx := context.Background()
+	switch flowType {
+	case "minute":
+		return a.fundFlowSvc.GetMinuteFlow(ctx, symbol)
+	case "daily":
+		return a.fundFlowSvc.GetDailyFlow(ctx, symbol)
+	default:
+		return nil, fmt.Errorf("invalid flowType: %s (use 'minute' or 'daily')", flowType)
+	}
+}
+
+// ── Northbound Flow (北向资金) ────────────────────────────────────────────
+
+// GetNorthboundFlow returns northbound capital flow data.
+func (a *App) GetNorthboundFlow() (map[string]interface{}, error) {
+	if a.northboundSvc == nil {
+		return nil, fmt.Errorf("northbound service not initialized")
+	}
+	ctx := context.Background()
+	result := map[string]interface{}{}
+	if data, err := a.northboundSvc.GetMinuteFlow(ctx); err == nil {
+		result["minute_flow"] = data
+	}
+	if data, err := a.northboundSvc.GetHistory(20); err == nil {
+		result["history"] = data
+	}
+	return result, nil
+}
+
+// ── Announcements (公告) ──────────────────────────────────────────────────
+
+// GetAnnouncements returns company announcements for a symbol from 巨潮资讯.
+func (a *App) GetAnnouncements(symbol string, pageSize int) ([]adapters.Announcement, error) {
+	if a.announcementSvc == nil {
+		return nil, fmt.Errorf("announcement service not initialized")
+	}
+	if pageSize <= 0 {
+		pageSize = 30
+	}
+	return a.announcementSvc.GetAnnouncements(context.Background(), symbol, pageSize)
+}
+
+// ── Dragon Tiger (龙虎榜) ─────────────────────────────────────────────────
+
+// GetDragonTiger returns dragon tiger board data for a symbol.
+func (a *App) GetDragonTiger(symbol string, endDate string, lookBack int) ([]adapters.DragonTigerRecord, error) {
+	if a.signalsAdpt == nil {
+		return nil, fmt.Errorf("signals adapter not initialized")
+	}
+	if lookBack <= 0 {
+		lookBack = 30
+	}
+	return a.signalsAdpt.FetchDragonTigerStock(context.Background(), symbol, endDate, lookBack)
+}
+
+// GetDailyDragonTiger returns market-wide dragon tiger board for a trading date.
+func (a *App) GetDailyDragonTiger(date string, minNetBuy float64) ([]adapters.DragonTigerStock, error) {
+	if a.signalsAdpt == nil {
+		return nil, fmt.Errorf("signals adapter not initialized")
+	}
+	return a.signalsAdpt.FetchDailyDragonTiger(context.Background(), date, minNetBuy)
+}
+
+// GetLockupExpiry returns lockup expiry data (解禁) for a symbol.
+func (a *App) GetLockupExpiry(symbol string) ([]adapters.LockupExpiry, error) {
+	if a.signalsAdpt == nil {
+		return nil, fmt.Errorf("signals adapter not initialized")
+	}
+	return a.signalsAdpt.FetchLockupExpiry(context.Background(), symbol)
+}
+
+// ── Industry Ranks (行业板块排名) ─────────────────────────────────────────
+
+// GetIndustryRanks returns industry ranking by change percent.
+func (a *App) GetIndustryRanks(topN int) ([]adapters.IndustryRank, error) {
+	if a.signalsAdpt == nil {
+		return nil, fmt.Errorf("signals adapter not initialized")
+	}
+	if topN <= 0 {
+		topN = 20
+	}
+	return a.signalsAdpt.FetchIndustryRanks(context.Background(), topN)
+}
+
+// ── Concept Blocks (概念板块归属) ─────────────────────────────────────────
+
+// GetConceptBlocks returns the concept/industry/sector blocks a stock belongs to.
+func (a *App) GetConceptBlocks(symbol string) ([]adapters.ConceptBlock, error) {
+	if a.conceptAdpt == nil {
+		return nil, fmt.Errorf("concept adapter not initialized")
+	}
+	return a.conceptAdpt.FetchConceptBlocks(context.Background(), symbol)
+}
+
+// getMootdxAdapter retrieves the mootdx adapter from the market registry.
+// Returns nil if the Python sidecar is not connected.
+func (a *App) getMootdxAdapter() *adapters.MootdxAdapter {
+	if a.marketReg == nil {
+		return nil
+	}
+	adpt := a.marketReg.Get("mootdx")
+	if adpt == nil {
+		return nil
+	}
+	mootdx, ok := adpt.(*adapters.MootdxAdapter)
+	if !ok {
+		return nil
+	}
+	return mootdx
 }
 
 // Shutdown performs graceful cleanup: closes the Python sidecar connection,

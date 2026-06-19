@@ -8,17 +8,21 @@ import pyarrow as pa
 logger = logging.getLogger(__name__)
 
 _HAS_TORCH = False
+_nn_Module = object  # fallback base class when PyTorch is not installed
 try:
     import torch
     import torch.nn as nn
     from torch.utils.data import DataLoader, TensorDataset
     _HAS_TORCH = True
+    _nn_Module = nn.Module
 except ImportError:
     pass
 
 
-class _LSTMPredictor(nn.Module):
+class _LSTMPredictor(_nn_Module):
     def __init__(self, input_size, hidden_size, num_layers):
+        if not _HAS_TORCH:
+            raise ImportError("PyTorch not installed")
         super().__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, 1)
@@ -28,8 +32,10 @@ class _LSTMPredictor(nn.Module):
         return self.fc(out[:, -1, :]).squeeze(-1)
 
 
-class _TransformerPredictor(nn.Module):
+class _TransformerPredictor(_nn_Module):
     def __init__(self, input_size, d_model, nhead, num_layers):
+        if not _HAS_TORCH:
+            raise ImportError("PyTorch not installed")
         super().__init__()
         self.input_proj = nn.Linear(input_size, d_model)
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True)

@@ -15,14 +15,13 @@ func parseFloatSafe(s string) float64 {
 	return f
 }
 
-// toSinaCode converts a symbol like "600519.SH" or "000001.SZ" to Sina code "sh600519" or "sz000001".
+// toSinaCode converts a symbol to Sina format. Delegates to the unified SymbolIdentity.
 func toSinaCode(symbol string) string {
-	symbol = strings.TrimSuffix(symbol, ".SH")
-	symbol = strings.TrimSuffix(symbol, ".SZ")
-	if strings.HasPrefix(symbol, "6") || strings.HasPrefix(symbol, "5") || strings.HasPrefix(symbol, "9") {
-		return "sh" + symbol
+	id, err := market.NormalizeCN(symbol)
+	if err != nil {
+		return strings.ToLower(symbol) // best-effort fallback
 	}
-	return "sz" + symbol
+	return id.ToSina()
 }
 
 // parseSinaQuote parses Sina's CSV-like response format.

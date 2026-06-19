@@ -46,7 +46,7 @@ type PeerComparisonData struct {
 	MarketCap     float64 `json:"market_cap"`
 	PE            float64 `json:"pe_ratio"`
 	RevenueGrowth float64 `json:"revenue_growth"`
-	NetMargin     float64 `json:"net_margin"`
+	NetMargin     float64 `json:"margin"`
 	ROE           float64 `json:"roe"`
 }
 
@@ -67,7 +67,15 @@ type InsiderTransaction struct {
 	Type   string  `json:"type"`
 	Shares int64   `json:"shares"`
 	Price  float64 `json:"price"`
+	Value  float64 `json:"value"`
 	Date   string  `json:"date"`
+}
+
+// FinancialsBundle groups financial data and computed ratios under a single JSON key.
+// The frontend expects { data: FinancialData, ratios: FinancialRatios } nested under "financials".
+type FinancialsBundle struct {
+	Data   *FinancialData   `json:"data,omitempty"`
+	Ratios *FinancialRatios `json:"ratios,omitempty"`
 }
 
 // StockResearchResult aggregates all research dimensions for a symbol.
@@ -75,12 +83,11 @@ type StockResearchResult struct {
 	Symbol      string                 `json:"symbol"`
 	UpdatedAt   time.Time              `json:"updated_at"`
 	Overview    map[string]interface{} `json:"overview,omitempty"`
-	Financials  *FinancialData         `json:"financials,omitempty"`
-	Ratios      *FinancialRatios       `json:"ratios,omitempty"`
+	Financials  *FinancialsBundle      `json:"financials,omitempty"`
 	Sentiment   *SentimentOutput       `json:"sentiment,omitempty"`
 	Peers       []PeerComparisonData   `json:"peers,omitempty"`
 	Estimates   []AnalystEstimate      `json:"estimates,omitempty"`
-	InsiderTxns []InsiderTransaction   `json:"insider_trades,omitempty"`
+	InsiderTxns []InsiderTransaction   `json:"insider,omitempty"`
 }
 
 // CongressTrade represents a congress member's stock trade.

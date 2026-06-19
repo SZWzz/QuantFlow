@@ -4,25 +4,33 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
+	"quantflow/internal/market/adapters"
 	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
 
 // SentimentEngine orchestrates sentiment analysis across cache, gRPC, and mock fallback.
+// When textContent is empty, it auto-fetches news via the newsAdapter (if set) to provide
+// real text for NLP analysis.
 type SentimentEngine struct {
-	bridge *python.PythonBridge // nil when Python sidecar is unavailable
-	repo   *ResearchRepo
+	bridge      *python.PythonBridge // nil when Python sidecar is unavailable
+	repo        *ResearchRepo
+	newsAdapter adapters.NewsAdapter // optional: auto-fetches news when textContent is empty
 }
 
-// NewSentimentEngine creates a new SentimentEngine. bridge may be nil.
-func NewSentimentEngine(bridge *python.PythonBridge, repo *ResearchRepo) *SentimentEngine {
-	return &SentimentEngine{bridge: bridge, repo: repo}
+// NewSentimentEngine creates a new SentimentEngine. bridge and newsAdapter may be nil.
+func NewSentimentEngine(bridge *python.PythonBridge, repo *ResearchRepo, newsAdapter adapters.NewsAdapter) *SentimentEngine {
+	return &SentimentEngine{bridge: bridge, repo: repo, newsAdapter: newsAdapter}
 }
 
 // AnalyzeSentiment returns sentiment for a symbol. Cache-first, then gRPC,
 // then mock fallback when Python is unavailable.
+//
+// When textContent is empty and a newsAdapter is configured, it auto-fetches
+// recent news articles for the symbol and uses the concatenated text for NLP.
 func (e *SentimentEngine) AnalyzeSentiment(ctx context.Context, symbol, textContent, textType, language string) (*SentimentOutput, error) {
 	// 1. Check cache
 	if e.repo != nil {
@@ -33,7 +41,27 @@ func (e *SentimentEngine) AnalyzeSentiment(ctx context.Context, symbol, textCont
 		}
 	}
 
-	// 2. Try gRPC via Python bridge
+	// 2. Auto-fetch news text if none provided
+	if textContent == "" && e.newsAdapter != nil {
+		articles, err := e.newsAdapter.FetchStockNews(ctx, symbol, 5)
+		if err != nil {
+			slog.Debug("news fetch failed, proceeding without text", "symbol", symbol, "error", err)
+		} else if len(articles) > 0 {
+			parts := make([]string, 0, len(articles)*2)
+			for _, a := range articles {
+				if a.Title != "" {
+					parts = append(parts, a.Title)
+				}
+				if a.Content != "" {
+					parts = append(parts, a.Content)
+				}
+			}
+			textContent = strings.Join(parts, ". ")
+			slog.Debug("auto-fetched news for sentiment", "symbol", symbol, "articles", len(articles), "text_len", len(textContent))
+		}
+	}
+
+	// 3. Try gRPC via Python bridge
 	if e.bridge != nil {
 		resp, err := e.bridge.AnalyzeSentiment(ctx, symbol, textContent, textType, language)
 		if err != nil {
@@ -49,7 +77,7 @@ func (e *SentimentEngine) AnalyzeSentiment(ctx context.Context, symbol, textCont
 		}
 	}
 
-	// 3. Mock fallback
+	// 4. Mock fallback
 	return e.mockSentiment(symbol, textType), nil
 }
 
@@ -74,13 +102,26 @@ func (e *SentimentEngine) GetSentimentHistory(ctx context.Context, symbol string
 
 // BatchAnalyze analyzes sentiment for multiple symbols concurrently.
 func (e *SentimentEngine) BatchAnalyze(ctx context.Context, symbols []string, textType, language string) ([]*SentimentOutput, error) {
-	results := make([]*SentimentOutput, len(symbols))
+	type result struct {
+		idx    int
+		output *SentimentOutput
+	}
+	ch := make(chan result, len(symbols))
+
 	for i, sym := range symbols {
-		output, err := e.AnalyzeSentiment(ctx, sym, "", textType, language)
-		if err != nil {
-			output = e.mockSentiment(sym, textType)
-		}
-		results[i] = output
+		go func(idx int, symbol string) {
+			output, err := e.AnalyzeSentiment(ctx, symbol, "", textType, language)
+			if err != nil {
+				output = e.mockSentiment(symbol, textType)
+			}
+			ch <- result{idx: idx, output: output}
+		}(i, sym)
+	}
+
+	results := make([]*SentimentOutput, len(symbols))
+	for range symbols {
+		r := <-ch
+		results[r.idx] = r.output
 	}
 	return results, nil
 }
@@ -108,15 +149,17 @@ func (e *SentimentEngine) mockSentiment(symbol, textType string) *SentimentOutpu
 func pbToSentimentOutput(resp *pb.AnalyzeSentimentResponse) *SentimentOutput {
 	results := resp.Results
 	var keywords, entities []string
+	var confidence float64
 	if len(results) > 0 {
 		keywords = results[0].Keywords
 		entities = results[0].Entities
+		confidence = results[0].Confidence
 	}
 	return &SentimentOutput{
 		Symbol:      resp.Symbol,
 		Score:       resp.OverallScore,
 		Label:       resp.OverallLabel,
-		Confidence:  0.7,
+		Confidence:  confidence,
 		Keywords:    keywords,
 		Entities:    entities,
 		Source:      "",

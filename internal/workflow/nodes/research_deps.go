@@ -1,16 +1,25 @@
 package nodes
 
-import "quantflow/internal/research"
+import (
+	"quantflow/internal/market/adapters"
+	"quantflow/internal/research"
+)
 
 // Package-level dependencies for research nodes.
 // Set before workflow execution via app.go startup.
 
 var sentimentEngine *research.SentimentEngine
+var newsAdapter adapters.NewsAdapter
+var globalNewsAdapter adapters.GlobalNewsAdapter
 var financialsService *research.FinancialsService
 var peerComparisonService *research.PeerComparisonService
 var analystEstimatesService *research.AnalystEstimatesService
 var insiderTradingService *research.InsiderTradingService
 var congressTradingService *research.CongressTradingService
+var capitalService *research.CapitalService
+var fundFlowService *research.FundFlowService
+var northboundService *research.NorthboundService
+var announcementService *research.AnnouncementService
 
 // SetSentimentEngine injects the sentiment engine for use by research nodes.
 func SetSentimentEngine(e *research.SentimentEngine) {
@@ -40,4 +49,35 @@ func SetInsiderTradingService(s *research.InsiderTradingService) {
 // SetCongressTradingService injects the congress trading service.
 func SetCongressTradingService(s *research.CongressTradingService) {
 	congressTradingService = s
+}
+
+// SetCapitalService injects the capital data service.
+func SetCapitalService(s *research.CapitalService) {
+	capitalService = s
+}
+
+// SetFundFlowService injects the fund flow service.
+func SetFundFlowService(s *research.FundFlowService) {
+	fundFlowService = s
+}
+
+// SetNorthboundService injects the northbound flow service.
+func SetNorthboundService(s *research.NorthboundService) {
+	northboundService = s
+}
+
+// SetAnnouncementService injects the announcement service.
+func SetAnnouncementService(s *research.AnnouncementService) {
+	announcementService = s
+}
+
+// SetNewsAdapter injects the news adapter for use by NewsFetcherNode and
+// the SentimentEngine news-fetching fallback.
+func SetNewsAdapter(a adapters.NewsAdapter) {
+	newsAdapter = a
+}
+
+// SetGlobalNewsAdapter injects the global news adapter for market-wide news.
+func SetGlobalNewsAdapter(a adapters.GlobalNewsAdapter) {
+	globalNewsAdapter = a
 }

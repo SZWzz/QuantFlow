@@ -56,6 +56,9 @@ func (a *BaiduAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Q
 		return nil, fmt.Errorf("baidu: parse error: %w", err)
 	}
 
+	if !resultCodeOK(result.ResultCode) {
+		return nil, fmt.Errorf("baidu: ResultCode indicates failure: %v", result.ResultCode)
+	}
 	if result.Result == nil || len(result.Result.Data) == 0 {
 		return nil, fmt.Errorf("baidu: no data for %s", symbol)
 	}
@@ -103,6 +106,10 @@ func (a *BaiduAdapter) FetchOHLCV(ctx context.Context, symbol string, interval s
 	var result baiduKlineResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("baidu kline: parse error: %w", err)
+	}
+
+	if !resultCodeOK(result.ResultCode) {
+		return nil, fmt.Errorf("baidu kline: ResultCode indicates failure: %v", result.ResultCode)
 	}
 
 	md := result.Result.NewMarketData
@@ -165,7 +172,25 @@ func (a *BaiduAdapter) HealthCheck(ctx context.Context) error { return nil }
 // ── Response types ─────────────────────────────────────────────────────────────
 
 type baiduQuoteResponse struct {
-	Result *baiduQuoteResult `json:"Result"`
+	Result     *baiduQuoteResult `json:"Result"`
+	ResultCode interface{}       `json:"ResultCode"`
+}
+
+// resultCodeOK checks whether Baidu's ResultCode indicates success.
+// The field is inconsistently typed (sometimes int, sometimes string),
+// so we must accept both forms. See a-stock-data SKILL FAQ.
+func resultCodeOK(rc interface{}) bool {
+	if rc == nil {
+		return true // no ResultCode field = success (older responses)
+	}
+	switch v := rc.(type) {
+	case float64:
+		return v == 0
+	case string:
+		return v == "0" || v == ""
+	default:
+		return true // unknown type, assume OK
+	}
 }
 
 type baiduQuoteResult struct {
@@ -185,7 +210,8 @@ type baiduQuoteData struct {
 }
 
 type baiduKlineResponse struct {
-	Result baiduKlineResult `json:"Result"`
+	Result     baiduKlineResult `json:"Result"`
+	ResultCode interface{}      `json:"ResultCode"`
 }
 
 type baiduKlineResult struct {
