@@ -8,6 +8,10 @@
 
 ## [2026.6.19] - 2026-06-19
 
+### 变更
+
+- [Frontend] 迁移 5 个面板从 terminalStore.activeSymbol 到 symbolContext store：WatchlistPanel（发布者）、QuoteDetailPanel（订阅者）、CandlestickPanel（订阅者）、FinancialsPanel（发布者）、StockResearchPanel（发布者）
+
 ### 新增
 
 - [MarketData] SatelliteAdapter：卫星替代数据适配器，集成 NASA POWER API（太阳能 GHI / 风速）和 NASA FIRMS（野火数据），免费无需 API Key，5 个预定义能源区域（德州风能走廊、北海风电场、戈壁太阳能基地、撒哈拉太阳能带、美国中西部农业带）
