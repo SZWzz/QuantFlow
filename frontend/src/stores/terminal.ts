@@ -23,11 +23,12 @@ export const useTerminalStore = defineStore('terminal', () => {
   const pushPins = ref<PushPin[]>([])
   const focusMode = ref(false)
 
-  // DockView layout
+  // DockView layout — starts with welcome screen
   const layout = reactive<DockLayoutTree>({
     id: 'root',
     type: 'tab',
-    tabs: [],
+    tabs: [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }],
+    activeTab: 'welcome',
   })
 
   function openPanel(panelId: string, params?: Record<string, any>) {

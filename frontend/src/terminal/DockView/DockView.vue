@@ -17,13 +17,10 @@ const layout = computed(() => {
 })
 
 function initDefaultLayout() {
-  if (terminal.layout.type !== 'tab' && terminal.layout.type !== 'container') {
-    terminal.layout = createTabLeaf('root', {
-      id: 'welcome',
-      panelId: 'welcome',
-      label: 'Welcome',
-      icon: '🏠',
-    })
+  // Ensure layout always has at least the welcome tab
+  if (terminal.layout.type === 'tab' && (!terminal.layout.tabs || terminal.layout.tabs.length === 0)) {
+    terminal.layout.tabs = [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }]
+    terminal.layout.activeTab = 'welcome'
   }
 }
 
