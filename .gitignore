@@ -28,6 +28,9 @@ python/**/__pycache__/
 python/.pytest_cache/
 python/**/*.egg-info/
 
+# Project proposal (outdated after implementation)
+NEW_PROJECT_PROPOSAL.md
+
 # Stray temp files
 1
 问题.md
