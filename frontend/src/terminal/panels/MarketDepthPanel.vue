@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
-const symbol = ref(props.params?.symbol || '600519.SH')
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519.SH')
 const name = ref('贵州茅台')
 const lastPrice = ref(1850.50)
 const change = ref(23.80)
@@ -77,6 +80,13 @@ function handleSymbolSubmit(e: Event) {
   input.blur()
   refresh()
 }
+
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (pg.linked && newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+    refresh()
+  }
+})
 
 onMounted(() => {
   refresh()
