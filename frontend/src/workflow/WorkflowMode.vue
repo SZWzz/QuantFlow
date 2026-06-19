@@ -157,8 +157,8 @@ function onKeydown(event: KeyboardEvent) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0d1117;
-  color: #c9d1d9;
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
   outline: none;
 }
 
@@ -167,15 +167,15 @@ function onKeydown(event: KeyboardEvent) {
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
-  min-height: 36px;
+  background: var(--color-bg-panel);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 40px;
 }
 
 .wf-logo {
   font-weight: bold;
-  font-size: 13px;
-  color: #58a6ff;
+  font-size: var(--font-base);
+  color: var(--color-accent);
   letter-spacing: 0.5px;
 }
 
@@ -186,18 +186,18 @@ function onKeydown(event: KeyboardEvent) {
 
 .wf-btn {
   padding: 4px 12px;
-  border: 1px solid #30363d;
-  background: #21262d;
-  color: #c9d1d9;
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 11px;
-  transition: all 0.15s;
+  font-size: var(--font-xs);
+  transition: all var(--transition-fast);
 }
 
 .wf-btn:hover:not(:disabled) {
-  border-color: #58a6ff;
-  color: #58a6ff;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .wf-btn:disabled {
@@ -207,17 +207,17 @@ function onKeydown(event: KeyboardEvent) {
 
 .wf-btn.secondary {
   background: transparent;
-  color: #5a6380;
+  color: var(--color-text-secondary);
 }
 
 .wf-btn.mode-switch {
-  border-color: #3fb950;
-  color: #3fb950;
+  border-color: var(--color-brand);
+  color: var(--color-brand);
   background: transparent;
 }
 
 .wf-btn.mode-switch:hover {
-  background: rgba(63, 185, 80, 0.1);
+  background: var(--color-brand-soft);
 }
 
 .wf-main {

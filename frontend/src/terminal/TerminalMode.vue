@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useTerminalStore } from '@/stores/terminal'
@@ -14,18 +14,16 @@ const router = useRouter()
 
 const showCommandBar = ref(false)
 
-// Sync route with mode changes
-watch(() => session.ui.mode, (mode) => {
-  if (mode === 'workflow') router.push('/workflow')
-  else router.push('/')
-}, { immediate: true })
-
 function onOpenPanel(panelId: string, params?: Record<string, any>) {
   terminal.openPanel(panelId, params)
 }
 
 function onNavigate(path: string) {
   router.push(path)
+}
+
+function onSwitchToWorkflow() {
+  session.ui.mode = 'workflow'
 }
 </script>
 
@@ -43,7 +41,7 @@ function onNavigate(path: string) {
         <button class="header-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
           ⌘
         </button>
-        <button class="mode-switch" @click="session.toggleMode()">
+        <button class="mode-switch" @click="onSwitchToWorkflow">
           Workflow
         </button>
       </div>
