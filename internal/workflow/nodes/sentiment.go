@@ -129,3 +129,18 @@ func resolveStringParam(runtime, constructor map[string]any, key, defaultVal str
 	}
 	return defaultVal
 }
+
+// resolveFloatParam resolves a float64 param, preferring runtime params over constructor params.
+func resolveFloatParam(runtime, constructor map[string]any, key string) float64 {
+	if v, ok := runtime[key]; ok {
+		if f, ok := v.(float64); ok {
+			return f
+		}
+	}
+	if v, ok := constructor[key]; ok {
+		if f, ok := v.(float64); ok {
+			return f
+		}
+	}
+	return 0
+}

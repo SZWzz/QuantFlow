@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"quantflow/internal/market/adapters"
 	"quantflow/internal/research"
 	"quantflow/internal/workflow"
 )
@@ -65,6 +64,11 @@ func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]an
 		minProbChange = v
 	}
 
+	limit := int(resolveFloatParam(params, n.params, "limit"))
+	if limit <= 0 {
+		limit = 20
+	}
+
 	var output *research.SignalOutput
 	var err error
 
@@ -72,14 +76,34 @@ func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]an
 		output, err = predictionMarketService.ExtractSignals(ctx, category, minProbChange)
 	} else {
 		slog.Warn("prediction market service not set, using mock")
-		output = mockPredictionSignal(category)
+		// Use the service's own mock data via a nil-adapter instance.
+		mockSvc := &research.PredictionMarketService{}
+		events, _ := mockSvc.GetEvents(ctx, category, limit)
+		output = &research.SignalOutput{
+			Category:    category,
+			Events:      events,
+			Signal:      research.SignalSummary{Action: "hold", Confidence: 0.0, Description: "mock prediction signal"},
+			GeneratedAt: time.Now().UTC(),
+		}
 	}
 	if err != nil {
 		slog.Warn("prediction market signal extraction failed", "error", err)
-		output = mockPredictionSignal(category)
+		mockSvc := &research.PredictionMarketService{}
+		events, _ := mockSvc.GetEvents(ctx, category, limit)
+		output = &research.SignalOutput{
+			Category:    category,
+			Events:      events,
+			Signal:      research.SignalSummary{Action: "hold", Confidence: 0.0, Description: "error fallback signal"},
+			GeneratedAt: time.Now().UTC(),
+		}
 	}
 
-	eventsJSON, _ := json.Marshal(output.Events)
+	// Truncate events to limit
+	events := output.Events
+	if len(events) > limit {
+		events = events[:limit]
+	}
+	eventsJSON, _ := json.Marshal(events)
 
 	return map[string]any{
 		"top_events":     string(eventsJSON),
@@ -92,15 +116,6 @@ func (n *PredictionMarketNode) Validate() error { return nil }
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-func mockPredictionSignal(category string) *research.SignalOutput {
-	return &research.SignalOutput{
-		Category:    category,
-		Events:      mockPredictionEventsForNode(category),
-		Signal:      research.SignalSummary{Action: "hold", Confidence: 0.0, Description: "mock prediction signal"},
-		GeneratedAt: time.Now().UTC(),
-	}
-}
-
 func signalToMap(s research.SignalSummary) map[string]any {
 	return map[string]any{
 		"action":      s.Action,
@@ -109,50 +124,3 @@ func signalToMap(s research.SignalSummary) map[string]any {
 	}
 }
 
-// mockPredictionEventsForNode provides node-level mock data (minimal, no
-// dependency on PredictionMarketService).
-func mockPredictionEventsForNode(category string) []adapters.PredictionEvent {
-	all := []adapters.PredictionEvent{
-		{
-			ID: "fed-rate-cut-july", Title: "Fed cuts rates by July 2026?",
-			Category: "economics", Volume: 2_500_000, Status: "open",
-			Outcomes: []adapters.PredictionOutcome{
-				{ID: "yes", Label: "Yes", Price: 0.35, Change24h: 0.03},
-				{ID: "no", Label: "No", Price: 0.65, Change24h: -0.03},
-			},
-		},
-		{
-			ID: "bitcoin-100k", Title: "Bitcoin breaks $100K by Q3 2026?",
-			Category: "crypto", Volume: 4_200_000, Status: "open",
-			Outcomes: []adapters.PredictionOutcome{
-				{ID: "yes", Label: "Yes", Price: 0.28, Change24h: -0.05},
-				{ID: "no", Label: "No", Price: 0.72, Change24h: 0.05},
-			},
-		},
-	}
-	if category != "" {
-		var filtered []adapters.PredictionEvent
-		for _, e := range all {
-			if e.Category == category {
-				filtered = append(filtered, e)
-			}
-		}
-		return filtered
-	}
-	return all
-}
-
-// resolveFloatParam resolves a float64 param, preferring runtime params over constructor params.
-func resolveFloatParam(runtime, constructor map[string]any, key string) float64 {
-	if v, ok := runtime[key]; ok {
-		if f, ok := v.(float64); ok {
-			return f
-		}
-	}
-	if v, ok := constructor[key]; ok {
-		if f, ok := v.(float64); ok {
-			return f
-		}
-	}
-	return 0
-}

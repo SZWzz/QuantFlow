@@ -37,12 +37,13 @@ describe('PredictionMarketPanel', () => {
     const wrapper = mount(PredictionMarketPanel, {
       props: { panelId: 'prediction-market-1' },
     })
+    // Wait for onMounted async data loading
     await nextTick()
     await nextTick()
-    // Should have events loaded (either from mock or showing loading)
+    await nextTick()
     const rows = wrapper.findAll('tbody tr')
-    // Loading state or events — either is valid
-    expect(wrapper.find('.prediction-market-panel').exists()).toBe(true)
+    // After mount, mock data loads — should have event rows (not loading state)
+    expect(rows.length).toBeGreaterThan(0)
   })
 
   it('switches category on tab click', async () => {

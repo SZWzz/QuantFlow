@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 	"time"
 
@@ -14,9 +15,11 @@ import (
 // and signal extraction. Degrades gracefully to mock data when the adapter
 // is nil or API calls fail.
 type PredictionMarketService struct {
-	adapter adapters.PolymarketAdapter
-	cache   map[string]*cacheEntry // keyed by category
-	mu      sync.RWMutex
+	adapter        adapters.PolymarketAdapter
+	cache          map[string]*cacheEntry // keyed by category
+	mu             sync.RWMutex
+	available      bool      // cached availability check
+	availCheckedAt time.Time // when availability was last checked
 }
 
 type cacheEntry struct {
@@ -39,6 +42,28 @@ type SignalOutput struct {
 	Events      []adapters.PredictionEvent `json:"events"`
 	Signal      SignalSummary              `json:"signal"`
 	GeneratedAt time.Time                  `json:"generated_at"`
+}
+
+// isAvailable returns true if the adapter is reachable.
+// Results are cached for 5 minutes to avoid redundant HTTP calls.
+func (s *PredictionMarketService) isAvailable(ctx context.Context) bool {
+	if s.adapter == nil {
+		return false
+	}
+	s.mu.RLock()
+	if time.Since(s.availCheckedAt) < 5*time.Minute {
+		avail := s.available
+		s.mu.RUnlock()
+		return avail
+	}
+	s.mu.RUnlock()
+
+	avail := s.adapter.IsAvailable(ctx)
+	s.mu.Lock()
+	s.available = avail
+	s.availCheckedAt = time.Now()
+	s.mu.Unlock()
+	return avail
 }
 
 // SignalSummary describes the extracted trading signal.
@@ -74,7 +99,7 @@ func (s *PredictionMarketService) GetEvents(ctx context.Context, category string
 	// Fetch from adapter
 	var events []adapters.PredictionEvent
 	var err error
-	if s.adapter != nil && s.adapter.IsAvailable(ctx) {
+	if s.isAvailable(ctx) {
 		events, err = s.adapter.FetchEvents(ctx, category, limit)
 		if err != nil {
 			slog.Warn("polymarket: fetch failed, falling back to mock", "error", err)
@@ -102,7 +127,7 @@ func (s *PredictionMarketService) GetEvents(ctx context.Context, category string
 
 // GetEventDetail returns a single event with full outcome details.
 func (s *PredictionMarketService) GetEventDetail(ctx context.Context, id string) (*adapters.PredictionEvent, error) {
-	if s.adapter != nil && s.adapter.IsAvailable(ctx) {
+	if s.isAvailable(ctx) {
 		event, err := s.adapter.FetchEvent(ctx, id)
 		if err != nil {
 			slog.Warn("polymarket: event detail fetch failed", "id", id, "error", err)
@@ -119,7 +144,7 @@ func (s *PredictionMarketService) GetPriceHistory(ctx context.Context, eventID s
 	if limit <= 0 {
 		limit = 30
 	}
-	if s.adapter != nil && s.adapter.IsAvailable(ctx) {
+	if s.isAvailable(ctx) {
 		prices, err := s.adapter.FetchPriceHistory(ctx, eventID, interval, limit)
 		if err != nil {
 			slog.Warn("polymarket: price history fetch failed", "event_id", eventID, "error", err)
@@ -151,10 +176,7 @@ func (s *PredictionMarketService) ExtractSignals(ctx context.Context, category s
 	// Scan for events where Yes price has moved > threshold
 	for _, e := range events {
 		for _, o := range e.Outcomes {
-			absChange := o.Change24h
-			if absChange < 0 {
-				absChange = -absChange
-			}
+			absChange := math.Abs(o.Change24h)
 			if absChange > minProbChange && e.Volume > 100000 {
 				if o.Change24h > 0 && o.Price > 0.5 {
 					action = "buy"

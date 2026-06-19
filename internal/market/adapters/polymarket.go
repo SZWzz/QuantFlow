@@ -306,25 +306,62 @@ func parseFloatSlice(raw string) ([]float64, error) {
 	return result, nil
 }
 
-// categoryFromTags extracts a primary category from Polymarket tags.
-// Maps common Polymarket tag strings to our category enum.
-// Note: The current Gamma API does not return tags in market responses;
-// this function is kept for forward compatibility.
-func categoryFromTags(tags []string) string {
-	categoryKeywords := map[string]string{
-		"politics": "politics", "election": "politics", "government": "politics",
-		"economics": "economics", "fed": "economics", "cpi": "economics", "inflation": "economics",
-		"crypto": "crypto", "bitcoin": "crypto", "ethereum": "crypto", "btc": "crypto",
-		"sports": "sports", "nfl": "sports", "nba": "sports",
-		"science": "science", "tech": "tech", "ai": "tech",
-		"entertainment": "entertainment",
-	}
-	for _, tag := range tags {
-		if cat, ok := categoryKeywords[tag]; ok {
-			return cat
+// categoryKeywords maps tokens found in tags, slugs, and question text to
+// our category enum. Order is significant: more specific matches first.
+var categoryKeywords = map[string]string{
+	// Economics (order: most specific first)
+	"inflation": "economics", "cpi": "economics", "gdp": "economics",
+	"fed": "economics", "fomc": "economics", "interest-rate": "economics",
+	"rate-cut": "economics", "rate-hike": "economics", "unemployment": "economics",
+	"treasury": "economics", "recession": "economics", "tariff": "economics",
+	// Crypto
+	"bitcoin": "crypto", "btc": "crypto", "ethereum": "crypto", "eth": "crypto",
+	"crypto": "crypto", "solana": "crypto", "defi": "crypto", "blockchain": "crypto",
+	"altcoin": "crypto", "stablecoin": "crypto",
+	// Politics
+	"election": "politics", "trump": "politics", "biden": "politics",
+	"republican": "politics", "democrat": "politics", "congress": "politics",
+	"president": "politics", "senate": "politics", "supreme-court": "politics",
+	// Sports
+	"nfl": "sports", "nba": "sports", "mlb": "sports", "super-bowl": "sports",
+	"playoffs": "sports", "championship": "sports",
+	// Tech
+	"ai": "tech", "artificial-intelligence": "tech", "apple": "tech",
+	"google": "tech", "microsoft": "tech", "tesla": "tech",
+	// Entertainment
+	"oscar": "entertainment", "grammy": "entertainment", "movie": "entertainment",
+	"album": "entertainment", "tv": "entertainment",
+	// Science
+	"nasa": "science", "spacex": "science", "climate": "science",
+}
+
+// inferCategory extracts the best category from the market's slug, question
+// text, and optional tags. Falls back to "other" when nothing matches.
+// The current Gamma API does not return tags; we infer from text content.
+func inferCategory(slug, question string) string {
+	text := strings.ToLower(slug + " " + question)
+
+	// Tokenize: replace common separators with spaces for simpler matching.
+	text = strings.NewReplacer("-", " ", "_", " ", "?", " ", ":", " ").Replace(text)
+	tokens := strings.Fields(text)
+
+	// Score each category by the number of keyword matches.
+	scores := make(map[string]int)
+	for _, token := range tokens {
+		if cat, ok := categoryKeywords[token]; ok {
+			scores[cat]++
 		}
 	}
-	return "other"
+
+	bestCat := "other"
+	bestScore := 0
+	for cat, score := range scores {
+		if score > bestScore {
+			bestScore = score
+			bestCat = cat
+		}
+	}
+	return bestCat
 }
 
 func convertPolymarketMarket(m polymarketMarket) (PredictionEvent, error) {
@@ -382,7 +419,7 @@ func convertPolymarketMarket(m polymarketMarket) (PredictionEvent, error) {
 	return PredictionEvent{
 		ID:          m.ID,
 		Title:       title,
-		Category:    categoryFromTags(nil),
+		Category:    inferCategory(m.Slug, m.Question),
 		Volume:      m.VolumeNum,
 		Liquidity:   m.LiquidityNum,
 		EndDate:     endDate,
