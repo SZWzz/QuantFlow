@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
+import { useSymbolContext } from '@/stores/symbolContext'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -29,7 +30,10 @@ const props = defineProps<{
   params?: Record<string, any>
 }>()
 
-const symbol = ref(props.params?.symbol ?? '600519')
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
+
+const symbol = ref(props.params?.symbol ?? ctx.getGroupSymbol(pg.groupId) ?? '600519')
 const lookback = ref(props.params?.lookback ?? 252)
 const lookbackOptions = [30, 60, 90, 252]
 
@@ -115,6 +119,13 @@ function compute() {
 
   dataReady.value = true
 }
+
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (pg.linked && newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+    compute()
+  }
+})
 
 const chartOption = computed(() => {
   if (!dataReady.value || binData.value.length === 0) return null
