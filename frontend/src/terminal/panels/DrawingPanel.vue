@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{
   panelId: string
   params?: Record<string, any>
 }>()
+
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 interface Drawing {
   id: number
@@ -14,7 +18,7 @@ interface Drawing {
   text?: string
 }
 
-const symbol = ref(props.params?.symbol || '600519')
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const activeTool = ref('cursor')
 const drawings = ref<Drawing[]>([])
 const isDrawing = ref(false)
@@ -228,6 +232,12 @@ watch(symbol, () => {
   loadDrawings()
   // Defer render until canvas is ready
   setTimeout(() => renderCanvas(), 0)
+})
+
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (pg.linked && newSym && newSym !== symbol.value) {
+    symbol.value = newSym
+  }
 })
 
 onMounted(() => {
