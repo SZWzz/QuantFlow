@@ -39,15 +39,15 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   justify-content: space-between;
   align-items: center;
   padding: 2px 10px;
-  background: #16213e;
-  border-top: 1px solid #0f3460;
-  font-size: 10px;
-  color: #5a6380;
-  min-height: 22px;
+  background: var(--color-bg-panel);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  min-height: 24px;
   user-select: none;
 }
 .status-left, .status-center, .status-right { display: flex; gap: 12px; align-items: center; }
 .status-item { font-variant-numeric: tabular-nums; }
-.status-item.connected { color: #3fb950; }
-.status-item.connected.offline { color: #f85149; }
+.status-item.connected { color: var(--color-up); }
+.status-item.connected.offline { color: var(--color-down); }
 </style>

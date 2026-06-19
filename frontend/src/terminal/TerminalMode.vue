@@ -26,7 +26,13 @@ function onNavigate(path: string) {
 <template>
   <div class="terminal-mode">
     <header class="terminal-header">
-      <span class="logo">QuantFlow Terminal</span>
+      <div class="header-left">
+        <span class="logo">QF</span>
+        <span class="title">QuantFlow</span>
+      </div>
+      <div class="header-center">
+        <span class="breadcrumb">Terminal Mode</span>
+      </div>
       <div class="header-actions">
         <button class="header-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
           ⌘
@@ -57,77 +63,111 @@ function onNavigate(path: string) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1a1a2e;
-  color: #e0e0e0;
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
 }
 
+/* ── Header ──────────────────────────────────────────────────── */
 .terminal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
-  background: #16213e;
-  border-bottom: 1px solid #0f3460;
-  min-height: 36px;
+  padding: 0 var(--space-lg);
+  background: var(--color-bg-panel);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 40px;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
 }
 
 .logo {
-  font-weight: bold;
-  font-size: 13px;
-  color: #e94560;
-  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--color-brand);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: var(--font-sm);
+  letter-spacing: -0.5px;
+}
+
+.title {
+  font-weight: 600;
+  font-size: var(--font-base);
+  color: var(--color-text-primary);
+  letter-spacing: 0.3px;
+}
+
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.breadcrumb {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
 }
 
 .header-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   align-items: center;
+  -webkit-app-region: no-drag;
 }
 
 .header-btn {
-  padding: 2px 10px;
-  border: 1px solid #5a6380;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
   background: transparent;
-  color: #5a6380;
-  border-radius: 4px;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 13px;
-  font-family: monospace;
+  font-size: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all var(--transition-fast);
 }
 
 .header-btn:hover {
-  border-color: #e94560;
-  color: #e94560;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .mode-switch {
-  padding: 2px 10px;
-  border: 1px solid #e94560;
+  padding: 4px 10px;
+  border: 1px solid var(--color-brand);
   background: transparent;
-  color: #e94560;
-  border-radius: 4px;
+  color: var(--color-brand);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
+  font-weight: 500;
+  transition: all var(--transition-fast);
 }
 
 .mode-switch:hover {
-  background: rgba(233, 69, 96, 0.1);
+  background: var(--color-brand-soft);
 }
 
+/* ── Content ─────────────────────────────────────────────────── */
 .terminal-content {
   flex: 1;
   overflow: hidden;
-}
-
-.terminal-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 12px;
-  background: #16213e;
-  border-top: 1px solid #0f3460;
-  font-size: 11px;
-  color: #5a6380;
-  min-height: 24px;
+  flex-direction: column;
 }
 </style>

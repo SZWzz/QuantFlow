@@ -39,19 +39,21 @@ function getLabel(pin: PushPin): string {
   align-items: center;
   gap: 6px;
   padding: 3px 10px;
-  background: #0d1a2d;
-  border-bottom: 1px solid #0f3460;
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
   min-height: 28px;
   overflow-x: auto;
 }
-.bar-label { font-size: 9px; color: #3a4a6c; text-transform: uppercase; letter-spacing: 1px; }
+.bar-label { font-size: 9px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 1px; }
 .pin-item {
   display: flex; align-items: center; gap: 3px; padding: 2px 8px;
   border-radius: 10px; font-size: 11px; cursor: pointer; white-space: nowrap;
+  transition: all var(--transition-fast);
 }
-.pin-item.symbol { background: rgba(88,166,255,0.1); color: #58a6ff; border: 1px solid rgba(88,166,255,0.2); }
-.pin-item.panel { background: rgba(233,69,96,0.1); color: #e94560; border: 1px solid rgba(233,69,96,0.2); }
-.pin-item.workflow { background: rgba(63,185,80,0.1); color: #3fb950; border: 1px solid rgba(63,185,80,0.2); }
+.pin-item.symbol { background: var(--color-accent-soft); color: var(--color-accent); border: 1px solid rgba(59,130,246,0.2); }
+.pin-item.panel { background: var(--color-brand-soft); color: var(--color-brand); border: 1px solid rgba(233,69,96,0.2); }
+.pin-item.workflow { background: var(--color-up-soft); color: var(--color-up); border: 1px solid rgba(34,197,94,0.2); }
 .pin-remove { font-size: 9px; opacity: 0.5; }
 .pin-item:hover .pin-remove { opacity: 1; }
+.pin-item:hover { filter: brightness(1.1); }
 </style>
