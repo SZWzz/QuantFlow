@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useMLStore } from '@/stores/ml'
+import { useSymbolContext } from '@/stores/symbolContext'
 
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const mlStore = useMLStore()
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const selectedModelId = ref('')
-const selectedSymbol = ref('')
+const selectedSymbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '')
 
 const chartData = ref({
   distribution: [] as number[],
@@ -41,6 +45,12 @@ function buildHistogram(values: number[], bins: number): number[] {
 onMounted(() => {
   if (mlStore.readyModels.length > 0) {
     selectedModelId.value = mlStore.readyModels[0].id
+  }
+})
+
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (pg.linked && newSym && newSym !== selectedSymbol.value) {
+    selectedSymbol.value = newSym
   }
 })
 </script>
