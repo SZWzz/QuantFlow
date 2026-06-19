@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2026.6.19] - 2026-06-19
 
 ### Added
+- [Trading] AlpacaBroker (US equities): full trading.Broker implementation with real REST API — Connect/GetAccount/GetOrders/GetPositions/SubmitOrder/CancelOrder, paper trading by default, env-var config (ALPACA_API_KEY/SECRET_KEY/BASE_URL), wired to OMS in startup()
+- [Docs] US/HK data source enhancement spec — research report + 2-phase plan (fix Yahoo + add Finnhub + extend AkShare for HK + Futu market data)
 - [Frontend] MarketOverviewPanel — 7 index cards + market breadth bar + sector rankings, 30s auto-refresh via dataStore.fetchMarketOverview()
 - [Frontend] MarketDepthPanel — 5-level bid/ask order book + 20-tick timeline with B/S direction badges
 - [Frontend] HeatmapPanel — ECharts treemap (or CSS grid fallback), 30 sectors colored by change%, sized by market cap

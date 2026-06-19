@@ -21,6 +21,7 @@ import (
 	pb "quantflow/internal/python/proto"
 	"quantflow/internal/storage"
 	"quantflow/internal/trading"
+	"quantflow/internal/trading/brokers"
 	"quantflow/internal/workflow"
 	"quantflow/internal/workflow/nodes"
 )
@@ -155,6 +156,18 @@ func (a *App) startup() error {
 	// Phase 5: Initialize trading OMS and wire to workflow nodes
 	a.oms = trading.NewOMS()
 	nodes.SetTradingOMS(a.oms)
+
+	// Phase 5: Initialize broker adapters. Alpaca (US equities) is optional —
+	// when ALPACA_API_KEY is not set, the broker stays disconnected and panels
+	// show "Not Configured" state gracefully.
+	if alpacaBroker := brokers.NewAlpacaBroker(brokers.AlpacaConfig{}); alpacaBroker != nil {
+		if err := alpacaBroker.Connect(context.Background()); err != nil {
+			slog.Warn("alpaca broker not available — US trading disabled", "error", err)
+		} else {
+			a.oms.SetBroker(alpacaBroker)
+			slog.Info("alpaca broker connected — US equities trading enabled")
+		}
+	}
 
 	// Phase 5: Initialize notification manager (reuses shared DB connection).
 	a.notifyMgr = notify.NewManager(a.db)
