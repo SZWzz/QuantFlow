@@ -102,4 +102,5 @@ func RegisterAll(r *workflow.NodeRegistry) {
 
 	// Phase 15: Alternative Data
 	r.RegisterWithCategory("prediction_market", NewPredictionMarketNode, "alternative_data")
+	r.RegisterWithCategory("geopolitics", NewGeopoliticsNode, "alternative_data")
 }

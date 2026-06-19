@@ -64,6 +64,9 @@ type App struct {
 	polymarketAdpt      adapters.PolymarketAdapter  // prediction market data source
 	predictionMarketSvc *research.PredictionMarketService
 
+	geopoliticsAdpt adapters.GeopoliticsAdapter // geopolitical data source (GDELT)
+	geopoliticsSvc  *research.GeopoliticsService
+
 	// Research services (wired in startup, degrade gracefully without adapters).
 	capitalSvc      *research.CapitalService
 	fundFlowSvc     *research.FundFlowService
@@ -238,6 +241,12 @@ t	searchSvc, err := market.NewSymbolSearchService(context.Background())
 		a.predictionMarketSvc = research.NewPredictionMarketService(a.polymarketAdpt)
 		nodes.SetPredictionMarketService(a.predictionMarketSvc)
 		slog.Info("prediction market service initialized")
+
+		// Alternative data: geopolitics (GDELT)
+		a.geopoliticsAdpt = adapters.NewGDELTAdapter()
+		a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
+		nodes.SetGeopoliticsService(a.geopoliticsSvc)
+		slog.Info("geopolitics service initialized")
 	return nil
 }
 
@@ -760,6 +769,28 @@ func (a *App) GetPredictionSignals(category string, minProbChange float64) (map[
 		"category":     output.Category,
 		"generated_at": output.GeneratedAt.Format(time.RFC3339),
 	}, nil
+}
+
+// ── Geopolitics (地缘政治风险) ──────────────────────────────────────────────
+
+// GetGeopoliticsRisks returns risk assessments for all 10 geopolitical topics.
+func (a *App) GetGeopoliticsRisks() (map[string]interface{}, error) {
+	if a.geopoliticsSvc == nil {
+		return nil, fmt.Errorf("geopolitics service not initialized")
+	}
+	risks, err := a.geopoliticsSvc.GetTopicRisks(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"risks": risks, "count": len(risks)}, nil
+}
+
+// GetGeopoliticsDetail returns volume + tone time series for a single topic.
+func (a *App) GetGeopoliticsDetail(topicID, timespan string) (map[string]interface{}, error) {
+	if a.geopoliticsSvc == nil {
+		return nil, fmt.Errorf("geopolitics service not initialized")
+	}
+	return a.geopoliticsSvc.GetTopicDetail(context.Background(), topicID, timespan)
 }
 
 // getMootdxAdapter retrieves the mootdx adapter from the market registry.

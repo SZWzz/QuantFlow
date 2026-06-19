@@ -21,6 +21,7 @@ var fundFlowService *research.FundFlowService
 var northboundService *research.NorthboundService
 var announcementService *research.AnnouncementService
 var predictionMarketService *research.PredictionMarketService
+var geopoliticsService *research.GeopoliticsService
 
 // SetSentimentEngine injects the sentiment engine for use by research nodes.
 func SetSentimentEngine(e *research.SentimentEngine) {
@@ -86,4 +87,9 @@ func SetGlobalNewsAdapter(a adapters.GlobalNewsAdapter) {
 // SetPredictionMarketService injects the prediction market service.
 func SetPredictionMarketService(s *research.PredictionMarketService) {
 	predictionMarketService = s
+}
+
+// SetGeopoliticsService injects the geopolitics service.
+func SetGeopoliticsService(s *research.GeopoliticsService) {
+	geopoliticsService = s
 }
