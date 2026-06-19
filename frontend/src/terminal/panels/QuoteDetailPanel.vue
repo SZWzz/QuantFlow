@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useTerminalStore } from '@/stores/terminal'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
-const terminal = useTerminalStore()
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
-const symbol = ref(props.params?.symbol || terminal.activeSymbol || 'AAPL')
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 
-// Subscribe to symbol context
-watch([() => terminal.activeSymbol, () => terminal.lastSymbolUpdate], ([newSym]) => {
+// Subscribe to symbol context via link group
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   if (newSym && newSym !== symbol.value) {
     symbol.value = newSym
     regenerateQuote(newSym)
