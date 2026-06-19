@@ -38,7 +38,7 @@ function addPanel(tab: DockTabState) {
       // Single tab → split into 2 horizontally
       const existingLeaf = createTabLeaf('leaf-existing', root.tabs[0])
       const newLeaf = createTabLeaf(`leaf-${tab.id}`, tab)
-      terminal.layout = createContainer('root', 'row', [existingLeaf, newLeaf])
+      Object.assign(terminal.layout, createContainer('root', 'row', [existingLeaf, newLeaf]))
     } else {
       // Multiple tabs already — add to this tab group
       root.tabs.push(tab)
@@ -125,11 +125,11 @@ function applyPreset(preset: number) {
 
   switch (preset) {
     case 1: // Single
-      terminal.layout = createTabLeaf('root', tabs[0])
+      Object.assign(terminal.layout, createTabLeaf('root', tabs[0]))
       break
     case 2: // Split horizontal
       if (tabs.length >= 2) {
-        terminal.layout = createContainer('root', 'row', [
+        Object.assign(terminal.layout, createContainer('root', 'row', [))
           createTabLeaf('left', tabs[0]),
           createTabLeaf('right', tabs[1]),
         ])
@@ -145,12 +145,12 @@ function applyPreset(preset: number) {
           createTabLeaf('bl', tabs[2]),
           createTabLeaf('br', tabs[3]),
         ])
-        terminal.layout = createContainer('root', 'column', [top, bottom])
+        Object.assign(terminal.layout, createContainer('root', 'column', [top, bottom]))
       }
       break
     case 4: // Classic: sidebar + main
       if (tabs.length >= 2) {
-        terminal.layout = createContainer('root', 'row', [
+        Object.assign(terminal.layout, createContainer('root', 'row', [))
           createTabLeaf('sidebar', tabs[0]),
           createTabLeaf('main', tabs[1]),
         ])
