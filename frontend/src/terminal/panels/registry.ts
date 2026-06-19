@@ -58,6 +58,8 @@ register('broker-status', () => import('./BrokerStatusPanel.vue'))
 register('action-center', () => import('./ActionCenterPanel.vue'))
 // Alternative Data panels
 register('prediction-market', () => import('./PredictionMarketPanel.vue'))
+register('geopolitics', () => import('./GeopoliticsPanel.vue'))
+register('gov-data', () => import('./GovDataPanel.vue'))
 
 export function getPanelComponent(panelId: string): Component | undefined {
   return panelRegistry.get(panelId)
