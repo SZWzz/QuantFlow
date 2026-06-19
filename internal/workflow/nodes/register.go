@@ -103,4 +103,7 @@ func RegisterAll(r *workflow.NodeRegistry) {
 	// Phase 15: Alternative Data
 	r.RegisterWithCategory("prediction_market", NewPredictionMarketNode, "alternative_data")
 	r.RegisterWithCategory("geopolitics", NewGeopoliticsNode, "alternative_data")
+
+	// GovData: FRED economic indicators + SEC EDGAR filings
+	r.RegisterWithCategory("gov_data", NewGovDataNode, "alternative_data")
 }

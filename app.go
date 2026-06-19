@@ -67,6 +67,9 @@ type App struct {
 	geopoliticsAdpt adapters.GeopoliticsAdapter // geopolitical data source (GDELT)
 	geopoliticsSvc  *research.GeopoliticsService
 
+	govDataAdpt adapters.GovDataAdapter // economic indicator data source (FRED + SEC)
+	govDataSvc  *research.GovDataService
+
 	// Research services (wired in startup, degrade gracefully without adapters).
 	capitalSvc      *research.CapitalService
 	fundFlowSvc     *research.FundFlowService
@@ -247,6 +250,12 @@ t	searchSvc, err := market.NewSymbolSearchService(context.Background())
 		a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
 		nodes.SetGeopoliticsService(a.geopoliticsSvc)
 		slog.Info("geopolitics service initialized")
+
+		// Alternative data: govdata (FRED + SEC EDGAR)
+		a.govDataAdpt = adapters.NewGovDataAdapter()
+		a.govDataSvc = research.NewGovDataService(a.govDataAdpt)
+		nodes.SetGovDataService(a.govDataSvc)
+		slog.Info("govdata service initialized")
 	return nil
 }
 
@@ -783,6 +792,41 @@ func (a *App) GetGeopoliticsRisks() (map[string]interface{}, error) {
 		return nil, err
 	}
 	return map[string]interface{}{"risks": risks, "count": len(risks)}, nil
+}
+
+// ── GovData / Economic Indicators (FRED + SEC EDGAR) ─────────────────────
+
+// GetEconomicIndicators returns macro signals for all 15 FRED indicators.
+func (a *App) GetEconomicIndicators() (map[string]interface{}, error) {
+	if a.govDataSvc == nil {
+		return nil, fmt.Errorf("govdata service not initialized")
+	}
+	signals, err := a.govDataSvc.GetAllSignals(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"signals": signals, "count": len(signals)}, nil
+}
+
+// GetIndicatorData returns time series data for a specific FRED indicator.
+func (a *App) GetIndicatorData(seriesID string, limit int) (map[string]interface{}, error) {
+	if a.govDataSvc == nil {
+		return nil, fmt.Errorf("govdata service not initialized")
+	}
+	points, err := a.govDataSvc.GetIndicator(context.Background(), seriesID, limit)
+	if err != nil {
+		return nil, err
+	}
+	meta := adapters.FREDIndicators[seriesID]
+	return map[string]interface{}{
+		"series_id": seriesID,
+		"name":      meta.Name,
+		"name_cn":   meta.NameCN,
+		"unit":      meta.Unit,
+		"category":  meta.Category,
+		"data":      points,
+		"count":     len(points),
+	}, nil
 }
 
 // GetGeopoliticsDetail returns volume + tone time series for a single topic.
