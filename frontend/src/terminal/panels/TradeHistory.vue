@@ -1,54 +1,95 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { exportCSV } from '@/lib/export'
+import { usePortfolioStore } from '@/stores/portfolio'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-// ── Mock data ──────────────────────────────────────────────────────────
+const store = usePortfolioStore()
 
+// -- Raw Go types (from Wails IPC) --
+interface GoTrade {
+  ID: string; Symbol: string; Side: string; Quantity: number
+  Price: number; Timestamp: string; PnL: number
+}
+
+interface GoOrder {
+  ID: string; Symbol: string; Side: string; Quantity: number
+  Price: number; Status: string; PlacedAt: string
+}
+
+// -- Display types (panel-native) --
 interface Trade {
-  date: string
-  symbol: string
-  side: 'buy' | 'sell'
-  qty: number
-  price: number
-  total: number
-  orderId: string
+  date: string; symbol: string; side: 'buy' | 'sell'
+  qty: number; price: number; total: number; orderId: string
 }
 
 interface Order {
-  placed: string
-  symbol: string
-  side: 'buy' | 'sell'
-  type: string
-  qty: number
-  filled: number
-  price: number
-  status: 'filled' | 'pending' | 'cancelled' | 'rejected'
+  placed: string; symbol: string; side: 'buy' | 'sell'
+  type: string; qty: number; filled: number
+  price: number; status: 'filled' | 'pending' | 'cancelled' | 'rejected'
 }
 
-const trades = ref<Trade[]>([
-  { date: '2026-06-17 09:32:15', symbol: '000001.SZ', side: 'buy',  qty: 1000, price: 12.58, total: 12580.00, orderId: 'ORD-001' },
-  { date: '2026-06-17 10:15:42', symbol: '000001.SZ', side: 'sell', qty: 500,  price: 12.72, total: 6360.00,  orderId: 'ORD-002' },
-  { date: '2026-06-17 13:05:08', symbol: '600519.SH', side: 'buy',  qty: 200,  price: 1780.00, total: 356000.00, orderId: 'ORD-003' },
-])
+const DISPLAY_LIMIT = 20
 
-const orders = ref<Order[]>([
-  { placed: '2026-06-17 09:32:15', symbol: '000001.SZ', side: 'buy',  type: 'Limit', qty: 1000, filled: 1000, price: 12.58, status: 'filled' },
-  { placed: '2026-06-17 11:20:30', symbol: '600519.SH', side: 'buy',  type: 'Limit', qty: 200,  filled: 200,  price: 1780.00, status: 'filled' },
-  { placed: '2026-06-17 14:45:00', symbol: '300750.SZ', side: 'sell', type: 'Limit', qty: 300,  filled: 0,    price: 210.00, status: 'cancelled' },
-])
+// -- Convert Go Trade → panel Trade --
+function adaptTrade(t: GoTrade): Trade {
+  const side = (t.Side || '').toLowerCase() as 'buy' | 'sell'
+  return {
+    date: t.Timestamp || '--',
+    symbol: t.Symbol || '--',
+    side,
+    qty: t.Quantity ?? 0,
+    price: t.Price ?? 0,
+    total: (t.Price ?? 0) * (t.Quantity ?? 0),
+    orderId: t.ID || '--',
+  }
+}
 
-// ── State ──────────────────────────────────────────────────────────────
+// -- Convert Go Order → panel Order --
+function adaptOrder(o: GoOrder): Order {
+  const side = (o.Side || '').toLowerCase() as 'buy' | 'sell'
+  const status = (o.Status || 'pending').toLowerCase() as Order['status']
+  const isFilled = status === 'filled'
+  return {
+    placed: o.PlacedAt || '--',
+    symbol: o.Symbol || '--',
+    side,
+    type: '--',
+    qty: o.Quantity ?? 0,
+    filled: isFilled ? (o.Quantity ?? 0) : 0,
+    price: o.Price ?? 0,
+    status,
+  }
+}
 
+// -- Computed data from store --
+const trades = computed<Trade[]>(() => {
+  const raw = (store.trades as unknown) as GoTrade[] | null
+  if (!raw || raw.length === 0) return []
+  return raw.slice(0, DISPLAY_LIMIT).map(adaptTrade)
+})
+
+const orders = computed<Order[]>(() => {
+  const raw = (store.orders as unknown) as GoOrder[] | null
+  if (!raw || raw.length === 0) return []
+  return raw.slice(0, DISPLAY_LIMIT).map(adaptOrder)
+})
+
+// -- Lifecycle --
+onMounted(async () => {
+  store.fetchOrders()
+  store.fetchTrades()
+})
+
+// -- State --
 const activeTab = ref<'trades' | 'orders'>('trades')
 const symbolFilter = ref('')
 const orderStatusFilter = ref('')
 
 const orderStatusOptions = ['', 'filled', 'pending', 'cancelled', 'rejected']
 
-// ── Computed ───────────────────────────────────────────────────────────
-
+// -- Computed filters --
 const filteredTrades = computed(() => {
   let rows = trades.value
   if (symbolFilter.value) {
@@ -70,8 +111,7 @@ const filteredOrders = computed(() => {
   return rows
 })
 
-// ── Helpers ────────────────────────────────────────────────────────────
-
+// -- Helpers --
 function fmt(n: number, dec = 2): string {
   return n.toFixed(dec)
 }
@@ -154,7 +194,7 @@ function exportData() {
             <td class="muted">{{ t.orderId }}</td>
           </tr>
           <tr v-if="filteredTrades.length === 0">
-            <td colspan="7" class="empty">No trades match</td>
+            <td colspan="7" class="empty">--</td>
           </tr>
         </tbody>
       </table>
@@ -187,7 +227,7 @@ function exportData() {
             </td>
           </tr>
           <tr v-if="filteredOrders.length === 0">
-            <td colspan="7" class="empty">No orders match</td>
+            <td colspan="7" class="empty">--</td>
           </tr>
         </tbody>
       </table>
@@ -206,8 +246,7 @@ function exportData() {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Filter bar ──────────────────────────────── */
-
+/* -- Filter bar -- */
 .filter-bar {
   display: flex;
   gap: 6px;
@@ -237,8 +276,7 @@ function exportData() {
   outline: none;
 }
 
-/* ── Tab switch ──────────────────────────────── */
-
+/* -- Tab switch -- */
 .tab-switch {
   display: flex;
   gap: 0;
@@ -261,8 +299,7 @@ function exportData() {
   color: var(--accent);
 }
 
-/* ── Export button ───────────────────────────── */
-
+/* -- Export button -- */
 .export-btn {
   padding: 5px 14px;
   background: var(--input);
@@ -276,8 +313,7 @@ function exportData() {
 }
 .export-btn:hover { background: var(--card); }
 
-/* ── Table ───────────────────────────────────── */
-
+/* -- Table -- */
 .table-wrap {
   flex: 1;
   overflow-y: auto;
@@ -325,8 +361,7 @@ td {
   padding: 24px;
 }
 
-/* ── Status badges ───────────────────────────── */
-
+/* -- Status badges -- */
 .badge {
   display: inline-block;
   padding: 2px 8px;
