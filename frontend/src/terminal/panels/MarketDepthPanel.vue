@@ -80,7 +80,6 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 
 onMounted(refresh)
 </script>
-</script>
 
 <template>
   <div class="market-depth-panel">

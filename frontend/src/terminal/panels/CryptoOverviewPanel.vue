@@ -66,7 +66,6 @@ async function refresh() {
 
 onMounted(refresh)
 </script>
-</script>
 
 <template>
   <div class="crypto-overview-panel">
