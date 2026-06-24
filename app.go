@@ -60,6 +60,7 @@ type App struct {
 	northboundAdpt *adapters.THSNorthboundAdapter
 	cninfoAdpt     *adapters.CninfoAdapter
 	iwencaiAdpt    *adapters.IwencaiAdapter
+	eastmoneyAdpt  *adapters.EastMoneyAdapter // stock info for research overview
 
 	polymarketAdpt      adapters.PolymarketAdapter  // prediction market data source
 	predictionMarketSvc *research.PredictionMarketService
@@ -197,16 +198,16 @@ func (a *App) startup() error {
 	nodes.SetGlobalNewsAdapter(a.globalNewsAdpt)
 	a.conceptAdpt = adapters.NewEastMoneyConceptAdapter()
 	a.signalsAdpt = adapters.NewEastMoneySignalsAdapter()
-		a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
-		a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
-		a.northboundAdpt = adapters.NewTHSNorthboundAdapter()
-t	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
+	a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
+	a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
+	a.northboundAdpt = adapters.NewTHSNorthboundAdapter()
+	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
 
-		// Phase 3: Research report + announcement adapters
-		a.reportAdpt = adapters.NewEastMoneyReportAdapter()
-		a.consensusAdpt = adapters.NewTHSConsensusAdapter()
-		a.cninfoAdpt = adapters.NewCninfoAdapter()
-		a.iwencaiAdpt = adapters.NewIwencaiAdapter()
+	// Phase 3: Research report + announcement adapters
+	a.reportAdpt = adapters.NewEastMoneyReportAdapter()
+	a.consensusAdpt = adapters.NewTHSConsensusAdapter()
+	a.cninfoAdpt = adapters.NewCninfoAdapter()
+	a.iwencaiAdpt = adapters.NewIwencaiAdapter()
 
 	nodes.SetNewsAdapter(a.newsAdpt)
 	if a.bridge != nil {
@@ -225,46 +226,46 @@ t	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
 	nodes.SetCongressTradingService(research.NewCongressTradingService())
 	slog.Info("research services initialized")
 
-		// Symbol search service (in-memory A-share index)
-t	searchSvc, err := market.NewSymbolSearchService(context.Background())
-		if err != nil {
-			slog.Warn("symbol search service init failed", "error", err)
-		} else {
-			a.searchSvc = searchSvc
-			slog.Info("symbol search service initialized", "stocks", searchSvc.Size())
-		}
-		a.capitalSvc = research.NewCapitalService(a.capitalAdpt)
-		nodes.SetCapitalService(a.capitalSvc)
-		a.fundFlowSvc = research.NewFundFlowService(a.fundFlowAdpt)
-		nodes.SetFundFlowService(a.fundFlowSvc)
-		a.northboundSvc = research.NewNorthboundService(a.northboundAdpt)
-		nodes.SetNorthboundService(a.northboundSvc)
-		a.announcementSvc = research.NewAnnouncementService(a.cninfoAdpt)
-		nodes.SetAnnouncementService(a.announcementSvc)
+	// Symbol search service (in-memory A-share index)
+	searchSvc, err := market.NewSymbolSearchService(context.Background())
+	if err != nil {
+		slog.Warn("symbol search service init failed", "error", err)
+	} else {
+		a.searchSvc = searchSvc
+		slog.Info("symbol search service initialized", "stocks", searchSvc.Size())
+	}
+	a.capitalSvc = research.NewCapitalService(a.capitalAdpt)
+	nodes.SetCapitalService(a.capitalSvc)
+	a.fundFlowSvc = research.NewFundFlowService(a.fundFlowAdpt)
+	nodes.SetFundFlowService(a.fundFlowSvc)
+	a.northboundSvc = research.NewNorthboundService(a.northboundAdpt)
+	nodes.SetNorthboundService(a.northboundSvc)
+	a.announcementSvc = research.NewAnnouncementService(a.cninfoAdpt)
+	nodes.SetAnnouncementService(a.announcementSvc)
 
-		// Alternative data: prediction market (Polymarket)
-		a.polymarketAdpt = adapters.NewPolymarketAdapter()
-		a.predictionMarketSvc = research.NewPredictionMarketService(a.polymarketAdpt)
-		nodes.SetPredictionMarketService(a.predictionMarketSvc)
-		slog.Info("prediction market service initialized")
+	// Alternative data: prediction market (Polymarket)
+	a.polymarketAdpt = adapters.NewPolymarketAdapter()
+	a.predictionMarketSvc = research.NewPredictionMarketService(a.polymarketAdpt)
+	nodes.SetPredictionMarketService(a.predictionMarketSvc)
+	slog.Info("prediction market service initialized")
 
-		// Alternative data: geopolitics (GDELT)
-		a.geopoliticsAdpt = adapters.NewGDELTAdapter()
-		a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
-		nodes.SetGeopoliticsService(a.geopoliticsSvc)
-		slog.Info("geopolitics service initialized")
+	// Alternative data: geopolitics (GDELT)
+	a.geopoliticsAdpt = adapters.NewGDELTAdapter()
+	a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
+	nodes.SetGeopoliticsService(a.geopoliticsSvc)
+	slog.Info("geopolitics service initialized")
 
-		// Alternative data: govdata (FRED + SEC EDGAR)
-		a.govDataAdpt = adapters.NewGovDataAdapter()
-		a.govDataSvc = research.NewGovDataService(a.govDataAdpt)
-		nodes.SetGovDataService(a.govDataSvc)
-		slog.Info("govdata service initialized")
+	// Alternative data: govdata (FRED + SEC EDGAR)
+	a.govDataAdpt = adapters.NewGovDataAdapter()
+	a.govDataSvc = research.NewGovDataService(a.govDataAdpt)
+	nodes.SetGovDataService(a.govDataSvc)
+	slog.Info("govdata service initialized")
 
-		// Alternative data: satellite (NASA POWER + FIRMS)
-		a.satelliteAdpt = adapters.NewSatelliteAdapter()
-		a.satelliteSvc = research.NewSatelliteService(a.satelliteAdpt)
-		nodes.SetSatelliteService(a.satelliteSvc)
-		slog.Info("satellite service initialized")
+	// Alternative data: satellite (NASA POWER + FIRMS)
+	a.satelliteAdpt = adapters.NewSatelliteAdapter()
+	a.satelliteSvc = research.NewSatelliteService(a.satelliteAdpt)
+	nodes.SetSatelliteService(a.satelliteSvc)
+	slog.Info("satellite service initialized")
 	return nil
 }
 
@@ -876,7 +877,7 @@ func (a *App) GetSatelliteDetail(regionID string) (map[string]interface{}, error
 	}
 	return map[string]interface{}{
 		"snapshot":    snapshot,
-		"solar_data":  solarPoints,
+		"solar_data":  solarPts,
 		"wind_data":   windPts,
 		"solar_chart": solarPts,
 		"wind_chart":  windPts,
