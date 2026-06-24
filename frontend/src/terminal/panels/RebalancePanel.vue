@@ -13,24 +13,6 @@ defineProps<{
 // --- Store ---
 const store = usePortfolioStore()
 
-// --- Mock data ---
-const mockPositions: PositionDetail[] = [
-  { symbol: '600519', market: 'CN', quantity: 200, avg_price: 1680, market_price: 1725, pnl: 9000, pnl_pct: 2.68, alloc_pct: 18.5, currency: 'CNY', cost_basis: 336000 },
-  { symbol: '000858', market: 'CN', quantity: 800, avg_price: 165, market_price: 158, pnl: -5600, pnl_pct: -4.24, alloc_pct: 6.8, currency: 'CNY', cost_basis: 132000 },
-  { symbol: '300750', market: 'CN', quantity: 500, avg_price: 210, market_price: 228, pnl: 9000, pnl_pct: 8.57, alloc_pct: 6.1, currency: 'CNY', cost_basis: 105000 },
-  { symbol: 'AAPL', market: 'US', quantity: 150, avg_price: 185, market_price: 195.3, pnl: 1545, pnl_pct: 5.57, alloc_pct: 15.7, currency: 'USD', cost_basis: 27750 },
-  { symbol: 'TSLA', market: 'US', quantity: 100, avg_price: 240, market_price: 255, pnl: 1500, pnl_pct: 6.25, alloc_pct: 13.7, currency: 'USD', cost_basis: 24000 },
-  { symbol: 'NVDA', market: 'US', quantity: 80, avg_price: 850, market_price: 920, pnl: 5600, pnl_pct: 8.24, alloc_pct: 19.7, currency: 'USD', cost_basis: 68000 },
-  { symbol: '00700.HK', market: 'HK', quantity: 300, avg_price: 380, market_price: 395, pnl: 4500, pnl_pct: 3.95, alloc_pct: 11.5, currency: 'HKD', cost_basis: 114000 },
-  { symbol: 'BTCUSDT', market: 'CRYPTO', quantity: 0.2, avg_price: 62000, market_price: 65500, pnl: 700, pnl_pct: 5.65, alloc_pct: 8.0, currency: 'USDT', cost_basis: 12400 },
-]
-
-const mockAllocation = {
-  by_market: { CN: 31.4, US: 49.1, HK: 11.5, CRYPTO: 8.0 } as Record<string, number>,
-  by_sector: { '白酒': 18.5, '新能源': 12.9, '科技': 35.4, '互联网': 11.5, '加密': 8.0, '消费': 6.8, '汽车': 6.9 } as Record<string, number>,
-  by_currency: {} as Record<string, number>,
-}
-
 // --- State ---
 const positions = ref<PositionDetail[]>([])
 const currentAllocation = ref<{ by_market: Record<string, number>; by_sector: Record<string, number> }>({
@@ -192,22 +174,13 @@ function fmtMoney(n: number): string {
 onMounted(async () => {
   await store.fetchAllocation()
   await store.fetchPositions()
+  positions.value = (store.positions as any).value || store.positions
 
-  if (store.positions.value.length > 0) {
-    positions.value = store.positions.value
-  } else {
-    positions.value = mockPositions
-  }
-
-  if (store.allocation.value) {
+  const alloc = (store.allocation as any)?.value || store.allocation
+  if (alloc) {
     currentAllocation.value = {
-      by_market: store.allocation.value.by_market,
-      by_sector: store.allocation.value.by_sector,
-    }
-  } else {
-    currentAllocation.value = {
-      by_market: mockAllocation.by_market,
-      by_sector: mockAllocation.by_sector,
+      by_market: alloc.by_market || {},
+      by_sector: alloc.by_sector || {},
     }
   }
 

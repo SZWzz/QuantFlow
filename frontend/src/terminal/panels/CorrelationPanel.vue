@@ -11,6 +11,7 @@ import {
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { pearsonMatrix } from '@/lib/stats'
+import { useSymbolContext } from '@/stores/symbolContext'
 
 use([HeatmapChart, TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, CanvasRenderer])
 
@@ -18,6 +19,9 @@ const props = defineProps<{
   panelId: string
   params?: Record<string, any>
 }>()
+
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbolText = ref(
   props.params?.symbols ??
@@ -33,38 +37,29 @@ const lookbackOptions = [30, 60, 90, 252]
 function parseSymbols(): string[] {
   return symbolText.value
     .split('\n')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
+    .map((s: string) => s.trim())
+    .filter((s: string) => s.length > 0)
 }
 
-function generateMockReturns(count: number, length: number): number[][] {
-  // Generate a common market factor to induce correlation
-  const marketFactor: number[] = []
-  for (let t = 0; t < length; t++) {
-    marketFactor.push((Math.random() - 0.48) * 0.03)
-  }
-
-  const returns: number[][] = []
-  for (let i = 0; i < count; i++) {
-    const series: number[] = []
-    for (let t = 0; t < length; t++) {
-      const r = 0.6 * marketFactor[t] + 0.4 * (Math.random() - 0.5) * 0.06
-      series.push(r)
-    }
-    returns.push(series)
-  }
-  return returns
-}
-
-function compute() {
+async function compute() {
   const syms = parseSymbols()
   symbols.value = syms
   if (syms.length < 2) {
     matrix.value = null
     return
   }
-  const returns = generateMockReturns(syms.length, lookback.value)
-  matrix.value = pearsonMatrix(returns)
+  const app = (window as any).go?.main?.App
+  if (!app) { matrix.value = null; return }
+  try {
+    const corrMatrix = await app.GetCorrelationMatrix({}, syms, lookback.value)
+    // Convert map[string]map[string]float64 to 2D array ordered by syms
+    const m: number[][] = syms.map(si =>
+      syms.map(sj => corrMatrix?.[si]?.[sj] ?? 0)
+    )
+    matrix.value = m
+  } catch {
+    matrix.value = null
+  }
 }
 
 const chartOption = computed(() => {
