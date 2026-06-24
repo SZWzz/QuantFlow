@@ -16,11 +16,15 @@ func parseFloatSafe(s string) float64 {
 }
 
 // toSinaCode converts a symbol to Sina format.
-// Delegates to SymbolIdentity for CN A-shares; handles HK directly.
+// Delegates to SymbolIdentity for CN A-shares; handles HK and US directly.
 func toSinaCode(symbol string) string {
 	// HK stocks: "00700" → "hk00700", "00700.HK" → "hk00700"
 	if isHKCode(symbol) {
 		return toSinaHKCode(symbol)
+	}
+	// US stocks: any non-CN, non-HK alphanumeric ticker → "gb_aapl"
+	if isUSCode(symbol) {
+		return toSinaUSCode(symbol)
 	}
 	// CN A-shares: use SymbolIdentity
 	id, err := market.NormalizeCN(symbol)
@@ -28,6 +32,39 @@ func toSinaCode(symbol string) string {
 		return strings.ToLower(symbol)
 	}
 	return id.ToSina()
+}
+
+// isUSCode detects US stock symbols (alphanumeric tickers, not CN/HK format).
+func isUSCode(symbol string) bool {
+	s := strings.TrimSpace(strings.ToUpper(symbol))
+	// Strip exchange suffix
+	s = strings.TrimSuffix(s, ".US")
+	// Not CN (6-digit numeric) and not HK (5-digit numeric)
+	if len(s) == 6 && isAllDigitsStr(s) {
+		return false
+	}
+	if len(s) == 5 && isAllDigitsStr(s) {
+		return false
+	}
+	// Must be 1-5 character alphanumeric ticker
+	if len(s) < 1 || len(s) > 5 {
+		return false
+	}
+	for _, c := range s {
+		if !((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+			return false
+		}
+	}
+	return true
+}
+
+func isAllDigitsStr(s string) bool {
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // isHKCode detects HK stock symbols (5-digit numeric codes, optionally with .HK suffix).
@@ -84,6 +121,7 @@ func parseSinaQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
+		Name:      fields[0],
 		Last:      last,
 		Open:      open,
 		High:      high,

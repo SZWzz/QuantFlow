@@ -12,9 +12,9 @@ const memSys = ref('0 MB')
 const uptime = ref('--')
 const startTime = Date.now()
 const dataSources = ref([
-  { name: 'Yahoo Finance', status: 'connected' as const },
-  { name: 'EastMoney', status: 'disconnected' as const },
-  { name: 'Binance', status: 'connected' as const },
+  { name: 'Yahoo Finance', status: '已连接' as const },
+  { name: 'EastMoney', status: 'dis已连接' as const },
+  { name: 'Binance', status: '已连接' as const },
 ])
 
 let timer: ReturnType<typeof setInterval> | null = null
@@ -42,34 +42,34 @@ onUnmounted(() => {
 })
 
 function statusColor(s: string): string {
-  return s === 'connected' ? '#3fb950' : s === 'error' ? '#f85149' : '#5a6380'
+  return s === '已连接' ? '#3fb950' : s === 'error' ? '#f85149' : '#5a6380'
 }
 </script>
 
 <template>
   <div class="sysmon-panel">
     <div class="section">
-      <h3 class="section-title">Go Runtime</h3>
+      <h3 class="section-title">Go 运行时</h3>
       <div class="metric-row">
-        <span class="metric-label">Goroutines</span>
+        <span class="metric-label">协程数</span>
         <span class="metric-value">{{ goRoutines }}</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">Heap Alloc</span>
+        <span class="metric-label">堆内存</span>
         <span class="metric-value">{{ memAlloc }}</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">System Mem</span>
+        <span class="metric-label">系统内存</span>
         <span class="metric-value">{{ memSys }}</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">Uptime</span>
+        <span class="metric-label">运行时间</span>
         <span class="metric-value">{{ uptime }}</span>
       </div>
     </div>
 
     <div class="section">
-      <h3 class="section-title">Data Sources</h3>
+      <h3 class="section-title">数据源</h3>
       <div
         v-for="src in dataSources"
         :key="src.name"
@@ -85,17 +85,17 @@ function statusColor(s: string): string {
     </div>
 
     <div class="section">
-      <h3 class="section-title">Workflow Engine</h3>
+      <h3 class="section-title">工作流引擎</h3>
       <div class="metric-row">
-        <span class="metric-label">Registered Nodes</span>
+        <span class="metric-label">已注册节点</span>
         <span class="metric-value">5</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">Cache Size</span>
+        <span class="metric-label">缓存大小</span>
         <span class="metric-value">256</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">Active Runs</span>
+        <span class="metric-label">活跃运行</span>
         <span class="metric-value">0</span>
       </div>
     </div>

@@ -18,7 +18,7 @@ func TestApp_RegisterMarketAdapters_AllWired(t *testing.T) {
 	}
 	a.registerMarketAdapters()
 
-	want := 12
+	want := 14
 	if got := a.marketReg.Count(); got != want {
 		t.Fatalf("registered adapter count = %d, want %d", got, want)
 	}
@@ -30,8 +30,7 @@ func TestApp_RegisterMarketAdapters_AllWired(t *testing.T) {
 		}
 	}
 	// US / HK / CRYPTO adapters too.
-	for _, name := range []string{"yfinance", "polygon", "okx", "binance", "coingecko"} {
-		// Note: the Yahoo adapter's Name() is "yfinance" (see adapters/yahoo.go).
+	for _, name := range []string{"yahoo", "polygon", "okx", "binance", "coingecko"} {
 		if a.marketReg.Get(name) == nil {
 			t.Errorf("adapter %q not registered", name)
 		}

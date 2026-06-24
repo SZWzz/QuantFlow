@@ -41,12 +41,12 @@ function handleSymbolSubmit(e: Event) {
 <template>
   <div class="sentiment-panel">
     <div class="panel-header">
-      <h3>Sentiment Analysis</h3>
+      <h3>情绪分析</h3>
       <div class="header-controls">
         <input
           class="symbol-input"
           :value="symbol"
-          placeholder="Symbol..."
+          placeholder="代码..."
           @keyup.enter="handleSymbolSubmit"
         />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">
@@ -81,16 +81,16 @@ function handleSymbolSubmit(e: Event) {
             {{ store.sentiment.score > 0 ? '+' : '' }}{{ (store.sentiment.score * 100).toFixed(1) }}
           </span>
           <span class="score-confidence">
-            confidence: {{ (store.sentiment.confidence * 100).toFixed(0) }}%
+            置信度: {{ (store.sentiment.confidence * 100).toFixed(0) }}%
           </span>
         </div>
       </div>
 
       <div class="keywords-section">
-        <h4>Keywords</h4>
+        <h4>关键词</h4>
         <div class="keyword-tags">
           <span v-for="kw in store.sentiment.keywords" :key="kw" class="keyword-tag">{{ kw }}</span>
-          <span v-if="store.sentiment.keywords.length === 0" class="no-data">No keywords</span>
+          <span v-if="store.sentiment.keywords.length === 0" class="no-data">暂无关键词</span>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ function handleSymbolSubmit(e: Event) {
     </div>
 
     <div v-else class="empty-state">
-      <p>Enter a symbol and press ↵ to analyze sentiment</p>
+      <p>输入代码后按 ↵ 分析情绪</p>
     </div>
   </div>
 </template>

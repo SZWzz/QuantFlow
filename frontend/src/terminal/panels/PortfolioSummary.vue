@@ -154,7 +154,7 @@ const equityChartOption = computed(() => ({
   },
 }))
 
-// --- Allocation pie chart ---
+// --- 配置分布 pie chart ---
 
 const pieChartOption = computed(() => ({
   backgroundColor: 'transparent',
@@ -164,7 +164,7 @@ const pieChartOption = computed(() => ({
     borderColor: '#30363d',
     textStyle: { color: '#e0e0e0', fontSize: 12 },
     formatter: (params: any) =>
-      `<b>${params.name}</b><br/>Allocation: ${params.value}%`,
+      `<b>${params.name}</b><br/>配置分布: ${params.value}%`,
   },
   series: [{
     type: 'pie',
@@ -188,7 +188,7 @@ const pieChartOption = computed(() => ({
   }],
 }))
 
-// --- Positions table helpers ---
+// --- 持仓 table helpers ---
 
 const totalMarketValue = computed(() =>
   positions.value.reduce((s, p) => s + p.market_price * p.quantity, 0),
@@ -206,15 +206,15 @@ function positionAllocPct(pos: PositionDetail): string {
     <!-- KPI Cards -->
     <div class="kpi-row">
       <div class="kpi-card">
-        <span class="kpi-label">Total Value</span>
+        <span class="kpi-label">总价值</span>
         <span class="kpi-value">{{ kpi ? fmtMoney(kpi.total_value) : '--' }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">Cash Balance</span>
+        <span class="kpi-label">现金余额</span>
         <span class="kpi-value">{{ kpi ? fmtMoney(kpi.cash_balance) : '--' }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">Market Value</span>
+        <span class="kpi-label">市值</span>
         <span class="kpi-value">{{ kpi ? fmtMoney(kpi.market_value) : '--' }}</span>
       </div>
       <div class="kpi-card">
@@ -236,20 +236,20 @@ function positionAllocPct(pos: PositionDetail): string {
     <!-- Charts Row -->
     <div class="charts-row">
       <div class="chart-box chart-equity">
-        <h3 class="section-title">Equity Curve</h3>
+        <h3 class="section-title">净值曲线</h3>
         <VChart v-if="equityData.length > 0" class="chart-body" :option="equityChartOption" autoresize />
         <div v-else class="chart-empty">--</div>
       </div>
       <div class="chart-box chart-pie">
-        <h3 class="section-title">Allocation</h3>
+        <h3 class="section-title">配置分布</h3>
         <VChart v-if="allocationData.length > 0" class="chart-body" :option="pieChartOption" autoresize />
         <div v-else class="chart-empty">--</div>
       </div>
     </div>
 
-    <!-- Positions Table -->
+    <!-- 持仓 Table -->
     <div class="positions-section">
-      <h3 class="section-title">Positions</h3>
+      <h3 class="section-title">持仓</h3>
       <div class="table-wrap">
         <table class="pos-table">
           <thead>
@@ -394,7 +394,7 @@ function positionAllocPct(pos: PositionDetail): string {
   border-bottom: 1px solid var(--input);
 }
 
-/* --- Positions Table --- */
+/* --- 持仓 Table --- */
 .positions-section {
   background: var(--card);
   border-radius: 4px;

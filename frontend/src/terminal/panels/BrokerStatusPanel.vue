@@ -9,43 +9,43 @@ interface BrokerInfo {
   market: string
   status: 'connected' | 'degraded' | 'disconnected'
   latency: number
-  accountBalance: number
+  account余额: number
   currency: string
   todayTrades: number
-  lastHeartbeat: string
+  last心跳: string
   configured: boolean
 }
 
 const brokers = ref<BrokerInfo[]>([
   {
     name: 'Paper Trading', market: 'Simulated',
-    status: 'connected', latency: 2, accountBalance: 100000, currency: 'USD',
-    todayTrades: 24, lastHeartbeat: new Date().toISOString(), configured: true,
+    status: 'connected', latency: 2, account余额: 100000, currency: 'USD',
+    todayTrades: 24, last心跳: new Date().toISOString(), configured: true,
   },
   {
     name: 'Futu', market: 'US/HK/CN',
-    status: 'connected', latency: 45, accountBalance: 528000, currency: 'HKD',
-    todayTrades: 8, lastHeartbeat: new Date().toISOString(), configured: true,
+    status: 'connected', latency: 45, account余额: 528000, currency: 'HKD',
+    todayTrades: 8, last心跳: new Date().toISOString(), configured: true,
   },
   {
     name: 'Binance', market: 'Crypto',
-    status: 'degraded', latency: 120, accountBalance: 15500, currency: 'USDT',
-    todayTrades: 3, lastHeartbeat: new Date(Date.now() - 120000).toISOString(), configured: true,
+    status: 'degraded', latency: 120, account余额: 15500, currency: 'USDT',
+    todayTrades: 3, last心跳: new Date(Date.now() - 120000).toISOString(), configured: true,
   },
   {
     name: 'Alpaca', market: 'US',
-    status: 'disconnected', latency: 0, accountBalance: 0, currency: 'USD',
-    todayTrades: 0, lastHeartbeat: '', configured: false,
+    status: 'disconnected', latency: 0, account余额: 0, currency: 'USD',
+    todayTrades: 0, last心跳: '', configured: false,
   },
   {
     name: 'IBKR', market: 'US/HK',
-    status: 'disconnected', latency: 0, accountBalance: 0, currency: 'USD',
-    todayTrades: 0, lastHeartbeat: '', configured: false,
+    status: 'disconnected', latency: 0, account余额: 0, currency: 'USD',
+    todayTrades: 0, last心跳: '', configured: false,
   },
   {
     name: 'OKX', market: 'Crypto',
-    status: 'disconnected', latency: 0, accountBalance: 0, currency: 'USDT',
-    todayTrades: 0, lastHeartbeat: '', configured: false,
+    status: 'disconnected', latency: 0, account余额: 0, currency: 'USDT',
+    todayTrades: 0, last心跳: '', configured: false,
   },
 ])
 
@@ -61,7 +61,7 @@ async function testConnection(broker: BrokerInfo) {
     if (broker.configured) {
       brokers.value[idx].status = 'connected'
       brokers.value[idx].latency = Math.floor(Math.random() * 80 + 2)
-      brokers.value[idx].lastHeartbeat = new Date().toISOString()
+      brokers.value[idx].last心跳 = new Date().toISOString()
     }
   }
   testingBroker.value = null
@@ -70,10 +70,10 @@ async function testConnection(broker: BrokerInfo) {
 // -- Auto-refresh every 30s --
 let timer: ReturnType<typeof setInterval> | null = null
 
-function refreshHeartbeats() {
+function refresh心跳s() {
   for (const b of brokers.value) {
     if (b.status !== 'disconnected') {
-      b.lastHeartbeat = new Date().toISOString()
+      b.last心跳 = new Date().toISOString()
       b.latency = b.latency + Math.floor(Math.random() * 6 - 3)
       if (b.latency < 1) b.latency = 1
     }
@@ -81,7 +81,7 @@ function refreshHeartbeats() {
 }
 
 onMounted(() => {
-  timer = setInterval(refreshHeartbeats, 30000)
+  timer = setInterval(refresh心跳s, 30000)
 })
 
 onUnmounted(() => {
@@ -123,31 +123,31 @@ function fmtMoney(n: number, currency: string): string {
             <span :class="statusDotClass(broker.status)"></span>
             <span class="card-name">{{ broker.name }}</span>
           </div>
-          <span v-if="!broker.configured" class="not-configured-badge">Not Configured</span>
+          <span v-if="!broker.configured" class="not-configured-badge">未配置</span>
         </div>
 
-        <!-- Status info -->
+        <!-- 状态 info -->
         <div class="card-body">
           <div class="info-row">
-            <span class="info-label">Status</span>
+            <span class="info-label">状态</span>
             <span :class="['info-value', 'status-' + broker.status]">
               {{ statusLabel(broker.status) }}
             </span>
           </div>
           <div class="info-row">
-            <span class="info-label">Latency</span>
+            <span class="info-label">延迟</span>
             <span class="info-value">{{ broker.latency > 0 ? broker.latency + ' ms' : '—' }}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Heartbeat</span>
-            <span class="info-value muted">{{ formatTime(broker.lastHeartbeat) }}</span>
+            <span class="info-label">心跳</span>
+            <span class="info-value muted">{{ formatTime(broker.last心跳) }}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Balance</span>
-            <span class="info-value">{{ fmtMoney(broker.accountBalance, broker.currency) }}</span>
+            <span class="info-label">余额</span>
+            <span class="info-value">{{ fmtMoney(broker.account余额, broker.currency) }}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Today's Trades</span>
+            <span class="info-label">今日交易</span>
             <span class="info-value">{{ broker.todayTrades }}</span>
           </div>
         </div>

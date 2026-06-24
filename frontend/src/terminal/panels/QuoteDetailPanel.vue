@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { detectMarket } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -13,7 +14,7 @@ const loading = ref(false)
 async function fetchQuote(sym: string) {
   loading.value = true
   try {
-    const result = await (window as any).go.main.App.GetQuote('CN', sym)
+    const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
     const snapshot = Array.isArray(result) ? result[0] : result
     quote.value = {
       symbol: snapshot.symbol ?? sym,
@@ -92,27 +93,27 @@ function fmtVolume(n: number): string {
       </span>
     </div>
     <div class="ohlcv-grid">
-      <div class="kv-item"><span class="label">Open</span><span class="value">{{ fmt(quote.open) }}</span></div>
-      <div class="kv-item"><span class="label">High</span><span class="value up-val">{{ fmt(quote.high) }}</span></div>
-      <div class="kv-item"><span class="label">Low</span><span class="value down-val">{{ fmt(quote.low) }}</span></div>
-      <div class="kv-item"><span class="label">Prev Close</span><span class="value">{{ fmt(quote.prevClose) }}</span></div>
+      <div class="kv-item"><span class="label">开盘</span><span class="value">{{ fmt(quote.open) }}</span></div>
+      <div class="kv-item"><span class="label">最高</span><span class="value up-val">{{ fmt(quote.high) }}</span></div>
+      <div class="kv-item"><span class="label">最低</span><span class="value down-val">{{ fmt(quote.low) }}</span></div>
+      <div class="kv-item"><span class="label">昨收</span><span class="value">{{ fmt(quote.prevClose) }}</span></div>
     </div>
     <div class="spread-section">
       <div class="spread-row">
-        <span class="side-label bid">Bid</span>
+        <span class="side-label bid">买</span>
         <span class="side-price">{{ fmt(quote.bid) }}</span>
         <div class="spread-bar"><div class="spread-fill" :style="{ width: '35%' }" /></div>
         <span class="side-price">{{ fmt(quote.ask) }}</span>
-        <span class="side-label ask">Ask</span>
+        <span class="side-label ask">卖</span>
       </div>
     </div>
     <div class="info-grid">
-      <div class="kv-item"><span class="label">Volume</span><span class="value">{{ fmtVolume(quote.volume) }}</span></div>
-      <div class="kv-item"><span class="label">Avg Vol</span><span class="value">{{ quote.avgVolume }}</span></div>
-      <div class="kv-item"><span class="label">Market Cap</span><span class="value">{{ quote.marketCap }}</span></div>
-      <div class="kv-item"><span class="label">P/E</span><span class="value">{{ quote.pe }}</span></div>
-      <div class="kv-item"><span class="label">EPS</span><span class="value">{{ quote.eps }}</span></div>
-      <div class="kv-item"><span class="label">Div Yield</span><span class="value">{{ quote.dividendYield === '--' ? '--' : quote.dividendYield + '%' }}</span></div>
+      <div class="kv-item"><span class="label">成交量</span><span class="value">{{ fmtVolume(quote.volume) }}</span></div>
+      <div class="kv-item"><span class="label">均量</span><span class="value">{{ quote.avgVolume }}</span></div>
+      <div class="kv-item"><span class="label">市值</span><span class="value">{{ quote.marketCap }}</span></div>
+      <div class="kv-item"><span class="label">市盈率</span><span class="value">{{ quote.pe }}</span></div>
+      <div class="kv-item"><span class="label">每股收益</span><span class="value">{{ quote.eps }}</span></div>
+      <div class="kv-item"><span class="label">股息率</span><span class="value">{{ quote.dividendYield === '--' ? '--' : quote.dividendYield + '%' }}</span></div>
     </div>
     </template>
     <div v-else class="loading-state">--</div>

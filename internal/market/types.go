@@ -7,6 +7,7 @@ import "time"
 // QuoteSnapshot is a real-time quote for a single symbol.
 type QuoteSnapshot struct {
 	Symbol    string  `json:"symbol"`
+	Name      string  `json:"name"`
 	Last      float64 `json:"last"`
 	Open      float64 `json:"open"`
 	High      float64 `json:"high"`

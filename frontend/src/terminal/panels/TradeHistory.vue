@@ -78,8 +78,8 @@ const orders = computed<Order[]>(() => {
 
 // -- Lifecycle --
 onMounted(async () => {
-  store.fetchOrders()
-  store.fetchTrades()
+  store.fetch委托()
+  store.fetch成交()
 })
 
 // -- State --
@@ -90,7 +90,7 @@ const orderStatusFilter = ref('')
 const orderStatusOptions = ['', 'filled', 'pending', 'cancelled', 'rejected']
 
 // -- Computed filters --
-const filteredTrades = computed(() => {
+const filtered成交 = computed(() => {
   let rows = trades.value
   if (symbolFilter.value) {
     const q = symbolFilter.value.toUpperCase()
@@ -99,7 +99,7 @@ const filteredTrades = computed(() => {
   return rows
 })
 
-const filteredOrders = computed(() => {
+const filtered委托 = computed(() => {
   let rows = orders.value
   if (symbolFilter.value) {
     const q = symbolFilter.value.toUpperCase()
@@ -123,13 +123,13 @@ function statusLabel(s: string): string {
 function exportData() {
   if (activeTab.value === 'trades') {
     const headers = ['Date', 'Symbol', 'Side', 'Qty', 'Price', 'Total', 'OrderID']
-    const rows = filteredTrades.value.map(t => [
+    const rows = filtered成交.value.map(t => [
       t.date, t.symbol, t.side, String(t.qty), fmt(t.price), fmt(t.total), t.orderId,
     ])
     exportCSV('trades.csv', headers, rows)
   } else {
     const headers = ['Placed', 'Symbol', 'Side', 'Type', 'Qty', 'Filled', 'Price', 'Status']
-    const rows = filteredOrders.value.map(o => [
+    const rows = filtered委托.value.map(o => [
       o.placed, o.symbol, o.side, o.type, String(o.qty), String(o.filled), fmt(o.price), o.status,
     ])
     exportCSV('orders.csv', headers, rows)
@@ -145,22 +145,22 @@ function exportData() {
         v-model="symbolFilter"
         type="text"
         class="filter-input"
-        placeholder="Search symbol..."
+        placeholder="搜索代码..."
       />
 
       <div class="tab-switch">
         <button
           :class="{ active: activeTab === 'trades' }"
           @click="activeTab = 'trades'"
-        >Trades</button>
+        >成交</button>
         <button
           :class="{ active: activeTab === 'orders' }"
           @click="activeTab = 'orders'"
-        >Orders</button>
+        >委托</button>
       </div>
 
       <select v-if="activeTab === 'orders'" v-model="orderStatusFilter" class="filter-select">
-        <option value="">All Status</option>
+        <option value="">全部状态</option>
         <option v-for="s in orderStatusOptions.filter(Boolean)" :key="s" :value="s">
           {{ statusLabel(s) }}
         </option>
@@ -169,7 +169,7 @@ function exportData() {
       <button class="export-btn" @click="exportData">CSV</button>
     </div>
 
-    <!-- Trades Table -->
+    <!-- 成交 Table -->
     <div v-if="activeTab === 'trades'" class="table-wrap">
       <table>
         <thead>
@@ -184,23 +184,23 @@ function exportData() {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="t in filteredTrades" :key="t.orderId">
+          <tr v-for="t in filtered成交" :key="t.orderId">
             <td class="muted">{{ t.date }}</td>
             <td class="symbol">{{ t.symbol }}</td>
-            <td :class="t.side === 'buy' ? 'up' : 'down'">{{ t.side === 'buy' ? 'Buy' : 'Sell' }}</td>
+            <td :class="t.side === 'buy' ? 'up' : 'down'">{{ t.side === 'buy' ? '买入' : '卖出' }}</td>
             <td class="num">{{ t.qty.toLocaleString() }}</td>
             <td class="num">{{ fmt(t.price) }}</td>
             <td class="num">{{ fmt(t.total) }}</td>
             <td class="muted">{{ t.orderId }}</td>
           </tr>
-          <tr v-if="filteredTrades.length === 0">
+          <tr v-if="filtered成交.length === 0">
             <td colspan="7" class="empty">--</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Orders Table -->
+    <!-- 委托 Table -->
     <div v-if="activeTab === 'orders'" class="table-wrap">
       <table>
         <thead>
@@ -215,10 +215,10 @@ function exportData() {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="o in filteredOrders" :key="`${o.symbol}-${o.placed}`">
+          <tr v-for="o in filtered委托" :key="`${o.symbol}-${o.placed}`">
             <td class="muted">{{ o.placed }}</td>
             <td class="symbol">{{ o.symbol }}</td>
-            <td :class="o.side === 'buy' ? 'up' : 'down'">{{ o.side === 'buy' ? 'Buy' : 'Sell' }}</td>
+            <td :class="o.side === 'buy' ? 'up' : 'down'">{{ o.side === 'buy' ? '买入' : '卖出' }}</td>
             <td>{{ o.type }}</td>
             <td class="num">{{ o.qty }}<span class="muted">/{{ o.filled }}</span></td>
             <td class="num">{{ fmt(o.price) }}</td>
@@ -226,7 +226,7 @@ function exportData() {
               <span :class="['badge', o.status]">{{ statusLabel(o.status) }}</span>
             </td>
           </tr>
-          <tr v-if="filteredOrders.length === 0">
+          <tr v-if="filtered委托.length === 0">
             <td colspan="7" class="empty">--</td>
           </tr>
         </tbody>

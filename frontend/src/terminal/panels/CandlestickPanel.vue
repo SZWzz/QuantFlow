@@ -7,6 +7,7 @@ import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent } fr
 import { CanvasRenderer } from 'echarts/renderers'
 import * as echarts from 'echarts'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { detectMarket } from '@/lib/wails'
 
 use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
 
@@ -26,7 +27,7 @@ async function loadOHLCV(sym: string) {
   try {
     const end = Math.floor(Date.now() / 1000)
     const start = end - 90 * 86400
-    const result = await (window as any).go.main.App.FetchOHLCV('CN', sym, '1d', start, end)
+    const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, '1d', start, end)
     const bars = Array.isArray(result) ? result[0] : result
     ohlcvData.value = (bars as any[]).map((b: any) => {
       const date = typeof b.date === 'string' ? b.date : new Date(b.date || b.Date).toISOString().slice(0, 10)

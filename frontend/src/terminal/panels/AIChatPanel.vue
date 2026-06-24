@@ -55,10 +55,10 @@ const messages = ref<Message[]>([
 const input = ref('')
 const isLoading = ref(false)
 const profiles = ref<AgentProfile[]>([
-  { name: 'general', display: 'General Assistant' },
-  { name: 'quant_analyst', display: 'Quantitative Analyst' },
-  { name: 'trader', display: 'Trader' },
-  { name: 'research_assistant', display: 'Research Assistant' },
+  { name: 'general', display: '通用助理' },
+  { name: 'quant_analyst', display: '量化分析师' },
+  { name: 'trader', display: '交易员' },
+  { name: 'research_assistant', display: '研究助理' },
 ])
 const selectedProfile = ref('general')
 const selectedModel = ref('ollama/llama3.1:8b')
@@ -130,8 +130,8 @@ async function send() {
 
 async function simulateStreamingResponse(msg: Message, prompt: string) {
   const responses: Record<string, string> = {
-    general: `I'm the QuantFlow General Assistant. You asked: "${prompt}". Here's a sample markdown response:\n\n## Analysis\n\n| Metric | Value |\n|--------|-------|\n| Sharpe | 1.42 |\n| Max DD | -8.7% |\n\n\`\`\`python\ndef backtest():\n    return {"sharpe": 1.42}\n\`\`\`\n\n**Note:** Connect to the Python sidecar for real AI responses.`,
-    quant_analyst: `As a Quantitative Analyst, let me analyze: "${prompt}".\n\n### Factor Analysis\n\n- **momentum_20d**: IC 0.035, IR 0.42\n- **rsi_14**: IC 0.018, IR 0.21\n\n> Recommendation: Use momentum factors for this strategy with at least 3-month holding period.`,
+    general: `I'm the QuantFlow 通用助理. You asked: "${prompt}". Here's a sample markdown response:\n\n## Analysis\n\n| Metric | Value |\n|--------|-------|\n| Sharpe | 1.42 |\n| Max DD | -8.7% |\n\n\`\`\`python\ndef backtest():\n    return {"sharpe": 1.42}\n\`\`\`\n\n**Note:** Connect to the Python sidecar for real AI responses.`,
+    quant_analyst: `As a 量化分析师, let me analyze: "${prompt}".\n\n### Factor Analysis\n\n- **momentum_20d**: IC 0.035, IR 0.42\n- **rsi_14**: IC 0.018, IR 0.21\n\n> Recommendation: Use momentum factors for this strategy with at least 3-month holding period.`,
     trader: `Trade analysis for: "${prompt}".\n\n### Trade Setup\n- **Entry**: Wait for confirmation above resistance\n- **Stop Loss**: 2 ATR below entry (~3.5%)\n- **Target**: 2:1 R:R\n- **Position Size**: 2% risk per trade\n\nAlways manage risk first!`,
     research_assistant: `Research on: "${prompt}".\n\n## Key Findings\n\n1. **Industry**: Growing at 12% CAGR\n2. **Competitive Position**: Strong moat (brand + network effects)\n3. **Valuation**: P/E 22x vs industry 25x — slightly undervalued`,
   }
@@ -173,7 +173,7 @@ watch(() => messages.value.length, scrollToBottom)
       <select v-model="selectedModel" class="header-select model-select">
         <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
       </select>
-      <button class="new-chat-btn" @click="newChat" title="New chat">+</button>
+      <button class="new-chat-btn" @click="newChat" title="新对话">+</button>
     </div>
 
     <!-- Messages -->
@@ -222,12 +222,12 @@ watch(() => messages.value.length, scrollToBottom)
       <input
         v-model="input"
         type="text"
-        :placeholder="isLoading ? 'AI is thinking...' : 'Ask the AI assistant...'"
+        :placeholder="isLoading ? 'AI 思考中...' : '向 AI 助手提问...'"
         class="chat-input"
         :disabled="isLoading"
         @keyup.enter="send"
       />
-      <button class="send-btn" @click="send" :disabled="isLoading">Send</button>
+      <button class="send-btn" @click="send" :disabled="isLoading">发送</button>
     </div>
   </div>
 </template>

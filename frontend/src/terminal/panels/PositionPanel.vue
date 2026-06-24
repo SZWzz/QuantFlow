@@ -24,11 +24,11 @@ function fmt(n: number, dec = 2): string { return n.toFixed(dec) }
   <div class="position-panel">
     <div class="summary-row">
       <div class="summary-item">
-        <span class="s-label">Total P&L</span>
+        <span class="s-label">总盈亏</span>
         <span :class="['s-value', totalPnl >= 0 ? 'up' : 'down']">${{ fmt(totalPnl) }}</span>
       </div>
       <div class="summary-item">
-        <span class="s-label">Day P&L</span>
+        <span class="s-label">日内盈亏</span>
         <span :class="['s-value', totalDayPnl >= 0 ? 'up' : 'down']">${{ fmt(totalDayPnl) }}</span>
       </div>
     </div>
@@ -37,7 +37,7 @@ function fmt(n: number, dec = 2): string { return n.toFixed(dec) }
       <div v-for="pos in positions" :key="pos.symbol" class="position-row">
         <div class="pos-main">
           <span class="pos-symbol">{{ pos.symbol }}</span>
-          <span class="pos-qty">{{ pos.quantity }} sh</span>
+          <span class="pos-qty">{{ pos.quantity }} 手</span>
         </div>
         <div class="pos-prices">
           <span class="pos-avg">@{{ fmt(pos.avgPrice) }}</span>

@@ -4,6 +4,12 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { i18n } from './lib/i18n'
 import App from './App.vue'
 
+// Wails v3 runtime bridge — creates window.go shim using @wailsio/runtime.
+// This allows existing Wails v2-style (window as any).go.main.App.XXX calls
+// to work transparently with Wails v3's Call.ByName API.
+import { setupWailsBridge } from './lib/wails'
+setupWailsBridge()
+
 // Global design tokens — must load before component styles
 import './assets/themes.css'
 

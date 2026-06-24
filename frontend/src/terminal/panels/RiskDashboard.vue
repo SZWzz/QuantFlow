@@ -62,12 +62,12 @@ const volChartOption = computed(() => ({
 const garchModels = ['garch', 'gjr_garch', 'egarch'] as const
 
 const kpiCards = [
-  { label: 'VaR (95%)', value: `$${fmt(metrics.value.var_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
-  { label: 'CVaR (95%)', value: `$${fmt(metrics.value.cvar_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
-  { label: 'Max Drawdown', value: `${fmt(metrics.value.max_drawdown)}%`, color: metrics.value.max_drawdown < -10 ? '#f85149' : '#f0883e' },
-  { label: 'Sharpe Ratio', value: fmt(metrics.value.sharpe_ratio), color: metrics.value.sharpe_ratio > 1 ? '#3fb950' : '#f0883e' },
-  { label: 'Sortino Ratio', value: fmt(metrics.value.sortino_ratio), color: metrics.value.sortino_ratio > 1 ? '#3fb950' : '#f0883e' },
-  { label: 'Ann. Volatility', value: `${fmt(metrics.value.annual_volatility)}%`, color: '#5a6380' },
+  { label: '风险价值(95%)', value: `$${fmt(metrics.value.var_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
+  { label: 'C风险价值(95%)', value: `$${fmt(metrics.value.cvar_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
+  { label: '最大回撤', value: `${fmt(metrics.value.max_drawdown)}%`, color: metrics.value.max_drawdown < -10 ? '#f85149' : '#f0883e' },
+  { label: '夏普比率', value: fmt(metrics.value.sharpe_ratio), color: metrics.value.sharpe_ratio > 1 ? '#3fb950' : '#f0883e' },
+  { label: '索提诺比率', value: fmt(metrics.value.sortino_ratio), color: metrics.value.sortino_ratio > 1 ? '#3fb950' : '#f0883e' },
+  { label: '年化波动率', value: `${fmt(metrics.value.annual_volatility)}%`, color: '#5a6380' },
 ]
 </script>
 
@@ -80,7 +80,7 @@ const kpiCards = [
       </div>
     </div>
     <div class="chart-section">
-      <div class="chart-title">Drawdown Curve</div>
+      <div class="chart-title">回撤曲线</div>
       <VChart :option="ddChartOption" autoresize style="height:200px" />
     </div>
     <div v-if="metrics.max_drawdown < 0" class="dd-info">

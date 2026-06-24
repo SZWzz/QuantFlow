@@ -70,7 +70,7 @@ onMounted(refresh)
 <template>
   <div class="crypto-overview-panel">
     <div class="panel-header">
-      <h3>Crypto Overview</h3>
+      <h3>加密货币概览</h3>
       <button class="refresh-btn" @click="refresh">⟳</button>
     </div>
 
@@ -82,7 +82,7 @@ onMounted(refresh)
             <th class="col-rank">#</th>
             <th class="col-symbol sortable" @click="toggleSort('symbol')">Symbol{{ sortArrow('symbol') }}</th>
             <th class="col-price sortable" @click="toggleSort('price')">Price{{ sortArrow('price') }}</th>
-            <th class="col-change sortable" @click="toggleSort('changePct24h')">24h Chg%{{ sortArrow('changePct24h') }}</th>
+            <th class="col-change sortable" @click="toggleSort('changePct24h')">24h涨跌%{{ sortArrow('changePct24h') }}</th>
           </tr>
         </thead>
         <tbody>

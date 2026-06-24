@@ -1,6 +1,6 @@
 {
-  "pid": 92331,
-  "version": "0.9.9",
-  "socketPath": "/Volumes/shenzy/vibe_coding/quant/QuantFlow/.codegraph/daemon.sock",
-  "startedAt": 1781770875255
+  "pid": 251,
+  "version": "0.9.7",
+  "socketPath": "/Volumes/etx/coding/rebuild/quantflow/.codegraph/daemon.sock",
+  "startedAt": 1782305410146
 }

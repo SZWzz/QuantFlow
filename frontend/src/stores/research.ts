@@ -39,15 +39,30 @@ export const useResearchStore = defineStore('research', () => {
   const research = ref<StockResearchResult | null>(null)
   const sentimentHistory = ref<SentimentOutput[]>([])
   const loading = ref(false)
-  const isBridgeAvailable = ref(false)
+  const isBridgeAvailable = ref<boolean | null>(null) // null = not checked yet
+
+  // Check bridge availability on first load
+  async function checkBridge() {
+    if (isBridgeAvailable.value !== null) return
+    try {
+      const app = (window as any).go?.main?.App
+      if (app?.GetVersion) {
+        // Try a lightweight call to verify the bridge
+        await app.GetVersion()
+        isBridgeAvailable.value = true
+      }
+    } catch {
+      isBridgeAvailable.value = false
+    }
+  }
 
   async function fetchSentiment(symbol: string) {
     loading.value = true
+    await checkBridge()
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetSentiment) {
+      if (app?.GetSentiment && isBridgeAvailable.value) {
         sentiment.value = await app.GetSentiment(symbol)
-        isBridgeAvailable.value = (sentiment.value?.compute_time_ms ?? 0) > 0
       } else {
         sentiment.value = {
           symbol, score: 0, label: 'neutral', confidence: 0,

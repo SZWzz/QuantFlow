@@ -9,6 +9,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"quantflow/internal/ai"
 	"quantflow/internal/ai/capabilities"
 	"quantflow/internal/config"
@@ -83,10 +85,14 @@ type App struct {
 
 	// Symbol search (in-memory index, built at startup).
 	searchSvc *market.SymbolSearchService
+
+	// Python sidecar subprocess (auto-launched).
+	sidecar *python.SidecarProcess
 }
 
-// startup is called by Wails when the application starts.
-func (a *App) startup() error {
+// ServiceStartup is called by Wails v3 when the application starts.
+// It initializes all services: config, DB, market adapters, research, etc.
+func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
@@ -117,6 +123,18 @@ func (a *App) startup() error {
 		return fmt.Errorf("create engine: %w", err)
 	}
 	a.engine = engine
+
+	// Auto-start Python sidecar (launches mootdx/TDX, AI, etc.)
+	sidecar, sidecarErr := python.StartSidecar(context.Background(), "python", 50051)
+	if sidecarErr != nil {
+		slog.Warn("python sidecar launch failed, AI features disabled", "error", sidecarErr)
+	} else {
+		a.sidecar = sidecar
+		if sidecar != nil {
+			slog.Info("python sidecar launched")
+			sidecar.Wait() // wait for readiness
+		}
+	}
 
 	// Initialize PythonBridge (optional — app works without Python sidecar)
 	bridgeOpts := python.DefaultOptions()
@@ -597,10 +615,11 @@ func (a *App) GetCongressTrades() ([]research.CongressTrade, error) {
 }
 
 // SearchSymbols searches A-share stocks by code, name, or pinyin abbreviation.
-// Returns up to 20 matches sorted by relevance.
+// Returns up to 20 matches sorted by relevance. Returns empty slice (not error)
+// when the search service is unavailable.
 func (a *App) SearchSymbols(query string) ([]market.StockEntry, error) {
 	if a.searchSvc == nil {
-		return nil, fmt.Errorf("symbol search not initialized")
+		return []market.StockEntry{}, nil
 	}
 	return a.searchSvc.Search(query, 20), nil
 }
@@ -725,14 +744,20 @@ func (a *App) GetLockupExpiry(symbol string) ([]adapters.LockupExpiry, error) {
 // ── Industry Ranks (行业板块排名) ─────────────────────────────────────────
 
 // GetIndustryRanks returns industry ranking by change percent.
+// Returns empty slice on error (eastmoney push2 API is frequently unavailable).
 func (a *App) GetIndustryRanks(topN int) ([]adapters.IndustryRank, error) {
 	if a.signalsAdpt == nil {
-		return nil, fmt.Errorf("signals adapter not initialized")
+		return []adapters.IndustryRank{}, nil
 	}
 	if topN <= 0 {
 		topN = 20
 	}
-	return a.signalsAdpt.FetchIndustryRanks(context.Background(), topN)
+	ranks, err := a.signalsAdpt.FetchIndustryRanks(context.Background(), topN)
+	if err != nil {
+		slog.Warn("GetIndustryRanks failed, returning empty", "error", err)
+		return []adapters.IndustryRank{}, nil
+	}
+	return ranks, nil
 }
 
 // ── Concept Blocks (概念板块归属) ─────────────────────────────────────────
@@ -910,14 +935,25 @@ func (a *App) getMarketReg() *market.AdapterRegistry {
 // — Market Overview & Analytics —
 
 // GetMarketOverview returns index snapshots for major A-share indices.
-func (a *App) GetMarketOverview(ctx context.Context) (map[string]interface{}, error) {
+// Queries sina directly — mootdx confuses index codes with individual stocks
+// (e.g. 000001.SH returns 平安银行's price instead of 上证指数).
+func (a *App) GetMarketOverview() (map[string]interface{}, error) {
+	ctx := context.Background()
 	indices := []struct{ code, name string }{
-		{"000001", "上证指数"}, {"399001", "深证成指"}, {"399006", "创业板指"},
-		{"000688", "科创50"}, {"000300", "沪深300"},
+		{"000001.SH", "上证指数"}, {"399001.SZ", "深证成指"}, {"399006.SZ", "创业板指"},
+		{"000688.SH", "科创50"}, {"000300.SH", "沪深300"},
 	}
+	// Use sina adapter directly — mootdx doesn't handle index codes correctly.
+	sina := a.marketReg.Get("sina")
 	result := make([]map[string]interface{}, 0, len(indices))
 	for _, idx := range indices {
-		snap, _, err := a.GetQuote(ctx, "CN", idx.code)
+		var snap *market.QuoteSnapshot
+		var err error
+		if sina != nil && sina.IsAvailable(ctx) {
+			snap, err = sina.FetchQuote(ctx, idx.code)
+		} else {
+			snap, _, err = a.GetQuote(ctx, "CN", idx.code)
+		}
 		if err != nil {
 			slog.Warn("GetMarketOverview: failed for", "code", idx.code, "error", err)
 			continue
@@ -1044,9 +1080,12 @@ func (a *App) GetRebalanceSuggestions(ctx context.Context) ([]map[string]interfa
 	return []map[string]interface{}{}, nil
 }
 
-// Shutdown performs graceful cleanup: closes the Python sidecar connection,
+// ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,
 // shared DB connection, and releases any resources held by the application.
-func (a *App) Shutdown() {
+func (a *App) ServiceShutdown() error {
+	if a.sidecar != nil {
+		a.sidecar.Stop()
+	}
 	if a.bridge != nil {
 		if err := a.bridge.Close(); err != nil {
 			slog.Warn("failed to close python bridge", "error", err)
@@ -1058,4 +1097,5 @@ func (a *App) Shutdown() {
 		}
 	}
 	slog.Info("app shutdown complete")
+	return nil
 }

@@ -5,14 +5,14 @@ import * as echarts from 'echarts'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-// Algorithm selector
+// 算法 selector
 const algorithm = ref<'ppo' | 'dqn' | 'sac'>('ppo')
 const algorithms = ['ppo', 'dqn', 'sac'] as const
 
 // Training state
 const isTraining = ref(false)
 const episode = ref(0)
-const totalEpisodes = ref(100)
+const total回合数 = ref(100)
 const rewards = ref<number[]>([])
 const sharpes = ref<number[]>([])
 const currentReward = ref(0)
@@ -36,7 +36,7 @@ function startTraining() {
     currentReward.value = r
     currentSharpe.value = s
 
-    if (episode.value >= totalEpisodes.value) {
+    if (episode.value >= total回合数.value) {
       pauseTraining()
     }
   }, 200)
@@ -60,9 +60,9 @@ onUnmounted(() => {
 
 const rewardChartOption = computed(() => ({
   backgroundColor: 'transparent',
-  title: { text: 'Reward per Episode', textStyle: { color: '#c9d1d9', fontSize: 13 }, left: 'center' },
+  title: { text: 'Reward per 回合', textStyle: { color: '#c9d1d9', fontSize: 13 }, left: 'center' },
   grid: { top: 40, right: 20, bottom: 30, left: 50 },
-  xAxis: { type: 'value', name: 'Episode', axisLabel: { color: '#5a6380', fontSize: 10 } },
+  xAxis: { type: 'value', name: '回合', axisLabel: { color: '#5a6380', fontSize: 10 } },
   yAxis: { type: 'value', name: 'Reward', axisLabel: { color: '#5a6380', fontSize: 10 } },
   series: [{
     type: 'line',
@@ -83,7 +83,7 @@ const sharpeChartOption = computed(() => ({
   backgroundColor: 'transparent',
   title: { text: 'Sharpe Ratio', textStyle: { color: '#c9d1d9', fontSize: 13 }, left: 'center' },
   grid: { top: 40, right: 20, bottom: 30, left: 50 },
-  xAxis: { type: 'value', name: 'Episode', axisLabel: { color: '#5a6380', fontSize: 10 } },
+  xAxis: { type: 'value', name: '回合', axisLabel: { color: '#5a6380', fontSize: 10 } },
   yAxis: { type: 'value', name: 'Sharpe', axisLabel: { color: '#5a6380', fontSize: 10 } },
   series: [{
     type: 'line',
@@ -100,36 +100,36 @@ const fmt = (n: number, dec = 2) => n.toFixed(dec)
 <template>
   <div class="rl-monitor-panel">
     <div class="header">
-      <h3 class="panel-title">RL Training Monitor</h3>
+      <h3 class="panel-title">强化学习监控</h3>
       <div class="controls">
         <select v-model="algorithm" class="algo-select" :disabled="isTraining">
           <option v-for="a in algorithms" :key="a" :value="a">{{ a.toUpperCase() }}</option>
         </select>
         <label class="ep-label">
-          Episodes
-          <input v-model.number="totalEpisodes" type="number" min="10" max="5000" step="10" class="ep-input" :disabled="isTraining" />
+          回合数
+          <input v-model.number="total回合数" type="number" min="10" max="5000" step="10" class="ep-input" :disabled="isTraining" />
         </label>
-        <button v-if="!isTraining" class="btn btn-start" @click="startTraining">Start</button>
-        <button v-else class="btn btn-pause" @click="pauseTraining">Pause</button>
-        <button class="btn btn-save" @click="saveModel" :disabled="rewards.length === 0">Save</button>
+        <button v-if="!isTraining" class="btn btn-start" @click="startTraining">开始</button>
+        <button v-else class="btn btn-pause" @click="pauseTraining">暂停</button>
+        <button class="btn btn-save" @click="saveModel" :disabled="rewards.length === 0">保存</button>
       </div>
     </div>
 
     <div class="kpi-row">
       <div class="kpi-card">
-        <span class="kpi-label">Episode</span>
-        <span class="kpi-value">{{ episode }} / {{ totalEpisodes }}</span>
+        <span class="kpi-label">回合</span>
+        <span class="kpi-value">{{ episode }} / {{ total回合数 }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">Latest Reward</span>
+        <span class="kpi-label">最新奖励</span>
         <span class="kpi-value" :style="{ color: currentReward >= 0 ? '#3fb950' : '#f85149' }">{{ fmt(currentReward, 6) }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">Latest Sharpe</span>
+        <span class="kpi-label">最新夏普</span>
         <span class="kpi-value" :style="{ color: currentSharpe >= 1 ? '#3fb950' : '#f0883e' }">{{ fmt(currentSharpe, 4) }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">Algorithm</span>
+        <span class="kpi-label">算法</span>
         <span class="kpi-value mono">{{ algorithm.toUpperCase() }}</span>
       </div>
     </div>

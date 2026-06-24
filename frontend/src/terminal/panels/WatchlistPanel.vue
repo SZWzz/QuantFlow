@@ -2,6 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { useDataStore } from '@/stores/data'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { detectMarket } from '@/lib/wails'
+import SymbolSearch from '@/terminal/SymbolSearch.vue'
+import type { StockEntry } from '@/lib/symbolSearch'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -9,17 +12,17 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbols = ref<string[]>(['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276'])
-const newSymbol = ref('')
 const quotes = ref<Record<string, any>>({})
 const loading = ref<Record<string, boolean>>({})
 
 async function refreshQuote(sym: string) {
   loading.value[sym] = true
   try {
-    const result = await (window as any).go.main.App.GetQuote('CN', sym)
+    const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
     const snapshot = Array.isArray(result) ? result[0] : result
     quotes.value[sym] = {
       symbol: snapshot.symbol ?? sym,
+      name: snapshot.name || sym,
       last: snapshot.last ?? 0,
       change: snapshot.change ?? 0,
       changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
@@ -31,13 +34,17 @@ async function refreshQuote(sym: string) {
   }
 }
 
-function addSymbol() {
-  const sym = newSymbol.value.trim().toUpperCase()
-  if (sym && !symbols.value.includes(sym)) {
-    symbols.value.push(sym)
-    refreshQuote(sym)
+function onSearchSelect(entry: StockEntry) {
+  if (!symbols.value.includes(entry.code)) {
+    symbols.value.push(entry.code)
+    // Pre-populate name from search result
+    quotes.value[entry.code] = {
+      symbol: entry.code,
+      name: entry.name,
+      last: 0, change: 0, changePct: 0,
+    }
+    refreshQuote(entry.code)
   }
-  newSymbol.value = ''
 }
 
 function removeSymbol(sym: string) {
@@ -48,9 +55,14 @@ function selectSymbol(sym: string) {
   ctx.setGroupSymbol(pg.groupId, sym)
 }
 
-function formatPrice(p: number): string { return p.toFixed(2) }
+function formatPrice(p: number): string {
+  if (typeof p !== 'number' || p === 0) return '--'
+  return p.toFixed(2)
+}
 
 function formatChange(c: number, pct: number): string {
+  if (typeof c !== 'number' || typeof pct !== 'number') return '--'
+  if (c === 0 && pct === 0) return '--'
   const sign = c >= 0 ? '+' : ''
   return `${sign}${c.toFixed(2)} (${sign}${pct.toFixed(2)}%)`
 }
@@ -63,8 +75,10 @@ onMounted(() => {
 <template>
   <div class="watchlist-panel">
     <div class="panel-toolbar">
-      <input v-model="newSymbol" type="text" placeholder="Add symbol..." class="symbol-input" @keyup.enter="addSymbol" />
-      <button class="add-btn" @click="addSymbol">+</button>
+      <SymbolSearch
+        placeholder="添加自选股..."
+        @select="onSearchSelect"
+      />
     </div>
     <div class="symbol-list">
       <div
@@ -78,7 +92,8 @@ onMounted(() => {
         @click="selectSymbol(sym)"
       >
         <div class="symbol-info">
-          <span class="symbol-name">{{ sym }}</span>
+          <span class="symbol-code">{{ sym }}</span>
+          <span class="symbol-name">{{ quotes[sym]?.name || sym }}</span>
         </div>
         <div v-if="loading[sym]" class="symbol-price"><span class="no-data">--</span></div>
         <div v-else-if="quotes[sym]" class="symbol-price">
@@ -86,7 +101,7 @@ onMounted(() => {
           <span class="change">{{ formatChange(quotes[sym].change, quotes[sym].changePct) }}</span>
         </div>
         <div v-else class="symbol-price"><span class="no-data">--</span></div>
-        <button class="remove-btn" @click.stop="removeSymbol(sym)" title="Remove">✕</button>
+        <button class="remove-btn" @click.stop="removeSymbol(sym)" title="移除">✕</button>
       </div>
     </div>
   </div>
@@ -100,20 +115,8 @@ onMounted(() => {
   background: var(--color-bg-panel);
 }
 .panel-toolbar {
-  display: flex; gap: 4px; padding: 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--color-border);
-}
-.symbol-input {
-  flex: 1; padding: 4px 8px;
-  background: var(--color-bg-input); border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm); color: var(--color-text-primary);
-  font-size: var(--font-xs); outline: none;
-}
-.symbol-input:focus { border-color: var(--color-accent); }
-.add-btn {
-  padding: 4px 10px; background: var(--color-bg-subtle);
-  border: 1px solid var(--color-border); color: var(--color-accent);
-  border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; font-weight: bold;
 }
 .symbol-list { flex: 1; overflow-y: auto; }
 .symbol-row {
@@ -127,12 +130,18 @@ onMounted(() => {
   border-left: 2px solid var(--color-accent);
   padding-left: 6px;
 }
-.symbol-row.up .symbol-name { color: var(--color-up); }
-.symbol-row.down .symbol-name { color: var(--color-down); }
+.symbol-row.up .symbol-code { color: var(--color-up); }
+.symbol-row.down .symbol-code { color: var(--color-down); }
 .symbol-row.up .last { color: var(--color-up); }
 .symbol-row.down .last { color: var(--color-down); }
-.symbol-info { flex: 1; }
-.symbol-name { font-weight: 600; font-size: var(--font-base); color: var(--color-text-primary); }
+.symbol-info {
+  flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+.symbol-code { font-weight: 600; font-size: var(--font-base); color: var(--color-text-primary); }
+.symbol-name {
+  font-size: 11px; color: var(--color-text-tertiary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .symbol-price { text-align: right; margin-right: 8px; }
 .last { font-size: var(--font-base); font-weight: 500; font-variant-numeric: tabular-nums; }
 .change { display: block; font-size: var(--font-xs); color: var(--color-text-tertiary); }

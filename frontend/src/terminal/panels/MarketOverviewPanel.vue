@@ -82,11 +82,11 @@ onUnmounted(() => {
 <template>
   <div class="market-overview-panel">
     <div class="panel-header">
-      <h3>Market Overview</h3>
+      <h3>市场概览</h3>
       <div class="header-controls">
         <span class="update-time">{{ formatTime(updatedAt) }}</span>
         <button class="auto-btn" :class="{ active: autoRefresh }" @click="toggleAutoRefresh">
-          Auto {{ autoRefresh ? `(${countdown}s)` : '' }}
+          自动 {{ autoRefresh ? `(${countdown}s)` : '' }}
         </button>
         <button class="refresh-btn" @click="refresh" :disabled="loading">
           {{ loading ? '...' : '⟳' }}
@@ -113,9 +113,9 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Section B: Market Breadth -->
+    <!-- Section B: 市场宽度 -->
     <div class="breadth-section">
-      <div class="breadth-label">Market Breadth</div>
+      <div class="breadth-label">市场宽度</div>
       <div class="breadth-bar">
         <div class="breadth-segment up" :style="{ flex: breadth.advancers }"></div>
         <div class="breadth-segment flat" :style="{ flex: breadth.unchanged }"></div>
@@ -131,14 +131,14 @@ onUnmounted(() => {
     <!-- Section C: Sector Rankings -->
     <div class="sectors-grid">
       <div class="sector-col">
-        <div class="sector-col-title up-text">Top Gainers</div>
+        <div class="sector-col-title up-text">涨幅榜</div>
         <div v-for="s in topGainers" :key="'g-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
           <span class="sector-pct" :style="{ color: changeColor(s.changePct) }">{{ formatPct(s.changePct) }}</span>
         </div>
       </div>
       <div class="sector-col">
-        <div class="sector-col-title down-text">Top Losers</div>
+        <div class="sector-col-title down-text">跌幅榜</div>
         <div v-for="s in topLosers" :key="'l-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
           <span class="sector-pct" :style="{ color: changeColor(s.changePct) }">{{ formatPct(s.changePct) }}</span>
@@ -146,7 +146,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="loading" class="loading-overlay">Loading...</div>
+    <div v-if="loading" class="loading-overlay">加载中...</div>
   </div>
 </template>
 

@@ -42,7 +42,7 @@ function placeOrder() {
       <div class="form-group">
         <label>Broker</label>
         <select v-model="broker" class="form-input">
-          <option value="paper">Paper (Simulation)</option>
+          <option value="paper">模拟交易</option>
           <option value="binance">Binance</option>
           <option value="futu">Futu</option>
         </select>
@@ -54,7 +54,7 @@ function placeOrder() {
       </div>
 
       <div class="form-group">
-        <label>Order Type</label>
+        <label>订单类型</label>
         <select v-model="orderType" class="form-input">
           <option value="market">Market</option>
           <option value="limit">Limit</option>
@@ -63,7 +63,7 @@ function placeOrder() {
       </div>
 
       <div class="form-group">
-        <label>Quantity</label>
+        <label>数量</label>
         <input v-model.number="quantity" type="number" min="1" class="form-input" />
       </div>
 
@@ -73,12 +73,12 @@ function placeOrder() {
       </div>
 
       <div v-if="orderType === 'stop'" class="form-group">
-        <label>Stop Price</label>
+        <label>止损价</label>
         <input v-model.number="stopPrice" type="number" step="0.01" class="form-input" />
       </div>
 
       <div class="estimated">
-        <span>Est. Total</span>
+        <span>预估总额</span>
         <span class="total-value">${{ estimatedTotal.toLocaleString() }}</span>
       </div>
 

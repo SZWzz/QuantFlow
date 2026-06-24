@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { detectMarket } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -47,7 +48,7 @@ async function refresh() {
   const app = (window as any).go?.main?.App
   if (!app) return
   try {
-    const result = await app.GetQuote('CN', symbol.value)
+    const result = await app.GetQuote(detectMarket(symbol.value), symbol.value)
     const snapshot = Array.isArray(result) ? result[0] : result
     if (!snapshot) return
     name.value = snapshot.name || symbol.value
@@ -85,12 +86,12 @@ onMounted(refresh)
 <template>
   <div class="market-depth-panel">
     <div class="panel-header">
-      <h3>Market Depth</h3>
+      <h3>市场深度</h3>
       <div class="header-controls">
         <input
           class="symbol-input"
           :value="symbol"
-          placeholder="Symbol..."
+          placeholder="代码..."
           @keyup.enter="handleSymbolSubmit"
         />
         <button class="refresh-btn" @click="refresh">⟳</button>
@@ -111,10 +112,10 @@ onMounted(refresh)
     <!-- Section A: Order Book -->
     <div class="orderbook">
       <div class="ob-header">
-        <span class="ob-cell price-col">Bid Price</span>
+        <span class="ob-cell price-col">买价</span>
         <span class="ob-cell size-col">Size</span>
         <span class="ob-cell bar-col"></span>
-        <span class="ob-cell price-col">Ask Price</span>
+        <span class="ob-cell price-col">卖价</span>
         <span class="ob-cell size-col">Size</span>
         <span class="ob-cell bar-col"></span>
       </div>

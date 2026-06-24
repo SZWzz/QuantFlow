@@ -173,7 +173,7 @@ func fetchPaginatedStockList(ctx context.Context, fs string, mapFn func(code, na
 
 	for {
 		url := fmt.Sprintf(
-			"https://push2.eastmoney.com/api/qt/clist/get"+
+			"http://61.129.129.196/api/qt/clist/get"+
 				"?pn=%d&pz=%d&po=1&np=1&fltt=2&invt=2"+
 				"&fs=%s&fields=f12,f14",
 			page, pageSize, fs,
@@ -183,6 +183,7 @@ func fetchPaginatedStockList(ctx context.Context, fs string, mapFn func(code, na
 		if err != nil {
 			return nil, fmt.Errorf("stock_list_%s: %w", label, err)
 		}
+		req.Header.Set("Host", "push2.eastmoney.com")
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 		req.Header.Set("Referer", "https://quote.eastmoney.com/")
 

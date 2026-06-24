@@ -37,7 +37,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 
 function refresh() { store.fetchStockResearch(symbol.value, ['insider']) }
 
-function formatShares(v: number | undefined | null): string {
+function format股数(v: number | undefined | null): string {
   if (v == null) return '--'
   return v.toLocaleString()
 }
@@ -57,7 +57,7 @@ function handleSymbolSubmit(e: Event) {
         <input
           class="symbol-input"
           :value="symbol"
-          placeholder="Symbol..."
+          placeholder="代码..."
           @keyup.enter="handleSymbolSubmit"
         />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>
@@ -69,9 +69,9 @@ function handleSymbolSubmit(e: Event) {
     </div>
 
     <div v-if="trades.length > 0" class="panel-content">
-      <!-- Net Activity Indicator -->
+      <!-- 净交易 Indicator -->
       <div class="activity-bar">
-        <span class="activity-label">Net Activity</span>
+        <span class="activity-label">净交易</span>
         <span class="activity-indicator" :style="{ color: netActivity.color }">
           <span class="activity-dot" :style="{ background: netActivity.color }"></span>
           {{ netActivity.label }}
@@ -82,13 +82,13 @@ function handleSymbolSubmit(e: Event) {
       <table class="insider-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Type</th>
-            <th>Shares</th>
-            <th>Price</th>
-            <th>Value</th>
-            <th>Date</th>
+            <th>姓名</th>
+            <th>职位</th>
+            <th>类型</th>
+            <th>股数</th>
+            <th>价格</th>
+            <th>金额</th>
+            <th>日期</th>
           </tr>
         </thead>
         <tbody>
@@ -98,7 +98,7 @@ function handleSymbolSubmit(e: Event) {
             <td>
               <span :class="['type-badge', (t.type ?? '').toLowerCase()]">{{ t.type }}</span>
             </td>
-            <td class="num-cell">{{ formatShares(t.shares) }}</td>
+            <td class="num-cell">{{ format股数(t.shares) }}</td>
             <td class="num-cell">{{ t.price != null ? '$' + Number(t.price).toFixed(2) : '--' }}</td>
             <td class="num-cell">{{ t.value != null ? '$' + Number(t.value).toLocaleString() : '--' }}</td>
             <td class="date-cell">{{ t.date }}</td>
@@ -108,7 +108,7 @@ function handleSymbolSubmit(e: Event) {
     </div>
 
     <div v-else class="empty-state">
-      <p>Enter a symbol and press ↵ to view insider trades</p>
+      <p>输入代码后按 ↵ 查看内部交易</p>
     </div>
   </div>
 </template>

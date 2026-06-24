@@ -31,8 +31,8 @@ onMounted(() => {
   store.fetchCongressTrades()
 })
 
-function setPartyFilter(p: string) { partyFilter.value = p }
-function setChamberFilter(c: string) { chamberFilter.value = c }
+function set党派Filter(p: string) { partyFilter.value = p }
+function set议院Filter(c: string) { chamberFilter.value = c }
 
 function refresh() { store.fetchCongressTrades() }
 
@@ -59,22 +59,22 @@ function amountColor(amount: string): string {
     <!-- Filters -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">Party</span>
+        <span class="filter-label">党派</span>
         <div class="filter-buttons">
           <button
             v-for="p in parties" :key="p"
             :class="['filter-btn', { active: partyFilter === p }]"
-            @click="setPartyFilter(p)"
+            @click="set党派Filter(p)"
           >{{ p }}</button>
         </div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Chamber</span>
+        <span class="filter-label">议院</span>
         <div class="filter-buttons">
           <button
             v-for="c in chambers" :key="c"
             :class="['filter-btn', { active: chamberFilter === c }]"
-            @click="setChamberFilter(c)"
+            @click="set议院Filter(c)"
           >{{ c }}</button>
         </div>
       </div>
@@ -92,8 +92,8 @@ function amountColor(amount: string): string {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Chamber</th>
-            <th>Party</th>
+            <th>议院</th>
+            <th>党派</th>
             <th>Symbol</th>
             <th>Type</th>
             <th>Amount</th>
@@ -116,11 +116,11 @@ function amountColor(amount: string): string {
           </tr>
         </tbody>
       </table>
-      <p v-else class="no-data">No trades match the selected filters</p>
+      <p v-else class="no-data">无匹配筛选条件的交易</p>
     </div>
 
     <div v-else class="empty-state">
-      <p>Loading congress trades...</p>
+      <p>加载国会议员交易...</p>
     </div>
   </div>
 </template>

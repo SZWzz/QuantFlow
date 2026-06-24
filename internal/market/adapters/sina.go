@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
+
 	"quantflow/internal/market"
 )
 
@@ -22,7 +25,7 @@ func NewSinaAdapter() *SinaAdapter {
 }
 
 func (a *SinaAdapter) Name() string      { return "sina" }
-func (a *SinaAdapter) Markets() []string  { return []string{"CN", "HK"} }
+func (a *SinaAdapter) Markets() []string  { return []string{"CN", "HK", "US"} }
 func (a *SinaAdapter) RequiresAuth() bool { return false }
 
 func (a *SinaAdapter) IsAvailable(ctx context.Context) bool {
@@ -53,11 +56,20 @@ func (a *SinaAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Qu
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
-	// Detect HK vs CN in the response: HK codes start with "hk" prefix
-	if strings.HasPrefix(code, "hk") {
-		return parseSinaHKQuote(symbol, string(body))
+	// Sina returns GBK-encoded content; convert to UTF-8 for proper Chinese name display.
+	bodyStr, err := decodeGBK(body)
+	if err != nil {
+		bodyStr = string(body) // fallback to raw bytes
 	}
-	return parseSinaQuote(symbol, string(body))
+
+	// Detect market in the response: "hk" = HK, "gb_" = US, else CN
+	if strings.HasPrefix(code, "hk") {
+		return parseSinaHKQuote(symbol, bodyStr)
+	}
+	if strings.HasPrefix(code, "gb_") {
+		return parseSinaUSQuote(symbol, bodyStr)
+	}
+	return parseSinaQuote(symbol, bodyStr)
 }
 
 func (a *SinaAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
@@ -68,6 +80,62 @@ func (a *SinaAdapter) FetchOHLCV(ctx context.Context, symbol string, interval st
 func (a *SinaAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "600519")
 	return err
+}
+
+// ── Sina US-specific helpers ───────────────────────────────────────────
+
+// toSinaUSCode converts a US stock symbol to Sina's US format.
+// "AAPL" → "gb_aapl", "MSFT" → "gb_msft"
+func toSinaUSCode(symbol string) string {
+	return "gb_" + strings.ToLower(symbol)
+}
+
+// parseSinaUSQuote parses Sina's US stock response format.
+//
+// Example: var hq_str_gb_aapl="Apple,294.51,0.07,2026-06-24 22:00:41,0.21,295.35,296.47,293.20,...";
+//
+// US field mapping (0-indexed):
+//
+//	[0]=name, [1]=last, [2]=changePct, [3]=time,
+//	[4]=change, [5]=open, [6]=high, [7]=low,
+//	[10]=volume
+func parseSinaUSQuote(symbol, body string) (*market.QuoteSnapshot, error) {
+	idx := strings.Index(body, "\"")
+	if idx == -1 {
+		return nil, fmt.Errorf("sina US: unexpected response format")
+	}
+	content := body[idx+1:]
+	endIdx := strings.LastIndex(content, "\"")
+	if endIdx == -1 {
+		return nil, fmt.Errorf("sina US: unexpected response format")
+	}
+	content = content[:endIdx]
+
+	fields := strings.Split(content, ",")
+	if len(fields) < 11 {
+		return nil, fmt.Errorf("sina US: insufficient fields: got %d", len(fields))
+	}
+
+	last := parseFloatSafe(fields[1])
+	changePct := parseFloatSafe(fields[2])
+	change := parseFloatSafe(fields[4])
+	open := parseFloatSafe(fields[5])
+	high := parseFloatSafe(fields[6])
+	low := parseFloatSafe(fields[7])
+	volume := parseFloatSafe(fields[10])
+
+	return &market.QuoteSnapshot{
+		Symbol:    symbol,
+		Name:      fields[0],
+		Last:      last,
+		Open:      open,
+		High:      high,
+		Low:       low,
+		Volume:    volume,
+		Change:    change,
+		ChangePct: changePct,
+		Timestamp: time.Now().UnixMilli(),
+	}, nil
 }
 
 // ── Sina HK-specific helpers ───────────────────────────────────────────
@@ -125,6 +193,7 @@ func parseSinaHKQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
+		Name:      fields[1], // Chinese name
 		Last:      last,
 		Open:      open,
 		High:      high,
@@ -136,5 +205,16 @@ func parseSinaHKQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 		ChangePct: changePct,
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
+}
+
+// decodeGBK converts a GBK/GB2312-encoded byte slice to a UTF-8 string.
+// Sina Finance returns content in GBK encoding for Chinese stock names.
+func decodeGBK(data []byte) (string, error) {
+	reader := transform.NewReader(strings.NewReader(string(data)), simplifiedchinese.GBK.NewDecoder())
+	decoded, err := io.ReadAll(reader)
+	if err != nil {
+		return "", err
+	}
+	return string(decoded), nil
 }
 

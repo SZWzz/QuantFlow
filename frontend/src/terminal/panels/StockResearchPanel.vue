@@ -11,12 +11,12 @@ const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AA
 const activeTab = ref('overview')
 
 const tabs = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'financials', label: 'Financials' },
-  { id: 'sentiment', label: 'Sentiment' },
-  { id: 'peers', label: 'Peers' },
-  { id: 'estimates', label: 'Estimates' },
-  { id: 'insider', label: 'Insider' },
+  { id: 'overview', label: '概览' },
+  { id: 'financials', label: '财务' },
+  { id: 'sentiment', label: '情绪' },
+  { id: 'peers', label: '同业' },
+  { id: 'estimates', label: '预测' },
+  { id: 'insider', label: '内部交易' },
 ]
 
 watch(symbol, (newVal) => {
@@ -39,12 +39,12 @@ function refresh() {
 <template>
   <div class="research-panel">
     <div class="panel-header">
-      <h3>Stock Research</h3>
+      <h3>个股研究</h3>
       <div class="header-controls">
         <input
           class="symbol-input"
           v-model="symbol"
-          placeholder="Symbol..."
+          placeholder="代码..."
           @keyup.enter="refresh"
         />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">
@@ -63,7 +63,7 @@ function refresh() {
     </div>
 
     <div class="tab-content">
-      <!-- Overview -->
+      <!-- 概览 -->
       <div v-if="activeTab === 'overview'" class="tab-pane">
         <div v-if="store.research?.overview" class="kv-grid">
           <div v-for="(v, k) in store.research.overview" :key="k" class="kv-row">
@@ -71,10 +71,10 @@ function refresh() {
             <span class="kv-value">{{ v }}</span>
           </div>
         </div>
-        <p v-else class="no-data">No overview data</p>
+        <p v-else class="no-data">暂无概览数据</p>
       </div>
 
-      <!-- Financials -->
+      <!-- 财务 -->
       <div v-if="activeTab === 'financials'" class="tab-pane">
         <div v-if="store.research?.financials" class="kv-grid">
           <div v-for="(v, k) in store.research.financials.data || {}" :key="k" class="kv-row">
@@ -82,23 +82,23 @@ function refresh() {
             <span class="kv-value">{{ typeof v === 'number' ? (v as number).toLocaleString() : v }}</span>
           </div>
         </div>
-        <p v-else class="no-data">No financial data</p>
+        <p v-else class="no-data">暂无财务数据</p>
       </div>
 
-      <!-- Sentiment -->
+      <!-- 情绪 -->
       <div v-if="activeTab === 'sentiment'" class="tab-pane">
         <div v-if="store.research?.sentiment" class="kv-grid">
-          <div class="kv-row"><span class="kv-key">Score</span><span class="kv-value">{{ store.research.sentiment.score }}</span></div>
-          <div class="kv-row"><span class="kv-key">Label</span><span class="kv-value">{{ store.research.sentiment.label }}</span></div>
-          <div class="kv-row"><span class="kv-key">Confidence</span><span class="kv-value">{{ store.research.sentiment.confidence }}</span></div>
+          <div class="kv-row"><span class="kv-key">得分</span><span class="kv-value">{{ store.research.sentiment.score }}</span></div>
+          <div class="kv-row"><span class="kv-key">标签</span><span class="kv-value">{{ store.research.sentiment.label }}</span></div>
+          <div class="kv-row"><span class="kv-key">置信度</span><span class="kv-value">{{ store.research.sentiment.confidence }}</span></div>
         </div>
-        <p v-else class="no-data">No sentiment data</p>
+        <p v-else class="no-data">暂无情绪数据</p>
       </div>
 
-      <!-- Peers -->
+      <!-- 同业 -->
       <div v-if="activeTab === 'peers'" class="tab-pane">
         <table v-if="store.research?.peers?.length" class="data-table">
-          <thead><tr><th>Symbol</th><th>Market Cap</th><th>P/E</th><th>ROE</th></tr></thead>
+          <thead><tr><th>Symbol</th><th>市值</th><th>P/E</th><th>ROE</th></tr></thead>
           <tbody>
             <tr v-for="p in store.research.peers" :key="p.symbol">
               <td>{{ p.symbol }}</td><td>{{ p.market_cap?.toLocaleString() }}</td>
@@ -106,13 +106,13 @@ function refresh() {
             </tr>
           </tbody>
         </table>
-        <p v-else class="no-data">No peer data</p>
+        <p v-else class="no-data">暂无同业数据</p>
       </div>
 
-      <!-- Estimates -->
+      <!-- 预测 -->
       <div v-if="activeTab === 'estimates'" class="tab-pane">
         <table v-if="store.research?.estimates?.length" class="data-table">
-          <thead><tr><th>Analyst</th><th>Firm</th><th>Rating</th><th>Target</th></tr></thead>
+          <thead><tr><th>分析师</th><th>机构</th><th>评级</th><th>目标价</th></tr></thead>
           <tbody>
             <tr v-for="e in store.research.estimates" :key="e.analyst">
               <td>{{ e.analyst }}</td><td>{{ e.firm }}</td>
@@ -120,13 +120,13 @@ function refresh() {
             </tr>
           </tbody>
         </table>
-        <p v-else class="no-data">No analyst estimates</p>
+        <p v-else class="no-data">暂无分析师预测</p>
       </div>
 
-      <!-- Insider -->
+      <!-- 内部交易 -->
       <div v-if="activeTab === 'insider'" class="tab-pane">
         <table v-if="store.research?.insider?.length" class="data-table">
-          <thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shares</th><th>Date</th></tr></thead>
+          <thead><tr><th>姓名</th><th>职位</th><th>类型</th><th>股数</th><th>日期</th></tr></thead>
           <tbody>
             <tr v-for="t in store.research.insider" :key="t.name">
               <td>{{ t.name }}</td><td>{{ t.role }}</td>
@@ -135,7 +135,7 @@ function refresh() {
             </tr>
           </tbody>
         </table>
-        <p v-else class="no-data">No insider trades</p>
+        <p v-else class="no-data">暂无内部交易</p>
       </div>
     </div>
   </div>

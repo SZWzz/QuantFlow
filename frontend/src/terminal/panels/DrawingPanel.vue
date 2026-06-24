@@ -24,7 +24,7 @@ const drawings = ref<Drawing[]>([])
 const isDrawing = ref(false)
 const startPoint = ref<{ x: number; y: number } | null>(null)
 const currentPoint = ref<{ x: number; y: number } | null>(null)
-const activeColor = ref('#58a6ff')
+const active颜色 = ref('#58a6ff')
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const nextId = ref(1)
 
@@ -93,7 +93,7 @@ function onMouseUp(e: MouseEvent) {
       id: nextId.value++,
       type: 'text',
       points: [end],
-      color: activeColor.value,
+      color: active颜色.value,
       text: t,
     })
   } else if (tool === 'fibonacci') {
@@ -108,14 +108,14 @@ function onMouseUp(e: MouseEvent) {
       id: nextId.value++,
       type: 'fibonacci',
       points: [start, end],
-      color: activeColor.value,
+      color: active颜色.value,
     })
   } else {
     drawings.value.push({
       id: nextId.value++,
       type: tool as Drawing['type'],
       points: [start, end],
-      color: activeColor.value,
+      color: active颜色.value,
     })
   }
 
@@ -167,7 +167,7 @@ function renderCanvas() {
       id: -1,
       type: activeTool.value as Drawing['type'],
       points: [startPoint.value, currentPoint.value],
-      color: activeColor.value,
+      color: active颜色.value,
     }
     drawShape(ctx, preview)
   }
@@ -195,7 +195,7 @@ function drawShape(ctx: CanvasRenderingContext2D, d: Drawing) {
     ctx.lineTo(ctx.canvas.width, b.y)
     ctx.stroke()
     // Label
-    ctx.fillText(b.y.toFixed(0), 6, b.y - 4)
+    ctx.fill文字(b.y.toFixed(0), 6, b.y - 4)
   } else if (d.type === 'fibonacci') {
     const [a, b] = d.points
     if (!b) return
@@ -212,13 +212,13 @@ function drawShape(ctx: CanvasRenderingContext2D, d: Drawing) {
       ctx.moveTo(0, y)
       ctx.lineTo(ctx.canvas.width, y)
       ctx.stroke()
-      ctx.fillText((ratios[i] * 100).toFixed(1) + '%', 6, y - 4)
+      ctx.fill文字((ratios[i] * 100).toFixed(1) + '%', 6, y - 4)
     }
     ctx.setLineDash([])
   } else if (d.type === 'text') {
     const [p] = d.points
     if (!p) return
-    ctx.fillText(d.text || '', p.x, p.y)
+    ctx.fill文字(d.text || '', p.x, p.y)
   }
 }
 
@@ -249,45 +249,45 @@ onMounted(() => {
 <template>
   <div class="drawing-panel">
     <div class="panel-header">
-      <h3>Drawing Tools</h3>
+      <h3>绘图工具</h3>
       <span class="symbol-badge">{{ symbol }}</span>
     </div>
     <div class="panel-body">
       <div class="toolbar">
         <button
           :class="['tool-btn', { active: activeTool === 'cursor' }]"
-          title="Cursor"
+          title="光标"
           @click="selectTool('cursor')"
         >&#10037;</button>
         <button
           :class="['tool-btn', { active: activeTool === 'trendline' }]"
-          title="Trendline"
+          title="趋势线"
           @click="selectTool('trendline')"
         >&#9585;</button>
         <button
           :class="['tool-btn', { active: activeTool === 'horizontal' }]"
-          title="Horizontal Line"
+          title="水平线"
           @click="selectTool('horizontal')"
         >&#9473;</button>
         <button
           :class="['tool-btn', { active: activeTool === 'fibonacci' }]"
-          title="Fibonacci Retracement"
+          title="斐波那契回撤"
           @click="selectTool('fibonacci')"
         >F</button>
         <button
           :class="['tool-btn', { active: activeTool === 'text' }]"
-          title="Text"
+          title="文字"
           @click="selectTool('text')"
         >T</button>
         <div class="toolbar-divider"></div>
         <input
           type="color"
-          v-model="activeColor"
+          v-model="active颜色"
           class="color-picker"
-          title="Color"
+          title="颜色"
         />
         <div class="toolbar-divider"></div>
-        <button class="tool-btn clear-btn" title="Clear All" @click="clearAll">&#10005;</button>
+        <button class="tool-btn clear-btn" title="全部清除" @click="clearAll">&#10005;</button>
       </div>
       <div class="canvas-container">
         <canvas

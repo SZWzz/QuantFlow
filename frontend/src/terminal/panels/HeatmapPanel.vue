@@ -88,13 +88,13 @@ onMounted(async () => {
 <template>
   <div class="heatmap-panel">
     <div class="panel-header">
-      <h3>Market Heatmap</h3>
+      <h3>板块热力图</h3>
       <button class="refresh-btn" @click="refresh" :disabled="loading">
         {{ loading ? '...' : '⟳' }}
       </button>
     </div>
 
-    <div v-if="loading" class="loading-state">Loading...</div>
+    <div v-if="loading" class="loading-state">加载中...</div>
 
     <div v-else class="heatmap-grid">
       <div

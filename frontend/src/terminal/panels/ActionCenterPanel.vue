@@ -22,14 +22,14 @@ interface TradeEvent {
   detail: string
 }
 
-const events = ref<TradeEvent[]>([])
+const 个事件 = ref<TradeEvent[]>([])
 
 onMounted(async () => {
   try {
     await store.fetchTrades()
     const trades = (store.trades as unknown) as GoTrade[] | null
     if (trades && trades.length > 0) {
-      events.value = trades.slice(0, DISPLAY_LIMIT).map((t, i) => ({
+      个事件.value = trades.slice(0, DISPLAY_LIMIT).map((t, i) => ({
         id: t.ID || `evt-${i}`,
         title: `${t.Side || '--'} ${t.Symbol || '--'}`,
         status: 'info' as const,
@@ -44,13 +44,13 @@ onMounted(async () => {
 
 // -- Sorted newest first --
 const sortedEvents = computed(() => {
-  return [...events.value].sort((a, b) =>
+  return [...个事件.value].sort((a, b) =>
     new Date(b.time).getTime() - new Date(a.time).getTime()
   )
 })
 
 function dismissEvent(id: string) {
-  events.value = events.value.filter(e => e.id !== id)
+  个事件.value = 个事件.value.filter(e => e.id !== id)
 }
 
 // -- Helpers --
@@ -71,12 +71,12 @@ function formatTime(iso: string): string {
   <div class="action-center">
     <!-- Header -->
     <div class="ac-header">
-      <span class="ac-title">Action Center</span>
-      <span class="ac-count">{{ events.length }} events</span>
+      <span class="ac-title">操作中心</span>
+      <span class="ac-count">{{ 个事件.length }} 个事件</span>
     </div>
 
     <!-- Event feed -->
-    <div v-if="events.length > 0" class="event-feed">
+    <div v-if="个事件.length > 0" class="event-feed">
       <div
         v-for="ev in sortedEvents"
         :key="ev.id"
@@ -93,7 +93,7 @@ function formatTime(iso: string): string {
           <p class="event-message">{{ ev.detail }}</p>
           <div class="event-actions">
             <button class="evt-btn dismiss-btn" @click="dismissEvent(ev.id)">
-              Dismiss
+              忽略
             </button>
           </div>
         </div>
@@ -103,8 +103,8 @@ function formatTime(iso: string): string {
     <!-- Empty state -->
     <div v-else class="empty-state">
       <p class="empty-icon">&#10003;</p>
-      <p class="empty-text">No recent trades</p>
-      <p class="empty-sub">Trades will appear here</p>
+      <p class="empty-text">暂无最近交易</p>
+      <p class="empty-sub">交易将显示在此处</p>
     </div>
   </div>
 </template>

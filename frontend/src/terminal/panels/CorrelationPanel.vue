@@ -178,7 +178,7 @@ onMounted(() => {
 <template>
   <div class="correlation-panel">
     <div class="panel-header">
-      <h3>Correlation Matrix</h3>
+      <h3>相关性矩阵</h3>
     </div>
 
     <div class="controls-row">
@@ -186,12 +186,12 @@ onMounted(() => {
         v-model="symbolText"
         class="symbol-input"
         rows="4"
-        placeholder="Enter symbols, one per line"
+        placeholder="输入代码，每行一个"
       ></textarea>
 
       <div class="controls-right">
         <label class="control-label">
-          Lookback
+          回溯
           <select v-model="lookback" class="lookback-select">
             <option v-for="opt in lookbackOptions" :key="opt" :value="opt">
               {{ opt }}d
@@ -200,14 +200,14 @@ onMounted(() => {
         </label>
 
         <button class="compute-btn" @click="compute">
-          Compute
+          计算
         </button>
       </div>
     </div>
 
     <div class="chart-body">
       <div v-if="!matrix" class="placeholder-msg">
-        Enter symbols and click Compute
+        Enter symbols and click 计算
       </div>
 
       <template v-else-if="hasECharts">

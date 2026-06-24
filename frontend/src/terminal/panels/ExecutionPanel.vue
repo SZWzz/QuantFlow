@@ -68,7 +68,7 @@ function fmt(n: number, dec = 2): string {
             <td class="muted">{{ formatTime(t.executed_at) }}</td>
             <td class="symbol">{{ t.symbol }}</td>
             <td :class="t.side === 'buy' ? 'up' : 'down'">
-              {{ t.side === 'buy' ? 'Buy' : 'Sell' }}
+              {{ t.side === 'buy' ? '买入' : '卖出' }}
             </td>
             <td class="num">{{ fmt(t.price) }}</td>
             <td class="num">{{ t.quantity.toLocaleString() }}</td>
@@ -77,7 +77,7 @@ function fmt(n: number, dec = 2): string {
             <td class="num muted">{{ fmt(t.fee, 4) }}</td>
           </tr>
           <tr v-if="visibleTrades.length === 0">
-            <td colspan="8" class="empty">No trades yet</td>
+            <td colspan="8" class="empty">暂无成交</td>
           </tr>
         </tbody>
       </table>
@@ -88,7 +88,7 @@ function fmt(n: number, dec = 2): string {
       <span class="load-count">
         Showing {{ visibleCount }} of {{ store.trades.length }}
       </span>
-      <button class="load-btn" @click="loadMore">Load More</button>
+      <button class="load-btn" @click="loadMore">加载更多</button>
     </div>
   </div>
 </template>

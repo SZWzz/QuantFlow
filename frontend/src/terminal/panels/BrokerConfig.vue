@@ -7,8 +7,8 @@ const broker = ref<'binance' | 'futu'>('binance')
 const binanceKey = ref('')
 const binanceSecret = ref('')
 const binanceTestnet = ref(true)
-const futuHost = ref('localhost')
-const futuPort = ref(11111)
+const futu主机 = ref('localhost')
+const futu端口 = ref(11111)
 
 function testConnection() { alert('Connection test: not yet wired to Go backend') }
 function saveConfig() { alert('Config saved: not yet wired to Go backend') }
@@ -16,21 +16,21 @@ function saveConfig() { alert('Config saved: not yet wired to Go backend') }
 
 <template>
   <div class="broker-config-panel">
-    <div class="form-group"><label>Broker</label><select v-model="broker" class="form-input"><option value="binance">Binance</option><option value="futu">Futu</option></select></div>
+    <div class="form-group"><label>券商</label><select v-model="broker" class="form-input"><option value="binance">Binance</option><option value="futu">Futu</option></select></div>
     <div v-if="broker === 'binance'" class="config-section">
-      <h4 class="section-title">Binance API Configuration</h4>
+      <h4 class="section-title">币安 API 配置</h4>
       <div class="form-group"><label>API Key</label><input v-model="binanceKey" type="password" class="form-input" placeholder="Enter API Key" /></div>
       <div class="form-group"><label>Secret Key</label><input v-model="binanceSecret" type="password" class="form-input" placeholder="Enter Secret Key" /></div>
       <div class="form-group checkbox-group"><label><input v-model="binanceTestnet" type="checkbox" /> Use Testnet (testnet.binance.vision)</label></div>
     </div>
     <div v-if="broker === 'futu'" class="config-section">
-      <h4 class="section-title">Futu OpenD Connection</h4>
-      <p class="section-note">FutuOpenD must be running locally before connecting.</p>
-      <div class="form-group"><label>Host</label><input v-model="futuHost" class="form-input" /></div>
-      <div class="form-group"><label>Port</label><input v-model.number="futuPort" type="number" class="form-input" /></div>
-      <div class="connection-status"><span class="status-dot off"></span><span class="status-text">Not Connected</span></div>
+      <h4 class="section-title">富途 OpenD 连接</h4>
+      <p class="section-note">连接前请先本地启动 FutuOpenD</p>
+      <div class="form-group"><label>主机</label><input v-model="futu主机" class="form-input" /></div>
+      <div class="form-group"><label>端口</label><input v-model.number="futu端口" type="number" class="form-input" /></div>
+      <div class="connection-status"><span class="status-dot off"></span><span class="status-text">未连接</span></div>
     </div>
-    <div class="actions"><button class="test-btn" @click="testConnection">Test Connection</button><button class="save-btn" @click="saveConfig">Save</button></div>
+    <div class="actions"><button class="test-btn" @click="testConnection">测试连接</button><button class="save-btn" @click="saveConfig">保存</button></div>
   </div>
 </template>
 

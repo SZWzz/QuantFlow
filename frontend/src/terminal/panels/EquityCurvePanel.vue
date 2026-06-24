@@ -170,11 +170,11 @@ const ddChartOption = computed(() => ({
 }))
 
 const metricCards = computed(() => [
-  { label: 'Cumulative Return', value: cumulativeReturn.value.toFixed(2) + '%', color: cumulativeReturn.value >= 0 ? '#22c55e' : '#ef4444' },
-  { label: 'Annualized Return', value: annualizedReturn.value.toFixed(2) + '%', color: annualizedReturn.value >= 0 ? '#22c55e' : '#ef4444' },
-  { label: 'Max Drawdown', value: maxDrawdown.value.toFixed(2) + '%', color: maxDrawdown.value < -20 ? '#ef4444' : '#f59e0b' },
-  { label: 'Sharpe Ratio', value: sharpe.value.toFixed(2), color: sharpe.value >= 1 ? '#22c55e' : sharpe.value >= 0.5 ? '#f59e0b' : '#ef4444' },
-  { label: 'Calmar Ratio', value: calmarRatio.value.toFixed(2), color: calmarRatio.value >= 1 ? '#22c55e' : calmarRatio.value >= 0.3 ? '#f59e0b' : '#ef4444' },
+  { label: '累计收益', value: cumulativeReturn.value.toFixed(2) + '%', color: cumulativeReturn.value >= 0 ? '#22c55e' : '#ef4444' },
+  { label: '年化收益', value: annualizedReturn.value.toFixed(2) + '%', color: annualizedReturn.value >= 0 ? '#22c55e' : '#ef4444' },
+  { label: '最大回撤', value: maxDrawdown.value.toFixed(2) + '%', color: maxDrawdown.value < -20 ? '#ef4444' : '#f59e0b' },
+  { label: '夏普比率', value: sharpe.value.toFixed(2), color: sharpe.value >= 1 ? '#22c55e' : sharpe.value >= 0.5 ? '#f59e0b' : '#ef4444' },
+  { label: '卡尔玛比率', value: calmarRatio.value.toFixed(2), color: calmarRatio.value >= 1 ? '#22c55e' : calmarRatio.value >= 0.3 ? '#f59e0b' : '#ef4444' },
 ])
 
 function refresh() {
@@ -189,7 +189,7 @@ onMounted(() => {
 <template>
   <div class="equity-curve-panel">
     <div class="panel-header">
-      <h3>Equity Curve</h3>
+      <h3>净值曲线</h3>
       <div class="header-controls">
         <button class="refresh-btn" @click="refresh">&#x21bb;</button>
       </div>
@@ -218,7 +218,7 @@ onMounted(() => {
       <!-- Bottom section: Drawdown chart (30% height) -->
       <div class="chart-section-bottom">
         <VChart v-if="hasEcharts" :option="ddChartOption" autoresize class="drawdown-chart" />
-        <div v-else class="fallback-msg">Drawdown chart requires ECharts</div>
+        <div v-else class="fallback-msg">回撤图需安装 ECharts</div>
       </div>
 
       <!-- Stats row: metric cards -->
@@ -231,7 +231,7 @@ onMounted(() => {
     </div>
 
     <div v-else class="empty-state">
-      <p>{{ store.equityCurve ? 'Loading...' : 'No equity curve data available' }}</p>
+      <p>{{ store.equityCurve ? 'Loading...' : '暂无净值曲线数据' }}</p>
     </div>
   </div>
 </template>

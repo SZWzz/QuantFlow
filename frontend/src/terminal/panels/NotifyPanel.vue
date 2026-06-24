@@ -21,7 +21,7 @@ const filtered = computed(() => {
 const unreadCount = computed(() => notifications.value.filter(n => !n.is_read).length)
 
 function markRead(id: number) { const n = notifications.value.find(x => x.id === id); if (n) n.is_read = true }
-function markAllRead() { notifications.value.forEach(n => n.is_read = true) }
+function mark全部Read() { notifications.value.forEach(n => n.is_read = true) }
 
 const levelIcon: Record<string, string> = { trade: '💹', warn: '⚠️', error: '❌', info: 'ℹ️' }
 </script>
@@ -29,8 +29,8 @@ const levelIcon: Record<string, string> = { trade: '💹', warn: '⚠️', error
 <template>
   <div class="notify-panel">
     <div class="filter-bar">
-      <button v-for="lvl in ['all','trade','warn','error','info']" :key="lvl" :class="['filter-btn', { active: filter === lvl }]" @click="filter = lvl">{{ lvl === 'all' ? 'All' : lvl }}</button>
-      <span class="unread-badge" v-if="unreadCount > 0">{{ unreadCount }} new</span>
+      <button v-for="lvl in ['all','trade','warn','error','info']" :key="lvl" :class="['filter-btn', { active: filter === lvl }]" @click="filter = lvl">{{ lvl === 'all' ? '全部' : lvl }}</button>
+      <span class="unread-badge" v-if="unreadCount > 0">{{ unreadCount }} 条新</span>
     </div>
     <div class="notify-list">
       <div v-for="n in filtered" :key="n.id" :class="['notify-row', { unread: !n.is_read }]" @click="markRead(n.id)">
@@ -39,7 +39,7 @@ const levelIcon: Record<string, string> = { trade: '💹', warn: '⚠️', error
         <span class="notify-time">{{ n.created_at }}</span>
       </div>
     </div>
-    <div class="footer"><button class="read-all-btn" @click="markAllRead">Mark All Read</button></div>
+    <div class="footer"><button class="read-all-btn" @click="mark全部Read">Mark 全部 Read</button></div>
   </div>
 </template>
 

@@ -22,15 +22,15 @@ const consensus = computed(() => {
     else hold++
   }
   const total = buy + hold + sell
-  const label = buy > sell && buy > hold ? 'Buy' : sell > buy && sell > hold ? 'Sell' : 'Hold'
+  const label = buy > sell && buy > hold ? '买入' : sell > buy && sell > hold ? '卖出' : '持有'
   return { buy, hold, sell, total, label }
 })
 
 const consensusColor = computed(() => {
   const c = consensus.value
   if (!c) return '#6b7280'
-  if (c.label === 'Buy') return '#22c55e'
-  if (c.label === 'Sell') return '#ef4444'
+  if (c.label === '买入') return '#22c55e'
+  if (c.label === '卖出') return '#ef4444'
   return '#eab308'
 })
 
@@ -63,12 +63,12 @@ function handleSymbolSubmit(e: Event) {
 <template>
   <div class="panel">
     <div class="panel-header">
-      <h3>Analyst Estimates — {{ symbol.toUpperCase() }}</h3>
+      <h3>分析师 Estimates — {{ symbol.toUpperCase() }}</h3>
       <div class="header-controls">
         <input
           class="symbol-input"
           :value="symbol"
-          placeholder="Symbol..."
+          placeholder="代码..."
           @keyup.enter="handleSymbolSubmit"
         />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>
@@ -76,19 +76,19 @@ function handleSymbolSubmit(e: Event) {
     </div>
 
     <div v-if="store.isBridgeAvailable === false" class="mock-banner">
-      Mock data — Python sidecar not connected
+      Python sidecar 未连接，显示模拟数据
     </div>
 
     <div v-if="estimates.length > 0" class="panel-content">
       <!-- Consensus Badge -->
       <div class="consensus-bar" v-if="consensus">
         <div class="consensus-badge" :style="{ background: consensusColor, color: '#111827' }">
-          {{ consensus.label }} — {{ ((consensus.buy / consensus.total) * 100).toFixed(0) }}% Buyers
+          {{ consensus.label }} — {{ ((consensus.buy / consensus.total) * 100).toFixed(0) }}% 买方占比
         </div>
         <div class="consensus-breakdown">
-          <span class="badge badge-buy">{{ consensus.buy }} Buy</span>
-          <span class="badge badge-hold">{{ consensus.hold }} Hold</span>
-          <span class="badge badge-sell">{{ consensus.sell }} Sell</span>
+          <span class="badge badge-buy">{{ consensus.buy }} 买入</span>
+          <span class="badge badge-hold">{{ consensus.hold }} 持有</span>
+          <span class="badge badge-sell">{{ consensus.sell }} 卖出</span>
         </div>
       </div>
 
@@ -96,11 +96,11 @@ function handleSymbolSubmit(e: Event) {
       <table class="estimates-table">
         <thead>
           <tr>
-            <th>Analyst</th>
-            <th>Firm</th>
-            <th>Rating</th>
-            <th>Target (Low)</th>
-            <th>Target (High)</th>
+            <th>分析师</th>
+            <th>机构</th>
+            <th>评级</th>
+            <th>目标价(低)</th>
+            <th>目标价(高)</th>
           </tr>
         </thead>
         <tbody>
@@ -118,7 +118,7 @@ function handleSymbolSubmit(e: Event) {
     </div>
 
     <div v-else class="empty-state">
-      <p>Enter a symbol and press ↵ to view analyst estimates</p>
+      <p>输入代码后按 ↵ 查看分析师预测</p>
     </div>
   </div>
 </template>

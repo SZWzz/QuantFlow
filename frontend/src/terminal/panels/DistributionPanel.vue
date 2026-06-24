@@ -66,7 +66,7 @@ async function compute() {
     const counts: number[] = result.counts
     binData.value = bins.map((x, i) => ({ x, y: counts[i] || 0 }))
 
-    // Compute stats from histogram data
+    // 计算 stats from histogram data
     const total = counts.reduce((a: number, b: number) => a + b, 0)
     if (total > 0) {
       let weightedSum = 0, weightedSumSq = 0
@@ -109,7 +109,7 @@ const chartOption = computed(() => {
       textStyle: { color: '#e5e7eb', fontSize: 11 },
     },
     legend: {
-      data: ['Returns', 'Normal Fit'],
+      data: ['Returns', '正态拟合'],
       textStyle: { color: '#9ca3af', fontSize: 10 },
       top: 0,
     },
@@ -165,7 +165,7 @@ const chartOption = computed(() => {
         },
       },
       {
-        name: 'Normal Fit',
+        name: '正态拟合',
         type: 'line',
         data: normalCurve.value.map((p) => [p.x, p.y]),
         smooth: true,
@@ -192,7 +192,7 @@ onMounted(() => {
 <template>
   <div class="distribution-panel">
     <div class="panel-header">
-      <h3>Return Distribution</h3>
+      <h3>收益率分布</h3>
     </div>
 
     <div class="controls-row">
@@ -207,7 +207,7 @@ onMounted(() => {
       </label>
 
       <label class="control-label">
-        Lookback
+        回溯
         <select v-model="lookback" class="lookback-select">
           <option v-for="opt in lookbackOptions" :key="opt" :value="opt">
             {{ opt }}d
@@ -215,25 +215,25 @@ onMounted(() => {
         </select>
       </label>
 
-      <button class="compute-btn" @click="compute">Compute</button>
+      <button class="compute-btn" @click="compute">计算</button>
     </div>
 
     <!-- Stats cards -->
     <div v-if="dataReady" class="stats-row">
       <div class="stat-card">
-        <span class="stat-label">Mean</span>
+        <span class="stat-label">均值</span>
         <span class="stat-value">{{ fmtNumber(meanVal * 100, 4) }}%</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Std Dev</span>
+        <span class="stat-label">标准差</span>
         <span class="stat-value">{{ fmtNumber(stdVal * 100, 4) }}%</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Skewness</span>
+        <span class="stat-label">偏度</span>
         <span class="stat-value">{{ fmtNumber(skewnessVal) }}</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Kurtosis</span>
+        <span class="stat-label">峰度</span>
         <span class="stat-value">{{ fmtNumber(kurtosisVal) }}</span>
       </div>
       <div class="stat-card">
@@ -244,7 +244,7 @@ onMounted(() => {
 
     <div class="chart-body">
       <div v-if="!dataReady" class="placeholder-msg">
-        Enter a symbol and click Compute
+        Enter a symbol and click 计算
       </div>
 
       <template v-else-if="hasECharts">
@@ -261,9 +261,9 @@ onMounted(() => {
         <table class="dist-table">
           <thead>
             <tr>
-              <th>Bin Center</th>
-              <th>Frequency</th>
-              <th>Normal Fit</th>
+              <th>区间中心</th>
+              <th>频率</th>
+              <th>正态拟合</th>
             </tr>
           </thead>
           <tbody>

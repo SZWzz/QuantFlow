@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSessionStore } from '@/stores/session'
+import { getAllPanelMeta, type PanelMeta } from '@/terminal/panels/registry'
 
 const props = defineProps<{
   modelValue: boolean
@@ -24,20 +25,12 @@ interface CommandItem {
   id: string
   label: string
   description: string
-  category: 'panel' | 'command' | 'navigation'
+  category: string
   action: () => void
 }
 
-const panels: { id: string; label: string; description: string; params?: Record<string, any> }[] = [
-  { id: 'watchlist', label: 'Watchlist', description: '自选列表 + 实时报价' },
-  { id: 'quote-detail', label: 'Quote Detail', description: '单股详细报价', params: { symbol: '' } },
-  { id: 'candlestick', label: 'Candlestick Chart', description: 'K 线图', params: { symbol: '', interval: '1d' } },
-  { id: 'order-entry', label: 'Order Entry', description: '下单面板' },
-  { id: 'position', label: 'Positions', description: '当前持仓' },
-  { id: 'news', label: 'News Feed', description: '新闻流' },
-  { id: 'ai-chat', label: 'AI Chat', description: 'AI 对话' },
-  { id: 'system-monitor', label: 'System Monitor', description: '系统资源监控' },
-]
+// Dynamic panel list from registry
+const allPanels = getAllPanelMeta().filter(p => p.id !== 'welcome')
 
 const commands: { id: string; label: string; description: string; shortcut?: string }[] = [
   { id: 'toggle-mode', label: 'Toggle Workflow/Terminal', description: '切换工作流/终端模式', shortcut: 'Ctrl+W' },
@@ -53,12 +46,11 @@ const navigations: { id: string; label: string; description: string; path: strin
 const results = computed<CommandItem[]>(() => {
   const q = query.value.toLowerCase().trim()
   if (!q) {
-    // Show recent history when no query
     return terminal.commandHistory.slice(0, 5).map((cmd) => ({
       id: `history-${cmd}`,
       label: cmd,
       description: 'Recent',
-      category: 'command' as const,
+      category: 'Recent',
       action: () => {
         query.value = cmd
         selectedIndex.value = 0
@@ -68,16 +60,16 @@ const results = computed<CommandItem[]>(() => {
 
   const items: CommandItem[] = []
 
-  // Match panels
-  for (const p of panels) {
-    if (p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)) {
+  // Match panels from registry
+  for (const p of allPanels) {
+    if (p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.id.includes(q)) {
       items.push({
         id: `panel-${p.id}`,
         label: p.label,
         description: p.description,
-        category: 'panel',
+        category: p.category,
         action: () => {
-          emit('open-panel', p.id, p.params)
+          emit('open-panel', p.id)
           close()
         },
       })
@@ -91,7 +83,7 @@ const results = computed<CommandItem[]>(() => {
         id: `cmd-${c.id}`,
         label: c.label,
         description: c.shortcut ? `${c.description} (${c.shortcut})` : c.description,
-        category: 'command',
+        category: 'Commands',
         action: () => executeCommand(c.id),
       })
     }
@@ -104,7 +96,7 @@ const results = computed<CommandItem[]>(() => {
         id: `nav-${n.id}`,
         label: n.label,
         description: n.description,
-        category: 'navigation',
+        category: 'Navigation',
         action: () => {
           emit('navigate', n.path)
           close()
@@ -113,13 +105,13 @@ const results = computed<CommandItem[]>(() => {
     }
   }
 
-  // If query looks like a symbol (alphanumeric, no spaces)
+  // If query looks like a symbol, add quick open
   if (/^[a-zA-Z0-9.]+$/.test(q)) {
     items.unshift({
       id: `symbol-${q}`,
       label: q.toUpperCase(),
-      description: 'Open quote detail',
-      category: 'panel',
+      description: '快速查看行情',
+      category: 'Quick',
       action: () => {
         emit('open-panel', 'quote-detail', { symbol: q.toUpperCase() })
         close()
@@ -177,12 +169,6 @@ function onGlobalKeydown(e: KeyboardEvent) {
   }
 }
 
-const categoryLabels: Record<string, string> = {
-  panel: 'Panels',
-  command: 'Commands',
-  navigation: 'Navigation',
-}
-
 watch(
   () => props.modelValue,
   (val) => {
@@ -214,10 +200,10 @@ onUnmounted(() => {
             v-model="query"
             type="text"
             class="search-input"
-            placeholder="Search panels, commands, symbols..."
+            placeholder="搜索面板、命令、股票代码..."
             autocomplete="off"
           />
-          <span class="shortcut-hint">Esc to close</span>
+          <span class="shortcut-hint">Esc 关闭</span>
         </div>
         <div v-if="results.length > 0" class="results-list">
           <template v-for="(item, idx) in results" :key="item.id">
@@ -225,7 +211,7 @@ onUnmounted(() => {
               v-if="idx === 0 || results[idx - 1].category !== item.category"
               class="category-header"
             >
-              {{ categoryLabels[item.category] || item.category }}
+              {{ item.category }}
             </div>
             <div
               class="result-item"
@@ -239,7 +225,7 @@ onUnmounted(() => {
           </template>
         </div>
         <div v-else-if="query" class="no-results">
-          No results for "{{ query }}"
+          未找到 "{{ query }}"
         </div>
       </div>
     </div>
@@ -295,9 +281,7 @@ onUnmounted(() => {
   font-family: inherit;
 }
 
-.search-input::placeholder {
-  color: #5a6380;
-}
+.search-input::placeholder { color: #5a6380; }
 
 .shortcut-hint {
   color: #5a6380;
@@ -307,10 +291,7 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-.results-list {
-  overflow-y: auto;
-  flex: 1;
-}
+.results-list { overflow-y: auto; flex: 1; }
 
 .category-header {
   padding: 6px 16px 2px;
@@ -329,20 +310,10 @@ onUnmounted(() => {
   transition: background 0.1s;
 }
 
-.result-item.selected {
-  background: rgba(88, 166, 255, 0.15);
-}
+.result-item.selected { background: rgba(88, 166, 255, 0.15); }
 
-.item-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #c9d1d9;
-}
-
-.item-desc {
-  font-size: 11px;
-  color: #5a6380;
-}
+.item-label { font-size: 13px; font-weight: 500; color: #c9d1d9; }
+.item-desc { font-size: 11px; color: #5a6380; }
 
 .no-results {
   padding: 24px 16px;

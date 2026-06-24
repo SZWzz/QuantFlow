@@ -237,6 +237,8 @@ def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
             continue
 
         df = pd.DataFrame(raw)
+        # Deduplicate columns (mootdx may return duplicate column names)
+        df = df.loc[:, ~df.columns.duplicated()]
         col_map = {}
         for c in df.columns:
             cl = str(c).strip().lower()
@@ -255,11 +257,27 @@ def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
         if len(prices) == 0:
             continue
 
-        last = float(prices.iloc[-1])
-        open_p = float(prices.iloc[0])
-        high = float(prices.max())
-        low = float(prices.min())
-        vol = float(df["volume"].sum()) if "volume" in df.columns else 0.0
+        # Convert pandas scalars to Python native types — mootdx may return
+        # Series on duplicate indices, and float() chokes on a Series.
+        def _to_float(val):
+            """Convert a pandas value to a Python float, handling Series/arrays."""
+            if hasattr(val, 'item'):
+                try:
+                    return float(val.item())
+                except (ValueError, TypeError):
+                    pass
+            if hasattr(val, 'iloc') and hasattr(val, '__len__'):
+                try:
+                    return float(val.iloc[0])
+                except (ValueError, TypeError, IndexError):
+                    pass
+            return float(val)
+
+        last = _to_float(prices.iloc[-1])
+        open_p = _to_float(prices.iloc[0])
+        high = _to_float(prices.max())
+        low = _to_float(prices.min())
+        vol = _to_float(df["volume"].sum()) if "volume" in df.columns else 0.0
 
         quotes.append({
             "symbol": symbol,

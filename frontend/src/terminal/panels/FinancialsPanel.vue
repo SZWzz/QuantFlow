@@ -58,32 +58,32 @@ function formatPct(v: number | undefined | null): string {
 
     <div v-if="financials" class="panel-content">
       <div class="card-grid">
-        <!-- Income Statement -->
+        <!-- 利润表 -->
         <div class="card">
-          <h4 class="card-title">Income Statement</h4>
-          <div class="card-row"><span>Revenue</span><span class="val">{{ formatNum(financials.data.revenue) }}</span></div>
-          <div class="card-row"><span>Net Income</span><span class="val">{{ formatNum(financials.data.net_income) }}</span></div>
+          <h4 class="card-title">利润表</h4>
+          <div class="card-row"><span>营收</span><span class="val">{{ formatNum(financials.data.revenue) }}</span></div>
+          <div class="card-row"><span>净利润</span><span class="val">{{ formatNum(financials.data.net_income) }}</span></div>
           <div class="card-row"><span>EPS</span><span class="val">{{ financials.data.eps?.toFixed(2) ?? '--' }}</span></div>
         </div>
 
-        <!-- Balance Sheet -->
+        <!-- 资产负债表 -->
         <div class="card">
-          <h4 class="card-title">Balance Sheet</h4>
-          <div class="card-row"><span>Total Assets</span><span class="val">{{ formatNum(financials.data.total_assets) }}</span></div>
-          <div class="card-row"><span>Total Equity</span><span class="val">{{ formatNum(financials.data.total_equity) }}</span></div>
-          <div class="card-row"><span>Total Debt</span><span class="val">{{ formatNum(financials.data.total_debt) }}</span></div>
+          <h4 class="card-title">资产负债表</h4>
+          <div class="card-row"><span>总资产</span><span class="val">{{ formatNum(financials.data.total_assets) }}</span></div>
+          <div class="card-row"><span>总权益</span><span class="val">{{ formatNum(financials.data.total_equity) }}</span></div>
+          <div class="card-row"><span>总负债</span><span class="val">{{ formatNum(financials.data.total_debt) }}</span></div>
         </div>
 
-        <!-- Cash Flow -->
+        <!-- 现金流量表 -->
         <div class="card">
-          <h4 class="card-title">Cash Flow</h4>
-          <div class="card-row"><span>Free Cash Flow</span><span class="val">{{ formatNum(financials.data.free_cash_flow) }}</span></div>
-          <div class="card-row"><span>Market Cap</span><span class="val">{{ formatNum(financials.data.market_cap) }}</span></div>
+          <h4 class="card-title">现金流量表</h4>
+          <div class="card-row"><span>Free 现金流量表</span><span class="val">{{ formatNum(financials.data.free_cash_flow) }}</span></div>
+          <div class="card-row"><span>市值</span><span class="val">{{ formatNum(financials.data.market_cap) }}</span></div>
         </div>
 
-        <!-- Ratios -->
+        <!-- 财务比率 -->
         <div class="card" v-if="financials.ratios && Object.keys(financials.ratios).length > 0">
-          <h4 class="card-title">Ratios</h4>
+          <h4 class="card-title">财务比率</h4>
           <div class="card-row" v-for="(v, k) in financials.ratios" :key="k">
             <span>{{ k.replace(/_/g, ' ') }}</span>
             <span class="val">{{ typeof v === 'number' ? (k.includes('margin') || k.includes('yield') || k.includes('rate') ? formatPct(v) : v.toFixed(2)) : v }}</span>
@@ -93,7 +93,7 @@ function formatPct(v: number | undefined | null): string {
     </div>
 
     <div v-else class="empty-state">
-      <p>Enter a symbol and press ↵ to view financials</p>
+      <p>输入代码后按 ↵ 查看财务数据</p>
     </div>
   </div>
 </template>

@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import SymbolSearch from './SymbolSearch.vue'
+import type { StockEntry } from '@/lib/symbolSearch'
 
 const ctx = useSymbolContext()
-const inputVal = ref('')
 
-function submit() {
-  if (inputVal.value.trim()) {
-    ctx.setGroupSymbol(ctx.activeGroupId, inputVal.value.trim())
-    inputVal.value = ''
-  }
+function onSelect(entry: StockEntry) {
+  ctx.setGroupSymbol(ctx.activeGroupId, entry.code)
 }
 
 const groups = Object.entries(ctx.linkGroups)
@@ -26,9 +23,12 @@ const groups = Object.entries(ctx.linkGroups)
         {{ g.activeSymbol || '--' }}
       </button>
     </div>
-    <form class="symbol-input-area" @submit.prevent="submit">
-      <input v-model="inputVal" placeholder="Enter symbol..." />
-    </form>
+    <div class="symbol-input-area">
+      <SymbolSearch
+        placeholder="输入代码/名称/拼音搜索..."
+        @select="onSelect"
+      />
+    </div>
   </div>
 </template>
 
@@ -47,11 +47,5 @@ const groups = Object.entries(ctx.linkGroups)
 }
 .group-tabs button.active { border-color: var(--gcolor); color: var(--color-text-primary); }
 .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.symbol-input-area { flex: 1; }
-.symbol-input-area input {
-  width: 100%; padding: 2px 8px; background: var(--color-bg-input);
-  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
-  color: var(--color-text-primary); font-size: var(--font-xs); outline: none;
-}
-.symbol-input-area input:focus { border-color: var(--color-accent); }
+.symbol-input-area { flex: 1; max-width: 280px; }
 </style>

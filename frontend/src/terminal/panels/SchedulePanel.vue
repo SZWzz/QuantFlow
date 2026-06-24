@@ -5,33 +5,33 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 interface ScheduleTask { id: string; name: string; cron_expr: string; workflow_id: string; enabled: boolean; last_run_status: string }
 
-const tasks = ref<ScheduleTask[]>([
-  { id: '1', name: 'Morning Scan', cron_expr: '25 9 * * 1-5', workflow_id: 'wf-001', enabled: true, last_run_status: 'success' },
-  { id: '2', name: 'EOD Risk Check', cron_expr: '0 15 * * 1-5', workflow_id: 'wf-002', enabled: false, last_run_status: 'error' },
+const 个任务 = ref<ScheduleTask[]>([
+  { id: '1', name: '晨间扫描', cron_expr: '25 9 * * 1-5', workflow_id: 'wf-001', enabled: true, last_run_status: 'success' },
+  { id: '2', name: '收盘风控', cron_expr: '0 15 * * 1-5', workflow_id: 'wf-002', enabled: false, last_run_status: 'error' },
 ])
 
 const showModal = ref(false)
 const editTask = ref({ name: '', cron_expr: '0 9 * * *', workflow_id: '', timeout_sec: 1800 })
 
 const cronPresets = [
-  { label: 'Every Hour', expr: '0 * * * *' },
-  { label: 'Daily 9:00', expr: '0 9 * * *' },
-  { label: 'Weekdays 9:25', expr: '25 9 * * 1-5' },
-  { label: 'Every 5min', expr: '*/5 * * * *' },
-  { label: 'Weekly Mon', expr: '0 9 * * 1' },
+  { label: '每小时', expr: '0 * * * *' },
+  { label: '每日 9:00', expr: '0 9 * * *' },
+  { label: '工作日 9:25', expr: '25 9 * * 1-5' },
+  { label: '每 5 分钟', expr: '*/5 * * * *' },
+  { label: '每周一', expr: '0 9 * * 1' },
 ]
 
 function openNew() { editTask.value = { name: '', cron_expr: '0 9 * * *', workflow_id: '', timeout_sec: 1800 }; showModal.value = true }
 function saveTask() { showModal.value = false }
-function toggleTask(id: string) { const t = tasks.value.find(x => x.id === id); if (t) t.enabled = !t.enabled }
-function deleteTask(id: string) { tasks.value = tasks.value.filter(x => x.id !== id) }
+function toggleTask(id: string) { const t = 个任务.value.find(x => x.id === id); if (t) t.enabled = !t.enabled }
+function deleteTask(id: string) { 个任务.value = 个任务.value.filter(x => x.id !== id) }
 </script>
 
 <template>
   <div class="schedule-panel">
-    <div class="toolbar"><span class="task-count">{{ tasks.length }} tasks</span><button class="new-btn" @click="openNew">+ New Task</button></div>
+    <div class="toolbar"><span class="task-count">{{ 个任务.length }} 个任务</span><button class="new-btn" @click="openNew">+ 新建任务</button></div>
     <div class="task-list">
-      <div v-for="task in tasks" :key="task.id" class="task-row">
+      <div v-for="task in 个任务" :key="task.id" class="task-row">
         <div class="task-info">
           <span class="task-name">{{ task.name }}</span>
           <span class="task-cron">{{ task.cron_expr }}</span>
@@ -45,15 +45,15 @@ function deleteTask(id: string) { tasks.value = tasks.value.filter(x => x.id !==
     </div>
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal">
-        <h3 class="modal-title">New Schedule Task</h3>
-        <div class="form-group"><label>Name</label><input v-model="editTask.name" class="form-input" placeholder="Task name" /></div>
-        <div class="form-group"><label>Cron Expression</label><input v-model="editTask.cron_expr" class="form-input mono" placeholder="* * * * *" /></div>
+        <h3 class="modal-title">新建定时任务</h3>
+        <div class="form-group"><label>名称</label><input v-model="editTask.name" class="form-input" placeholder="Task name" /></div>
+        <div class="form-group"><label>Cron 表达式</label><input v-model="editTask.cron_expr" class="form-input mono" placeholder="* * * * *" /></div>
         <div class="presets"><button v-for="p in cronPresets" :key="p.expr" class="preset-btn" @click="editTask.cron_expr = p.expr">{{ p.label }}</button></div>
         <div class="form-group"><label>Workflow ID</label><input v-model="editTask.workflow_id" class="form-input" placeholder="wf-001" /></div>
-        <div class="form-group"><label>Timeout (sec)</label><input v-model.number="editTask.timeout_sec" type="number" class="form-input" /></div>
+        <div class="form-group"><label>超时(秒)</label><input v-model.number="editTask.timeout_sec" type="number" class="form-input" /></div>
         <div class="modal-actions">
-          <button class="cancel-btn" @click="showModal = false">Cancel</button>
-          <button class="save-btn" @click="saveTask">Save</button>
+          <button class="cancel-btn" @click="showModal = false">取消</button>
+          <button class="save-btn" @click="saveTask">保存</button>
         </div>
       </div>
     </div>

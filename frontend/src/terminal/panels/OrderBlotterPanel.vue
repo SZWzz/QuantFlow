@@ -76,7 +76,7 @@ function fmtMoney(n: number): string {
     <!-- Filter Bar -->
     <div class="filter-bar">
       <select v-model="statusFilter" class="filter-select">
-        <option value="">All Status</option>
+        <option value="">全部状态</option>
         <option v-for="s in statusOptions.filter(Boolean)" :key="s" :value="s">
           {{ statusLabel(s) }}
         </option>
@@ -85,7 +85,7 @@ function fmtMoney(n: number): string {
         v-model="symbolSearch"
         type="text"
         class="filter-input"
-        placeholder="Search symbol..."
+        placeholder="搜索代码..."
       />
     </div>
 
@@ -127,12 +127,12 @@ function fmtMoney(n: number): string {
                 class="cancel-btn"
                 @click="cancelOrder(o.order_id)"
               >
-                Cancel
+                取消
               </button>
             </td>
           </tr>
           <tr v-if="filteredOrders.length === 0">
-            <td colspan="10" class="empty">No orders match</td>
+            <td colspan="10" class="empty">无匹配订单</td>
           </tr>
         </tbody>
       </table>
@@ -141,15 +141,15 @@ function fmtMoney(n: number): string {
     <!-- Stats Footer -->
     <div class="stats-footer">
       <div class="stat-item">
-        <span class="stat-label">Orders Today</span>
+        <span class="stat-label">今日订单</span>
         <span class="stat-value">{{ stats.total }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">Fill Rate</span>
+        <span class="stat-label">成交率</span>
         <span class="stat-value">{{ stats.fillRate }}%</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">Total Traded Value</span>
+        <span class="stat-label">总成交额</span>
         <span class="stat-value">{{ fmtMoney(stats.totalValue) }}</span>
       </div>
     </div>
@@ -262,7 +262,7 @@ td {
 .badge.cancelled { background: var(--bg); color: var(--muted); }
 .badge.rejected  { background: #3d0a0a; color: var(--down); }
 
-/* -- Cancel button -- */
+/* -- 取消 button -- */
 .cancel-btn {
   padding: 2px 8px;
   background: #3d0a0a;

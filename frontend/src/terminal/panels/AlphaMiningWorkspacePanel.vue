@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useMLStore } from '@/stores/ml'
 
 const mlStore = useMLStore()
-const selectedFactors = ref<string[]>([])
+const 已选Factors = ref<string[]>([])
 const popSize = ref(200)
 const generations = ref(50)
 const crossoverRate = ref(0.7)
@@ -20,14 +20,14 @@ const availableFactors = [
 ]
 
 function toggleFactor(name: string) {
-  const idx = selectedFactors.value.indexOf(name)
-  if (idx >= 0) selectedFactors.value.splice(idx, 1)
-  else selectedFactors.value.push(name)
+  const idx = 已选Factors.value.indexOf(name)
+  if (idx >= 0) 已选Factors.value.splice(idx, 1)
+  else 已选Factors.value.push(name)
 }
 
 async function runMining() {
   await mlStore.runAlphaMining({
-    factorNames: selectedFactors.value, factorData: {}, returnsData: {},
+    factorNames: 已选Factors.value, factorData: {}, returnsData: {},
     populationSize: popSize.value, generations: generations.value, topK: topK.value,
   })
 }
@@ -41,41 +41,41 @@ function registerFactor(factor: { formula: string }) {
 
 <template>
   <div class="alpha-mining-panel">
-    <h3>Alpha Mining Workspace</h3>
+    <h3>Alpha 挖掘工作区</h3>
     <div class="factor-pool">
-      <h4>Base Factor Pool ({{ selectedFactors.length }} selected)</h4>
+      <h4>基础因子池 ({{ 已选Factors.length }} 已选)</h4>
       <div class="factor-chips">
         <span v-for="f in availableFactors" :key="f"
-              :class="['chip', { active: selectedFactors.includes(f) }]"
+              :class="['chip', { active: 已选Factors.includes(f) }]"
               @click="toggleFactor(f)">{{ f }}</span>
       </div>
     </div>
     <div class="gp-config">
-      <h4>Genetic Programming Config</h4>
+      <h4>遗传规划配置</h4>
       <div class="config-grid">
-        <label>Population: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
-        <label>Generations: <input v-model.number="generations" type="number" min="5" max="200" /></label>
-        <label>Crossover: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
-        <label>Mutation: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
+        <label>种群: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
+        <label>代数: <input v-model.number="generations" type="number" min="5" max="200" /></label>
+        <label>交叉: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
+        <label>变异: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
         <label>Top K: <input v-model.number="topK" type="number" min="1" max="50" /></label>
-        <label>Fitness:
+        <label>适应度:
           <select v-model="fitnessMetric">
             <option value="ic">IC</option><option value="ir">IR</option>
-            <option value="sharpe">Sharpe</option><option value="composite">Composite</option>
+            <option value="sharpe">Sharpe</option><option value="composite">综合</option>
           </select>
         </label>
       </div>
     </div>
-    <button @click="runMining" :disabled="mlStore.miningRunning || selectedFactors.length < 2" class="btn-run">
-      {{ mlStore.miningRunning ? 'Mining...' : 'Start Mining' }}
+    <button @click="runMining" :disabled="mlStore.miningRunning || 已选Factors.length < 2" class="btn-run">
+      {{ mlStore.miningRunning ? '挖掘中...' : '开始挖掘' }}
     </button>
     <div v-if="mlStore.discoveredFactors.length" class="results">
-      <h4>Discovered Factors</h4>
-      <table><thead><tr><th>Formula</th><th>IC</th><th>IR</th><th>Sharpe</th><th>Action</th></tr></thead>
+      <h4>已发现因子</h4>
+      <table><thead><tr><th>公式</th><th>IC</th><th>IR</th><th>Sharpe</th><th>操作</th></tr></thead>
         <tbody><tr v-for="(f, i) in mlStore.discoveredFactors" :key="i">
           <td class="formula">{{ f.formula }}</td><td>{{ f.ic?.toFixed(4) }}</td>
           <td>{{ f.ir?.toFixed(4) }}</td><td>{{ f.sharpe?.toFixed(4) }}</td>
-          <td><button @click="registerFactor(f)" class="btn btn-sm">Register</button></td>
+          <td><button @click="registerFactor(f)" class="btn btn-sm">注册</button></td>
         </tr></tbody>
       </table>
     </div>

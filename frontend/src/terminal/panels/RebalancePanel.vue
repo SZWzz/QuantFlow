@@ -95,11 +95,11 @@ const tradeList = computed(() => {
     const deltaPct = t.targetWeight - currentWeight
     const deltaValue = (deltaPct / 100) * total
     const action = deltaValue >= 0 ? 'Buy' : 'Sell'
-    const absDelta = Math.abs(deltaValue)
+    const abs删除ta = Math.abs(deltaValue)
 
     const rep = repByMarket[t.name]
     const price = rep ? rep.market_price : 100
-    const rawShares = price > 0 ? absDelta / price : 0
+    const rawShares = price > 0 ? abs删除ta / price : 0
     // CN stocks trade in lots of 100
     const lotSize = t.name === 'CN' ? 100 : 1
     const shares = Math.floor(rawShares / lotSize) * lotSize
@@ -198,17 +198,17 @@ onMounted(async () => {
 
 <template>
   <div class="rebalance-panel">
-    <h2 class="panel-title">Portfolio Rebalance</h2>
+    <h2 class="panel-title">组合再平衡</h2>
 
-    <!-- Section A: Current Allocation -->
+    <!-- Section A: 当前配置 -->
     <div class="section">
       <div class="section-header">
-        <span class="section-label">Current Allocation</span>
+        <span class="section-label">当前配置</span>
       </div>
 
       <div class="alloc-grid">
         <div class="alloc-bars">
-          <div class="sub-label">By Market</div>
+          <div class="sub-label">按市场</div>
           <div v-for="item in sortedMarketAllocation" :key="item.name" class="alloc-row">
             <span class="alloc-name" :style="{ color: item.color }">{{ item.name }}</span>
             <div class="alloc-bar-track">
@@ -220,7 +220,7 @@ onMounted(async () => {
             <span class="alloc-pct">{{ item.pct.toFixed(1) }}%</span>
           </div>
 
-          <div v-if="sortedSectorAllocation.length" class="sub-label" style="margin-top: 12px;">By Sector</div>
+          <div v-if="sortedSectorAllocation.length" class="sub-label" style="margin-top: 12px;">按行业</div>
           <div v-for="item in sortedSectorAllocation" :key="item.name" class="alloc-row">
             <span class="alloc-name" :style="{ color: item.color }">{{ item.name }}</span>
             <div class="alloc-bar-track">
@@ -240,13 +240,13 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Section B: Target Allocation -->
+    <!-- Section B: 目标配置 -->
     <div class="section">
       <div class="section-header">
-        <span class="section-label">Target Allocation</span>
+        <span class="section-label">目标配置</span>
         <span class="weight-summary" :class="{ 'weight-warn': Math.abs(totalTargetWeight - 100) > 0.5 }">
           Total: {{ totalTargetWeight.toFixed(1) }}%
-          <span v-if="Math.abs(totalTargetWeight - 100) > 0.5" class="warn-text"> (should be 100%)</span>
+          <span v-if="Math.abs(totalTargetWeight - 100) > 0.5" class="warn-text"> (应为 100%)</span>
         </span>
       </div>
 
@@ -279,20 +279,20 @@ onMounted(async () => {
               />
             </td>
             <td class="action-col">
-              <button class="btn-delete" @click="removeTargetRow(row.id)">Del</button>
+              <button class="btn-delete" @click="removeTargetRow(row.id)">删除</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <button class="btn-add" @click="addTargetRow">+ Add</button>
+      <button class="btn-add" @click="addTargetRow">+ 添加</button>
     </div>
 
-    <!-- Section C: Trade List -->
+    <!-- Section C: 交易清单 -->
     <div class="section">
       <div class="section-header">
-        <span class="section-label">Trade List</span>
+        <span class="section-label">交易清单</span>
         <span class="trade-summary">
-          Total Value: {{ fmtMoney(totalPortfolioValue) }}
+          总价值: {{ fmtMoney(totalPortfolioValue) }}
         </span>
       </div>
 
@@ -304,7 +304,7 @@ onMounted(async () => {
               <th>Market</th>
               <th class="num">Curr. Wt</th>
               <th class="num">Targ. Wt</th>
-              <th class="num">Delta</th>
+              <th class="num">删除ta</th>
               <th class="action-col">Action</th>
               <th class="num">Shares</th>
             </tr>
@@ -334,11 +334,11 @@ onMounted(async () => {
       </div>
 
       <div v-if="tradeList.length === 0" class="empty-state">
-        No trades needed. Current allocation matches target.
+        无需调整，当前配置已匹配目标
       </div>
 
       <button class="btn-generate" @click="generateOrders" :disabled="tradeList.length === 0">
-        Generate Orders
+        生成订单
       </button>
     </div>
   </div>
@@ -387,7 +387,7 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* --- Current Allocation Bars --- */
+/* --- 当前配置 Bars --- */
 .alloc-grid {
   display: flex;
   gap: 12px;
@@ -556,7 +556,7 @@ onMounted(async () => {
   color: #3b82f6;
 }
 
-/* --- Section C: Trade List --- */
+/* --- Section C: 交易清单 --- */
 .trade-summary {
   font-size: 11px;
   color: #6b7280;

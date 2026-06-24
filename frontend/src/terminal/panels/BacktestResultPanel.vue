@@ -85,7 +85,7 @@ const equityChartOption = computed(() => ({
   },
 }))
 
-// Drawdown chart options
+// 回撤 chart options
 const drawdownChartOption = computed(() => {
   const equityData = backtestResult.value.equityCurve.map((p) => p.equity)
   let peak = equityData[0]
@@ -119,7 +119,7 @@ const drawdownChartOption = computed(() => {
       textStyle: { color: '#c9d1d9', fontSize: 12 },
       formatter: (params: any) => {
         const p = params[0]
-        return `${p.name}<br/>Drawdown: <b>${(p.value as number).toFixed(2)}%</b>`
+        return `${p.name}<br/>回撤: <b>${(p.value as number).toFixed(2)}%</b>`
       },
     },
   }
@@ -143,42 +143,42 @@ function pnlClass(v: number): string {
     <!-- Metrics Cards -->
     <div class="metrics-grid">
       <div class="metric-card">
-        <span class="metric-label">Total Return</span>
+        <span class="metric-label">总收益</span>
         <span class="metric-value" :class="backtestResult.metrics.total_return >= 0 ? 'positive' : 'negative'">
           {{ formatPct(backtestResult.metrics.total_return) }}
         </span>
       </div>
       <div class="metric-card">
-        <span class="metric-label">Sharpe</span>
+        <span class="metric-label">夏普</span>
         <span class="metric-value">{{ formatNum(backtestResult.metrics.sharpe_ratio) }}</span>
       </div>
       <div class="metric-card">
-        <span class="metric-label">Max Drawdown</span>
+        <span class="metric-label">最大回撤</span>
         <span class="metric-value negative">{{ formatPct(backtestResult.metrics.max_drawdown) }}</span>
       </div>
       <div class="metric-card">
-        <span class="metric-label">Win Rate</span>
+        <span class="metric-label">胜率</span>
         <span class="metric-value">{{ formatPct(backtestResult.metrics.win_rate) }}</span>
       </div>
       <div class="metric-card">
-        <span class="metric-label">Profit Factor</span>
+        <span class="metric-label">盈亏比</span>
         <span class="metric-value">{{ formatNum(backtestResult.metrics.profit_factor) }}</span>
       </div>
       <div class="metric-card">
-        <span class="metric-label">Trades</span>
+        <span class="metric-label">交易次数</span>
         <span class="metric-value">{{ backtestResult.metrics.total_trades }}</span>
       </div>
     </div>
 
-    <!-- Equity Curve -->
+    <!-- 净值曲线 -->
     <div class="chart-section">
-      <h3 class="section-title">Equity Curve</h3>
+      <h3 class="section-title">净值曲线</h3>
       <v-chart class="chart" :option="equityChartOption" autoresize />
     </div>
 
-    <!-- Drawdown -->
+    <!-- 回撤 -->
     <div class="chart-section">
-      <h3 class="section-title">Drawdown</h3>
+      <h3 class="section-title">回撤</h3>
       <v-chart class="chart chart-sm" :option="drawdownChartOption" autoresize />
     </div>
 

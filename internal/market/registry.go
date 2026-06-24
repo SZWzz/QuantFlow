@@ -12,8 +12,8 @@ import (
 // Design aligned with astockpursue's FALLBACK_CHAINS.
 var FallbackChains = map[string][]string{
 	"CN":     {"mootdx", "sina", "tushare", "eastmoney", "tencent", "baidu", "akshare"},
-	"US":     {"yfinance", "polygon", "twelvedata", "finnhub"},
-	"HK":     {"yfinance", "tencent", "sina", "akshare"},
+	"US":     {"yahoo", "sina", "polygon", "finnhub"},
+	"HK":     {"yahoo", "tencent", "sina", "akshare"},
 	"CRYPTO": {"binance", "okx", "coingecko"},
 }
 

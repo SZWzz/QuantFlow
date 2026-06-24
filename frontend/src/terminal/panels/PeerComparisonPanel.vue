@@ -47,7 +47,7 @@ function formatRatio(v: number | undefined | null): string {
     <div class="panel-header">
       <h3>Peer Comparison — {{ symbol.toUpperCase() }}</h3>
       <div class="header-controls">
-        <input class="symbol-input" v-model="symbol" placeholder="Symbol..." @keyup.enter="refresh" />
+        <input class="symbol-input" v-model="symbol" placeholder="代码..." @keyup.enter="refresh" />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>
       </div>
     </div>
@@ -61,11 +61,11 @@ function formatRatio(v: number | undefined | null): string {
         <thead>
           <tr>
             <th>Symbol</th>
-            <th>Market Cap</th>
+            <th>市值</th>
             <th>P/E</th>
-            <th>Rev Growth</th>
-            <th>Margin</th>
-            <th>ROE</th>
+            <th>营收增长</th>
+            <th>利润率</th>
+            <th>净资产收益率</th>
           </tr>
         </thead>
         <tbody>
@@ -82,7 +82,7 @@ function formatRatio(v: number | undefined | null): string {
     </div>
 
     <div v-else class="empty-state">
-      <p>Enter a symbol and press ↵ to view peer comparison</p>
+      <p>输入代码后按 ↵ 查看同业对比</p>
     </div>
   </div>
 </template>

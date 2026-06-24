@@ -3,8 +3,8 @@ import { ref, computed } from 'vue'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-// -- Basket row --
-interface BasketRow {
+// -- 篮子 row --
+interface 篮子Row {
   id: number
   symbol: string
   weight: number
@@ -13,13 +13,13 @@ interface BasketRow {
 }
 
 let nextId = 1
-const rows = ref<BasketRow[]>([
+const rows = ref<篮子Row[]>([
   { id: nextId++, symbol: 'AAPL', weight: 30, quantity: 50, price: 195.3 },
   { id: nextId++, symbol: '600519', weight: 40, quantity: 100, price: 1780.0 },
   { id: nextId++, symbol: 'TSLA', weight: 30, quantity: 80, price: 248.5 },
 ])
 
-// -- Import CSV --
+// -- 导入 CSV --
 const csvText = ref('')
 const showCsvImport = ref(false)
 
@@ -64,7 +64,7 @@ interface LogEntry {
 const logs = ref<LogEntry[]>([])
 const isExecuting = ref(false)
 
-async function executeBasket() {
+async function execute篮子() {
   isExecuting.value = true
   logs.value = []
 
@@ -95,7 +95,7 @@ async function executeBasket() {
   isExecuting.value = false
 }
 
-// -- Summary --
+// -- 摘要 --
 const estimatedCost = computed(() => {
   return rows.value.reduce((sum, r) => sum + r.quantity * r.price, 0)
 })
@@ -119,9 +119,9 @@ function statusDotClass(s: string): string {
   <div class="basket-panel">
     <!-- Three-column grid -->
     <div class="basket-grid">
-      <!-- Left: Basket Rows -->
+      <!-- Left: 篮子 Rows -->
       <div class="col col-left">
-        <h3 class="col-title">Basket</h3>
+        <h3 class="col-title">篮子</h3>
         <div class="row-list">
           <div v-for="row in rows" :key="row.id" class="basket-row">
             <input v-model="row.symbol" type="text" placeholder="Symbol" class="cell-input cell-symbol" />
@@ -132,8 +132,8 @@ function statusDotClass(s: string): string {
           </div>
         </div>
         <div class="row-actions">
-          <button class="action-btn" @click="addRow">+ Add Row</button>
-          <button class="action-btn" @click="showCsvImport = !showCsvImport">Import CSV</button>
+          <button class="action-btn" @click="addRow">+ 添加行</button>
+          <button class="action-btn" @click="showCsvImport = !showCsvImport">导入 CSV</button>
         </div>
         <div v-if="showCsvImport" class="csv-import">
           <textarea v-model="csvText" placeholder="Paste CSV: symbol,weight%,qty,price" rows="3" class="csv-textarea"></textarea>
@@ -141,39 +141,39 @@ function statusDotClass(s: string): string {
         </div>
       </div>
 
-      <!-- Center: Summary -->
+      <!-- Center: 摘要 -->
       <div class="col col-center">
-        <h3 class="col-title">Summary</h3>
+        <h3 class="col-title">摘要</h3>
         <div class="summary-card">
           <div class="summary-row">
-            <span class="s-label">Symbol Count</span>
+            <span class="s-label">代码数量</span>
             <span class="s-value">{{ symbolCount }}</span>
           </div>
           <div class="summary-row">
-            <span class="s-label">Est. Total Cost</span>
+            <span class="s-label">预估总成本</span>
             <span class="s-value">{{ fmtMoney(estimatedCost) }}</span>
           </div>
           <div class="summary-row">
-            <span class="s-label">Execution Mode</span>
+            <span class="s-label">执行模式</span>
             <select v-model="execMode" class="exec-select">
-              <option value="market">All Market</option>
-              <option value="limit">All Limit</option>
-              <option value="weighted">Weighted by %</option>
+              <option value="market">全部市价</option>
+              <option value="limit">全部限价</option>
+              <option value="weighted">按权重</option>
             </select>
           </div>
         </div>
         <button
           class="execute-btn"
           :disabled="isExecuting || symbolCount === 0"
-          @click="executeBasket"
+          @click="execute篮子"
         >
-          {{ isExecuting ? 'Executing...' : 'Execute Basket' }}
+          {{ isExecuting ? '执行中...' : 'Execute 篮子' }}
         </button>
       </div>
 
-      <!-- Right: Execution Log -->
+      <!-- Right: 执行日志 -->
       <div class="col col-right">
-        <h3 class="col-title">Execution Log</h3>
+        <h3 class="col-title">执行日志</h3>
         <div class="log-list">
           <div v-for="(entry, i) in logs" :key="i" class="log-entry">
             <span :class="statusDotClass(entry.status)"></span>
@@ -184,7 +184,7 @@ function statusDotClass(s: string): string {
             </div>
           </div>
           <div v-if="logs.length === 0" class="log-empty">
-            No executions yet
+            暂无执行记录
           </div>
         </div>
       </div>
@@ -224,7 +224,7 @@ function statusDotClass(s: string): string {
   border-bottom: 1px solid var(--input);
 }
 
-/* -- Basket rows -- */
+/* -- 篮子 rows -- */
 .row-list {
   display: flex;
   flex-direction: column;
@@ -308,7 +308,7 @@ function statusDotClass(s: string): string {
 }
 .csv-textarea:focus { border-color: var(--accent); }
 
-/* -- Summary -- */
+/* -- 摘要 -- */
 .summary-card {
   display: flex;
   flex-direction: column;

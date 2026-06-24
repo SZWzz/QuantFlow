@@ -39,14 +39,14 @@ function formatCurrency(v: number): string {
 }
 
 // Downsample paths for chart rendering
-function downsamplePaths(paths: number[][], maxPaths: number, stepsPerYear: number): number[][] {
+function downsamplePaths(paths: number[][], maxPaths: number, stepsPer年: number): number[][] {
   if (paths.length <= maxPaths) return paths
   const step = Math.floor(paths.length / maxPaths)
   return paths.filter((_, i) => i % step === 0).slice(0, maxPaths)
 }
 
-// Median path
-function computeMedianPath(paths: number[][], totalSteps: number): number[] {
+// 中位数 path
+function compute中位数Path(paths: number[][], totalSteps: number): number[] {
   const medians: number[] = []
   for (let t = 0; t <= totalSteps; t++) {
     const vals = paths.map(p => p[t]).sort((a, b) => a - b)
@@ -74,16 +74,16 @@ const pathsChartOption = computed(() => {
   if (!result.value) return {}
   const r = result.value
   const totalSteps = r.paths[0].length - 1
-  const stepsPerYear = 252
-  const displayedPaths = downsamplePaths(r.paths, 200, stepsPerYear)
-  const medianPath = computeMedianPath(displayedPaths, totalSteps)
+  const stepsPer年 = 252
+  const displayedPaths = downsamplePaths(r.paths, 200, stepsPer年)
+  const medianPath = compute中位数Path(displayedPaths, totalSteps)
   const band = computeConfidenceBand(r.paths, totalSteps, confidence.value)
 
   // Time axis labels
   const xLabels: string[] = []
   for (let t = 0; t <= totalSteps; t++) {
-    const yr = t / stepsPerYear
-    if (t % Math.floor(stepsPerYear) === 0 || t === totalSteps) {
+    const yr = t / stepsPer年
+    if (t % Math.floor(stepsPer年) === 0 || t === totalSteps) {
       xLabels.push('Y' + yr.toFixed(1))
     } else {
       xLabels.push('')
@@ -103,13 +103,13 @@ const pathsChartOption = computed(() => {
     })
   }
 
-  // Median path
+  // 中位数 path
   series.push({
     type: 'line',
     data: medianPath,
     lineStyle: { width: 2, color: '#f59e0b' },
     showSymbol: false,
-    name: 'Median',
+    name: '中位数',
   })
 
   // Confidence band (area)
@@ -202,36 +202,36 @@ async function runSimulation() {
 <template>
   <div class="montecarlo-panel">
     <div class="panel-header">
-      <h3>Monte Carlo Simulation</h3>
+      <h3>蒙特卡洛模拟</h3>
     </div>
     <div class="panel-body">
       <div class="sidebar">
         <div class="param-group">
-          <label class="param-label">Initial Capital ($)</label>
+          <label class="param-label">初始资金</label>
           <input v-model.number="initialCapital" type="number" class="param-input" min="1000" step="1000" />
         </div>
         <div class="param-group">
-          <label class="param-label">Annual Return (%)</label>
+          <label class="param-label">年化收益(%)</label>
           <input v-model.number="annualReturn" type="number" class="param-input" min="-50" max="100" step="0.5" />
         </div>
         <div class="param-group">
-          <label class="param-label">Annual Vol (%)</label>
+          <label class="param-label">年化波动(%)</label>
           <input v-model.number="annualVol" type="number" class="param-input" min="1" max="200" step="1" />
         </div>
         <div class="param-group">
-          <label class="param-label">Years</label>
+          <label class="param-label">年数</label>
           <input v-model.number="years" type="number" class="param-input" min="1" max="30" step="1" />
         </div>
         <div class="param-group">
-          <label class="param-label">Simulations</label>
+          <label class="param-label">模拟次数</label>
           <input v-model.number="simulations" type="number" class="param-input" min="100" max="5000" step="100" />
         </div>
         <div class="param-group">
-          <label class="param-label">Confidence (%)</label>
+          <label class="param-label">置信度(%)</label>
           <input v-model.number="confidence" type="number" class="param-input" min="80" max="99" step="1" />
         </div>
         <button class="run-btn" :disabled="running" @click="runSimulation">
-          {{ running ? 'Running...' : 'Run Simulation' }}
+          {{ running ? '运行中...' : '运行模拟' }}
         </button>
       </div>
       <div class="content">
@@ -246,10 +246,10 @@ async function runSimulation() {
               <table>
                 <thead>
                   <tr>
-                    <th>Year</th>
+                    <th>年</th>
                     <th>P5</th>
                     <th>P25</th>
-                    <th>Median</th>
+                    <th>中位数</th>
                     <th>P75</th>
                     <th>P95</th>
                   </tr>
@@ -274,10 +274,10 @@ async function runSimulation() {
               <v-chart :option="histogramOption" autoresize />
             </div>
             <div v-else class="fallback-stats">
-              <div class="fallback-title">Terminal Value Distribution</div>
-              <div class="stat-row"><span>Median</span><span>{{ formatCurrency(result.medianTerminal) }}</span></div>
-              <div class="stat-row"><span>VaR (95%)</span><span class="negative">{{ formatCurrency(result.var95) }}</span></div>
-              <div class="stat-row"><span>CVaR (95%)</span><span class="negative">{{ formatCurrency(result.cvar95) }}</span></div>
+              <div class="fallback-title">终值分布</div>
+              <div class="stat-row"><span>中位数</span><span>{{ formatCurrency(result.medianTerminal) }}</span></div>
+              <div class="stat-row"><span>风险价值(95%)</span><span class="negative">{{ formatCurrency(result.var95) }}</span></div>
+              <div class="stat-row"><span>C风险价值(95%)</span><span class="negative">{{ formatCurrency(result.cvar95) }}</span></div>
             </div>
           </div>
 
@@ -285,7 +285,7 @@ async function runSimulation() {
           <div class="stats-row">
             <div class="stat-card">
               <div class="stat-value accent">{{ formatCurrency(result.medianTerminal) }}</div>
-              <div class="stat-label">Median Terminal</div>
+              <div class="stat-label">中位数 Terminal</div>
             </div>
             <div class="stat-card">
               <div class="stat-value negative">{{ formatCurrency(result.var95) }}</div>
@@ -297,17 +297,17 @@ async function runSimulation() {
             </div>
             <div class="stat-card">
               <div class="stat-value">{{ (result.probLoss * 100).toFixed(1) }}%</div>
-              <div class="stat-label">Prob(Loss)</div>
+              <div class="stat-label">亏损概率</div>
             </div>
             <div class="stat-card">
               <div class="stat-value positive">{{ (result.probDouble * 100).toFixed(1) }}%</div>
-              <div class="stat-label">Prob(Double)</div>
+              <div class="stat-label">翻倍概率</div>
             </div>
           </div>
         </template>
         <div v-else class="empty-state">
-          <p v-if="running">Running simulation...</p>
-          <p v-else>Set parameters and click Run Simulation to begin</p>
+          <p v-if="running">模拟运行中...</p>
+          <p v-else>Set parameters and click 运行模拟 to begin</p>
         </div>
       </div>
     </div>

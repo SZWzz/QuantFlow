@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { detectMarket } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -18,7 +19,7 @@ onMounted(async () => {
   const results: TickerItem[] = []
   for (const sym of SYMBOLS) {
     try {
-      const result = await (window as any).go.main.App.GetQuote('CN', sym)
+      const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
       const snapshot = Array.isArray(result) ? result[0] : result
       results.push({
         symbol: snapshot.symbol ?? sym,
@@ -36,7 +37,7 @@ onMounted(async () => {
 
 <template>
   <div class="ticker-tape-panel">
-    <span class="tape-title">Ticker Tape</span>
+    <span class="tape-title">滚动报价</span>
     <div class="tape-track-container">
       <div class="tape-track">
         <span v-for="(item, idx) in items" :key="idx" class="tape-item">
