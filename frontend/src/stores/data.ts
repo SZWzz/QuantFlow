@@ -93,7 +93,7 @@ export const useDataStore = defineStore('data', () => {
       let sectors: SectorRanking[] = []
 
       try {
-        const overview = await app.GetMarketOverview({})
+        const overview = await app.GetMarketOverview()
         if (overview?.indices) {
           indices = (overview.indices as any[]).map((idx: any) => ({
             symbol: idx.code,

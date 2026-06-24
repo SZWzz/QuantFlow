@@ -60,7 +60,7 @@ async function compute() {
   const app = (window as any).go?.main?.App
   if (!app) { dataReady.value = false; return }
   try {
-    const result = await app.GetReturnDistribution({}, symbol.value, lookback.value, 30)
+    const result = await app.GetReturnDistribution(symbol.value, lookback.value, 30)
     if (!result?.bins || !result?.counts) { dataReady.value = false; return }
     const bins: number[] = result.bins
     const counts: number[] = result.counts

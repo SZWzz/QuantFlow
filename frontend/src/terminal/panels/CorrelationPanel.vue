@@ -51,7 +51,7 @@ async function compute() {
   const app = (window as any).go?.main?.App
   if (!app) { matrix.value = null; return }
   try {
-    const corrMatrix = await app.GetCorrelationMatrix({}, syms, lookback.value)
+    const corrMatrix = await app.GetCorrelationMatrix(syms, lookback.value)
     // Convert map[string]map[string]float64 to 2D array ordered by syms
     const m: number[][] = syms.map(si =>
       syms.map(sj => corrMatrix?.[si]?.[sj] ?? 0)

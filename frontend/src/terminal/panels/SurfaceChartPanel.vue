@@ -22,7 +22,7 @@ async function loadSurface() {
   const app = (window as any).go?.main?.App
   if (!app) return
   try {
-    const data = await app.GetVolatilitySurface({}, symbol.value)
+    const data = await app.GetVolatilitySurface(symbol.value)
     surfaceData.value = data || []
   } catch { surfaceData.value = [] }
 }

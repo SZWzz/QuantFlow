@@ -16,7 +16,7 @@ const loading = ref<Record<string, boolean>>({})
 async function refreshQuote(sym: string) {
   loading.value[sym] = true
   try {
-    const [snapshot, _source] = await (window as any).go.main.App.GetQuote({}, 'CN', sym)
+    const [snapshot, _source] = await (window as any).go.main.App.GetQuote('CN', sym)
     quotes.value[sym] = {
       symbol: snapshot.symbol ?? sym,
       last: snapshot.last ?? 0,

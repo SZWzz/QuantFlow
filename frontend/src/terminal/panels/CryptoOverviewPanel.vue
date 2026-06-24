@@ -53,7 +53,7 @@ async function refresh() {
   const app = (window as any).go?.main?.App
   if (!app) return
   try {
-    const result = await app.GetCryptoOverview({}, [])
+    const result = await app.GetCryptoOverview([])
     if (result?.cryptos) {
       cryptos.value = result.cryptos.map((c: any) => ({
         symbol: c.symbol?.replace('USDT', '') || c.symbol,
