@@ -49,24 +49,6 @@ const jarqueBeraVal = ref(0)
 const hasECharts = ref(false)
 const dataReady = ref(false)
 
-function generateMockReturns(length: number): number[] {
-  const returns: number[] = []
-  for (let i = 0; i < length; i++) {
-    // Sum-of-uniforms approximates Gaussian
-    const z =
-      (Math.random() +
-        Math.random() +
-        Math.random() +
-        Math.random() +
-        Math.random() +
-        Math.random() -
-        3) /
-      3
-    returns.push(z * 0.03)
-  }
-  return returns
-}
-
 function normalPDF(x: number, mean: number, std: number): number {
   if (std === 0) return 0
   const coeff = 1 / (std * Math.sqrt(2 * Math.PI))
@@ -74,50 +56,35 @@ function normalPDF(x: number, mean: number, std: number): number {
   return coeff * Math.exp(exp)
 }
 
-function compute() {
-  const returns = generateMockReturns(lookback.value)
-  const n = returns.length
+async function compute() {
+  const app = (window as any).go?.main?.App
+  if (!app) { dataReady.value = false; return }
+  try {
+    const result = await app.GetReturnDistribution(symbol.value, lookback.value, 30)
+    if (!result?.bins || !result?.counts) { dataReady.value = false; return }
+    const bins: number[] = result.bins
+    const counts: number[] = result.counts
+    binData.value = bins.map((x, i) => ({ x, y: counts[i] || 0 }))
 
-  // Histogram bins
-  const bins = histogramBins(returns, 30)
-  binData.value = bins
-
-  // Stats
-  const mean = returns.reduce((a, b) => a + b, 0) / n
-  const variance = returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (n - 1)
-  const std = Math.sqrt(variance)
-
-  meanVal.value = mean
-  stdVal.value = std
-
-  // Higher moments
-  if (std > 0) {
-    const skew =
-      returns.reduce((s, r) => s + ((r - mean) / std) ** 3, 0) / n
-    const kurt =
-      returns.reduce((s, r) => s + ((r - mean) / std) ** 4, 0) / n - 3
-
-    skewnessVal.value = skew
-    kurtosisVal.value = kurt
-    jarqueBeraVal.value = (n / 6) * (skew ** 2 + kurt ** 2 / 4)
-  } else {
-    skewnessVal.value = 0
-    kurtosisVal.value = 0
-    jarqueBeraVal.value = 0
+    // Compute stats from histogram data
+    const total = counts.reduce((a: number, b: number) => a + b, 0)
+    if (total > 0) {
+      let weightedSum = 0, weightedSumSq = 0
+      for (let i = 0; i < bins.length; i++) {
+        weightedSum += bins[i] * counts[i]
+        weightedSumSq += bins[i] * bins[i] * counts[i]
+      }
+      const mean = weightedSum / total
+      const variance = weightedSumSq / total - mean * mean
+      const std = Math.sqrt(Math.max(variance, 0))
+      meanVal.value = mean
+      stdVal.value = std
+      normalCurve.value = bins.map(x => ({ x, y: normalPDF(x, mean, std) * total }))
+    }
+    dataReady.value = true
+  } catch {
+    dataReady.value = false
   }
-
-  // Normal curve overlay: scale PDF so max equals histogram max
-  const maxBinY = Math.max(...bins.map((b) => b.y), 1)
-  const pdfValues: { x: number; y: number }[] = []
-  for (const bin of bins) {
-    const pdf = normalPDF(bin.x, mean, std)
-    pdfValues.push({ x: bin.x, y: pdf })
-  }
-  const maxPdf = Math.max(...pdfValues.map((p) => p.y), 0.001)
-  const scale = maxBinY / maxPdf
-  normalCurve.value = pdfValues.map((p) => ({ x: p.x, y: p.y * scale }))
-
-  dataReady.value = true
 }
 
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {

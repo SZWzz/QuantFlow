@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
-const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519.SH')
-const name = ref('贵州茅台')
-const lastPrice = ref(1850.50)
-const change = ref(23.80)
-const changePct = ref(1.30)
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
+const name = ref('')
+const lastPrice = ref(0)
+const change = ref(0)
+const changePct = ref(0)
 const bidLevels = ref<{ price: number; size: number }[]>([])
 const askLevels = ref<{ price: number; size: number }[]>([])
 const trades = ref<{ time: string; price: number; volume: number; side: 'B' | 'S' }[]>([])
+const isSimulated = ref(true) // A-share no free L2; show simulated from bid/ask
 
 const maxSize = computed(() => {
   const all = [...bidLevels.value, ...askLevels.value]
-  return Math.max(...all.map(l => l.size), 1)
+  const m = Math.max(...all.map(l => l.size), 1)
+  return m
 })
 
 function formatSize(size: number): string {
@@ -28,50 +30,39 @@ function barWidth(size: number): string {
   return ((size / maxSize.value) * 100).toFixed(0) + '%'
 }
 
-function generateMockOrderBook() {
-  const basePrice = 1850.50 + (Math.random() - 0.5) * 10
-  lastPrice.value = basePrice
-  change.value = +(Math.random() - 0.45) * 30
-  changePct.value = +((change.value / basePrice) * 100)
-
-  const asks: { price: number; size: number }[] = []
-  for (let i = 0; i < 5; i++) {
-    asks.push({
-      price: +(basePrice + (i + 1) * 0.02 * (1 + Math.random() * 0.5)).toFixed(2),
-      size: Math.round(500 + Math.random() * (5000 - i * 500)),
-    })
-  }
-  askLevels.value = asks
-
+function buildSimulatedLevels(baseBid: number, baseAsk: number) {
+  // Simulate 5-level depth from single bid/ask
   const bids: { price: number; size: number }[] = []
+  const asks: { price: number; size: number }[] = []
+  const step = (baseAsk - baseBid) / 5 || 0.02
   for (let i = 0; i < 5; i++) {
-    bids.push({
-      price: +(basePrice - (i + 1) * 0.02 * (1 + Math.random() * 0.5)).toFixed(2),
-      size: Math.round(200 + Math.random() * (8000 - i * 800)),
-    })
+    bids.push({ price: +(baseBid - i * step).toFixed(2), size: Math.round(1000 / (i + 1)) })
+    asks.push({ price: +(baseAsk + i * step).toFixed(2), size: Math.round(800 / (i + 1)) })
   }
   bidLevels.value = bids
-
-  const now = new Date()
-  const newTrades: { time: string; price: number; volume: number; side: 'B' | 'S' }[] = []
-  for (let i = 0; i < 20; i++) {
-    const t = new Date(now.getTime() - (20 - i) * 3000)
-    const hh = t.getHours().toString().padStart(2, '0')
-    const mm = t.getMinutes().toString().padStart(2, '0')
-    const ss = t.getSeconds().toString().padStart(2, '0')
-    const side = Math.random() > 0.45 ? 'B' : 'S'
-    newTrades.push({
-      time: `${hh}:${mm}:${ss}`,
-      price: +(basePrice + (Math.random() - 0.5) * 0.5).toFixed(2),
-      volume: Math.round(100 + Math.random() * 2000),
-      side,
-    })
-  }
-  trades.value = newTrades
+  askLevels.value = asks
 }
 
-function refresh() {
-  generateMockOrderBook()
+async function refresh() {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  try {
+    const result = await app.GetQuote('CN', symbol.value)
+    const snapshot = Array.isArray(result) ? result[0] : result
+    if (!snapshot) return
+    name.value = snapshot.name || symbol.value
+    lastPrice.value = snapshot.last || 0
+    change.value = snapshot.change || 0
+    changePct.value = snapshot.change_pct || snapshot.changePct || 0
+    if (snapshot.bid > 0 && snapshot.ask > 0) {
+      buildSimulatedLevels(snapshot.bid, snapshot.ask)
+    }
+    // No real tick data for A-shares via free APIs
+    trades.value = []
+    isSimulated.value = true
+  } catch {
+    // silent
+  }
 }
 
 function handleSymbolSubmit(e: Event) {
@@ -88,9 +79,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   }
 })
 
-onMounted(() => {
-  refresh()
-})
+onMounted(refresh)
 </script>
 
 <template>
@@ -109,13 +98,14 @@ onMounted(() => {
     </div>
 
     <div class="last-price-row">
-      <span class="price-label">{{ name }}</span>
+      <span class="price-label">{{ name || symbol }}</span>
       <span class="price-value" :style="{ color: change >= 0 ? '#ef4444' : '#22c55e' }">
         {{ lastPrice.toFixed(2) }}
       </span>
       <span class="price-change" :style="{ color: change >= 0 ? '#ef4444' : '#22c55e' }">
         {{ change >= 0 ? '+' : '' }}{{ change.toFixed(2) }} ({{ changePct >= 0 ? '+' : '' }}{{ changePct.toFixed(2) }}%)
       </span>
+      <span v-if="isSimulated" class="sim-badge">模拟盘口</span>
     </div>
 
     <!-- Section A: Order Book -->

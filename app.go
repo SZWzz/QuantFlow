@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	"quantflow/internal/ai"
@@ -60,6 +61,7 @@ type App struct {
 	northboundAdpt *adapters.THSNorthboundAdapter
 	cninfoAdpt     *adapters.CninfoAdapter
 	iwencaiAdpt    *adapters.IwencaiAdapter
+	eastmoneyAdpt  *adapters.EastMoneyAdapter // stock info for research overview
 
 	polymarketAdpt      adapters.PolymarketAdapter  // prediction market data source
 	predictionMarketSvc *research.PredictionMarketService
@@ -197,16 +199,16 @@ func (a *App) startup() error {
 	nodes.SetGlobalNewsAdapter(a.globalNewsAdpt)
 	a.conceptAdpt = adapters.NewEastMoneyConceptAdapter()
 	a.signalsAdpt = adapters.NewEastMoneySignalsAdapter()
-		a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
-		a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
-		a.northboundAdpt = adapters.NewTHSNorthboundAdapter()
-t	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
+	a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
+	a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
+	a.northboundAdpt = adapters.NewTHSNorthboundAdapter()
+	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
 
-		// Phase 3: Research report + announcement adapters
-		a.reportAdpt = adapters.NewEastMoneyReportAdapter()
-		a.consensusAdpt = adapters.NewTHSConsensusAdapter()
-		a.cninfoAdpt = adapters.NewCninfoAdapter()
-		a.iwencaiAdpt = adapters.NewIwencaiAdapter()
+	// Phase 3: Research report + announcement adapters
+	a.reportAdpt = adapters.NewEastMoneyReportAdapter()
+	a.consensusAdpt = adapters.NewTHSConsensusAdapter()
+	a.cninfoAdpt = adapters.NewCninfoAdapter()
+	a.iwencaiAdpt = adapters.NewIwencaiAdapter()
 
 	nodes.SetNewsAdapter(a.newsAdpt)
 	if a.bridge != nil {
@@ -225,46 +227,46 @@ t	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
 	nodes.SetCongressTradingService(research.NewCongressTradingService())
 	slog.Info("research services initialized")
 
-		// Symbol search service (in-memory A-share index)
-t	searchSvc, err := market.NewSymbolSearchService(context.Background())
-		if err != nil {
-			slog.Warn("symbol search service init failed", "error", err)
-		} else {
-			a.searchSvc = searchSvc
-			slog.Info("symbol search service initialized", "stocks", searchSvc.Size())
-		}
-		a.capitalSvc = research.NewCapitalService(a.capitalAdpt)
-		nodes.SetCapitalService(a.capitalSvc)
-		a.fundFlowSvc = research.NewFundFlowService(a.fundFlowAdpt)
-		nodes.SetFundFlowService(a.fundFlowSvc)
-		a.northboundSvc = research.NewNorthboundService(a.northboundAdpt)
-		nodes.SetNorthboundService(a.northboundSvc)
-		a.announcementSvc = research.NewAnnouncementService(a.cninfoAdpt)
-		nodes.SetAnnouncementService(a.announcementSvc)
+	// Symbol search service (in-memory A-share index)
+	searchSvc, err := market.NewSymbolSearchService(context.Background())
+	if err != nil {
+		slog.Warn("symbol search service init failed", "error", err)
+	} else {
+		a.searchSvc = searchSvc
+		slog.Info("symbol search service initialized", "stocks", searchSvc.Size())
+	}
+	a.capitalSvc = research.NewCapitalService(a.capitalAdpt)
+	nodes.SetCapitalService(a.capitalSvc)
+	a.fundFlowSvc = research.NewFundFlowService(a.fundFlowAdpt)
+	nodes.SetFundFlowService(a.fundFlowSvc)
+	a.northboundSvc = research.NewNorthboundService(a.northboundAdpt)
+	nodes.SetNorthboundService(a.northboundSvc)
+	a.announcementSvc = research.NewAnnouncementService(a.cninfoAdpt)
+	nodes.SetAnnouncementService(a.announcementSvc)
 
-		// Alternative data: prediction market (Polymarket)
-		a.polymarketAdpt = adapters.NewPolymarketAdapter()
-		a.predictionMarketSvc = research.NewPredictionMarketService(a.polymarketAdpt)
-		nodes.SetPredictionMarketService(a.predictionMarketSvc)
-		slog.Info("prediction market service initialized")
+	// Alternative data: prediction market (Polymarket)
+	a.polymarketAdpt = adapters.NewPolymarketAdapter()
+	a.predictionMarketSvc = research.NewPredictionMarketService(a.polymarketAdpt)
+	nodes.SetPredictionMarketService(a.predictionMarketSvc)
+	slog.Info("prediction market service initialized")
 
-		// Alternative data: geopolitics (GDELT)
-		a.geopoliticsAdpt = adapters.NewGDELTAdapter()
-		a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
-		nodes.SetGeopoliticsService(a.geopoliticsSvc)
-		slog.Info("geopolitics service initialized")
+	// Alternative data: geopolitics (GDELT)
+	a.geopoliticsAdpt = adapters.NewGDELTAdapter()
+	a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
+	nodes.SetGeopoliticsService(a.geopoliticsSvc)
+	slog.Info("geopolitics service initialized")
 
-		// Alternative data: govdata (FRED + SEC EDGAR)
-		a.govDataAdpt = adapters.NewGovDataAdapter()
-		a.govDataSvc = research.NewGovDataService(a.govDataAdpt)
-		nodes.SetGovDataService(a.govDataSvc)
-		slog.Info("govdata service initialized")
+	// Alternative data: govdata (FRED + SEC EDGAR)
+	a.govDataAdpt = adapters.NewGovDataAdapter()
+	a.govDataSvc = research.NewGovDataService(a.govDataAdpt)
+	nodes.SetGovDataService(a.govDataSvc)
+	slog.Info("govdata service initialized")
 
-		// Alternative data: satellite (NASA POWER + FIRMS)
-		a.satelliteAdpt = adapters.NewSatelliteAdapter()
-		a.satelliteSvc = research.NewSatelliteService(a.satelliteAdpt)
-		nodes.SetSatelliteService(a.satelliteSvc)
-		slog.Info("satellite service initialized")
+	// Alternative data: satellite (NASA POWER + FIRMS)
+	a.satelliteAdpt = adapters.NewSatelliteAdapter()
+	a.satelliteSvc = research.NewSatelliteService(a.satelliteAdpt)
+	nodes.SetSatelliteService(a.satelliteSvc)
+	slog.Info("satellite service initialized")
 	return nil
 }
 
@@ -876,7 +878,7 @@ func (a *App) GetSatelliteDetail(regionID string) (map[string]interface{}, error
 	}
 	return map[string]interface{}{
 		"snapshot":    snapshot,
-		"solar_data":  solarPoints,
+		"solar_data":  solarPts,
 		"wind_data":   windPts,
 		"solar_chart": solarPts,
 		"wind_chart":  windPts,
@@ -898,6 +900,148 @@ func (a *App) getMootdxAdapter() *adapters.MootdxAdapter {
 		return nil
 	}
 	return mootdx
+}
+
+// getMarketReg returns the market adapter registry or nil.
+func (a *App) getMarketReg() *market.AdapterRegistry {
+	return a.marketReg
+}
+
+// — Market Overview & Analytics —
+
+// GetMarketOverview returns index snapshots for major A-share indices.
+func (a *App) GetMarketOverview(ctx context.Context) (map[string]interface{}, error) {
+	indices := []struct{ code, name string }{
+		{"000001", "上证指数"}, {"399001", "深证成指"}, {"399006", "创业板指"},
+		{"000688", "科创50"}, {"000300", "沪深300"},
+	}
+	result := make([]map[string]interface{}, 0, len(indices))
+	for _, idx := range indices {
+		snap, _, err := a.GetQuote(ctx, "CN", idx.code)
+		if err != nil {
+			slog.Warn("GetMarketOverview: failed for", "code", idx.code, "error", err)
+			continue
+		}
+		result = append(result, map[string]interface{}{
+			"code":       idx.code,
+			"name":       idx.name,
+			"price":      snap.Last,
+			"change":     snap.Change,
+			"change_pct": snap.ChangePct,
+		})
+	}
+	return map[string]interface{}{
+		"indices": result,
+		"breadth": map[string]int{"advancers": 0, "decliners": 0, "unchanged": 0},
+	}, nil
+}
+
+// GetMarketSnapshot returns batch quotes for a list of symbols.
+func (a *App) GetMarketSnapshot(ctx context.Context, symbols []string) ([]map[string]interface{}, error) {
+	result := make([]map[string]interface{}, 0, len(symbols))
+	for _, sym := range symbols {
+		snap, _, err := a.GetQuote(ctx, "CN", sym)
+		if err != nil {
+			continue
+		}
+		result = append(result, map[string]interface{}{
+			"symbol":     sym,
+			"price":      snap.Last,
+			"change":     snap.Change,
+			"change_pct": snap.ChangePct,
+			"volume":     snap.Volume,
+		})
+	}
+	return result, nil
+}
+
+// GetCryptoOverview returns quotes for major crypto pairs.
+func (a *App) GetCryptoOverview(ctx context.Context, symbols []string) (map[string]interface{}, error) {
+	if len(symbols) == 0 {
+		symbols = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "DOTUSDT"}
+	}
+	reg := a.getMarketReg()
+	results := make([]map[string]interface{}, 0)
+	for _, sym := range symbols {
+		snap, _, err := reg.FetchQuoteWithFallback(ctx, "CRYPTO", sym)
+		if err != nil {
+			continue
+		}
+		results = append(results, map[string]interface{}{
+			"symbol":     sym,
+			"price":      snap.Last,
+			"change_pct": snap.ChangePct,
+		})
+	}
+	return map[string]interface{}{"cryptos": results}, nil
+}
+
+// GetCorrelationMatrix computes the Pearson correlation matrix for a set of symbols.
+func (a *App) GetCorrelationMatrix(ctx context.Context, symbols []string, lookback int) (map[string]map[string]float64, error) {
+	reg := a.getMarketReg()
+	returns := make(map[string][]float64)
+	end := time.Now().Unix()
+	start := end - int64(lookback*86400)
+	for _, sym := range symbols {
+		bars, _, err := reg.FetchOHLCVWithFallback(ctx, "CN", sym, "1d", start, end)
+		if err != nil || len(bars) < 2 {
+			continue
+		}
+		rets := make([]float64, 0, len(bars)-1)
+		for i := 1; i < len(bars); i++ {
+			if bars[i-1].Close > 0 {
+				rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
+			}
+		}
+		returns[sym] = rets
+	}
+	return portfolio.CorrelationMatrix(returns), nil
+}
+
+// GetReturnDistribution computes a histogram of daily log returns for a symbol.
+func (a *App) GetReturnDistribution(ctx context.Context, symbol string, lookback int, bins int) (map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	end := time.Now().Unix()
+	start := end - int64(lookback*86400)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, "CN", symbol, "1d", start, end)
+	if err != nil || len(bars) < 2 {
+		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
+	}
+	rets := make([]float64, 0, len(bars)-1)
+	for i := 1; i < len(bars); i++ {
+		if bars[i-1].Close > 0 {
+			rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
+		}
+	}
+	histBins, histCounts := portfolio.ReturnDistribution(rets, bins)
+	return map[string]interface{}{
+		"symbol": symbol,
+		"bins":   histBins,
+		"counts": histCounts,
+	}, nil
+}
+
+// GetVolatilitySurface computes historical volatility across multiple time windows.
+func (a *App) GetVolatilitySurface(ctx context.Context, symbol string) ([][]float64, error) {
+	reg := a.getMarketReg()
+	end := time.Now().Unix()
+	start := end - int64(365*86400)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, "CN", symbol, "1d", start, end)
+	if err != nil || len(bars) < 5 {
+		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
+	}
+	rets := make([]float64, 0, len(bars)-1)
+	for i := 1; i < len(bars); i++ {
+		if bars[i-1].Close > 0 {
+			rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
+		}
+	}
+	return portfolio.VolatilitySurface(rets, []int{5, 10, 20, 30, 60, 90, 120, 252}), nil
+}
+
+// GetRebalanceSuggestions returns rebalance advice.
+func (a *App) GetRebalanceSuggestions(ctx context.Context) ([]map[string]interface{}, error) {
+	return []map[string]interface{}{}, nil
 }
 
 // Shutdown performs graceful cleanup: closes the Python sidecar connection,

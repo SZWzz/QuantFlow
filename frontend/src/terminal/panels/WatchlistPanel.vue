@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useDataStore, type QuoteSnapshot } from '@/stores/data'
+import { ref, onMounted } from 'vue'
+import { useDataStore } from '@/stores/data'
 import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -8,12 +8,35 @@ const dataStore = useDataStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
-const symbols = ref<string[]>(['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMD', 'BABA', '0700.HK'])
+const symbols = ref<string[]>(['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276'])
 const newSymbol = ref('')
+const quotes = ref<Record<string, any>>({})
+const loading = ref<Record<string, boolean>>({})
+
+async function refreshQuote(sym: string) {
+  loading.value[sym] = true
+  try {
+    const result = await (window as any).go.main.App.GetQuote('CN', sym)
+    const snapshot = Array.isArray(result) ? result[0] : result
+    quotes.value[sym] = {
+      symbol: snapshot.symbol ?? sym,
+      last: snapshot.last ?? 0,
+      change: snapshot.change ?? 0,
+      changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
+    }
+  } catch {
+    quotes.value[sym] = null as any
+  } finally {
+    loading.value[sym] = false
+  }
+}
 
 function addSymbol() {
   const sym = newSymbol.value.trim().toUpperCase()
-  if (sym && !symbols.value.includes(sym)) symbols.value.push(sym)
+  if (sym && !symbols.value.includes(sym)) {
+    symbols.value.push(sym)
+    refreshQuote(sym)
+  }
   newSymbol.value = ''
 }
 
@@ -32,16 +55,9 @@ function formatChange(c: number, pct: number): string {
   return `${sign}${c.toFixed(2)} (${sign}${pct.toFixed(2)}%)`
 }
 
-const mockQuotes: Record<string, QuoteSnapshot> = {
-  'AAPL': { symbol: 'AAPL', last: 195.32, bid: 195.30, ask: 195.35, volume: 32456789, change: 4.05, changePct: 2.12, timestamp: Date.now() },
-  'GOOGL': { symbol: 'GOOGL', last: 142.15, bid: 142.10, ask: 142.20, volume: 18765432, change: -1.85, changePct: -1.28, timestamp: Date.now() },
-  'MSFT': { symbol: 'MSFT', last: 378.91, bid: 378.85, ask: 378.95, volume: 22109876, change: 3.47, changePct: 0.92, timestamp: Date.now() },
-  'TSLA': { symbol: 'TSLA', last: 245.30, bid: 245.25, ask: 245.40, volume: 45678901, change: -5.20, changePct: -2.08, timestamp: Date.now() },
-  'NVDA': { symbol: 'NVDA', last: 875.28, bid: 875.20, ask: 875.35, volume: 28901234, change: 12.45, changePct: 1.44, timestamp: Date.now() },
-  'AMD': { symbol: 'AMD', last: 168.77, bid: 168.70, ask: 168.80, volume: 19876543, change: 2.33, changePct: 1.40, timestamp: Date.now() },
-  'BABA': { symbol: 'BABA', last: 88.45, bid: 88.40, ask: 88.50, volume: 15432109, change: -0.89, changePct: -1.00, timestamp: Date.now() },
-  '0700.HK': { symbol: '0700.HK', last: 440.20, bid: 440.00, ask: 440.40, volume: 12543210, change: 8.40, changePct: 1.95, timestamp: Date.now() },
-}
+onMounted(() => {
+  symbols.value.forEach(sym => refreshQuote(sym))
+})
 </script>
 
 <template>
@@ -55,8 +71,8 @@ const mockQuotes: Record<string, QuoteSnapshot> = {
         v-for="sym in symbols" :key="sym"
         class="symbol-row"
         :class="{
-          up: (mockQuotes[sym]?.change || 0) >= 0,
-          down: (mockQuotes[sym]?.change || 0) < 0,
+          up: (quotes[sym]?.change || 0) >= 0,
+          down: (quotes[sym]?.change || 0) < 0,
           active: ctx.getGroupSymbol(pg.groupId) === sym,
         }"
         @click="selectSymbol(sym)"
@@ -64,9 +80,10 @@ const mockQuotes: Record<string, QuoteSnapshot> = {
         <div class="symbol-info">
           <span class="symbol-name">{{ sym }}</span>
         </div>
-        <div v-if="mockQuotes[sym]" class="symbol-price">
-          <span class="last">{{ formatPrice(mockQuotes[sym].last) }}</span>
-          <span class="change">{{ formatChange(mockQuotes[sym].change, mockQuotes[sym].changePct) }}</span>
+        <div v-if="loading[sym]" class="symbol-price"><span class="no-data">--</span></div>
+        <div v-else-if="quotes[sym]" class="symbol-price">
+          <span class="last">{{ formatPrice(quotes[sym].last) }}</span>
+          <span class="change">{{ formatChange(quotes[sym].change, quotes[sym].changePct) }}</span>
         </div>
         <div v-else class="symbol-price"><span class="no-data">--</span></div>
         <button class="remove-btn" @click.stop="removeSymbol(sym)" title="Remove">✕</button>

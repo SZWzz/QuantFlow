@@ -60,3 +60,9 @@ def compute(factor_name: str, ohlcv: pd.DataFrame, params: Dict[str, Any]) -> pd
     # Merge default params with provided params
     merged = {**meta.default_params, **params}
     return _compute_funcs[factor_name](ohlcv, merged)
+
+
+def is_cross_sectional(factor_name: str) -> bool:
+    """Return True if the factor requires a multi-symbol panel (cross-sectional)."""
+    meta = _registry.get(factor_name)
+    return meta is not None and meta.category == "cross_sectional"

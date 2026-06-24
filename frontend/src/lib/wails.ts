@@ -60,3 +60,21 @@ export async function SaveWorkflow(jsonDef: string): Promise<string> {
 export async function ListWorkflows(): Promise<Array<{ id: string; name: string; description: string; updated_at: string }>> {
   return call('ListWorkflows')
 }
+
+// --- Trading / Portfolio APIs ---
+
+export async function GetPortfolioSummary(): Promise<Record<string, any>> {
+  return call('GetPortfolioSummary')
+}
+
+export async function GetTrades(): Promise<Array<{ ID: string; Symbol: string; Side: string; Quantity: number; Price: number; Timestamp: string; PnL: number }>> {
+  return call('GetTrades')
+}
+
+export async function GetOrders(): Promise<Array<{ ID: string; Symbol: string; Side: string; Quantity: number; Price: number; Status: string; PlacedAt: string }>> {
+  return call('GetOrders')
+}
+
+export async function GetPositions(): Promise<Array<{ Symbol: string; Quantity: number; AvgPrice: number; MarketPrice: number; PnL: number; PnLPct: number }>> {
+  return call('GetPositions')
+}

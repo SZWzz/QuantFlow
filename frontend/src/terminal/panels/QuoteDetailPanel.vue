@@ -1,43 +1,72 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
-const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
+const quote = ref<any>(null)
+const loading = ref(false)
+
+async function fetchQuote(sym: string) {
+  loading.value = true
+  try {
+    const result = await (window as any).go.main.App.GetQuote('CN', sym)
+    const snapshot = Array.isArray(result) ? result[0] : result
+    quote.value = {
+      symbol: snapshot.symbol ?? sym,
+      name: snapshot.name ?? sym,
+      exchange: snapshot.exchange ?? '--',
+      last: snapshot.last ?? 0,
+      bid: snapshot.bid ?? 0,
+      ask: snapshot.ask ?? 0,
+      open: snapshot.open ?? 0,
+      high: snapshot.high ?? 0,
+      low: snapshot.low ?? 0,
+      volume: snapshot.volume ?? 0,
+      change: snapshot.change ?? 0,
+      changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
+      prevClose: snapshot.prevClose ?? ((snapshot.last ?? 0) - (snapshot.change ?? 0)),
+      avgVolume: snapshot.avgVolume ?? '--',
+      marketCap: snapshot.marketCap ?? '--',
+      pe: snapshot.pe ?? '--',
+      eps: snapshot.eps ?? '--',
+      dividendYield: snapshot.dividendYield ?? '--',
+    }
+  } catch {
+    quote.value = null
+  } finally {
+    loading.value = false
+  }
+}
 
 // Subscribe to symbol context via link group
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   if (newSym && newSym !== symbol.value) {
     symbol.value = newSym
-    regenerateQuote(newSym)
+    fetchQuote(newSym)
   }
 })
 
-const quote = ref(generateQuote(symbol.value))
-
-function generateQuote(sym: string) {
-  const basePrices: Record<string, number> = { 'AAPL': 195, 'GOOGL': 142, 'MSFT': 378, 'TSLA': 245, 'NVDA': 875, 'AMD': 168, 'BABA': 88, '0700.HK': 440 }
-  const base = basePrices[sym] || 100
-  const last = +(base + (Math.random() - 0.5) * base * 0.05).toFixed(2)
-  const prevClose = +(base + (Math.random() - 0.5) * base * 0.04).toFixed(2)
-  const change = +(last - prevClose).toFixed(2)
-  return {
-    symbol: sym, name: sym, exchange: 'MOCK', last, bid: +(last - 0.02).toFixed(2), ask: +(last + 0.02).toFixed(2),
-    open: prevClose, high: +(last * 1.02).toFixed(2), low: +(last * 0.98).toFixed(2), prevClose,
-    volume: Math.floor(Math.random() * 5e7) + 1e7, avgVolume: 28500000,
-    marketCap: 'N/A', pe: 0, eps: 0, dividendYield: 0, change, changePct: +((change / prevClose) * 100).toFixed(2),
+// Fetch on mount
+onMounted(() => {
+  const groupSym = ctx.getGroupSymbol(pg.groupId)
+  if (groupSym && groupSym !== symbol.value) {
+    symbol.value = groupSym
   }
+  fetchQuote(symbol.value)
+})
+
+const isPositive = computed(() => (quote.value?.change ?? 0) >= 0)
+
+function fmt(n: any, decimals = 2): string {
+  if (typeof n !== 'number') return String(n ?? '--')
+  return n.toFixed(decimals)
 }
-
-function regenerateQuote(sym: string) { quote.value = generateQuote(sym) }
-
-const isPositive = computed(() => quote.value.change >= 0)
-
-function fmt(n: number, decimals = 2): string { return n.toFixed(decimals) }
 function fmtVolume(n: number): string {
+  if (typeof n !== 'number') return '--'
   if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B'
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
   return n.toLocaleString()
@@ -46,6 +75,8 @@ function fmtVolume(n: number): string {
 
 <template>
   <div class="quote-panel">
+    <div v-if="loading && !quote" class="loading-state">加载中...</div>
+    <template v-else-if="quote">
     <div class="quote-header">
       <div class="header-main">
         <span class="symbol-badge">{{ symbol }}</span>
@@ -77,12 +108,14 @@ function fmtVolume(n: number): string {
     </div>
     <div class="info-grid">
       <div class="kv-item"><span class="label">Volume</span><span class="value">{{ fmtVolume(quote.volume) }}</span></div>
-      <div class="kv-item"><span class="label">Avg Vol</span><span class="value">{{ fmtVolume(quote.avgVolume) }}</span></div>
+      <div class="kv-item"><span class="label">Avg Vol</span><span class="value">{{ quote.avgVolume }}</span></div>
       <div class="kv-item"><span class="label">Market Cap</span><span class="value">{{ quote.marketCap }}</span></div>
-      <div class="kv-item"><span class="label">P/E</span><span class="value">{{ quote.pe || '--' }}</span></div>
-      <div class="kv-item"><span class="label">EPS</span><span class="value">{{ quote.eps || '--' }}</span></div>
-      <div class="kv-item"><span class="label">Div Yield</span><span class="value">{{ quote.dividendYield || '--' }}%</span></div>
+      <div class="kv-item"><span class="label">P/E</span><span class="value">{{ quote.pe }}</span></div>
+      <div class="kv-item"><span class="label">EPS</span><span class="value">{{ quote.eps }}</span></div>
+      <div class="kv-item"><span class="label">Div Yield</span><span class="value">{{ quote.dividendYield === '--' ? '--' : quote.dividendYield + '%' }}</span></div>
     </div>
+    </template>
+    <div v-else class="loading-state">--</div>
   </div>
 </template>
 
@@ -90,6 +123,10 @@ function fmtVolume(n: number): string {
 .quote-panel {
   padding: 12px; background: var(--color-bg-panel); height: 100%; overflow-y: auto;
   font-variant-numeric: tabular-nums;
+}
+.loading-state {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: var(--color-text-tertiary); font-size: var(--font-sm);
 }
 .quote-header { margin-bottom: 10px; }
 .header-main { display: flex; align-items: center; gap: 8px; }

@@ -5,41 +5,13 @@ const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 interface CryptoRow {
   symbol: string
-  name: string
   price: number
   changePct24h: number
-  volume24h: number
-  marketCap: number
 }
 
-const btcDominance = ref(52.4)
-const ethDominance = ref(17.8)
 const cryptos = ref<CryptoRow[]>([])
-const sortKey = ref<string>('marketCap')
-const sortDir = ref<number>(-1) // -1 = desc
-
-const mockCryptos: CryptoRow[] = [
-  { symbol: 'BTC', name: 'Bitcoin', price: 68234.50, changePct24h: 1.85, volume24h: 32_500_000_000, marketCap: 1_340_000_000_000 },
-  { symbol: 'ETH', name: 'Ethereum', price: 3542.80, changePct24h: 2.10, volume24h: 18_200_000_000, marketCap: 425_000_000_000 },
-  { symbol: 'BNB', name: 'BNB', price: 618.25, changePct24h: -0.45, volume24h: 1_800_000_000, marketCap: 91_000_000_000 },
-  { symbol: 'SOL', name: 'Solana', price: 172.44, changePct24h: 4.30, volume24h: 4_500_000_000, marketCap: 76_000_000_000 },
-  { symbol: 'XRP', name: 'XRP', price: 0.5218, changePct24h: -1.20, volume24h: 1_200_000_000, marketCap: 28_500_000_000 },
-  { symbol: 'ADA', name: 'Cardano', price: 0.4532, changePct24h: 0.85, volume24h: 420_000_000, marketCap: 16_000_000_000 },
-  { symbol: 'DOGE', name: 'Dogecoin', price: 0.1248, changePct24h: 5.60, volume24h: 1_550_000_000, marketCap: 18_200_000_000 },
-  { symbol: 'AVAX', name: 'Avalanche', price: 35.66, changePct24h: 2.75, volume24h: 680_000_000, marketCap: 12_800_000_000 },
-  { symbol: 'DOT', name: 'Polkadot', price: 6.33, changePct24h: -0.90, volume24h: 310_000_000, marketCap: 8_600_000_000 },
-  { symbol: 'MATIC', name: 'Polygon', price: 0.5412, changePct24h: 1.30, volume24h: 290_000_000, marketCap: 5_100_000_000 },
-  { symbol: 'LINK', name: 'Chainlink', price: 14.82, changePct24h: 3.40, volume24h: 410_000_000, marketCap: 8_700_000_000 },
-  { symbol: 'UNI', name: 'Uniswap', price: 9.55, changePct24h: -2.15, volume24h: 180_000_000, marketCap: 5_700_000_000 },
-  { symbol: 'ATOM', name: 'Cosmos', price: 7.92, changePct24h: 0.50, volume24h: 195_000_000, marketCap: 3_100_000_000 },
-  { symbol: 'APT', name: 'Aptos', price: 12.68, changePct24h: -1.80, volume24h: 320_000_000, marketCap: 4_800_000_000 },
-  { symbol: 'NEAR', name: 'NEAR Protocol', price: 5.22, changePct24h: 6.10, volume24h: 440_000_000, marketCap: 5_400_000_000 },
-  { symbol: 'ICP', name: 'Internet Computer', price: 13.45, changePct24h: -3.20, volume24h: 155_000_000, marketCap: 6_200_000_000 },
-  { symbol: 'SHIB', name: 'Shiba Inu', price: 0.00002534, changePct24h: 7.80, volume24h: 980_000_000, marketCap: 14_900_000_000 },
-  { symbol: 'TRX', name: 'TRON', price: 0.1220, changePct24h: 0.35, volume24h: 520_000_000, marketCap: 10_600_000_000 },
-  { symbol: 'FIL', name: 'Filecoin', price: 5.88, changePct24h: 1.65, volume24h: 198_000_000, marketCap: 2_600_000_000 },
-  { symbol: 'ARB', name: 'Arbitrum', price: 0.8523, changePct24h: -2.50, volume24h: 340_000_000, marketCap: 2_900_000_000 },
-]
+const sortKey = ref<string>('changePct24h')
+const sortDir = ref<number>(-1)
 
 const sortedCryptos = computed(() => {
   const arr = [...cryptos.value]
@@ -55,12 +27,8 @@ const sortedCryptos = computed(() => {
 })
 
 function toggleSort(key: string) {
-  if (sortKey.value === key) {
-    sortDir.value *= -1
-  } else {
-    sortKey.value = key
-    sortDir.value = -1
-  }
+  if (sortKey.value === key) { sortDir.value *= -1 }
+  else { sortKey.value = key; sortDir.value = -1 }
 }
 
 function sortArrow(key: string): string {
@@ -75,37 +43,28 @@ function formatPrice(p: number): string {
   return p.toFixed(8)
 }
 
-function formatVolume(v: number): string {
-  if (v >= 1_000_000_000) return '$' + (v / 1_000_000_000).toFixed(2) + 'B'
-  if (v >= 1_000_000) return '$' + (v / 1_000_000).toFixed(0) + 'M'
-  return '$' + v.toFixed(0)
-}
-
-function formatMarketCap(mc: number): string {
-  if (mc >= 1_000_000_000_000) return '$' + (mc / 1_000_000_000_000).toFixed(2) + 'T'
-  if (mc >= 1_000_000_000) return '$' + (mc / 1_000_000_000).toFixed(2) + 'B'
-  return '$' + (mc / 1_000_000).toFixed(0) + 'M'
-}
-
 function pctColor(pct: number): string {
   if (pct > 0) return '#ef4444'
   if (pct < 0) return '#22c55e'
   return '#9ca3af'
 }
 
-function refresh() {
-  cryptos.value = mockCryptos.map(c => ({
-    ...c,
-    price: c.price * (1 + (Math.random() - 0.5) * 0.01),
-    changePct24h: c.changePct24h + (Math.random() - 0.5) * 0.3,
-  }))
-  btcDominance.value = +(52.4 + (Math.random() - 0.5) * 1).toFixed(1)
-  ethDominance.value = +(17.8 + (Math.random() - 0.5) * 0.5).toFixed(1)
+async function refresh() {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  try {
+    const result = await app.GetCryptoOverview([])
+    if (result?.cryptos) {
+      cryptos.value = result.cryptos.map((c: any) => ({
+        symbol: c.symbol?.replace('USDT', '') || c.symbol,
+        price: c.price || 0,
+        changePct24h: c.change_pct || 0,
+      }))
+    }
+  } catch { /* silent */ }
 }
 
-onMounted(() => {
-  refresh()
-})
+onMounted(refresh)
 </script>
 
 <template>
@@ -113,24 +72,6 @@ onMounted(() => {
     <div class="panel-header">
       <h3>Crypto Overview</h3>
       <button class="refresh-btn" @click="refresh">⟳</button>
-    </div>
-
-    <!-- Dominance Section -->
-    <div class="dominance-section">
-      <div class="dominance-item">
-        <div class="dom-label">BTC Dominance</div>
-        <div class="dom-bar-track">
-          <div class="dom-bar-fill btc-bar" :style="{ width: btcDominance + '%' }"></div>
-        </div>
-        <span class="dom-value">{{ btcDominance }}%</span>
-      </div>
-      <div class="dominance-item">
-        <div class="dom-label">ETH Dominance</div>
-        <div class="dom-bar-track">
-          <div class="dom-bar-fill eth-bar" :style="{ width: ethDominance + '%' }"></div>
-        </div>
-        <span class="dom-value">{{ ethDominance }}%</span>
-      </div>
     </div>
 
     <!-- Crypto Table -->
@@ -142,23 +83,16 @@ onMounted(() => {
             <th class="col-symbol sortable" @click="toggleSort('symbol')">Symbol{{ sortArrow('symbol') }}</th>
             <th class="col-price sortable" @click="toggleSort('price')">Price{{ sortArrow('price') }}</th>
             <th class="col-change sortable" @click="toggleSort('changePct24h')">24h Chg%{{ sortArrow('changePct24h') }}</th>
-            <th class="col-volume sortable" @click="toggleSort('volume24h')">Volume{{ sortArrow('volume24h') }}</th>
-            <th class="col-mcap sortable" @click="toggleSort('marketCap')">Market Cap{{ sortArrow('marketCap') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(c, idx) in sortedCryptos" :key="c.symbol">
             <td class="col-rank">{{ idx + 1 }}</td>
-            <td class="col-symbol">
-              <span class="crypto-symbol">{{ c.symbol }}</span>
-              <span class="crypto-name">{{ c.name }}</span>
-            </td>
+            <td class="col-symbol">{{ c.symbol }}</td>
             <td class="col-price">{{ formatPrice(c.price) }}</td>
             <td class="col-change" :style="{ color: pctColor(c.changePct24h) }">
               {{ c.changePct24h >= 0 ? '+' : '' }}{{ c.changePct24h.toFixed(2) }}%
             </td>
-            <td class="col-volume">{{ formatVolume(c.volume24h) }}</td>
-            <td class="col-mcap">{{ formatMarketCap(c.marketCap) }}</td>
           </tr>
         </tbody>
       </table>

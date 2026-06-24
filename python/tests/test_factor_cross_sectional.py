@@ -5,7 +5,11 @@ Covers: zscore_momentum_20d, rank_momentum_20d, zscore_volatility_20d,
 """
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.ipc as ipc
 import pytest
+
+from src.factor.registry import compute
 
 
 @pytest.fixture
@@ -150,3 +154,96 @@ class TestSizeFactor:
         result = size_factor(multi_symbol_ohlcv, {})
         valid = result.dropna()
         assert np.isfinite(valid).all()
+
+
+# --- RPC-path regression tests (P0-3) ---
+# These tests call `compute()` directly with a full multi-symbol panel to
+# validate that cross-sectional factor logic is correct on a full panel.
+# The bug was in engine.py filtering to a single symbol before calling the
+# factor function; these tests serve as the baseline proving the factor
+# math itself is correct. The engine.py fix makes the RPC path also pass
+# full panels for cross-sectional factors.
+
+
+def _encode_ohlcv(df: pd.DataFrame) -> bytes:
+    """Encode a DataFrame to Arrow IPC stream bytes (matches gRPC wire format)."""
+    table = pa.Table.from_pandas(df, preserve_index=False)
+    sink = pa.BufferOutputStream()
+    with ipc.new_stream(sink, table.schema) as writer:
+        writer.write_table(table)
+    return sink.getvalue().to_pybytes()
+
+
+def _make_panel(symbols, dates, base_price=10.0):
+    """Build a multi-symbol OHLCV panel with distinct momentum per symbol.
+
+    Each symbol grows at a DIFFERENT daily rate so that 20d pct_change
+    momentum is genuinely distinct across symbols (pct_change normalizes
+    out the base price, so distinct bases alone would yield identical
+    momentum — which would degenerate the cross-sectional zscore).
+    """
+    # Distinct daily growth rates → distinct 20d momentum per symbol.
+    growth_rates = [1.01, 1.02, 1.005]
+    rows = []
+    for i, sym in enumerate(symbols):
+        price = base_price * (1 + i * 0.5)  # distinct price levels
+        growth = growth_rates[i % len(growth_rates)]
+        for d in dates:
+            rows.append({
+                "symbol": sym, "date": d,
+                "open": price, "high": price, "low": price,
+                "close": price, "volume": 10000,
+            })
+            price *= growth  # upward drift, distinct per symbol
+    return pd.DataFrame(rows)
+
+
+def test_zscore_momentum_cross_sectional_nonzero():
+    """zscore_momentum_20d on 3+ symbols must NOT be all zeros.
+
+    With single-symbol filtering (the bug), std=0 → zscore=0 for every row.
+    With full-panel computation, cross-sectional zscore should have
+    non-zero variance and sum to ~0 per date.
+    """
+    symbols = ["AAA", "BBB", "CCC"]
+    dates = pd.date_range("2026-01-01", periods=30, freq="D").astype(str)
+    df = _make_panel(symbols, dates)
+
+    # Compute on the FULL panel (what engine.py should do for cross-sectional)
+    values = compute("zscore_momentum_20d", df, {})
+
+    # Drop the warmup NaNs (first 20 days have no 20d momentum)
+    valid = values.dropna()
+    assert len(valid) > 0, "no valid zscore values produced"
+
+    # BUG: with single-symbol filtering, every zscore would be 0.
+    assert valid.std() > 1e-6, (
+        f"cross-sectional zscore std is ~0 — factor is broken. "
+        f"std={valid.std()}, values sample: {valid.head().tolist()}"
+    )
+
+    # Cross-sectional zscore property: per-date mean ≈ 0
+    df_out = df.copy()
+    df_out["zscore"] = values.values
+    df_out = df_out.dropna(subset=["zscore"])
+    per_date_mean = df_out.groupby("date")["zscore"].mean()
+    assert per_date_mean.abs().max() < 1e-6, (
+        f"per-date zscore mean should be ~0, got max abs {per_date_mean.abs().max()}"
+    )
+
+
+def test_rank_momentum_cross_sectional_distribution():
+    """rank_momentum_20d on 3 symbols should produce ranks in [0,1] with spread."""
+    symbols = ["AAA", "BBB", "CCC"]
+    dates = pd.date_range("2026-01-01", periods=30, freq="D").astype(str)
+    df = _make_panel(symbols, dates)
+
+    values = compute("rank_momentum_20d", df, {})
+    valid = values.dropna()
+
+    # BUG: with single-symbol filtering, rank would be 0.5 for every row.
+    assert valid.nunique() > 1, (
+        f"rank has only 1 unique value — factor is broken. "
+        f"unique={valid.nunique()}, values: {valid.unique().tolist()}"
+    )
+    assert valid.min() >= 0 and valid.max() <= 1

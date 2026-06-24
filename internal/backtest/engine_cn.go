@@ -15,7 +15,8 @@ import (
 //   - Commission: 0.03% (万三) default
 type CNEngine struct {
 	*Runner
-	t1Lock *t1Tracker // tracks T+1 locked shares
+	t1Lock    *t1Tracker         // tracks T+1 locked shares
+	prevClose map[string]float64 // symbol → previous trading day close (for price limit)
 }
 
 // t1Tracker tracks shares locked by T+1 settlement.
@@ -37,8 +38,9 @@ func NewCNEngine(config Config) *CNEngine {
 		config.Slippage = 0.001 // 10 bps
 	}
 	return &CNEngine{
-		Runner: NewRunner(config),
-		t1Lock: newT1Tracker(),
+		Runner:    NewRunner(config),
+		t1Lock:    newT1Tracker(),
+		prevClose: make(map[string]float64),
 	}
 }
 
@@ -76,6 +78,12 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		// 1. Check stop-loss/take-profit (only on available shares)
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && availableQty > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) || e.risk.CheckTakeProfit(pos, bar.Close) {
+				// P0-2: 跌停封板时止损/止盈单无法成交（A 股无买盘）。
+				// 所有卖出路径都必须经过涨跌停校验，含止损/止盈。
+				rule := PriceLimitFor(bar.Symbol)
+				if !rule.CanSell(bar.Close, e.prevClose[bar.Symbol]) {
+					goto recordEquityCN
+				}
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, availableQty, 0)
 				if err == nil {
 					e.oms.FillOrder(order.ID, availableQty, bar.Close)
@@ -117,6 +125,9 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		}
 
 	recordEquityCN:
+		// Update prevClose for next day's price limit check
+		e.prevClose[bar.Symbol] = bar.Close
+
 		// Clear T+1 lock (shares bought yesterday are now sellable)
 		e.t1Lock.locked = make(map[string]float64)
 
@@ -139,6 +150,11 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 }
 
 func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Signal, portfolio *Portfolio, trades *[]TradeRecord) {
+	rule := PriceLimitFor(bar.Symbol)
+	if !rule.CanBuy(bar.Close, e.prevClose[bar.Symbol]) {
+		// 涨停封板，买不进
+		return
+	}
 	qty := signal.Quantity
 	if qty <= 0 {
 		qty = 100
@@ -197,6 +213,11 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 }
 
 func (e *CNEngine) processCNSellSignal(bar trading.OHLCVBar, signal *trading.Signal, portfolio *Portfolio, trades *[]TradeRecord) {
+	rule := PriceLimitFor(bar.Symbol)
+	if !rule.CanSell(bar.Close, e.prevClose[bar.Symbol]) {
+		// 跌停封板，卖不出
+		return
+	}
 	qty := signal.Quantity
 	heldQty := portfolio.Positions[bar.Symbol]
 	if qty > heldQty {

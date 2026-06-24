@@ -1,78 +1,73 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import VChart from 'vue-echarts'
+import { usePortfolioStore } from '@/stores/portfolio'
+import type { PositionDetail } from '@/stores/portfolio'
 
 defineProps<{
   panelId: string
   params?: Record<string, any>
 }>()
 
-// --- Mock data ---
+const store = usePortfolioStore()
 
-interface Position {
-  symbol: string
-  market: string
-  quantity: number
-  avgPrice: number
-  marketPrice: number
-  pnl: number
-  pnlPct: number
-  allocPct: number
-  marketValue: number
-}
+// --- Data (reactive via store) ---
 
-const positions = ref<Position[]>([
-  { symbol: 'AAPL', market: 'US', quantity: 100, avgPrice: 188.5, marketPrice: 195.3, pnl: 680, pnlPct: 3.61, allocPct: 26.7, marketValue: 19530 },
-  { symbol: '000001.SZ', market: 'CN', quantity: 1000, avgPrice: 12.5, marketPrice: 13.8, pnl: 1300, pnlPct: 10.40, allocPct: 18.8, marketValue: 13800 },
-  { symbol: 'BTCUSDT', market: 'CRYPTO', quantity: 0.15, avgPrice: 62000, marketPrice: 65000, pnl: 450, pnlPct: 4.84, allocPct: 13.3, marketValue: 9750 },
-])
+const positions = computed<PositionDetail[]>(() => store.positions ?? [])
 
-const kpi = ref({
-  total_value: 115300,
-  cash_balance: 42000,
-  market_value: 73300,
-  total_pnl: 5300,
-  total_pnl_pct: 4.82,
+const kpi = computed(() => {
+  const s = store.summary
+  if (!s) return null
+  return {
+    total_value: s.total_value,
+    cash_balance: s.cash_balance,
+    market_value: s.market_value,
+    total_pnl: s.total_pnl,
+    total_pnl_pct: s.total_pnl_pct,
+  }
 })
 
-const equityData = ref([
-  { date: 'Jan', equity: 100000 },
-  { date: 'Feb', equity: 102000 },
-  { date: 'Mar', equity: 105000 },
-  { date: 'Apr', equity: 103000 },
-  { date: 'May', equity: 110000 },
-  { date: 'Jun', equity: 115300 },
-])
+const equityData = computed(() => {
+  const curve = store.equityCurve
+  if (!curve || curve.length === 0) return []
+  return curve.map((p) => ({ date: p.date, equity: p.nav }))
+})
 
-const allocationData = ref([
-  { market: 'US', value: 52, color: '#388e3c' },
-  { market: 'CN', value: 25, color: '#d32f2f' },
-  { market: 'CRYPTO', value: 15, color: '#f57c00' },
-  { market: 'HK', value: 8, color: '#1976d2' },
-])
+const marketColors: Record<string, string> = {
+  US: '#388e3c',
+  CN: '#d32f2f',
+  CRYPTO: '#f57c00',
+  HK: '#1976d2',
+}
+let paletteIdx = 0
+const fallbackPalette = ['#388e3c', '#d32f2f', '#f57c00', '#1976d2', '#8e24aa', '#00838f']
 
-let refreshTimer: ReturnType<typeof setInterval> | null = null
-
-// --- setInterval 10s refresh placeholder ---
-function refreshMockData() {
-  // In production, this will call dataStore to fetch real portfolio data
-  const jitter = (v: number, r: number) => v + (Math.random() - 0.5) * r
-  kpi.value = {
-    total_value: Math.round(jitter(115300, 2000)),
-    cash_balance: Math.round(jitter(42000, 500)),
-    market_value: Math.round(jitter(73300, 1500)),
-    total_pnl: Math.round(jitter(5300, 300)),
-    total_pnl_pct: +(jitter(4.82, 0.3)).toFixed(2),
-  }
+function colorForMarket(market: string): string {
+  if (marketColors[market]) return marketColors[market]
+  return fallbackPalette[paletteIdx++ % fallbackPalette.length]
 }
 
-onMounted(() => {
-  refreshTimer = setInterval(refreshMockData, 10000)
+const allocationData = computed(() => {
+  paletteIdx = 0
+  const byMarket = store.allocation?.by_market
+  if (!byMarket) return []
+  return Object.entries(byMarket).map(([market, value]) => ({
+    market,
+    value,
+    color: colorForMarket(market),
+  }))
+})
+
+// --- Lifecycle ---
+
+onMounted(async () => {
+  store.startAutoRefresh()
+  store.fetchEquityCurve()
 })
 
 onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer)
+  store.stopAutoRefresh()
 })
 
 // --- Helpers ---
@@ -81,12 +76,11 @@ function fmt(n: number, dec = 2): string {
   return n.toFixed(dec)
 }
 
-// Currency symbols by market suffix. TODO: read base currency from user settings.
 function currencyForSymbol(symbol: string): string {
   if (symbol.endsWith('.SZ') || symbol.endsWith('.SH') || symbol.endsWith('.BJ')) return '¥'
   if (symbol.endsWith('.HK')) return 'HK$'
   if (symbol.includes('USDT') || symbol === 'BTC' || symbol === 'ETH') return 'USDT'
-  return '$' // US / default
+  return '$'
 }
 
 function fmtMoney(n: number, symbol?: string): string {
@@ -108,8 +102,7 @@ function marketClass(market: string): string {
   return 'market-badge market-' + market.toLowerCase()
 }
 
-function onPositionClick(pos: Position) {
-  // Navigate to PositionDetail panel — emit custom event or use router
+function onPositionClick(pos: PositionDetail) {
   console.log('[PortfolioSummary] navigate to PositionDetail:', pos.symbol)
 }
 
@@ -198,13 +191,13 @@ const pieChartOption = computed(() => ({
 // --- Positions table helpers ---
 
 const totalMarketValue = computed(() =>
-  positions.value.reduce((s, p) => s + p.marketValue, 0),
+  positions.value.reduce((s, p) => s + p.market_price * p.quantity, 0),
 )
 
-function positionAllocPct(pos: Position): string {
+function positionAllocPct(pos: PositionDetail): string {
   const total = totalMarketValue.value
   if (!total) return '0.0'
-  return ((pos.marketValue / total) * 100).toFixed(1)
+  return ((pos.market_price * pos.quantity / total) * 100).toFixed(1)
 }
 </script>
 
@@ -214,27 +207,29 @@ function positionAllocPct(pos: Position): string {
     <div class="kpi-row">
       <div class="kpi-card">
         <span class="kpi-label">Total Value</span>
-        <span class="kpi-value">{{ fmtMoney(kpi.total_value) }}</span>
+        <span class="kpi-value">{{ kpi ? fmtMoney(kpi.total_value) : '--' }}</span>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Cash Balance</span>
-        <span class="kpi-value">{{ fmtMoney(kpi.cash_balance) }}</span>
+        <span class="kpi-value">{{ kpi ? fmtMoney(kpi.cash_balance) : '--' }}</span>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Market Value</span>
-        <span class="kpi-value">{{ fmtMoney(kpi.market_value) }}</span>
+        <span class="kpi-value">{{ kpi ? fmtMoney(kpi.market_value) : '--' }}</span>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Total P&amp;L</span>
-        <span class="kpi-value" :class="pnlClass(kpi.total_pnl)">
+        <span v-if="kpi" class="kpi-value" :class="pnlClass(kpi.total_pnl)">
           {{ pnlSign(kpi.total_pnl) }}{{ fmtMoney(kpi.total_pnl) }}
         </span>
+        <span v-else class="kpi-value">--</span>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">P&amp;L %</span>
-        <span class="kpi-value" :class="pnlClass(kpi.total_pnl_pct)">
+        <span v-if="kpi" class="kpi-value" :class="pnlClass(kpi.total_pnl_pct)">
           {{ pnlSign(kpi.total_pnl_pct) }}{{ fmt(kpi.total_pnl_pct) }}%
         </span>
+        <span v-else class="kpi-value">--</span>
       </div>
     </div>
 
@@ -242,11 +237,13 @@ function positionAllocPct(pos: Position): string {
     <div class="charts-row">
       <div class="chart-box chart-equity">
         <h3 class="section-title">Equity Curve</h3>
-        <VChart class="chart-body" :option="equityChartOption" autoresize />
+        <VChart v-if="equityData.length > 0" class="chart-body" :option="equityChartOption" autoresize />
+        <div v-else class="chart-empty">--</div>
       </div>
       <div class="chart-box chart-pie">
         <h3 class="section-title">Allocation</h3>
-        <VChart class="chart-body" :option="pieChartOption" autoresize />
+        <VChart v-if="allocationData.length > 0" class="chart-body" :option="pieChartOption" autoresize />
+        <div v-else class="chart-empty">--</div>
       </div>
     </div>
 
@@ -277,15 +274,18 @@ function positionAllocPct(pos: Position): string {
               <td class="pos-symbol">{{ pos.symbol }}</td>
               <td><span :class="marketClass(pos.market)">{{ pos.market }}</span></td>
               <td class="num">{{ pos.quantity }}</td>
-              <td class="num">{{ pos.avgPrice.toFixed(2) }}</td>
-              <td class="num">{{ fmtMoney(pos.marketValue, pos.symbol) }}</td>
+              <td class="num">{{ pos.avg_price.toFixed(2) }}</td>
+              <td class="num">{{ fmtMoney(pos.market_price * pos.quantity, pos.symbol) }}</td>
               <td class="num" :class="pnlClass(pos.pnl)">
                 {{ pnlSign(pos.pnl) }}{{ fmtMoney(pos.pnl, pos.symbol) }}
               </td>
-              <td class="num" :class="pnlClass(pos.pnlPct)">
-                {{ pnlSign(pos.pnlPct) }}{{ fmt(pos.pnlPct) }}%
+              <td class="num" :class="pnlClass(pos.pnl_pct)">
+                {{ pnlSign(pos.pnl_pct) }}{{ fmt(pos.pnl_pct) }}%
               </td>
               <td class="num">{{ positionAllocPct(pos) }}%</td>
+            </tr>
+            <tr v-if="positions.length === 0">
+              <td colspan="8" class="empty-state-cell">--</td>
             </tr>
           </tbody>
         </table>
@@ -373,6 +373,16 @@ function positionAllocPct(pos: Position): string {
   min-height: 150px;
 }
 
+.chart-empty {
+  flex: 1;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
 /* --- Section Title --- */
 .section-title {
   font-size: var(--font-xs);
@@ -440,6 +450,12 @@ function positionAllocPct(pos: Position): string {
   font-weight: 600;
   font-size: var(--font-sm);
   color: var(--text);
+}
+
+.empty-state-cell {
+  text-align: center;
+  color: var(--muted);
+  padding: 24px;
 }
 
 .up { color: var(--up); }

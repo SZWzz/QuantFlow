@@ -20,15 +20,14 @@ class FactorService(factor_pb2_grpc.FactorServiceServicer):
     async def ComputeFactor(self, request, context):
         t0 = time.time()
         try:
-            # Validate factor name first (even without data)
-            from src.factor.registry import _compute_funcs
+            from src.factor.registry import _compute_funcs, is_cross_sectional
             if request.factor_name not in _compute_funcs:
                 return factor_pb2.ComputeFactorResponse(
                     factor_name=request.factor_name,
                     error=f"Unknown factor: {request.factor_name}",
                 )
 
-            # Decode Arrow IPC bytes → pandas DataFrame (if provided)
+            # Decode Arrow IPC bytes → pandas DataFrame
             if request.ohlcv_data:
                 reader = ipc.open_stream(request.ohlcv_data)
                 table = reader.read_all()
@@ -36,29 +35,47 @@ class FactorService(factor_pb2_grpc.FactorServiceServicer):
             else:
                 df = pd.DataFrame()
 
-            # Compute factor for each symbol
             results = []
-            for symbol in request.symbols:
-                # Filter or use as-is
-                if not df.empty and "symbol" in df.columns:
-                    symbol_df = df[df["symbol"] == symbol]
-                else:
-                    symbol_df = df
 
-                if symbol_df.empty:
-                    continue
+            if df.empty:
+                # No data — return empty results for each requested symbol
+                for symbol in request.symbols:
+                    results.append(factor_pb2.FactorResult(symbol=symbol))
+            elif is_cross_sectional(request.factor_name) and "symbol" in df.columns:
+                # P0-3 fix: cross-sectional factors need the FULL multi-symbol panel.
+                # Compute once on the complete DataFrame, then slice per symbol.
+                values = compute(request.factor_name, df, dict(request.params))
+                df_with_vals = df.copy()
+                df_with_vals["_factor_val"] = values.values
 
-                values = compute(request.factor_name, symbol_df, dict(request.params))
-
-                results.append(
-                    factor_pb2.FactorResult(
-                        symbol=symbol,
-                        dates=values.index.astype(str).tolist()
-                        if hasattr(values, "index")
-                        else [],
-                        values=[float(v) if not pd.isna(v) else float('nan') for v in values.tolist()],
+                for symbol in request.symbols:
+                    symbol_vals = df_with_vals[df_with_vals["symbol"] == symbol]["_factor_val"]
+                    results.append(
+                        factor_pb2.FactorResult(
+                            symbol=symbol,
+                            dates=df_with_vals[df_with_vals["symbol"] == symbol]["date"].astype(str).tolist()
+                            if "date" in df_with_vals.columns else [],
+                            values=[float(v) if not pd.isna(v) else float('nan') for v in symbol_vals.tolist()],
+                        )
                     )
-                )
+            else:
+                # Time-series factor: compute per symbol (original behavior)
+                for symbol in request.symbols:
+                    if "symbol" in df.columns:
+                        symbol_df = df[df["symbol"] == symbol]
+                    else:
+                        symbol_df = df
+                    if symbol_df.empty:
+                        continue
+                    values = compute(request.factor_name, symbol_df, dict(request.params))
+                    results.append(
+                        factor_pb2.FactorResult(
+                            symbol=symbol,
+                            dates=values.index.astype(str).tolist()
+                            if hasattr(values, "index") else [],
+                            values=[float(v) if not pd.isna(v) else float('nan') for v in values.tolist()],
+                        )
+                    )
 
             elapsed_ms = int((time.time() - t0) * 1000)
             return factor_pb2.ComputeFactorResponse(
@@ -86,30 +103,44 @@ class FactorService(factor_pb2_grpc.FactorServiceServicer):
 
         async def compute_one(factor_name):
             """Compute a single factor using the pre-decoded DataFrame."""
-            from src.factor.registry import _compute_funcs
+            from src.factor.registry import _compute_funcs, is_cross_sectional
             if factor_name not in _compute_funcs:
                 return factor_pb2.ComputeFactorResponse(
                     factor_name=factor_name,
                     error=f"Unknown factor: {factor_name}",
                 )
             results = []
-            for symbol in request.symbols:
-                if not df.empty and "symbol" in df.columns:
-                    symbol_df = df[df["symbol"] == symbol]
-                else:
-                    symbol_df = df
-                if symbol_df.empty:
-                    continue
-                values = compute(factor_name, symbol_df, dict(request.params))
-                results.append(
-                    factor_pb2.FactorResult(
-                        symbol=symbol,
-                        dates=values.index.astype(str).tolist()
-                        if hasattr(values, "index")
-                        else [],
-                        values=[float(v) if not pd.isna(v) else float('nan') for v in values.tolist()],
+
+            if df.empty:
+                for symbol in request.symbols:
+                    results.append(factor_pb2.FactorResult(symbol=symbol))
+            elif is_cross_sectional(factor_name) and "symbol" in df.columns:
+                # P0-3 fix: full panel for cross-sectional
+                values = compute(factor_name, df, dict(request.params))
+                df_with_vals = df.copy()
+                df_with_vals["_factor_val"] = values.values
+                for symbol in request.symbols:
+                    sub = df_with_vals[df_with_vals["symbol"] == symbol]
+                    results.append(
+                        factor_pb2.FactorResult(
+                            symbol=symbol,
+                            dates=sub["date"].astype(str).tolist() if "date" in sub.columns else [],
+                            values=[float(v) if not pd.isna(v) else float('nan') for v in sub["_factor_val"].tolist()],
+                        )
                     )
-                )
+            else:
+                for symbol in request.symbols:
+                    symbol_df = df[df["symbol"] == symbol] if "symbol" in df.columns else df
+                    if symbol_df.empty:
+                        continue
+                    values = compute(factor_name, symbol_df, dict(request.params))
+                    results.append(
+                        factor_pb2.FactorResult(
+                            symbol=symbol,
+                            dates=values.index.astype(str).tolist() if hasattr(values, "index") else [],
+                            values=[float(v) if not pd.isna(v) else float('nan') for v in values.tolist()],
+                        )
+                    )
             return factor_pb2.ComputeFactorResponse(
                 factor_name=factor_name,
                 results=results,

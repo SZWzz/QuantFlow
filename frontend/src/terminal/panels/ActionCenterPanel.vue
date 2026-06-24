@@ -1,139 +1,59 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { usePortfolioStore } from '@/stores/portfolio'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-// -- Event types --
-type EventType = 'stop-loss' | 'take-profit' | 'dividend' | 'split' | 'large-order'
+const store = usePortfolioStore()
 
-interface ActionEvent {
-  id: number
-  type: EventType
-  message: string
-  timestamp: string
-  needsApproval: boolean
+// -- Go Trade type --
+interface GoTrade {
+  ID: string; Symbol: string; Side: string; Quantity: number
+  Price: number; Timestamp: string; PnL: number
 }
 
-// -- Mock events (12 items, realistic symbols and prices) --
-const events = ref<ActionEvent[]>([
-  {
-    id: 1, type: 'stop-loss',
-    message: 'TSLA stop-loss at $185.00 (-8.2%)',
-    timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 2, type: 'take-profit',
-    message: 'AAPL take-profit at $210.50 (+15.3%)',
-    timestamp: new Date(Date.now() - 8 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 3, type: 'dividend',
-    message: '600519 分红 ¥21.91/股 除权日 2026-06-25',
-    timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 4, type: 'split',
-    message: 'NVDA 10:1 split effective 2026-06-20',
-    timestamp: new Date(Date.now() - 120 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 5, type: 'large-order',
-    message: 'Buy 5000 NVDA @ $148.32 (~$741,600) needs approval',
-    timestamp: new Date(Date.now() - 180 * 60000).toISOString(),
-    needsApproval: true,
-  },
-  {
-    id: 6, type: 'stop-loss',
-    message: 'GOOGL stop-loss at $155.00 (-5.1%)',
-    timestamp: new Date(Date.now() - 240 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 7, type: 'dividend',
-    message: '000858 分红 ¥3.20/股 除权日 2026-07-02',
-    timestamp: new Date(Date.now() - 360 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 8, type: 'take-profit',
-    message: 'META take-profit at $580.00 (+22.7%)',
-    timestamp: new Date(Date.now() - 480 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 9, type: 'large-order',
-    message: 'Sell 2000 300750 @ ¥210.00 (~¥420,000) needs approval',
-    timestamp: new Date(Date.now() - 600 * 60000).toISOString(),
-    needsApproval: true,
-  },
-  {
-    id: 10, type: 'split',
-    message: 'AMZN 20:1 split effective 2026-06-25',
-    timestamp: new Date(Date.now() - 720 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 11, type: 'stop-loss',
-    message: 'MSFT stop-loss at $390.00 (-4.7%)',
-    timestamp: new Date(Date.now() - 840 * 60000).toISOString(),
-    needsApproval: false,
-  },
-  {
-    id: 12, type: 'dividend',
-    message: 'AAPL dividend $0.25/share ex-date 2026-08-07',
-    timestamp: new Date(Date.now() - 960 * 60000).toISOString(),
-    needsApproval: false,
-  },
-])
+const DISPLAY_LIMIT = 12
+
+interface TradeEvent {
+  id: string
+  title: string
+  status: 'info'
+  time: string
+  detail: string
+}
+
+const events = ref<TradeEvent[]>([])
+
+onMounted(async () => {
+  try {
+    await store.fetchTrades()
+    const trades = (store.trades as unknown) as GoTrade[] | null
+    if (trades && trades.length > 0) {
+      events.value = trades.slice(0, DISPLAY_LIMIT).map((t, i) => ({
+        id: t.ID || `evt-${i}`,
+        title: `${t.Side || '--'} ${t.Symbol || '--'}`,
+        status: 'info' as const,
+        time: t.Timestamp || new Date().toISOString(),
+        detail: `${t.Quantity ?? 0}股 @ ${t.Price ?? 0}`,
+      }))
+    }
+  } catch (e) {
+    console.warn('[ActionCenter] fetch trades failed:', e)
+  }
+})
 
 // -- Sorted newest first --
 const sortedEvents = computed(() => {
   return [...events.value].sort((a, b) =>
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    new Date(b.time).getTime() - new Date(a.time).getTime()
   )
 })
 
-function dismissEvent(id: number) {
+function dismissEvent(id: string) {
   events.value = events.value.filter(e => e.id !== id)
 }
 
-function approveEvent(id: number) {
-  const ev = events.value.find(e => e.id === id)
-  if (ev) {
-    ev.needsApproval = false
-    ev.message = ev.message.replace('needs approval', 'APPROVED')
-  }
-}
-
 // -- Helpers --
-function eventIcon(type: EventType): string {
-  switch (type) {
-    case 'stop-loss':    return '🔴' // red circle
-    case 'take-profit':  return '🟡' // yellow circle
-    case 'dividend':     return '🔵' // blue circle
-    case 'split':        return '⚪'       // white circle
-    case 'large-order':  return '🟠' // orange circle
-  }
-}
-
-function eventLabel(type: EventType): string {
-  switch (type) {
-    case 'stop-loss':    return 'Stop-Loss Triggered'
-    case 'take-profit':  return 'Take-Profit Triggered'
-    case 'dividend':     return 'Dividend Announcement'
-    case 'split':        return 'Stock Split'
-    case 'large-order':  return 'Large Order Pending'
-  }
-}
-
-function borderClass(type: EventType): string {
-  return 'border-' + type
-}
-
 function formatTime(iso: string): string {
   const d = new Date(iso)
   const now = Date.now()
@@ -152,7 +72,7 @@ function formatTime(iso: string): string {
     <!-- Header -->
     <div class="ac-header">
       <span class="ac-title">Action Center</span>
-      <span class="ac-count">{{ events.length }} pending</span>
+      <span class="ac-count">{{ events.length }} events</span>
     </div>
 
     <!-- Event feed -->
@@ -160,32 +80,18 @@ function formatTime(iso: string): string {
       <div
         v-for="ev in sortedEvents"
         :key="ev.id"
-        :class="['event-card', borderClass(ev.type)]"
+        class="event-card border-info"
       >
         <div class="event-left">
-          <span class="event-icon">{{ eventIcon(ev.type) }}</span>
+          <span class="event-icon">&#9679;</span>
         </div>
         <div class="event-body">
           <div class="event-header">
-            <span class="event-type-label">{{ eventLabel(ev.type) }}</span>
-            <span class="event-time">{{ formatTime(ev.timestamp) }}</span>
+            <span class="event-type-label">{{ ev.title }}</span>
+            <span class="event-time">{{ formatTime(ev.time) }}</span>
           </div>
-          <p class="event-message">{{ ev.message }}</p>
+          <p class="event-message">{{ ev.detail }}</p>
           <div class="event-actions">
-            <button
-              v-if="ev.needsApproval"
-              class="evt-btn approve-btn"
-              @click="approveEvent(ev.id)"
-            >
-              Approve
-            </button>
-            <button
-              v-else-if="ev.type === 'large-order'"
-              class="evt-btn confirmed-btn"
-              disabled
-            >
-              Confirmed
-            </button>
             <button class="evt-btn dismiss-btn" @click="dismissEvent(ev.id)">
               Dismiss
             </button>
@@ -197,8 +103,8 @@ function formatTime(iso: string): string {
     <!-- Empty state -->
     <div v-else class="empty-state">
       <p class="empty-icon">&#10003;</p>
-      <p class="empty-text">No pending actions</p>
-      <p class="empty-sub">All clear</p>
+      <p class="empty-text">No recent trades</p>
+      <p class="empty-sub">Trades will appear here</p>
     </div>
   </div>
 </template>
@@ -256,11 +162,7 @@ function formatTime(iso: string): string {
   border-left: 3px solid;
 }
 
-.border-stop-loss   { border-left-color: #ef4444; }
-.border-take-profit { border-left-color: #f59e0b; }
-.border-dividend    { border-left-color: #3b82f6; }
-.border-split       { border-left-color: #6b7280; }
-.border-large-order { border-left-color: #f97316; }
+.border-info { border-left-color: #3b82f6; }
 
 .event-left {
   flex-shrink: 0;
@@ -269,6 +171,7 @@ function formatTime(iso: string): string {
 
 .event-icon {
   font-size: 14px;
+  color: #3b82f6;
 }
 
 .event-body {
@@ -318,20 +221,6 @@ function formatTime(iso: string): string {
   border: none;
 }
 .evt-btn:hover { opacity: 0.8; }
-
-.approve-btn {
-  background: #0a3d1a;
-  color: var(--up);
-  border: 1px solid var(--up);
-}
-
-.confirmed-btn {
-  background: #0a3d1a;
-  color: var(--up);
-  border: 1px solid var(--up);
-  opacity: 0.5;
-  cursor: default;
-}
 
 .dismiss-btn {
   background: transparent;
