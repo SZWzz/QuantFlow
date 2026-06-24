@@ -4,6 +4,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+### 修复（前端 Mock 数据专项）
+
+- [Frontend] 13 个面板从硬编码 mock 数据切换到真实 Go API：行情（GetQuote）、K 线（FetchOHLCV）、盘口（GetQuote bid/ask）、组合（GetPortfolioSummary/GetTrades/GetOrders）、加密（GetCryptoOverview）、相关矩阵（GetCorrelationMatrix）、收益率分布（GetReturnDistribution）、波动率期限结构（GetVolatilitySurface）、再平衡（store 真数据）
+- [Frontend] MarketOverview 指数/板块数据对接 GetMarketOverview 真实 API
+- [Engine] 新增 7 个 Go 后端 API：GetMarketOverview、GetMarketSnapshot、GetCryptoOverview、GetCorrelationMatrix、GetReturnDistribution、GetVolatilitySurface、GetRebalanceSuggestions
+- [Engine] 新增 internal/portfolio/analytics.go：相关性矩阵、收益分布直方图、波动率表面计算
+
 ---
 
 ## [2026.6.24] - 2026-06-24
