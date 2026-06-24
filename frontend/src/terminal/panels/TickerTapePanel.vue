@@ -10,35 +10,26 @@ interface TickerItem {
   changePct: number
 }
 
+const SYMBOLS = ['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276']
+
 const items = ref<TickerItem[]>([])
 
-const mockStocks: TickerItem[] = [
-  { symbol: '600519', name: '贵州茅台', price: 1850.50, changePct: 2.30 },
-  { symbol: '000858', name: '五粮液', price: 156.20, changePct: -0.80 },
-  { symbol: '300750', name: '宁德时代', price: 212.35, changePct: 3.15 },
-  { symbol: '601318', name: '中国平安', price: 48.76, changePct: 0.55 },
-  { symbol: '000001', name: '平安银行', price: 12.48, changePct: -1.20 },
-  { symbol: '600036', name: '招商银行', price: 38.92, changePct: 1.05 },
-  { symbol: '002594', name: '比亚迪', price: 287.40, changePct: 4.20 },
-  { symbol: '600030', name: '中信证券', price: 22.56, changePct: -0.35 },
-  { symbol: '000725', name: '京东方A', price: 4.82, changePct: 0.62 },
-  { symbol: '300059', name: '东方财富', price: 18.35, changePct: 2.78 },
-  { symbol: '600900', name: '长江电力', price: 28.15, changePct: -0.18 },
-  { symbol: '688981', name: '中芯国际', price: 56.30, changePct: 5.60 },
-  { symbol: '601899', name: '紫金矿业', price: 16.88, changePct: 1.92 },
-  { symbol: '002415', name: '海康威视', price: 34.21, changePct: -2.10 },
-  { symbol: '600809', name: '山西汾酒', price: 268.50, changePct: 0.88 },
-  { symbol: '603259', name: '药明康德', price: 62.75, changePct: -3.40 },
-  { symbol: '000333', name: '美的集团', price: 68.42, changePct: 1.15 },
-  { symbol: '002230', name: '科大讯飞', price: 52.18, changePct: 3.85 },
-  { symbol: '601012', name: '隆基绿能', price: 18.64, changePct: -1.55 },
-  { symbol: '600276', name: '恒瑞医药', price: 45.30, changePct: 0.42 },
-  { symbol: '002460', name: '赣锋锂业', price: 32.90, changePct: 6.20 },
-  { symbol: '300274', name: '阳光电源', price: 89.45, changePct: 2.55 },
-]
-
-onMounted(() => {
-  items.value = mockStocks
+onMounted(async () => {
+  const results: TickerItem[] = []
+  for (const sym of SYMBOLS) {
+    try {
+      const [snapshot, _source] = await (window as any).go.main.App.GetQuote({}, 'CN', sym)
+      results.push({
+        symbol: snapshot.symbol ?? sym,
+        name: snapshot.name ?? sym,
+        price: snapshot.last ?? 0,
+        changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
+      })
+    } catch {
+      // skip failed symbols
+    }
+  }
+  items.value = results
 })
 </script>
 

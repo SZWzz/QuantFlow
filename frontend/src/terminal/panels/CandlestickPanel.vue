@@ -16,44 +16,43 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const hasEcharts = computed(() => !!(echarts && VChart))
 
-const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const interval = ref(props.params?.interval || '1d')
+const ohlcvData = ref<(string | number)[][]>([])
+const loading = ref(false)
+
+async function loadOHLCV(sym: string) {
+  loading.value = true
+  try {
+    const end = Math.floor(Date.now() / 1000)
+    const start = end - 90 * 86400
+    const [bars, _source] = await (window as any).go.main.App.FetchOHLCV({}, 'CN', sym, '1d', start, end)
+    ohlcvData.value = (bars as any[]).map((b: any) => {
+      const date = typeof b.date === 'string' ? b.date : new Date(b.date || b.Date).toISOString().slice(0, 10)
+      return [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0]
+    })
+  } catch {
+    ohlcvData.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 // Subscribe to symbol context via link group
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
   if (newSymbol && newSymbol !== symbol.value) {
     symbol.value = newSymbol
-    ohlcvData.value = generateMockData(90)
+    loadOHLCV(newSymbol)
   }
 })
 
 // Regenerate data on interval change
 watch(interval, () => {
-  ohlcvData.value = generateMockData(interval.value === '1d' ? 90 : 60)
+  loadOHLCV(symbol.value)
 })
 
-// Generate mock OHLCV data
-function generateMockData(rows: number) {
-  const data: (string | number)[][] = []
-  let close = 195
-  const baseDate = new Date('2026-04-01')
-  for (let i = 0; i < rows; i++) {
-    const change = (Math.random() - 0.5) * 4
-    const open = close
-    close = close + change
-    const high = Math.max(open, close) + Math.random() * 2
-    const low = Math.min(open, close) - Math.random() * 2
-    const volume = Math.floor(Math.random() * 50000000) + 10000000
-    const date = new Date(baseDate)
-    date.setDate(date.getDate() + i)
-    data.push([date.toISOString().slice(0, 10), +open.toFixed(2), +close.toFixed(2), +low.toFixed(2), +high.toFixed(2), volume])
-  }
-  return data
-}
-
-const ohlcvData = ref(generateMockData(90))
-
 const option = computed(() => {
+  if (ohlcvData.value.length === 0) return {}
   const dates = ohlcvData.value.map((d: any) => d[0])
   const kdata = ohlcvData.value.map((d: any) => [d[1], d[2], d[3], d[4]]) // [open, close, low, high]
   const vdata = ohlcvData.value.map((d: any, i: number) => {
@@ -98,8 +97,8 @@ onMounted(() => {
   const groupSym = ctx.getGroupSymbol(pg.groupId)
   if (groupSym && groupSym !== symbol.value) {
     symbol.value = groupSym
-    ohlcvData.value = generateMockData(90)
   }
+  loadOHLCV(symbol.value)
 })
 </script>
 
@@ -114,8 +113,9 @@ onMounted(() => {
       </div>
     </div>
     <div class="chart-body">
-      <VChart v-if="hasEcharts" :key="symbol" :option="option" autoresize class="kline-chart" />
-      <div v-else class="chart-fallback">Chart loading...</div>
+      <div v-if="loading" class="chart-fallback">加载中...</div>
+      <VChart v-else-if="hasEcharts && ohlcvData.length > 0" :key="symbol" :option="option" autoresize class="kline-chart" />
+      <div v-else class="chart-fallback">--</div>
     </div>
   </div>
 </template>
