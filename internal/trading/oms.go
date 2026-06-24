@@ -118,7 +118,28 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 		fillQty = remainingQty
 	}
 
-	// Update average fill price
+	// P0-1 fix: for sell orders, clip fillQty to available position BEFORE updating
+	// the order book. Previously the order book (FilledQty/FilledAvgPrice) was updated
+	// with the unclipped fillQty, then fillQty was clipped inside the position block,
+	// causing order.FilledQty > actual position change and P&L ledger mismatch.
+	pos, ok := o.positions[order.Symbol]
+	if order.Side == SideSell {
+		if !ok || pos.Quantity <= 0 {
+			return nil, fmt.Errorf("fill %s: no position to sell for %s", order.ID, order.Symbol)
+		}
+		if fillQty > pos.Quantity {
+			fillQty = pos.Quantity
+		}
+		if fillQty <= 0 {
+			return nil, fmt.Errorf("fill %s: no position to sell for %s", order.ID, order.Symbol)
+		}
+	}
+	if !ok {
+		pos = &Position{Symbol: order.Symbol}
+		o.positions[order.Symbol] = pos
+	}
+
+	// Update average fill price (fillQty is now the final, clipped value)
 	totalValue := order.FilledAvgPrice*order.FilledQty + fillPrice*fillQty
 	order.FilledQty += fillQty
 	order.FilledAvgPrice = totalValue / order.FilledQty
@@ -142,13 +163,7 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 	}
 	o.trades = append(o.trades, trade)
 
-	// Update position
-	pos, ok := o.positions[order.Symbol]
-	if !ok {
-		pos = &Position{Symbol: order.Symbol}
-		o.positions[order.Symbol] = pos
-	}
-
+	// Update position (fillQty already clipped for sells above)
 	if order.Side == SideBuy {
 		totalPosValue := pos.AvgPrice*pos.Quantity + fillPrice*fillQty
 		pos.Quantity += fillQty
@@ -156,13 +171,6 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 			pos.AvgPrice = totalPosValue / pos.Quantity
 		}
 	} else {
-		// Validate we have enough shares to sell (prevent negative positions).
-		if fillQty > pos.Quantity {
-			fillQty = pos.Quantity
-		}
-		if fillQty <= 0 {
-			return nil, fmt.Errorf("fill %s: no position to sell for %s", order.ID, order.Symbol)
-		}
 		// Realize P&L for the sold portion.
 		pos.PnL = (fillPrice - pos.AvgPrice) * fillQty
 		if pos.AvgPrice > 0 {
