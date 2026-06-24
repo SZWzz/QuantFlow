@@ -6,6 +6,24 @@
 
 ---
 
+## [2026.6.24] - 2026-06-24
+
+### 修复
+
+- [Engine] OMS FillOrder 卖出裁剪顺序：fillQty 在更新订单账本（FilledQty/FilledAvgPrice）前裁剪到持仓量，保证 order.FilledQty == Trade.Quantity == 持仓变动 (P0-1)
+- [Engine] CNEngine 补齐 A 股涨跌停限制：主板 ±10%、创业板/科创板 ±20%、北交所 ±30%，涨停封板买不进、跌停封板卖不出；覆盖信号卖出、止损/止盈、买入三条路径 (P0-2)
+- [Python] 横截面因子经标准 RPC 路径失效：zscore/rank 现在在完整多标的 panel 上计算后按 symbol 切片，不再逐 symbol 过滤后退化为 0/0.5 (P0-3)
+- [Python] ML 树模型训练无验证集：XGBoost/LightGBM 加入 80/20 时序安全切分（shuffle=False 防未来泄漏），同时返回 train_* 与 val_* 指标；小样本(<50) fallback 到 train-set 评估并 warning (P0-4)
+
+### 已知偏差（延后至 Phase B）
+
+- [Engine] ST/*ST ±5% 涨跌停：无法从 symbol 代码识别 ST 状态，需 Config.PriceLimitOverrides，Phase B 实现
+- [Python] ML 模型注册表 SQLite 持久化 + model_id 返回：spec P0-4 要求，Phase A 仅实现 train/val split，模型元数据落库延后
+- [Engine] 分钟频涨跌停的 prevClose 语义：当前每个 bar 更新 prevClose，日频正确，分钟频需配合 P1-1 (T+1 非日频) 在 Phase B 统一处理
+- [Python] 横截面因子 RPC 路径集成测试：Phase A 以 compute() 直调测试验证因子数学，gRPC 端到端测试 Phase B 补齐
+
+---
+
 ## [2026.6.19] - 2026-06-19
 
 ### 新增

@@ -7,8 +7,9 @@ import "strings"
 //   - Main board (60xxxx, 00xxxx): ±10%
 //   - ChiNext / 创业板 (300xxx, 301xxx): ±20%
 //   - STAR / 科创板 (688xxx, 689xxx): ±20%
-//   - ST / *ST stocks: ±5%
-//   - BSE / 北交所 (8xxxxx, 4xxxxx): ±30% (reserved, not enforced in v1)
+//   - ST / *ST stocks: ±5% (needs Config.PriceLimitOverrides — ST status cannot
+//     be inferred from symbol code alone; deferred to Phase B)
+//   - BSE / 北交所 (8xxxxx, 4xxxxx): ±30% (enforced)
 //
 // 首日上市、增发等无前收盘价的情形不限制（返回 0 表示不限）。
 type PriceLimitRule struct {
