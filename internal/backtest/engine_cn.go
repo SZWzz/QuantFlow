@@ -78,6 +78,12 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		// 1. Check stop-loss/take-profit (only on available shares)
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && availableQty > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) || e.risk.CheckTakeProfit(pos, bar.Close) {
+				// P0-2: 跌停封板时止损/止盈单无法成交（A 股无买盘）。
+				// 所有卖出路径都必须经过涨跌停校验，含止损/止盈。
+				rule := PriceLimitFor(bar.Symbol)
+				if !rule.CanSell(bar.Close, e.prevClose[bar.Symbol]) {
+					goto recordEquityCN
+				}
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, availableQty, 0)
 				if err == nil {
 					e.oms.FillOrder(order.ID, availableQty, bar.Close)
