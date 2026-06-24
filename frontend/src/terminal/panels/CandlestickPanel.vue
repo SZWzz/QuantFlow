@@ -26,7 +26,8 @@ async function loadOHLCV(sym: string) {
   try {
     const end = Math.floor(Date.now() / 1000)
     const start = end - 90 * 86400
-    const [bars, _source] = await (window as any).go.main.App.FetchOHLCV('CN', sym, '1d', start, end)
+    const result = await (window as any).go.main.App.FetchOHLCV('CN', sym, '1d', start, end)
+    const bars = Array.isArray(result) ? result[0] : result
     ohlcvData.value = (bars as any[]).map((b: any) => {
       const date = typeof b.date === 'string' ? b.date : new Date(b.date || b.Date).toISOString().slice(0, 10)
       return [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0]

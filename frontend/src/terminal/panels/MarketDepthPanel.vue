@@ -47,7 +47,8 @@ async function refresh() {
   const app = (window as any).go?.main?.App
   if (!app) return
   try {
-    const [snapshot, source] = await app.GetQuote('CN', symbol.value)
+    const result = await app.GetQuote('CN', symbol.value)
+    const snapshot = Array.isArray(result) ? result[0] : result
     if (!snapshot) return
     name.value = snapshot.name || symbol.value
     lastPrice.value = snapshot.last || 0

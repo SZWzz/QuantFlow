@@ -18,7 +18,8 @@ onMounted(async () => {
   const results: TickerItem[] = []
   for (const sym of SYMBOLS) {
     try {
-      const [snapshot, _source] = await (window as any).go.main.App.GetQuote('CN', sym)
+      const result = await (window as any).go.main.App.GetQuote('CN', sym)
+      const snapshot = Array.isArray(result) ? result[0] : result
       results.push({
         symbol: snapshot.symbol ?? sym,
         name: snapshot.name ?? sym,
