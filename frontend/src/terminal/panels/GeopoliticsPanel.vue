@@ -212,9 +212,9 @@ function formatTime(ts: number): string {
   <div class="geopolitics-panel" :data-panel-id="panelId">
     <!-- Header -->
     <div class="panel-header">
-      <h3>&#127758; 地缘政治风险</h3>
+      <h3>{{ $t('geo.title') }}</h3>
       <div class="header-actions">
-        <button class="btn-sm" @click="loadRisks()">&#128260; 刷新</button>
+        <button class="btn-sm" @click="loadRisks()">&#128260; {{ $t('common.refresh') }}</button>
       </div>
     </div>
 
@@ -233,8 +233,8 @@ function formatTime(ts: number): string {
     <div class="content-area">
       <!-- Card grid -->
       <div class="card-grid" :class="{ 'with-detail': selectedTopic }">
-        <div v-if="loading" class="empty-state">加载中...</div>
-        <div v-else-if="filteredRisks.length === 0" class="empty-state">暂无数据</div>
+        <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
+        <div v-else-if="filteredRisks.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
         <div
           v-for="risk in filteredRisks" :key="risk.id"
           :class="['topic-card', { selected: selectedTopic?.id === risk.id }]"
@@ -248,7 +248,7 @@ function formatTime(ts: number): string {
           </div>
           <div class="card-body">
             <div class="card-metric">
-              <span class="metric-label">情绪分数</span>
+              <span class="metric-label">{{ $t('geo.sentiment_score') }}</span>
               <span class="metric-value" :style="{ color: toneColor(risk.tone) }">
                 {{ risk.tone.toFixed(1) }}
               </span>
@@ -257,13 +257,13 @@ function formatTime(ts: number): string {
               </span>
             </div>
             <div class="card-metric">
-              <span class="metric-label">情绪变化</span>
+              <span class="metric-label">{{ $t('geo.sentiment_change') }}</span>
               <span :class="['metric-value', risk.tone_change >= 0 ? 'text-green' : 'text-red']">
                 {{ formatToneChange(risk.tone_change) }}
               </span>
             </div>
             <div class="card-metric">
-              <span class="metric-label">讨论量变化</span>
+              <span class="metric-label">{{ $t('geo.discussion_change') }}</span>
               <span :class="['metric-value', risk.vol_change >= 0 ? 'text-red' : 'text-green']">
                 {{ formatVolChange(risk.vol_change) }}
               </span>
@@ -289,19 +289,19 @@ function formatTime(ts: number): string {
         <!-- Risk summary -->
         <div class="detail-summary">
           <div class="summary-card">
-            <span class="summary-label">风险等级</span>
+            <span class="summary-label">{{ $t('geo.risk_level') }}</span>
             <span :class="['risk-badge', riskBadgeClass(selectedTopic.risk_level)]">
               {{ riskIcon(selectedTopic.risk_level) }} {{ riskBadgeMap[selectedTopic.risk_level] }}
             </span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">情绪分数</span>
+            <span class="summary-label">{{ $t('geo.sentiment_score') }}</span>
             <span class="summary-value" :style="{ color: toneColor(selectedTopic.tone) }">
               {{ selectedTopic.tone.toFixed(1) }} ({{ toneLabel(selectedTopic.tone) }})
             </span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">讨论量变化</span>
+            <span class="summary-label">{{ $t('geo.discussion_change') }}</span>
             <span :class="selectedTopic.vol_change >= 0 ? 'text-red' : 'text-green'">
               {{ formatVolChange(selectedTopic.vol_change) }}
             </span>
@@ -310,14 +310,14 @@ function formatTime(ts: number): string {
 
         <!-- Tone trend chart -->
         <div class="chart-container">
-          <div v-if="detailLoading" class="empty-state small">加载中...</div>
+          <div v-if="detailLoading" class="empty-state small">{{ $t('common.loading') }}</div>
           <VChart v-else-if="detailTones.length > 0" :option="toneChartOption" style="height: 220px" autoresize />
-          <div v-else class="empty-state small">暂无情绪数据</div>
+          <div v-else class="empty-state small">{{ $t('geo.no_sentiment') }}</div>
         </div>
 
         <!-- Associated assets -->
         <div class="associated-section">
-          <span class="section-label">关联资产</span>
+          <span class="section-label">{{ $t('geo.linked_assets') }}</span>
           <span class="asset-tag big">{{ selectedTopic.associated }}</span>
         </div>
       </div>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import * as echarts from 'echarts'
 import VChart from 'vue-echarts'
 
@@ -16,8 +18,8 @@ const fmt = (n: number, dec = 2) => n.toFixed(dec)
 const ddChartOption = computed(() => ({
   backgroundColor: 'transparent',
   grid: { top: 10, right: 20, bottom: 30, left: 50 },
-  xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'], axisLabel: { color: '#5a6380', fontSize: 10 } },
-  yAxis: { type: 'value', axisLabel: { color: '#5a6380', fontSize: 10, formatter: '{value}%' } },
+  xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'], axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
+  yAxis: { type: 'value', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: '{value}%' } },
   series: [{
     type: 'line', data: [0, -2.1, -8.7, -5.3, -2.0, 0],
     smooth: true, lineStyle: { color: '#f85149', width: 2 },
@@ -40,10 +42,10 @@ const garchVolatility = ref<number[]>([0.012, 0.015, 0.013, 0.011, 0.014, 0.018,
 
 const volChartOption = computed(() => ({
   backgroundColor: 'transparent',
-  title: { text: `GARCH(${garchP.value},${garchQ.value}) Volatility`, textStyle: { color: '#c9d1d9', fontSize: 12 }, left: 'center' },
+  title: { text: `GARCH(${garchP.value},${garchQ.value}) Volatility`, textStyle: { color: 'var(--color-text-primary)', fontSize: 12 }, left: 'center' },
   grid: { top: 35, right: 20, bottom: 25, left: 50 },
-  xAxis: { type: 'category', data: garchVolatility.value.map((_, i) => i + 1), axisLabel: { color: '#5a6380', fontSize: 9 } },
-  yAxis: { type: 'value', axisLabel: { color: '#5a6380', fontSize: 9, formatter: '{value}%' } },
+  xAxis: { type: 'category', data: garchVolatility.value.map((_, i) => i + 1), axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 9 } },
+  yAxis: { type: 'value', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 9, formatter: '{value}%' } },
   series: [{
     type: 'line',
     data: garchVolatility.value.map(v => +(v * 100).toFixed(2)),
@@ -62,16 +64,17 @@ const volChartOption = computed(() => ({
 const garchModels = ['garch', 'gjr_garch', 'egarch'] as const
 
 const kpiCards = [
-  { label: '风险价值(95%)', value: `$${fmt(metrics.value.var_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
-  { label: 'C风险价值(95%)', value: `$${fmt(metrics.value.cvar_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
-  { label: '最大回撤', value: `${fmt(metrics.value.max_drawdown)}%`, color: metrics.value.max_drawdown < -10 ? '#f85149' : '#f0883e' },
-  { label: '夏普比率', value: fmt(metrics.value.sharpe_ratio), color: metrics.value.sharpe_ratio > 1 ? '#3fb950' : '#f0883e' },
-  { label: '索提诺比率', value: fmt(metrics.value.sortino_ratio), color: metrics.value.sortino_ratio > 1 ? '#3fb950' : '#f0883e' },
-  { label: '年化波动率', value: `${fmt(metrics.value.annual_volatility)}%`, color: '#5a6380' },
+  { label: t('risk.var_95'), value: `$${fmt(metrics.value.var_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
+  { label: t('risk.cvar_95'), value: `$${fmt(metrics.value.cvar_95).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, color: '#f0883e' },
+  { label: t('risk.max_drawdown'), value: `${fmt(metrics.value.max_drawdown)}%`, color: metrics.value.max_drawdown < -10 ? '#f85149' : '#f0883e' },
+  { label: t('risk.sharpe'), value: fmt(metrics.value.sharpe_ratio), color: metrics.value.sharpe_ratio > 1 ? '#3fb950' : '#f0883e' },
+  { label: t('risk.sortino'), value: fmt(metrics.value.sortino_ratio), color: metrics.value.sortino_ratio > 1 ? '#3fb950' : '#f0883e' },
+  { label: t('risk.annual_vol'), value: `${fmt(metrics.value.annual_volatility)}%`, color: 'var(--color-text-tertiary)' },
 ]
 </script>
 
 <template>
+    <div class="placeholder-banner">⚠ 占位面板 — 数据未连接后端</div>
   <div class="risk-dashboard-panel">
     <div class="kpi-grid">
       <div v-for="card in kpiCards" :key="card.label" class="kpi-card" :style="{ borderLeft: `3px solid ${card.color}` }">
@@ -80,7 +83,7 @@ const kpiCards = [
       </div>
     </div>
     <div class="chart-section">
-      <div class="chart-title">回撤曲线</div>
+      <div class="chart-title">{{ t('risk.drawdown_chart') }}</div>
       <VChart :option="ddChartOption" autoresize style="height:200px" />
     </div>
     <div v-if="metrics.max_drawdown < 0" class="dd-info">
@@ -89,7 +92,7 @@ const kpiCards = [
 
     <!-- Phase 10.4: GARCH Volatility Section -->
     <div class="section-header">
-      <span class="section-label">GARCH Volatility Model</span>
+      <span class="section-label">{{ t('risk.garch_model') }}</span>
       <select v-model="garchModel" class="garch-select">
         <option v-for="m in garchModels" :key="m" :value="m">{{ m === 'gjr_garch' ? 'GJR-GARCH' : m.toUpperCase() }}</option>
       </select>
@@ -105,6 +108,7 @@ const kpiCards = [
 </template>
 
 <style scoped>
+.placeholder-banner { background: #f59e0b; color: #000; padding: 6px 10px; text-align: center; font-size: 12px; font-weight: 600; }
 .risk-dashboard-panel { padding: 12px; background: var(--bg); height: 100%; overflow-y: auto; font-variant-numeric: tabular-nums; }
 .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing); margin-bottom: 12px; }
 .kpi-card { padding: 12px; background: var(--card); border-radius: 4px; }

@@ -109,12 +109,12 @@ function onExportData() {
         </div>
 
         <div class="form-group">
-          <label class="form-label">涨跌颜色</label>
+          <label class="form-label">{{ t('settings.color_scheme') }}</label>
           <div class="btn-group">
             <button :class="['option-btn', { active: settingsStore.settings.colorScheme === 'cn' }]"
-              @click="settingsStore.update('colorScheme', 'cn'); themeStore.applyColorScheme('cn')">A股 (红涨绿跌)</button>
+              @click="settingsStore.update('colorScheme', 'cn'); themeStore.applyColorScheme('cn')">{{ t('settings.cn_colors') }}</button>
             <button :class="['option-btn', { active: settingsStore.settings.colorScheme === 'us' }]"
-              @click="settingsStore.update('colorScheme', 'us'); themeStore.applyColorScheme('us')">美股 (绿涨红跌)</button>
+              @click="settingsStore.update('colorScheme', 'us'); themeStore.applyColorScheme('us')">{{ t('settings.us_colors') }}</button>
           </div>
         </div>
       </section>
@@ -193,11 +193,11 @@ function onExportData() {
 
       <!-- API Keys -->
       <section v-if="activeSection === 'api'" class="section">
-        <h3 class="section-title">API 密钥</h3>
+        <h3 class="section-title">{{ t('settings.api_keys') }}</h3>
         <p class="form-hint" style="margin-bottom: 14px">配置第三方数据源 API 密钥，保存后写入 config.yaml 并在下次启动生效。</p>
 
         <div class="form-group">
-          <label class="form-label">FRED API Key <span class="api-source">(美联储经济数据)</span></label>
+          <label class="form-label">{{ t('settings.fred_key') }} <span class="api-source">(美联储经济数据)</span></label>
           <input type="password" class="form-input"
             :value="settingsStore.settings.fredApiKey"
             placeholder="从 https://fred.stlouisfed.org/docs/api/api_key.html 申请"
@@ -205,7 +205,7 @@ function onExportData() {
         </div>
 
         <div class="form-group">
-          <label class="form-label">Finnhub API Key <span class="api-source">(美股行情)</span></label>
+          <label class="form-label">{{ t('settings.finnhub_key') }} <span class="api-source">(美股行情)</span></label>
           <input type="password" class="form-input"
             :value="settingsStore.settings.finnhubApiKey"
             placeholder="从 https://finnhub.io/register 免费注册"
@@ -213,7 +213,7 @@ function onExportData() {
         </div>
 
         <div class="form-group">
-          <label class="form-label">爱问财 API Key <span class="api-source">(研报/公告搜索)</span></label>
+          <label class="form-label">{{ t('settings.iwencai_key') }} <span class="api-source">(研报/公告搜索)</span></label>
           <input type="password" class="form-input"
             :value="settingsStore.settings.iwencaiApiKey"
             placeholder="从 https://www.iwencai.com/ 申请"
@@ -377,7 +377,7 @@ function onExportData() {
 .settings-panel {
   display: flex;
   height: 100%;
-  background: #1a1a2e;
+  background: var(--color-bg-panel);
 }
 
 /* Left nav */
@@ -387,7 +387,7 @@ function onExportData() {
   display: flex;
   flex-direction: column;
   padding: 8px 0;
-  border-right: 1px solid #0f2137;
+  border-right: 1px solid var(--color-bg-input);
   overflow-y: auto;
 }
 
@@ -396,7 +396,7 @@ function onExportData() {
   background: none;
   border: none;
   border-left: 3px solid transparent;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   font-size: 12px;
   text-align: left;
   cursor: pointer;
@@ -404,12 +404,12 @@ function onExportData() {
 }
 
 .nav-btn:hover {
-  background: #16213e;
+  background: var(--color-bg-subtle);
   color: #c0c8d8;
 }
 
 .nav-btn.active {
-  background: #16213e;
+  background: var(--color-bg-subtle);
   color: #58a6ff;
   border-left-color: #58a6ff;
 }
@@ -428,10 +428,10 @@ function onExportData() {
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--color-text-primary);
   margin: 0 0 16px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #0f2137;
+  border-bottom: 1px solid var(--color-bg-input);
 }
 
 /* Form elements */
@@ -442,17 +442,17 @@ function onExportData() {
 .form-label {
   display: block;
   font-size: 11px;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   margin-bottom: 6px;
 }
 
 .form-input {
   width: 100%;
   padding: 7px 10px;
-  background: #0f2137;
-  border: 1px solid #1a3a5c;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-accent-soft);
   border-radius: 4px;
-  color: #e0e0e0;
+  color: var(--color-text-primary);
   font-size: 12px;
   outline: none;
   transition: border-color 0.15s;
@@ -464,7 +464,7 @@ function onExportData() {
 }
 
 .form-input[readonly] {
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   cursor: default;
 }
 
@@ -475,10 +475,10 @@ function onExportData() {
 .form-select {
   width: 100%;
   padding: 7px 10px;
-  background: #0f2137;
-  border: 1px solid #1a3a5c;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-accent-soft);
   border-radius: 4px;
-  color: #e0e0e0;
+  color: var(--color-text-primary);
   font-size: 12px;
   outline: none;
   cursor: pointer;
@@ -498,12 +498,12 @@ function onExportData() {
 
 .form-value {
   font-size: 13px;
-  color: #e0e0e0;
+  color: var(--color-text-primary);
 }
 
 .form-hint {
   font-size: 10px;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   margin-top: 6px;
 }
 
@@ -515,29 +515,29 @@ function onExportData() {
 
 .option-btn {
   padding: 5px 14px;
-  background: #0f2137;
-  border: 1px solid #1a3a5c;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-accent-soft);
   border-radius: 4px;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   font-size: 11px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .option-btn:hover {
-  background: #16213e;
+  background: var(--color-bg-subtle);
   color: #c0c8d8;
 }
 
 .option-btn.active {
-  background: #1a3a5c;
+  background: var(--color-accent-soft);
   color: #58a6ff;
   border-color: #58a6ff;
 }
 
 .action-btn {
   padding: 7px 18px;
-  background: #1a3a5c;
+  background: var(--color-accent-soft);
   border: 1px solid #2a5a8c;
   border-radius: 4px;
   color: #58a6ff;
@@ -553,14 +553,14 @@ function onExportData() {
 /* Shortcut key */
 .shortcut-key {
   font-size: 13px;
-  color: #e0e0e0;
+  color: var(--color-text-primary);
 }
 
 .shortcut-key kbd {
   display: inline-block;
   padding: 2px 8px;
-  background: #0f2137;
-  border: 1px solid #1a3a5c;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-accent-soft);
   border-radius: 3px;
   font-family: inherit;
   font-size: 12px;
@@ -584,6 +584,6 @@ function onExportData() {
   text-decoration: underline;
 }
 
-.api-source { color: #5a6380; font-size: 10px; font-weight: normal; }
+.api-source { color: var(--color-text-tertiary); font-size: 10px; font-weight: normal; }
 .save-msg { color: #22c55e; font-size: 12px; margin-left: 10px; }
 </style>

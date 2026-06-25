@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import * as echarts from 'echarts'
 import VChart from 'vue-echarts'
 import { usePortfolioStore } from '@/stores/portfolio'
@@ -115,7 +117,7 @@ const equityChartOption = computed(() => ({
     type: 'category' as const,
     data: equityData.value.map((p) => p.date),
     axisLine: { lineStyle: { color: '#30363d' } },
-    axisLabel: { color: '#5a6380', fontSize: 10 },
+    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
     axisTick: { show: false },
   },
   yAxis: {
@@ -123,11 +125,11 @@ const equityChartOption = computed(() => ({
     axisLine: { show: false },
     axisTick: { show: false },
     axisLabel: {
-      color: '#5a6380',
+      color: 'var(--color-text-tertiary)',
       fontSize: 10,
       formatter: (v: number) => (v / 1000).toFixed(0) + 'k',
     },
-    splitLine: { lineStyle: { color: '#0f2137' } },
+    splitLine: { lineStyle: { color: 'var(--color-bg-input)' } },
   },
   series: [{
     type: 'line',
@@ -144,9 +146,9 @@ const equityChartOption = computed(() => ({
   }],
   tooltip: {
     trigger: 'axis' as const,
-    backgroundColor: '#16213e',
+    backgroundColor: 'var(--color-bg-subtle)',
     borderColor: '#30363d',
-    textStyle: { color: '#e0e0e0', fontSize: 12 },
+    textStyle: { color: 'var(--color-text-primary)', fontSize: 12 },
     formatter: (params: any) => {
       const p = params[0]
       return `${p.name}<br/>Equity: <b>$${(p.value as number).toLocaleString()}</b>`
@@ -160,22 +162,22 @@ const pieChartOption = computed(() => ({
   backgroundColor: 'transparent',
   tooltip: {
     trigger: 'item' as const,
-    backgroundColor: '#16213e',
+    backgroundColor: 'var(--color-bg-subtle)',
     borderColor: '#30363d',
-    textStyle: { color: '#e0e0e0', fontSize: 12 },
+    textStyle: { color: 'var(--color-text-primary)', fontSize: 12 },
     formatter: (params: any) =>
-      `<b>${params.name}</b><br/>配置分布: ${params.value}%`,
+      `<b>${params.name}</b><br/>${t('portfolio.allocation')}: ${params.value}%`,
   },
   series: [{
     type: 'pie',
     radius: ['45%', '75%'],
     center: ['50%', '50%'],
     avoidLabelOverlap: false,
-    itemStyle: { borderRadius: 2, borderColor: '#1a1a2e', borderWidth: 2 },
+    itemStyle: { borderRadius: 2, borderColor: 'var(--color-bg-panel)', borderWidth: 2 },
     label: {
       show: true,
       position: 'outside' as const,
-      color: '#5a6380',
+      color: 'var(--color-text-tertiary)',
       fontSize: 10,
       formatter: '{b}\n{d}%',
     },
@@ -206,26 +208,26 @@ function positionAllocPct(pos: PositionDetail): string {
     <!-- KPI Cards -->
     <div class="kpi-row">
       <div class="kpi-card">
-        <span class="kpi-label">总价值</span>
+        <span class="kpi-label">{{ t('portfolio.total_value') }}</span>
         <span class="kpi-value">{{ kpi ? fmtMoney(kpi.total_value) : '--' }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">现金余额</span>
+        <span class="kpi-label">{{ t('portfolio.cash') }}</span>
         <span class="kpi-value">{{ kpi ? fmtMoney(kpi.cash_balance) : '--' }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">市值</span>
+        <span class="kpi-label">{{ t('portfolio.market_value') }}</span>
         <span class="kpi-value">{{ kpi ? fmtMoney(kpi.market_value) : '--' }}</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">Total P&amp;L</span>
+        <span class="kpi-label">{{ t('portfolio.total_pnl') }}</span>
         <span v-if="kpi" class="kpi-value" :class="pnlClass(kpi.total_pnl)">
           {{ pnlSign(kpi.total_pnl) }}{{ fmtMoney(kpi.total_pnl) }}
         </span>
         <span v-else class="kpi-value">--</span>
       </div>
       <div class="kpi-card">
-        <span class="kpi-label">P&amp;L %</span>
+        <span class="kpi-label">{{ t('portfolio.pnl_pct') }}</span>
         <span v-if="kpi" class="kpi-value" :class="pnlClass(kpi.total_pnl_pct)">
           {{ pnlSign(kpi.total_pnl_pct) }}{{ fmt(kpi.total_pnl_pct) }}%
         </span>
@@ -236,12 +238,12 @@ function positionAllocPct(pos: PositionDetail): string {
     <!-- Charts Row -->
     <div class="charts-row">
       <div class="chart-box chart-equity">
-        <h3 class="section-title">净值曲线</h3>
+        <h3 class="section-title">{{ t('portfolio.equity_curve') }}</h3>
         <VChart v-if="equityData.length > 0" class="chart-body" :option="equityChartOption" autoresize />
         <div v-else class="chart-empty">--</div>
       </div>
       <div class="chart-box chart-pie">
-        <h3 class="section-title">配置分布</h3>
+        <h3 class="section-title">{{ t('portfolio.allocation') }}</h3>
         <VChart v-if="allocationData.length > 0" class="chart-body" :option="pieChartOption" autoresize />
         <div v-else class="chart-empty">--</div>
       </div>
@@ -249,19 +251,19 @@ function positionAllocPct(pos: PositionDetail): string {
 
     <!-- 持仓 Table -->
     <div class="positions-section">
-      <h3 class="section-title">持仓</h3>
+      <h3 class="section-title">{{ t('portfolio.positions') }}</h3>
       <div class="table-wrap">
         <table class="pos-table">
           <thead>
             <tr>
-              <th>Symbol</th>
-              <th>Market</th>
-              <th class="num">Qty</th>
-              <th class="num">Avg$</th>
-              <th class="num">Mkt$</th>
-              <th class="num">P&amp;L</th>
+              <th>{{ t('portfolio.symbol') }}</th>
+              <th>{{ t('portfolio.market') }}</th>
+              <th class="num">{{ t('portfolio.quantity') }}</th>
+              <th class="num">{{ t('portfolio.avg_price') }}</th>
+              <th class="num">{{ t('portfolio.market_price') }}</th>
+              <th class="num">{{ t('portfolio.pnl') }}</th>
               <th class="num">%</th>
-              <th class="num">Alloc%</th>
+              <th class="num">{{ t('portfolio.alloc') }}</th>
             </tr>
           </thead>
           <tbody>

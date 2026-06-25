@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
 import type { DockLayoutTree, DockTabState } from '@/terminal/DockView/types'
+import { getPanelMeta } from '@/terminal/panels/registry'
 
 export interface PanelState {
   instanceId: string
@@ -26,7 +27,7 @@ export const useTerminalStore = defineStore('terminal', () => {
   const layout = reactive<DockLayoutTree>({
     id: 'root',
     type: 'tab',
-    tabs: [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }],
+    tabs: [{ id: 'welcome', panelId: 'welcome', label: '欢迎', icon: '🏠' }],
     activeTab: 'welcome',
   })
 
@@ -40,7 +41,7 @@ export const useTerminalStore = defineStore('terminal', () => {
     const panel: PanelState = {
       instanceId,
       panelId,
-      label: panelId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      label: getPanelMeta(panelId)?.label || panelId,
       icon: '📊',
       params,
     }

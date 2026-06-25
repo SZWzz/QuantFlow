@@ -37,7 +37,7 @@ onMounted(async () => {
 
 <template>
   <div class="ticker-tape-panel">
-    <span class="tape-title">滚动报价</span>
+    <span class="tape-title">{{ $t('watchlist.ticker_tape') }}</span>
     <div class="tape-track-container">
       <div class="tape-track">
         <span v-for="(item, idx) in items" :key="idx" class="tape-item">
@@ -69,7 +69,7 @@ onMounted(async () => {
   align-items: center;
   color: var(--color-text, #e5e7eb);
   background: #0f172a;
-  border-bottom: 1px solid var(--color-border, #374151);
+  border-bottom: 1px solid var(--color-border, var(--color-border-strong));
   overflow: hidden;
   padding: 0 8px;
   gap: 12px;
@@ -77,7 +77,7 @@ onMounted(async () => {
 .tape-title {
   font-size: 11px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   white-space: nowrap;
   flex-shrink: 0;
   margin-right: 4px;
@@ -108,7 +108,7 @@ onMounted(async () => {
   color: #e5e7eb;
 }
 .tape-name {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   font-size: 11px;
 }
 .tape-price {

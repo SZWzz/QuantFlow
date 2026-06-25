@@ -39,8 +39,8 @@ const chartOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     grid: { top: 20, right: 20, bottom: 30, left: 50 },
-    xAxis: { type: 'category', data: windows, name: '窗口 (天)', axisLabel: { color: '#6b7280', fontSize: 10 } },
-    yAxis: { type: 'value', name: '波动率 (%)', axisLabel: { color: '#6b7280', fontSize: 10 } },
+    xAxis: { type: 'category', data: windows, name: '窗口 (天)', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
+    yAxis: { type: 'value', name: '波动率 (%)', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
     series: [{ type: 'line', data: vols, smooth: true, lineStyle: { color: '#534ab7', width: 2 }, areaStyle: { color: 'rgba(83,74,183,0.15)' }, itemStyle: { color: '#534ab7' } }],
     tooltip: { trigger: 'axis' },
   }
@@ -49,7 +49,7 @@ const chartOption = computed(() => {
 
 <template>
   <div class="surface-chart-panel">
-    <div class="panel-header"><h3>波动率期限结构</h3><button class="refresh-btn" @click="loadSurface">&#x21bb;</button></div>
+    <div class="panel-header"><h3>{{ $t('misc.volatility_surface') }}</h3><button class="refresh-btn" @click="loadSurface">&#x21bb;</button></div>
     <div class="surface-content">
       <VChart v-if="hasEcharts && surfaceData.length" :option="chartOption" autoresize class="surface-chart" />
       <div v-else class="no-data">{{ surfaceData.length === 0 ? '加载中或暂无数据' : '' }}</div>
@@ -58,11 +58,11 @@ const chartOption = computed(() => {
 </template>
 
 <style scoped>
-.surface-chart-panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, #111827); }
+.surface-chart-panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.refresh-btn { padding: 4px 10px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; cursor: pointer; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; }
 .surface-content { flex: 1; min-height: 0; }
 .surface-chart { width: 100%; height: 100%; }
-.no-data { color: #6b7280; padding: 20px; text-align: center; }
+.no-data { color: var(--color-text-tertiary); padding: 20px; text-align: center; }
 </style>

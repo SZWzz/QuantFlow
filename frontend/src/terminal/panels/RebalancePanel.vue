@@ -44,7 +44,7 @@ const sortedMarketAllocation = computed(() => {
   const byMarket = currentAllocation.value.by_market
   return marketOrder
     .filter((m) => byMarket[m] !== undefined && byMarket[m] > 0)
-    .map((m) => ({ name: m, pct: byMarket[m], color: marketColors[m] || '#6b7280' }))
+    .map((m) => ({ name: m, pct: byMarket[m], color: marketColors[m] || 'var(--color-text-tertiary)' }))
 })
 
 const sortedSectorAllocation = computed(() => {
@@ -129,8 +129,8 @@ const donutOption = computed(() => {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item' as const,
-      backgroundColor: '#1f2937',
-      borderColor: '#374151',
+      backgroundColor: 'var(--color-bg-elevated)',
+      borderColor: 'var(--color-border-strong)',
       textStyle: { color: '#e5e7eb', fontSize: 11 },
       formatter: '{b}: {c}%',
     },
@@ -139,9 +139,9 @@ const donutOption = computed(() => {
       radius: ['45%', '72%'],
       center: ['50%', '50%'],
       avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 2, borderColor: '#111827', borderWidth: 2 },
-      label: { show: true, position: 'outside' as const, color: '#9ca3af', fontSize: 9, formatter: '{b}\n{d}%' },
-      labelLine: { lineStyle: { color: '#374151' } },
+      itemStyle: { borderRadius: 2, borderColor: 'var(--color-bg-panel)', borderWidth: 2 },
+      label: { show: true, position: 'outside' as const, color: 'var(--color-text-secondary)', fontSize: 9, formatter: '{b}\n{d}%' },
+      labelLine: { lineStyle: { color: 'var(--color-border-strong)' } },
       data,
     }],
   }
@@ -245,7 +245,7 @@ onMounted(async () => {
       <div class="section-header">
         <span class="section-label">目标配置</span>
         <span class="weight-summary" :class="{ 'weight-warn': Math.abs(totalTargetWeight - 100) > 0.5 }">
-          Total: {{ totalTargetWeight.toFixed(1) }}%
+          {{ $t('common.total') }}: {{ totalTargetWeight.toFixed(1) }}%
           <span v-if="Math.abs(totalTargetWeight - 100) > 0.5" class="warn-text"> (应为 100%)</span>
         </span>
       </div>
@@ -253,9 +253,9 @@ onMounted(async () => {
       <table class="target-table">
         <thead>
           <tr>
-            <th>Asset / Market</th>
+            <th>{{ $t('misc.asset_market') }}</th>
             <th class="num">Target Weight (%)</th>
-            <th class="action-col">Actions</th>
+            <th class="action-col">{{ $t('common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -279,12 +279,12 @@ onMounted(async () => {
               />
             </td>
             <td class="action-col">
-              <button class="btn-delete" @click="removeTargetRow(row.id)">删除</button>
+              <button class="btn-delete" @click="removeTargetRow(row.id)">{{ $t('common.delete') }}</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <button class="btn-add" @click="addTargetRow">+ 添加</button>
+      <button class="btn-add" @click="addTargetRow">{{ $t('trade.add_row') }}</button>
     </div>
 
     <!-- Section C: 交易清单 -->
@@ -292,7 +292,7 @@ onMounted(async () => {
       <div class="section-header">
         <span class="section-label">交易清单</span>
         <span class="trade-summary">
-          总价值: {{ fmtMoney(totalPortfolioValue) }}
+          {{ $t('portfolio.total_value') }}: {{ fmtMoney(totalPortfolioValue) }}
         </span>
       </div>
 
@@ -300,13 +300,13 @@ onMounted(async () => {
         <table class="trade-table">
           <thead>
             <tr>
-              <th>Symbol</th>
-              <th>Market</th>
+              <th>{{ $t('portfolio.symbol') }}</th>
+              <th>{{ $t('portfolio.market') }}</th>
               <th class="num">Curr. Wt</th>
               <th class="num">Targ. Wt</th>
-              <th class="num">删除ta</th>
-              <th class="action-col">Action</th>
-              <th class="num">Shares</th>
+              <th class="num">{{ $t('common.change') }}</th>
+              <th class="action-col">{{ $t('common.actions') }}</th>
+              <th class="num">{{ $t('portfolio.quantity') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -338,7 +338,7 @@ onMounted(async () => {
       </div>
 
       <button class="btn-generate" @click="generateOrders" :disabled="tradeList.length === 0">
-        生成订单
+        {{ $t('trade.place_order') }}
       </button>
     </div>
   </div>
@@ -349,7 +349,7 @@ onMounted(async () => {
   height: 100%;
   overflow-y: auto;
   padding: 12px;
-  background: #111827;
+  background: var(--color-bg-panel);
   color: #e5e7eb;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -361,12 +361,12 @@ onMounted(async () => {
   color: #f9fafb;
   margin: 0 0 10px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .section {
   background: #1a1f2e;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   padding: 10px;
   margin-bottom: 10px;
@@ -383,7 +383,7 @@ onMounted(async () => {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
@@ -404,7 +404,7 @@ onMounted(async () => {
 
 .sub-label {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   margin-bottom: 6px;
@@ -428,10 +428,10 @@ onMounted(async () => {
 .alloc-bar-track {
   flex: 1;
   height: 12px;
-  background: #1f2937;
+  background: var(--color-bg-elevated);
   border-radius: 3px;
   overflow: hidden;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border-strong);
 }
 
 .alloc-bar-fill {
@@ -452,7 +452,7 @@ onMounted(async () => {
 /* --- Section B: Target Table --- */
 .weight-summary {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
 }
 
 .weight-summary.weight-warn {
@@ -474,10 +474,10 @@ onMounted(async () => {
   text-align: left;
   padding: 5px 6px;
   font-size: 10px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-weight: 500;
   text-transform: uppercase;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .target-table th.num,
@@ -487,7 +487,7 @@ onMounted(async () => {
 
 .target-table td {
   padding: 4px 6px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid var(--color-bg-elevated);
 }
 
 .target-table td.num {
@@ -499,8 +499,8 @@ onMounted(async () => {
 }
 
 .target-input {
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   color: #e5e7eb;
   border-radius: 4px;
   padding: 4px 8px;
@@ -526,7 +526,7 @@ onMounted(async () => {
 
 .btn-delete {
   background: transparent;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border-strong);
   color: #ef4444;
   padding: 3px 8px;
   border-radius: 4px;
@@ -541,8 +541,8 @@ onMounted(async () => {
 
 .btn-add {
   background: transparent;
-  border: 1px dashed #374151;
-  color: #9ca3af;
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text-secondary);
   padding: 5px 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -559,7 +559,7 @@ onMounted(async () => {
 /* --- Section C: 交易清单 --- */
 .trade-summary {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
 }
 
 .table-wrap {
@@ -577,10 +577,10 @@ onMounted(async () => {
   text-align: left;
   padding: 5px 8px;
   font-size: 10px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-weight: 500;
   text-transform: uppercase;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
   white-space: nowrap;
 }
 
@@ -594,7 +594,7 @@ onMounted(async () => {
 
 .trade-table td {
   padding: 5px 8px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid var(--color-bg-elevated);
   white-space: nowrap;
 }
 
@@ -643,7 +643,7 @@ onMounted(async () => {
 .empty-state {
   text-align: center;
   padding: 16px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-size: 12px;
   font-style: italic;
 }
@@ -666,8 +666,8 @@ onMounted(async () => {
 }
 
 .btn-generate:disabled {
-  background: #374151;
-  color: #6b7280;
+  background: var(--color-border-strong);
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
 }
 </style>

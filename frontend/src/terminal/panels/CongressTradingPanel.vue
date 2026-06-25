@@ -31,8 +31,8 @@ onMounted(() => {
   store.fetchCongressTrades()
 })
 
-function set党派Filter(p: string) { partyFilter.value = p }
-function set议院Filter(c: string) { chamberFilter.value = c }
+function setPartyFilter(p: string) { partyFilter.value = p }
+function setChamberFilter(c: string) { chamberFilter.value = c }
 
 function refresh() { store.fetchCongressTrades() }
 
@@ -46,7 +46,7 @@ function amountColor(amount: string): string {
 <template>
   <div class="panel">
     <div class="panel-header">
-      <h3>Congress Trading</h3>
+      <h3>{{ $t('research.congress') }}</h3>
       <div class="header-controls">
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>
       </div>
@@ -55,23 +55,23 @@ function amountColor(amount: string): string {
     <!-- Filters -->
     <div class="filter-bar">
       <div class="filter-group">
-        <span class="filter-label">党派</span>
+        <span class="filter-label">{{ $t('research.party') }}</span>
         <div class="filter-buttons">
           <button
             v-for="p in parties" :key="p"
             :class="['filter-btn', { active: partyFilter === p }]"
-            @click="set党派Filter(p)"
-          >{{ p }}</button>
+            @click="setPartyFilter(p)"
+          >{{ p === 'All' ? $t('common.all') : p }}</button>
         </div>
       </div>
       <div class="filter-group">
-        <span class="filter-label">议院</span>
+        <span class="filter-label">{{ $t('research.chamber') }}</span>
         <div class="filter-buttons">
           <button
             v-for="c in chambers" :key="c"
             :class="['filter-btn', { active: chamberFilter === c }]"
-            @click="set议院Filter(c)"
-          >{{ c }}</button>
+            @click="setChamberFilter(c)"
+          >{{ c === 'All' ? $t('common.all') : c }}</button>
         </div>
       </div>
     </div>
@@ -87,13 +87,13 @@ function amountColor(amount: string): string {
       <table v-if="filteredTrades.length > 0" class="congress-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>议院</th>
-            <th>党派</th>
-            <th>Symbol</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Date</th>
+            <th>{{ $t('common.name') }}</th>
+            <th>{{ $t('research.chamber') }}</th>
+            <th>{{ $t('research.party') }}</th>
+            <th>{{ $t('quote.symbol') }}</th>
+            <th>{{ $t('common.type') }}</th>
+            <th>{{ $t('common.amount') }}</th>
+            <th>{{ $t('common.date') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -112,45 +112,45 @@ function amountColor(amount: string): string {
           </tr>
         </tbody>
       </table>
-      <p v-else class="no-data">无匹配筛选条件的交易</p>
+      <p v-else class="no-data">{{ $t('research.congress_no_match') }}</p>
     </div>
 
     <div v-else class="empty-state">
-      <p>加载国会议员交易...</p>
+      <p>{{ $t('research.congress_loading') }}</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, #111827); }
+.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
 .filter-bar { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 6px; }
-.filter-label { font-size: 11px; color: #9ca3af; font-weight: 500; text-transform: uppercase; }
+.filter-label { font-size: 11px; color: var(--color-text-secondary); font-weight: 500; text-transform: uppercase; }
 .filter-buttons { display: flex; gap: 2px; }
-.filter-btn { padding: 3px 10px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #9ca3af; cursor: pointer; font-size: 11px; }
+.filter-btn { padding: 3px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-secondary); cursor: pointer; font-size: 11px; }
 .filter-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
-.summary-bar { display: flex; justify-content: space-between; padding: 6px 10px; margin-bottom: 10px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; font-size: 11px; color: #9ca3af; }
+.summary-bar { display: flex; justify-content: space-between; padding: 6px 10px; margin-bottom: 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); font-size: 11px; color: var(--color-text-secondary); }
 .panel-content { flex: 1; overflow-y: auto; }
 .congress-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.congress-table th { text-align: left; padding: 6px 8px; color: #9ca3af; border-bottom: 1px solid #374151; font-weight: 500; white-space: nowrap; }
-.congress-table td { padding: 6px 8px; border-bottom: 1px solid #1f2937; }
+.congress-table th { text-align: left; padding: 6px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); font-weight: 500; white-space: nowrap; }
+.congress-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
 .name-cell { font-weight: 500; }
 .symbol-cell { font-weight: 600; color: #60a5fa; }
 .party-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
 .party-badge.democrat { background: #1e3a5f; color: #93c5fd; }
 .party-badge.republican { background: #5f1e1e; color: #fca5a5; }
-.party-badge.independent { background: #374151; color: #d1d5db; }
+.party-badge.independent { background: var(--color-border-strong); color: #d1d5db; }
 .type-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .type-badge.buy { background: #14532d; color: #22c55e; }
 .type-badge.sell { background: #7f1d1d; color: #ef4444; }
 .amount-cell { font-variant-numeric: tabular-nums; font-weight: 500; }
-.date-cell { color: #9ca3af; }
-.no-data { color: #6b7280; font-size: 13px; text-align: center; padding: 20px; }
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 13px; }
+.date-cell { color: var(--color-text-secondary); }
+.no-data { color: var(--color-text-tertiary); font-size: 13px; text-align: center; padding: 20px; }
+.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

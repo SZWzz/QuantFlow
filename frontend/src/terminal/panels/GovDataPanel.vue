@@ -1,9 +1,12 @@
 <!-- frontend/src/terminal/panels/GovDataPanel.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import VChart from 'vue-echarts'
 import { detectMarket } from '@/lib/wails'
 import 'echarts'
+
+const { t } = useI18n()
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -172,17 +175,17 @@ const chartOption = computed(() => {
       lineStyle: {
         color: selectedSignal.value?.signal === 'bullish'
           ? '#16a34a' : selectedSignal.value?.signal === 'bearish'
-          ? '#dc2626' : '#9ca3af',
+          ? '#dc2626' : 'var(--color-text-secondary)',
         width: 2
       },
       itemStyle: {
         color: selectedSignal.value?.signal === 'bullish'
           ? '#16a34a' : selectedSignal.value?.signal === 'bearish'
-          ? '#dc2626' : '#9ca3af'
+          ? '#dc2626' : 'var(--color-text-secondary)'
       },
       markLine: {
         silent: true,
-        data: [{ type: 'average', name: '均值' }],
+        data: [{ type: 'average', name: t('misc.mean') }],
         lineStyle: { color: '#f59e0b', type: 'dashed' }
       },
       showSymbol: false
@@ -238,12 +241,12 @@ function changeClass(c: number): string {
   <div class="govdata-panel" :data-panel-id="panelId">
     <!-- Header -->
     <div class="panel-header">
-      <h3>📈 宏观指标 (FRED)</h3>
+      <h3>{{ $t('macro.fred_source') }}</h3>
       <div class="header-summary">
         <span class="summary-badge bullish" v-if="signalCounts.bullish > 0">🟢 {{ signalCounts.bullish }} 看涨</span>
         <span class="summary-badge bearish" v-if="signalCounts.bearish > 0">🔴 {{ signalCounts.bearish }} 看跌</span>
         <span class="summary-badge neutral" v-if="signalCounts.neutral > 0">⚪ {{ signalCounts.neutral }} 中性</span>
-        <button class="btn-sm" @click="loadSignals()">🔄 刷新</button>
+        <button class="btn-sm" @click="loadSignals()">🔄 {{ $t('common.refresh') }}</button>
       </div>
     </div>
 
@@ -262,8 +265,8 @@ function changeClass(c: number): string {
     <div class="content-area">
       <!-- Indicator cards grid -->
       <div class="indicator-grid" :class="{ 'with-detail': selectedSignal }">
-        <div v-if="loading" class="empty-state">加载中...</div>
-        <div v-else-if="filteredSignals.length === 0" class="empty-state">暂无数据</div>
+        <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
+        <div v-else-if="filteredSignals.length === 0" class="empty-state">{{ $t('macro.no_data') }}</div>
         <div
           v-for="signal in filteredSignals"
           :key="signal.indicator_id"
@@ -304,23 +307,23 @@ function changeClass(c: number): string {
         <!-- Signal info -->
         <div class="detail-info">
           <div class="info-row">
-            <span class="info-label">最新值</span>
+            <span class="info-label">{{ $t('macro.latest_value') }}</span>
             <span class="info-value">{{ formatValue(selectedSignal.latest_value, selectedSignal.unit) }}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">变化</span>
+            <span class="info-label">{{ $t('common.change') }}</span>
             <span :class="['info-value', changeClass(selectedSignal.change)]">
               {{ directionIcon(selectedSignal.direction) }} {{ formatChange(selectedSignal.change) }}
             </span>
           </div>
           <div class="info-row">
-            <span class="info-label">信号</span>
+            <span class="info-label">{{ $t('macro.signal') }}</span>
             <span :class="['info-value', signalClass(selectedSignal.signal)]">
               {{ signalEmoji(selectedSignal.signal) }} {{ signalLabel(selectedSignal.signal) }}
             </span>
           </div>
           <div class="info-row">
-            <span class="info-label">单位</span>
+            <span class="info-label">{{ $t('macro.unit') }}</span>
             <span class="info-value">{{ selectedSignal.unit }}</span>
           </div>
         </div>
@@ -329,16 +332,16 @@ function changeClass(c: number): string {
         <div class="chart-container" v-if="indicatorData.length > 0 && !chartLoading">
           <VChart :option="chartOption" style="height: 250px" autoresize />
         </div>
-        <div v-else-if="chartLoading" class="empty-state small">加载图表中...</div>
-        <div v-else class="empty-state small">暂无历史数据</div>
+        <div v-else-if="chartLoading" class="empty-state small">{{ $t('macro.loading_chart') }}</div>
+        <div v-else class="empty-state small">{{ $t('macro.no_history') }}</div>
 
         <!-- Trend summary -->
         <div class="trend-summary" v-if="selectedSignal.direction !== 'flat'">
           <span :class="['trend-text', changeClass(selectedSignal.change)]">
             {{ selectedSignal.direction === 'up' ? '📈 上升趋势' : '📉 下降趋势' }}
           </span>
-          <span v-if="selectedSignal.signal === 'bullish'">— 对市场偏正面</span>
-          <span v-else-if="selectedSignal.signal === 'bearish'">— 对市场偏负面</span>
+          <span v-if="selectedSignal.signal === 'bullish'">{{ $t('macro.positive_signal') }}</span>
+          <span v-else-if="selectedSignal.signal === 'bearish'">{{ $t('macro.negative_signal') }}</span>
         </div>
       </div>
     </div>

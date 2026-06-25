@@ -76,7 +76,7 @@ function fmtMoney(n: number): string {
     <!-- Filter Bar -->
     <div class="filter-bar">
       <select v-model="statusFilter" class="filter-select">
-        <option value="">全部状态</option>
+        <option value="">{{ $t('trade.all_status') }}</option>
         <option v-for="s in statusOptions.filter(Boolean)" :key="s" :value="s">
           {{ statusLabel(s) }}
         </option>
@@ -85,7 +85,7 @@ function fmtMoney(n: number): string {
         v-model="symbolSearch"
         type="text"
         class="filter-input"
-        placeholder="搜索代码..."
+        :placeholder="$t('common.search') + '...'"
       />
     </div>
 
@@ -94,15 +94,15 @@ function fmtMoney(n: number): string {
       <table>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Order ID</th>
-            <th>Symbol</th>
-            <th>Side</th>
-            <th>Type</th>
-            <th class="num">Qty</th>
-            <th class="num">Price</th>
-            <th class="num">Filled%</th>
-            <th>Status</th>
+            <th>{{ $t('common.time') }}</th>
+            <th>{{ $t('trade.order_id') }}</th>
+            <th>{{ $t('quote.symbol') }}</th>
+            <th>{{ $t('trade.side') }}</th>
+            <th>{{ $t('common.type') }}</th>
+            <th class="num">{{ $t('trade.quantity') }}</th>
+            <th class="num">{{ $t('common.price') }}</th>
+            <th class="num">{{ $t('trade.filled_pct') }}</th>
+            <th>{{ $t('common.status') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -112,7 +112,7 @@ function fmtMoney(n: number): string {
             <td class="muted">{{ o.order_id }}</td>
             <td class="symbol">{{ o.symbol }}</td>
             <td :class="o.side === 'buy' ? 'up' : 'down'">
-              {{ o.side === 'buy' ? 'Buy' : 'Sell' }}
+              {{ o.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}
             </td>
             <td>{{ o.type }}</td>
             <td class="num">{{ o.quantity.toLocaleString() }}</td>
@@ -127,12 +127,12 @@ function fmtMoney(n: number): string {
                 class="cancel-btn"
                 @click="cancelOrder(o.order_id)"
               >
-                取消
+                {{ $t('trade.cancel_order') }}
               </button>
             </td>
           </tr>
           <tr v-if="filteredOrders.length === 0">
-            <td colspan="10" class="empty">无匹配订单</td>
+            <td colspan="10" class="empty">{{ $t('trade.no_orders') }}</td>
           </tr>
         </tbody>
       </table>
@@ -141,15 +141,15 @@ function fmtMoney(n: number): string {
     <!-- Stats Footer -->
     <div class="stats-footer">
       <div class="stat-item">
-        <span class="stat-label">今日订单</span>
+        <span class="stat-label">{{ $t('trade.today_orders') }}</span>
         <span class="stat-value">{{ stats.total }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">成交率</span>
+        <span class="stat-label">{{ $t('trade.filled_pct') }}</span>
         <span class="stat-value">{{ stats.fillRate }}%</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">总成交额</span>
+        <span class="stat-label">{{ $t('trade.total_value') }}</span>
         <span class="stat-value">{{ fmtMoney(stats.totalValue) }}</span>
       </div>
     </div>

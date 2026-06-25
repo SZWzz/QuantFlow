@@ -25,6 +25,24 @@
 - [行情] 财报数据为空：mootdx `client.finance()` 返回 pinyin 字段名（`jinglirun` / `zhuyingshouru`），Go 侧原用中文字段名查询全部 miss。新增 pinyin→中文映射 + EPS/ROE 自动推算
 - [行情] 分时图无数据：mootdx `client.minute()` 返回 `price/vol/volume` 三列，rename `vol`→`volume` 产生重复列名导致 `float(Series)` 异常。修复：先 drop 原 `volume` 再 rename
 - [行情] 分时图时间轴缺失午休跳空：之前线性映射 index→time 未跳过 11:30-13:00 午休段，导致下午标签错位。修复：`idx ≥ 120` 自动补 90 分钟偏移
+- [前端] 5 个假数据面板接入真实后端：PositionPanel（→ GetPositions）、NotifyPanel（→ useNotifyStore）、NewsPanel（→ 新增 GetNews 绑定）、BrokerStatusPanel（→ 新增 GetBrokerStatuses 绑定）、SchedulePanel（→ 新增 CRUD 绑定），移除全部硬编码 mock 数据
+- [前端] i18n 国际化全覆盖：zh.ts 扩展至 ~350 key（18 domain），50 个面板全部从硬编码字符串迁移到 `$t()`，en.ts 补齐完整英文翻译，语言切换后全局生效
+- [Python] 分时图 stale sidecar：打包运行后 `StartSidecar` 静默复用旧版 Python 进程（代码已更新但 sidecar 未重启），导致 `unsupported data_type 'minute'`。修复：(1) 新增版本号检查 `ExpectedSidecarVersion`，版本不匹配时自动 SIGTERM 旧进程并启动新 sidecar；(2) PID 文件持久化便于跨次重启追踪；(3) `darwin:build` 任务新增 `rsync python/ → build/python/` + venv symlink，确保构建输出的 sidecar 可独立启动
+- [主题] 30+ 面板硬编码暗色（`#1a1a2e`/`#16213e`/`#0f2137` 等）→ CSS 变量（`--color-bg-panel`/`--color-bg-subtle`/`--color-bg-input`），亮色主题切换全局面板生效
+- [主题] themes.css 新增 `--color-success`/`--color-danger` 语义变量，独立于 CN 涨跌色方案，StatusBar 连接状态修复（已连接=绿、未连接=红）
+- [终端] Tab 标签硬编码英文修复：`openPanel()` 从 panel ID 自动生成英文标签（`candlestick`→`Candlestick`）→ 从 registry 读取中文 label（→`K 线图`）
+- [终端] 分屏工具栏恢复（`□ ◫ ⊞ ⊟` 预设布局 + Ctrl+1~4 快捷键）
+- [终端] Tab 跨 pane 拖拽支持 + `activeLeafId` 追踪（右侧欢迎页打开面板不再默认跳左侧）
+- [工作流] NodePalette：5 个硬编码假节点 → 调用 `ListNodes()` 加载 75 个真实节点（18 分类 + 中文标签 + 颜色映射）
+- [工作流] CustomNode 卡片中文化：75 个节点类型 + 15 个端口名 → 中文映射（`data_loader`→数据加载、`bollinger`→布林带…）
+- [工作流] 工作流组件硬编码暗色 + 英文标签 → CSS 变量 + `$t()` 国际化
+- [P&L] Position 新增 `RealizedPnl` 累加器：卖单成交后已实现盈亏不再被 mark-to-market 覆盖，`TotalPnl = RealizedPnl + UnrealizedPnl`
+- [风控] `PlaceOrderLive` 新增风险检查（`CheckDrawdown` 断路器 + `CheckOrder` 仓位上限）
+- [安全] `GetConfig()` 不再向前端暴露 `api_keys`
+- [安全] Python gRPC sidecar 绑定从 `[::]` 改为 `localhost` only
+- [风控] 止损/止盈成交失败 → `slog.Error` 报警（原为 `_, _ =` 静默吞咽）
+- [后端] MarketDataHub + Scheduler 启动初始化
+- [后端] `RunBacktest` Wails 绑定
 
 ---
 

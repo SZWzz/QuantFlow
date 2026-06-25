@@ -93,7 +93,7 @@ onMounted(() => {
   <div class="watchlist-panel">
     <div class="panel-toolbar">
       <SymbolSearch
-        placeholder="添加自选股..."
+        :placeholder="$t('common.search') + '...'"
         @select="onSearchSelect"
       />
     </div>
@@ -118,7 +118,7 @@ onMounted(() => {
           <span class="change">{{ formatChange(quotes[sym].change, quotes[sym].changePct) }}</span>
         </div>
         <div v-else class="symbol-price"><span class="no-data">--</span></div>
-        <button class="remove-btn" @click.stop="removeSymbol(sym)" title="移除">✕</button>
+        <button class="remove-btn" @click.stop="removeSymbol(sym)" :title="$t('common.delete')">✕</button>
       </div>
     </div>
   </div>

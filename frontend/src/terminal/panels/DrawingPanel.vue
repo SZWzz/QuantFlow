@@ -136,11 +136,11 @@ function renderCanvas() {
   canvas.height = canvas.clientHeight
 
   // Background
-  ctx.fillStyle = '#1f2937'
+  ctx.fillStyle = 'var(--color-bg-elevated)'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   // Grid
-  ctx.strokeStyle = '#374151'
+  ctx.strokeStyle = 'var(--color-border-strong)'
   ctx.lineWidth = 0.5
   const gridSize = 40
   for (let x = gridSize; x < canvas.width; x += gridSize) {
@@ -249,7 +249,7 @@ onMounted(() => {
 <template>
   <div class="drawing-panel">
     <div class="panel-header">
-      <h3>绘图工具</h3>
+      <h3>{{ $t('workflow.drawing_tools') }}</h3>
       <span class="symbol-badge">{{ symbol }}</span>
     </div>
     <div class="panel-body">
@@ -307,7 +307,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #111827;
+  background: var(--color-bg-panel);
   color: #e5e7eb;
 }
 
@@ -316,7 +316,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .panel-header h3 {
@@ -346,7 +346,7 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   padding: 8px 4px;
-  border-right: 1px solid #374151;
+  border-right: 1px solid var(--color-border-strong);
   width: 60px;
   flex-shrink: 0;
 }
@@ -357,8 +357,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   color: #e5e7eb;
   border-radius: 4px;
   cursor: pointer;
@@ -367,7 +367,7 @@ onMounted(() => {
 }
 
 .tool-btn:hover {
-  background: #374151;
+  background: var(--color-border-strong);
   border-color: #4b5563;
 }
 
@@ -386,16 +386,16 @@ onMounted(() => {
 .toolbar-divider {
   width: 28px;
   height: 1px;
-  background: #374151;
+  background: var(--color-border-strong);
   margin: 4px 0;
 }
 
 .color-picker {
   width: 28px;
   height: 28px;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border-strong);
   border-radius: 4px;
-  background: #1f2937;
+  background: var(--color-bg-elevated);
   cursor: pointer;
   padding: 2px;
 }

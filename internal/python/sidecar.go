@@ -8,35 +8,77 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"syscall"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	pb "quantflow/internal/python/proto"
 )
+
+// ExpectedSidecarVersion must match the version string hardcoded in
+// python/src/server.py. When the running sidecar reports a different
+// version, StartSidecar kills it and launches a fresh process.
+const ExpectedSidecarVersion = "2026.6.25"
 
 // SidecarProcess wraps a running Python sidecar child process.
 type SidecarProcess struct {
-	cmd    *exec.Cmd
-	addr   string
-	done   chan struct{}
+	cmd     *exec.Cmd
+	addr    string
+	pidFile string
+	done    chan struct{}
 }
 
 // StartSidecar launches the Python sidecar as a subprocess if it's not already running.
-// Returns a SidecarProcess (nil if already running externally) and any error.
+// Returns a SidecarProcess (nil if already running with a compatible version) and any error.
 //
 // The sidecar is searched relative to the executable directory:
 //
 //	python/.venv/bin/python -m src.server --port <port>
+//
+// If a sidecar is already listening on the port but reports an incompatible version,
+// it is killed and restarted. A PID file (.quantflow-sidecar.pid) is written to the
+// binary directory so future restarts can find and manage the old process.
 func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProcess, error) {
 	addr := fmt.Sprintf("localhost:%d", port)
 
-	// Check if already running
+	// PID file goes in the binary directory (one level above pythonDir).
+	binDir := filepath.Dir(pythonDir)
+	pidFile := filepath.Join(binDir, ".quantflow-sidecar.pid")
+
+	// Check if a sidecar is already listening on the port.
 	if conn, err := net.DialTimeout("tcp", addr, 500*time.Millisecond); err == nil {
 		conn.Close()
-		slog.Info("python sidecar already running", "addr", addr)
-		return nil, nil
+
+		// Verify the running sidecar's version before reusing it.
+		if version, err := getSidecarVersion(ctx, addr); err == nil {
+			if version == ExpectedSidecarVersion {
+				slog.Info("python sidecar already running (version matches)",
+					"addr", addr, "version", version)
+				return nil, nil
+			}
+			slog.Warn("python sidecar version mismatch, killing stale process",
+				"running_version", version, "expected_version", ExpectedSidecarVersion)
+		} else {
+			slog.Warn("python sidecar found but health check failed, killing stale process",
+				"addr", addr, "error", err)
+		}
+
+		// Kill the stale sidecar so we can start a fresh one.
+		killSidecarByPort(port)
+		// Give the OS time to release the port.
+		time.Sleep(300 * time.Millisecond)
 	}
 
+	// Remove any stale PID file from a previous run.
+	os.Remove(pidFile)
+
+	// Resolve the Python binary — prefer the project's venv, fall back to system.
 	pythonBin := filepath.Join(pythonDir, ".venv", "bin", "python3")
 	if _, err := os.Stat(pythonBin); err != nil {
-		// Try system python
 		pythonBin = "python3"
 	}
 
@@ -50,15 +92,79 @@ func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProc
 		return nil, fmt.Errorf("python sidecar: failed to start: %w", err)
 	}
 
-	sp := &SidecarProcess{
-		cmd:  cmd,
-		addr: addr,
-		done: make(chan struct{}),
+	// Persist the PID + version so subsequent runs can detect and restart stale processes.
+	pidContent := fmt.Sprintf("%d\n%s", cmd.Process.Pid, ExpectedSidecarVersion)
+	if err := os.WriteFile(pidFile, []byte(pidContent), 0644); err != nil {
+		slog.Warn("failed to write sidecar PID file", "path", pidFile, "error", err)
 	}
 
-	// Wait for sidecar to become ready
+	sp := &SidecarProcess{
+		cmd:     cmd,
+		addr:    addr,
+		pidFile: pidFile,
+		done:    make(chan struct{}),
+	}
+
+	// Wait for sidecar to become ready (non-blocking).
 	go sp.waitReady(ctx)
 	return sp, nil
+}
+
+// getSidecarVersion connects to a running sidecar and returns its reported version.
+func getSidecarVersion(ctx context.Context, addr string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(ctx, addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		return "", fmt.Errorf("dial: %w", err)
+	}
+	defer conn.Close()
+
+	client := pb.NewHealthServiceClient(conn)
+	resp, err := client.Ping(ctx, &pb.PingRequest{})
+	if err != nil {
+		return "", fmt.Errorf("ping: %w", err)
+	}
+	return resp.Version, nil
+}
+
+// killSidecarByPort finds any process listening on the given TCP port and sends SIGTERM.
+func killSidecarByPort(port int) {
+	// lsof -ti :<port> returns just the PID(s) listening on that port.
+	cmd := exec.Command("lsof", "-ti", fmt.Sprintf(":%d", port))
+	out, err := cmd.Output()
+	if err != nil {
+		slog.Warn("failed to find sidecar process by port", "port", port, "error", err)
+		return
+	}
+
+	pidStr := strings.TrimSpace(string(out))
+	if pidStr == "" {
+		return
+	}
+
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		slog.Warn("invalid PID from lsof", "output", pidStr)
+		return
+	}
+
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		slog.Warn("failed to find sidecar process", "pid", pid, "error", err)
+		return
+	}
+
+	if err := proc.Signal(syscall.SIGTERM); err != nil {
+		slog.Warn("failed to send SIGTERM to sidecar", "pid", pid, "error", err)
+		return
+	}
+
+	slog.Info("sent SIGTERM to stale python sidecar", "pid", pid)
 }
 
 func (sp *SidecarProcess) waitReady(ctx context.Context) {
@@ -84,7 +190,7 @@ func (sp *SidecarProcess) Wait() {
 	<-sp.done
 }
 
-// Stop gracefully terminates the sidecar process.
+// Stop gracefully terminates the sidecar process and cleans up the PID file.
 func (sp *SidecarProcess) Stop() {
 	if sp.cmd != nil && sp.cmd.Process != nil {
 		sp.cmd.Process.Signal(os.Interrupt)
@@ -93,5 +199,8 @@ func (sp *SidecarProcess) Stop() {
 		case <-time.After(5 * time.Second):
 			sp.cmd.Process.Kill()
 		}
+	}
+	if sp.pidFile != "" {
+		os.Remove(sp.pidFile)
 	}
 }

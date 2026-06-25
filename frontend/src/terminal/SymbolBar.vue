@@ -25,7 +25,7 @@ const groups = Object.entries(ctx.linkGroups)
     </div>
     <div class="symbol-input-area">
       <SymbolSearch
-        placeholder="输入代码/名称/拼音搜索..."
+        :placeholder="$t('common.search') + '...'"
         @select="onSelect"
       />
     </div>

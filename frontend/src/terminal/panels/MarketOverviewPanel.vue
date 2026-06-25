@@ -54,7 +54,7 @@ function sparklinePoints(data: number[]): string {
 function changeColor(pct: number): string {
   if (pct > 0) return '#ef4444'
   if (pct < 0) return '#22c55e'
-  return '#9ca3af'
+  return 'var(--color-text-secondary)'
 }
 
 function formatPct(pct: number): string {
@@ -82,7 +82,7 @@ onUnmounted(() => {
 <template>
   <div class="market-overview-panel">
     <div class="panel-header">
-      <h3>市场概览</h3>
+      <h3>{{ $t('misc.market_overview') }}</h3>
       <div class="header-controls">
         <span class="update-time">{{ formatTime(updatedAt) }}</span>
         <button class="auto-btn" :class="{ active: autoRefresh }" @click="toggleAutoRefresh">
@@ -115,7 +115,7 @@ onUnmounted(() => {
 
     <!-- Section B: 市场宽度 -->
     <div class="breadth-section">
-      <div class="breadth-label">市场宽度</div>
+      <div class="breadth-label">{{ $t('misc.market_breadth') }}</div>
       <div class="breadth-bar">
         <div class="breadth-segment up" :style="{ flex: breadth.advancers }"></div>
         <div class="breadth-segment flat" :style="{ flex: breadth.unchanged }"></div>
@@ -131,14 +131,14 @@ onUnmounted(() => {
     <!-- Section C: Sector Rankings -->
     <div class="sectors-grid">
       <div class="sector-col">
-        <div class="sector-col-title up-text">涨幅榜</div>
+        <div class="sector-col-title up-text">{{ $t('misc.gainers') }}</div>
         <div v-for="s in topGainers" :key="'g-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
           <span class="sector-pct" :style="{ color: changeColor(s.changePct) }">{{ formatPct(s.changePct) }}</span>
         </div>
       </div>
       <div class="sector-col">
-        <div class="sector-col-title down-text">跌幅榜</div>
+        <div class="sector-col-title down-text">{{ $t('misc.losers') }}</div>
         <div v-for="s in topLosers" :key="'l-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
           <span class="sector-pct" :style="{ color: changeColor(s.changePct) }">{{ formatPct(s.changePct) }}</span>
@@ -146,7 +146,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="loading" class="loading-overlay">加载中...</div>
+    <div v-if="loading" class="loading-overlay">{{ $t('common.loading') }}</div>
   </div>
 </template>
 
@@ -157,7 +157,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   color: var(--color-text, #e5e7eb);
-  background: var(--color-bg, #111827);
+  background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -168,15 +168,15 @@ onUnmounted(() => {
 }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; align-items: center; }
-.update-time { font-size: 11px; color: #6b7280; }
+.update-time { font-size: 11px; color: var(--color-text-tertiary); }
 .auto-btn {
-  padding: 2px 8px; border: 1px solid #374151; border-radius: 4px;
-  background: #1f2937; color: #6b7280; cursor: pointer; font-size: 11px;
+  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
 .auto-btn.active { color: #60a5fa; border-color: #3b82f6; }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid #374151; border-radius: 4px;
-  background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -184,21 +184,21 @@ onUnmounted(() => {
 .indices-row {
   display: flex; gap: 8px; overflow-x: auto;
   padding-bottom: 4px; margin-bottom: 12px;
-  scrollbar-width: thin; scrollbar-color: #374151 transparent;
+  scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent;
 }
 .index-card {
   flex: 0 0 auto; min-width: 130px;
   padding: 10px 12px; border-radius: 6px;
-  background: #1f2937; border: 1px solid #374151;
+  background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong);
 }
-.index-name { font-size: 11px; color: #9ca3af; margin-bottom: 2px; }
+.index-name { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
 .index-price { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
 .index-change { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
 .index-sparkline { width: 100%; height: 24px; display: block; }
 
 /* Breadth */
 .breadth-section { margin-bottom: 12px; }
-.breadth-label { font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
+.breadth-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
 .breadth-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
 .breadth-segment.up { background: #ef4444; }
 .breadth-segment.down { background: #22c55e; }
@@ -206,7 +206,7 @@ onUnmounted(() => {
 .breadth-text { display: flex; gap: 16px; font-size: 11px; }
 .up-text { color: #ef4444; }
 .down-text { color: #22c55e; }
-.flat-text { color: #6b7280; }
+.flat-text { color: var(--color-text-tertiary); }
 
 /* Sectors */
 .sectors-grid {
@@ -214,7 +214,7 @@ onUnmounted(() => {
   flex: 1; overflow: hidden;
 }
 .sector-col { overflow-y: auto; }
-.sector-col-title { font-size: 12px; font-weight: 600; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #374151; }
+.sector-col-title { font-size: 12px; font-weight: 600; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--color-border-strong); }
 .sector-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 4px 0; font-size: 12px;
@@ -225,6 +225,6 @@ onUnmounted(() => {
 .loading-overlay {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(17, 24, 39, 0.7); font-size: 14px; color: #6b7280;
+  background: rgba(17, 24, 39, 0.7); font-size: 14px; color: var(--color-text-tertiary);
 }
 </style>

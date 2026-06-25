@@ -76,8 +76,9 @@ type Position struct {
 	Quantity    float64 `json:"quantity"`
 	AvgPrice    float64 `json:"avg_price"`
 	MarketPrice float64 `json:"market_price"`
-	PnL         float64 `json:"pnl"`
+	PnL         float64 `json:"pnl"`          // Total P&L = RealizedPnl + unrealized
 	PnLPct      float64 `json:"pnl_pct"`
+	RealizedPnl float64 `json:"realized_pnl"` // Accumulated realized gains from closes
 }
 
 // OHLCVBar is a price bar used for order matching.

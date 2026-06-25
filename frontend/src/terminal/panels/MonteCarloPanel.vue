@@ -138,12 +138,12 @@ const pathsChartOption = computed(() => {
     xAxis: {
       type: 'category',
       data: xLabels,
-      axisLabel: { color: '#6b7280', fontSize: 10 },
+      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v: number) => formatCurrency(v) },
-      splitLine: { lineStyle: { color: '#1f2937' } },
+      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => formatCurrency(v) },
+      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
     },
     tooltip: { trigger: 'axis' as const },
     series,
@@ -162,13 +162,13 @@ const histogramOption = computed(() => {
     xAxis: {
       type: 'category',
       data: bins.map(b => b.x.toFixed(0)),
-      axisLabel: { color: '#6b7280', fontSize: 9, rotate: 45 },
+      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 9, rotate: 45 },
       interval: 9,
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#6b7280', fontSize: 10 },
-      splitLine: { lineStyle: { color: '#1f2937' } },
+      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
     },
     tooltip: { trigger: 'axis' as const },
     series: [
@@ -207,27 +207,27 @@ async function runSimulation() {
     <div class="panel-body">
       <div class="sidebar">
         <div class="param-group">
-          <label class="param-label">初始资金</label>
+          <label class="param-label">{{ $t('monteCarlo.initial_capital') }}</label>
           <input v-model.number="initialCapital" type="number" class="param-input" min="1000" step="1000" />
         </div>
         <div class="param-group">
-          <label class="param-label">年化收益(%)</label>
+          <label class="param-label">{{ $t('monteCarlo.annual_return') }}</label>
           <input v-model.number="annualReturn" type="number" class="param-input" min="-50" max="100" step="0.5" />
         </div>
         <div class="param-group">
-          <label class="param-label">年化波动(%)</label>
+          <label class="param-label">{{ $t('monteCarlo.annual_vol') }}</label>
           <input v-model.number="annualVol" type="number" class="param-input" min="1" max="200" step="1" />
         </div>
         <div class="param-group">
-          <label class="param-label">年数</label>
+          <label class="param-label">{{ $t('monteCarlo.years') }}</label>
           <input v-model.number="years" type="number" class="param-input" min="1" max="30" step="1" />
         </div>
         <div class="param-group">
-          <label class="param-label">模拟次数</label>
+          <label class="param-label">{{ $t('monteCarlo.simulations') }}</label>
           <input v-model.number="simulations" type="number" class="param-input" min="100" max="5000" step="100" />
         </div>
         <div class="param-group">
-          <label class="param-label">置信度(%)</label>
+          <label class="param-label">{{ $t('monteCarlo.confidence') }}</label>
           <input v-model.number="confidence" type="number" class="param-input" min="80" max="99" step="1" />
         </div>
         <button class="run-btn" :disabled="running" @click="runSimulation">
@@ -275,9 +275,9 @@ async function runSimulation() {
             </div>
             <div v-else class="fallback-stats">
               <div class="fallback-title">终值分布</div>
-              <div class="stat-row"><span>中位数</span><span>{{ formatCurrency(result.medianTerminal) }}</span></div>
+              <div class="stat-row"><span>{{ $t('monteCarlo.median_terminal') }}</span><span>{{ formatCurrency(result.medianTerminal) }}</span></div>
               <div class="stat-row"><span>风险价值(95%)</span><span class="negative">{{ formatCurrency(result.var95) }}</span></div>
-              <div class="stat-row"><span>C风险价值(95%)</span><span class="negative">{{ formatCurrency(result.cvar95) }}</span></div>
+              <div class="stat-row"><span>{{ $t('monteCarlo.cvar_label') }}</span><span class="negative">{{ formatCurrency(result.cvar95) }}</span></div>
             </div>
           </div>
 
@@ -285,7 +285,7 @@ async function runSimulation() {
           <div class="stats-row">
             <div class="stat-card">
               <div class="stat-value accent">{{ formatCurrency(result.medianTerminal) }}</div>
-              <div class="stat-label">中位数 Terminal</div>
+              <div class="stat-label">{{ $t('monteCarlo.median_terminal') }}</div>
             </div>
             <div class="stat-card">
               <div class="stat-value negative">{{ formatCurrency(result.var95) }}</div>
@@ -297,7 +297,7 @@ async function runSimulation() {
             </div>
             <div class="stat-card">
               <div class="stat-value">{{ (result.probLoss * 100).toFixed(1) }}%</div>
-              <div class="stat-label">亏损概率</div>
+              <div class="stat-label">{{ $t('monteCarlo.loss_prob') }}</div>
             </div>
             <div class="stat-card">
               <div class="stat-value positive">{{ (result.probDouble * 100).toFixed(1) }}%</div>
@@ -319,13 +319,13 @@ async function runSimulation() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #111827;
+  background: var(--color-bg-panel);
   color: #e5e7eb;
 }
 
 .panel-header {
   padding: 8px 12px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .panel-header h3 {
@@ -344,7 +344,7 @@ async function runSimulation() {
   width: 220px;
   flex-shrink: 0;
   padding: 12px;
-  border-right: 1px solid #374151;
+  border-right: 1px solid var(--color-border-strong);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -359,14 +359,14 @@ async function runSimulation() {
 
 .param-label {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-weight: 500;
 }
 
 .param-input {
   padding: 6px 8px;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   color: #e5e7eb;
   border-radius: 4px;
   font-size: 13px;
@@ -380,7 +380,7 @@ async function runSimulation() {
 
 .run-btn {
   padding: 8px 0;
-  background: #1f2937;
+  background: var(--color-bg-elevated);
   border: 1px solid #58a6ff;
   color: #58a6ff;
   border-radius: 4px;
@@ -437,7 +437,7 @@ async function runSimulation() {
 
 .fallback-title {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   margin-bottom: 6px;
   font-weight: 500;
 }
@@ -451,11 +451,11 @@ table {
 th, td {
   padding: 3px 6px;
   text-align: right;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid var(--color-bg-elevated);
 }
 
 th {
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-weight: 500;
 }
 
@@ -468,22 +468,22 @@ th {
   justify-content: space-between;
   padding: 3px 0;
   font-size: 12px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid var(--color-bg-elevated);
 }
 
 .stats-row {
   display: flex;
   gap: 8px;
   padding-top: 8px;
-  border-top: 1px solid #374151;
+  border-top: 1px solid var(--color-border-strong);
   flex-wrap: wrap;
 }
 
 .stat-card {
   flex: 1;
   min-width: 100px;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   border-radius: 4px;
   padding: 8px 10px;
   text-align: center;
@@ -501,7 +501,7 @@ th {
 
 .stat-label {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   margin-top: 2px;
 }
 
@@ -510,7 +510,7 @@ th {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-size: 13px;
 }
 </style>

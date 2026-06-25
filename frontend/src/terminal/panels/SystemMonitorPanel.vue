@@ -35,37 +35,37 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 <template>
   <div class="sysmon-panel">
     <div class="section">
-      <h3 class="section-title">Go 运行时</h3>
+      <h3 class="section-title">{{ $t('monitor.go_runtime') }}</h3>
       <div class="metric-row">
-        <span class="metric-label">协程数</span>
+        <span class="metric-label">{{ $t('monitor.goroutines') }}</span>
         <span class="metric-value">{{ goRoutines }}</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">堆内存</span>
+        <span class="metric-label">{{ $t('monitor.heap_memory') }}</span>
         <span class="metric-value">{{ memAlloc }}</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">系统内存</span>
+        <span class="metric-label">{{ $t('monitor.system_memory') }}</span>
         <span class="metric-value">{{ memSys }}</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">运行时间</span>
+        <span class="metric-label">{{ $t('monitor.uptime') }}</span>
         <span class="metric-value">{{ uptime }}</span>
       </div>
     </div>
 
     <div class="section">
-      <h3 class="section-title">工作流引擎</h3>
+      <h3 class="section-title">{{ $t('monitor.workflow_engine') }}</h3>
       <div class="metric-row">
-        <span class="metric-label">已注册节点</span>
+        <span class="metric-label">{{ $t('monitor.registered_nodes') }}</span>
         <span class="metric-value">5</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">缓存大小</span>
+        <span class="metric-label">{{ $t('monitor.cache_size') }}</span>
         <span class="metric-value">256</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">活跃运行</span>
+        <span class="metric-label">{{ $t('monitor.active_runs') }}</span>
         <span class="metric-value">0</span>
       </div>
     </div>
@@ -75,7 +75,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 <style scoped>
 .sysmon-panel {
   padding: 10px;
-  background: #1a1a2e;
+  background: var(--color-bg-panel);
   height: 100%;
   overflow-y: auto;
   font-size: 12px;
@@ -88,11 +88,11 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 .section-title {
   font-size: 10px;
   text-transform: uppercase;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   letter-spacing: 0.5px;
   margin-bottom: 6px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #0f3460;
+  border-bottom: 1px solid var(--color-accent-soft);
 }
 
 .metric-row {
@@ -102,11 +102,11 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 }
 
 .metric-label {
-  color: #5a6380;
+  color: var(--color-text-tertiary);
 }
 
 .metric-value {
-  color: #c9d1d9;
+  color: var(--color-text-primary);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -124,11 +124,11 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 .source-name {
   flex: 1;
-  color: #c9d1d9;
+  color: var(--color-text-primary);
 }
 
 .source-status {
   font-size: 10px;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
 }
 </style>

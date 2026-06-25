@@ -45,9 +45,9 @@ function formatRatio(v: number | undefined | null): string {
 <template>
   <div class="panel">
     <div class="panel-header">
-      <h3>Peer Comparison — {{ symbol.toUpperCase() }}</h3>
+      <h3>{{ $t('research.peer') }} &mdash; {{ symbol.toUpperCase() }}</h3>
       <div class="header-controls">
-        <input class="symbol-input" v-model="symbol" placeholder="代码..." @keyup.enter="refresh" />
+        <input class="symbol-input" v-model="symbol" :placeholder="$t('research.hint_enter_symbol')" @keyup.enter="refresh" />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>
       </div>
     </div>
@@ -56,12 +56,12 @@ function formatRatio(v: number | undefined | null): string {
       <table class="peer-table">
         <thead>
           <tr>
-            <th>Symbol</th>
-            <th>市值</th>
-            <th>P/E</th>
-            <th>营收增长</th>
-            <th>利润率</th>
-            <th>净资产收益率</th>
+            <th>{{ $t('quote.symbol') }}</th>
+            <th>{{ $t('quote.market_cap') }}</th>
+            <th>{{ $t('research.pe_ratio') }}</th>
+            <th>{{ $t('research.revenue_growth') }}</th>
+            <th>{{ $t('research.margin') }}</th>
+            <th>{{ $t('research.roe') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -84,21 +84,21 @@ function formatRatio(v: number | undefined | null): string {
 </template>
 
 <style scoped>
-.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, #111827); }
+.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
 .panel-content { flex: 1; overflow-y: auto; }
 .peer-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.peer-table th { text-align: left; padding: 6px 8px; color: #9ca3af; border-bottom: 1px solid #374151; font-weight: 500; white-space: nowrap; }
-.peer-table td { padding: 6px 8px; border-bottom: 1px solid #1f2937; }
+.peer-table th { text-align: left; padding: 6px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); font-weight: 500; white-space: nowrap; }
+.peer-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
 .symbol-cell { font-weight: 600; color: #60a5fa; }
 .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
 .num-cell.positive { color: #22c55e; }
 .num-cell.negative { color: #ef4444; }
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 13px; }
+.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

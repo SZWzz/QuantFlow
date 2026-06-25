@@ -1,8 +1,11 @@
 <!-- frontend/src/terminal/panels/SatellitePanel.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import VChart from 'vue-echarts'
 import 'echarts'
+
+const { t } = useI18n()
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -88,15 +91,18 @@ const chartOption = computed(() => {
   // Use solar dates as primary (most complete)
   const dates = solarDates.length >= windDates.length ? solarDates : windDates
 
+  const solarName = `${t('satellite.solar_radiation')} (${t('satellite.energy_kwh')})`
+  const windName = `风速 (${t('satellite.wind_speed')})`
+
   return {
     tooltip: {
       trigger: 'axis' as const,
       axisPointer: { type: 'cross' as const },
     },
     legend: {
-      data: ['太阳辐射 (kWh/m²/天)', '风速 (m/s)'],
+      data: [solarName, windName],
       top: 0,
-      textStyle: { fontSize: 11, color: '#9ca3af' },
+      textStyle: { fontSize: 11, color: 'var(--color-text-secondary)' },
     },
     grid: { left: 50, right: 50, top: 40, bottom: 40 },
     xAxis: {
@@ -107,14 +113,14 @@ const chartOption = computed(() => {
     yAxis: [
       {
         type: 'value' as const,
-        name: 'kWh/m²/天',
+        name: t('satellite.energy_kwh'),
         nameTextStyle: { fontSize: 10, color: '#f59e0b' },
         axisLabel: { fontSize: 10 },
         splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
       },
       {
         type: 'value' as const,
-        name: 'm/s',
+        name: t('satellite.wind_speed'),
         nameTextStyle: { fontSize: 10, color: '#3b82f6' },
         axisLabel: { fontSize: 10 },
         splitLine: { show: false },
@@ -122,7 +128,7 @@ const chartOption = computed(() => {
     ],
     series: [
       {
-        name: '太阳辐射 (kWh/m²/天)',
+        name: solarName,
         type: 'line',
         data: solarValues,
         yAxisIndex: 0,
@@ -133,7 +139,7 @@ const chartOption = computed(() => {
         showSymbol: false,
       },
       {
-        name: '风速 (m/s)',
+        name: windName,
         type: 'line',
         data: windValues.length === solarValues.length ? windValues : [...windValues], // pad if needed
         yAxisIndex: 1,
@@ -202,7 +208,7 @@ function wildfireClass(count: number): string {
         <span class="summary-badge up" v-if="signalCounts.up > 0">↑ {{ signalCounts.up }} 上升</span>
         <span class="summary-badge down" v-if="signalCounts.down > 0">↓ {{ signalCounts.down }} 下降</span>
         <span class="summary-badge stable" v-if="signalCounts.stable > 0">→ {{ signalCounts.stable }} 稳定</span>
-        <button class="btn-sm" @click="loadRegions()">🔄 刷新</button>
+        <button class="btn-sm" @click="loadRegions()">🔄 {{ $t('common.refresh') }}</button>
       </div>
     </div>
 
@@ -210,8 +216,8 @@ function wildfireClass(count: number): string {
     <div class="content-area">
       <!-- Region cards grid -->
       <div class="region-grid" :class="{ 'with-detail': selectedRegion }">
-        <div v-if="loading" class="empty-state">加载中...</div>
-        <div v-else-if="regions.length === 0" class="empty-state">暂无数据</div>
+        <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
+        <div v-else-if="regions.length === 0" class="empty-state">{{ $t('satellite.no_data') }}</div>
         <div
           v-for="region in regions"
           :key="region.id"
@@ -228,11 +234,11 @@ function wildfireClass(count: number): string {
           <!-- Solar GHI gauge -->
           <div class="gauge-row">
             <div class="gauge">
-              <span class="gauge-label">☀️ 太阳辐射</span>
+              <span class="gauge-label">{{ $t('satellite.solar_radiation') }}</span>
               <span :class="['gauge-value', solarGaugeClass(region.solar_ghi)]">
                 {{ region.solar_ghi.toFixed(1) }}
               </span>
-              <span class="gauge-unit">kWh/m²/天</span>
+              <span class="gauge-unit">{{ $t('satellite.energy_kwh') }}</span>
             </div>
           </div>
 
@@ -243,7 +249,7 @@ function wildfireClass(count: number): string {
               <span :class="['gauge-value', windGaugeClass(region.wind_speed)]">
                 {{ region.wind_speed.toFixed(1) }}
               </span>
-              <span class="gauge-unit">m/s</span>
+              <span class="gauge-unit">{{ $t('satellite.wind_speed') }}</span>
             </div>
           </div>
 
@@ -253,7 +259,7 @@ function wildfireClass(count: number): string {
             <span :class="['wildfire-value', wildfireClass(region.wildfires)]">
               {{ region.wildfires }}
             </span>
-            <span class="gauge-unit">次/周</span>
+            <span class="gauge-unit">{{ $t('satellite.fire_count') }}</span>
           </div>
 
           <!-- Asset link badge -->
@@ -276,15 +282,15 @@ function wildfireClass(count: number): string {
         <!-- Gauges summary -->
         <div class="detail-info">
           <div class="info-row">
-            <span class="info-label">太阳辐射</span>
+            <span class="info-label">{{ $t('satellite.solar_radiation') }}</span>
             <span :class="['info-value', solarGaugeClass(selectedRegion.solar_ghi)]">
-              {{ selectedRegion.solar_ghi.toFixed(1) }} kWh/m²/天
+              {{ selectedRegion.solar_ghi.toFixed(1) }} {{ $t('satellite.energy_kwh') }}
             </span>
           </div>
           <div class="info-row">
             <span class="info-label">风速</span>
             <span :class="['info-value', windGaugeClass(selectedRegion.wind_speed)]">
-              {{ selectedRegion.wind_speed.toFixed(1) }} m/s
+              {{ selectedRegion.wind_speed.toFixed(1) }} {{ $t('satellite.wind_speed') }}
             </span>
           </div>
           <div class="info-row">
@@ -296,11 +302,11 @@ function wildfireClass(count: number): string {
           <div class="info-row">
             <span class="info-label">野火</span>
             <span :class="['info-value', wildfireClass(selectedRegion.wildfires)]">
-              {{ selectedRegion.wildfires }} 次/周
+              {{ selectedRegion.wildfires }} {{ $t('satellite.fire_count') }}
             </span>
           </div>
           <div class="info-row">
-            <span class="info-label">关联资产</span>
+            <span class="info-label">{{ $t('satellite.linked_assets') }}</span>
             <span class="info-value asset-link">{{ selectedRegion.asset_link }}</span>
           </div>
         </div>
@@ -309,8 +315,8 @@ function wildfireClass(count: number): string {
         <div class="chart-container" v-if="(solarData.length > 0 || windData.length > 0) && !chartLoading">
           <VChart :option="chartOption" style="height: 250px" autoresize />
         </div>
-        <div v-else-if="chartLoading" class="empty-state small">加载图表中...</div>
-        <div v-else class="empty-state small">暂无历史数据</div>
+        <div v-else-if="chartLoading" class="empty-state small">{{ $t('satellite.loading_chart') }}</div>
+        <div v-else class="empty-state small">{{ $t('satellite.no_history') }}</div>
 
         <!-- Trend summary -->
         <div class="trend-summary" v-if="selectedRegion.trend !== 'stable'">
@@ -321,8 +327,8 @@ function wildfireClass(count: number): string {
           <span v-else>— 对关联资产偏负面</span>
         </div>
         <div class="trend-summary" v-else>
-          <span class="trend-text stable-text">→ 能源指标稳定</span>
-          <span>— 对关联资产中性</span>
+          <span class="trend-text stable-text">{{ $t('satellite.stable_indicator') }}</span>
+          <span>{{ $t('geo.neutral_signal') }}</span>
         </div>
       </div>
     </div>

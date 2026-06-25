@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -104,13 +105,13 @@ const chartOption = computed(() => {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis' as const,
-      backgroundColor: '#1f2937',
-      borderColor: '#374151',
+      backgroundColor: 'var(--color-bg-elevated)',
+      borderColor: 'var(--color-border-strong)',
       textStyle: { color: '#e5e7eb', fontSize: 11 },
     },
     legend: {
-      data: ['Returns', '正态拟合'],
-      textStyle: { color: '#9ca3af', fontSize: 10 },
+      data: ['Returns', t('misc.normal_fit')],
+      textStyle: { color: 'var(--color-text-secondary)', fontSize: 10 },
       top: 0,
     },
     grid: {
@@ -122,18 +123,18 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'value' as const,
       axisLabel: {
-        color: '#9ca3af',
+        color: 'var(--color-text-secondary)',
         fontSize: 10,
         formatter: (v: number) => (v * 100).toFixed(1) + '%',
       },
-      axisLine: { lineStyle: { color: '#374151' } },
-      splitLine: { lineStyle: { color: '#1f2937' } },
+      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
     },
     yAxis: {
       type: 'value' as const,
-      axisLabel: { color: '#9ca3af', fontSize: 10 },
-      axisLine: { lineStyle: { color: '#374151' } },
-      splitLine: { lineStyle: { color: '#1f2937' } },
+      axisLabel: { color: 'var(--color-text-secondary)', fontSize: 10 },
+      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
     },
     series: [
       {
@@ -150,9 +151,9 @@ const chartOption = computed(() => {
         markLine: {
           silent: true,
           symbol: 'none',
-          lineStyle: { type: 'dashed' as const, color: '#9ca3af', width: 1 },
+          lineStyle: { type: 'dashed' as const, color: 'var(--color-text-secondary)', width: 1 },
           label: {
-            color: '#9ca3af',
+            color: 'var(--color-text-secondary)',
             fontSize: 9,
             formatter: (p: { value: number }) =>
               ((p.value as number) * 100).toFixed(2) + '%',
@@ -165,7 +166,7 @@ const chartOption = computed(() => {
         },
       },
       {
-        name: '正态拟合',
+        name: t('misc.normal_fit'),
         type: 'line',
         data: normalCurve.value.map((p) => [p.x, p.y]),
         smooth: true,
@@ -192,7 +193,7 @@ onMounted(() => {
 <template>
   <div class="distribution-panel">
     <div class="panel-header">
-      <h3>收益率分布</h3>
+      <h3>{{ t('misc.distribution') }}</h3>
     </div>
 
     <div class="controls-row">
@@ -221,23 +222,23 @@ onMounted(() => {
     <!-- Stats cards -->
     <div v-if="dataReady" class="stats-row">
       <div class="stat-card">
-        <span class="stat-label">均值</span>
+        <span class="stat-label">{{ t('misc.mean') }}</span>
         <span class="stat-value">{{ fmtNumber(meanVal * 100, 4) }}%</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">标准差</span>
+        <span class="stat-label">{{ t('misc.stddev') }}</span>
         <span class="stat-value">{{ fmtNumber(stdVal * 100, 4) }}%</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">偏度</span>
+        <span class="stat-label">{{ t('misc.skewness') }}</span>
         <span class="stat-value">{{ fmtNumber(skewnessVal) }}</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">峰度</span>
+        <span class="stat-label">{{ t('misc.kurtosis') }}</span>
         <span class="stat-value">{{ fmtNumber(kurtosisVal) }}</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Jarque-Bera</span>
+        <span class="stat-label">{{ t('misc.jarque_bera') }}</span>
         <span class="stat-value">{{ fmtNumber(jarqueBeraVal, 2) }}</span>
       </div>
     </div>
@@ -284,14 +285,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #111827;
+  background: var(--color-bg-panel);
   color: #e5e7eb;
   overflow: hidden;
 }
 
 .panel-header {
   padding: 10px 14px 6px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 .panel-header h3 {
   margin: 0;
@@ -303,21 +304,21 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   padding: 8px 14px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
   align-items: flex-end;
 }
 
 .control-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
 .symbol-input {
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   color: #e5e7eb;
   border-radius: 4px;
   padding: 5px 8px;
@@ -327,8 +328,8 @@ onMounted(() => {
 }
 
 .lookback-select {
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   color: #e5e7eb;
   border-radius: 4px;
   padding: 5px 6px;
@@ -337,9 +338,9 @@ onMounted(() => {
 
 .compute-btn {
   padding: 5px 16px;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border-strong);
   border-radius: 4px;
-  background: #1f2937;
+  background: var(--color-bg-elevated);
   color: #e5e7eb;
   cursor: pointer;
   font-size: 12px;
@@ -348,7 +349,7 @@ onMounted(() => {
   height: fit-content;
 }
 .compute-btn:hover {
-  background: #374151;
+  background: var(--color-border-strong);
 }
 
 /* Stats row */
@@ -356,7 +357,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   padding: 8px 14px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
   flex-wrap: wrap;
 }
 
@@ -365,15 +366,15 @@ onMounted(() => {
   flex-direction: column;
   gap: 2px;
   padding: 6px 12px;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   border-radius: 4px;
   min-width: 80px;
 }
 
 .stat-label {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
 }
 
@@ -394,7 +395,7 @@ onMounted(() => {
 }
 
 .placeholder-msg {
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-size: 14px;
 }
 
@@ -410,7 +411,7 @@ onMounted(() => {
   overflow: auto;
   padding: 8px 12px;
   scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+  scrollbar-color: var(--color-border-strong) transparent;
 }
 
 .dist-table {
@@ -423,11 +424,11 @@ onMounted(() => {
 .dist-table td {
   padding: 4px 10px;
   text-align: center;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .dist-table th {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 

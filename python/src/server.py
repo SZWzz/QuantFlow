@@ -52,7 +52,7 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
         uptime = int(time.time() - self.start_time)
         return health_pb2.PingResponse(
             healthy=True,
-            version="2026.6.17",
+            version="2026.6.25",
             uptime_seconds=uptime,
         )
 
@@ -68,7 +68,7 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
         uptime = int(time.time() - self.start_time)
         return health_pb2.StatusResponse(
             healthy=True,
-            version="2026.6.17",
+            version="2026.6.25",
             uptime_seconds=uptime,
             active_requests=0,
             memory_mb=mem_mb,
@@ -87,8 +87,8 @@ async def serve(port: int = DEFAULT_PORT, max_workers: int = 10):
     llm_pb2_grpc.add_LLMServiceServicer_to_server(LLMService(), server)
     sentiment_pb2_grpc.add_SentimentServiceServicer_to_server(SentimentService(), server)
 
-    server.add_insecure_port(f"[::]:{port}")
-    logger.info(f"QuantFlow Python sidecar listening on [::]:{port}")
+    server.add_insecure_port(f"localhost:{port}")
+    logger.info(f"QuantFlow Python sidecar listening on localhost:{port}")
     logger.info("Registered services: FactorService, MLService, HealthService, DataService, LLMService, SentimentService")
 
     await server.start()

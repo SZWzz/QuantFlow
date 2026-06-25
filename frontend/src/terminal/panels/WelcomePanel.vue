@@ -1,8 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSessionStore } from '@/stores/session'
 import { getPanelsByCategory, type PanelMeta } from './registry'
+
+const { t } = useI18n()
+
+const CATEGORY_KEYS: Record<string, string> = {
+  '市场行情': 'misc.cat_market', '交易执行': 'misc.cat_trading',
+  '组合与风控': 'misc.cat_portfolio', '图表分析': 'misc.cat_chart',
+  '研究分析': 'misc.cat_research', '量化分析': 'misc.cat_quant',
+  '另类数据': 'misc.cat_altdata', '系统': 'misc.cat_system',
+}
+function catLabel(cn: string): string { return CATEGORY_KEYS[cn] ? t(CATEGORY_KEYS[cn]) : cn }
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const terminal = useTerminalStore()
@@ -50,13 +61,13 @@ function openPanel(id: string) {
 <template>
   <div class="welcome-panel">
     <div class="welcome-header">
-      <h1 class="welcome-title">QuantFlow Terminal</h1>
-      <p class="welcome-subtitle">双模式量化金融终端 · Ctrl+K 搜索面板 · 共 {{ panelCategories.reduce((s, c) => s + c.items.length, 0) }} 个面板</p>
+      <h1 class="welcome-title">{{ $t('misc.welcome') }}</h1>
+      <p class="welcome-subtitle">{{ $t('misc.welcome_subtitle') }}{{ panelCategories.reduce((s, c) => s + c.items.length, 0) }}{{ $t('misc.panel_count') }}</p>
     </div>
 
     <div class="panel-grid">
       <section v-for="cat in panelCategories" :key="cat.title" class="category-section">
-        <h2 class="category-title">{{ cat.title }}</h2>
+        <h2 class="category-title">{{ catLabel(cat.title) }}</h2>
         <div class="category-grid">
           <button
             v-for="item in cat.items"

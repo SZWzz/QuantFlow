@@ -86,12 +86,12 @@ onMounted(refresh)
 <template>
   <div class="market-depth-panel">
     <div class="panel-header">
-      <h3>市场深度</h3>
+      <h3>{{ $t('misc.depth') }}</h3>
       <div class="header-controls">
         <input
           class="symbol-input"
           :value="symbol"
-          placeholder="代码..."
+          :placeholder="$t('quote.symbol') + '...'"
           @keyup.enter="handleSymbolSubmit"
         />
         <button class="refresh-btn" @click="refresh">⟳</button>
@@ -106,17 +106,17 @@ onMounted(refresh)
       <span class="price-change" :style="{ color: change >= 0 ? '#ef4444' : '#22c55e' }">
         {{ change >= 0 ? '+' : '' }}{{ change.toFixed(2) }} ({{ changePct >= 0 ? '+' : '' }}{{ changePct.toFixed(2) }}%)
       </span>
-      <span v-if="isSimulated" class="sim-badge">模拟盘口</span>
+      <span v-if="isSimulated" class="sim-badge">{{ $t('misc.simulated_depth') }}</span>
     </div>
 
     <!-- Section A: Order Book -->
     <div class="orderbook">
       <div class="ob-header">
-        <span class="ob-cell price-col">买价</span>
-        <span class="ob-cell size-col">Size</span>
+        <span class="ob-cell price-col">{{ $t('quote.bid') }}</span>
+        <span class="ob-cell size-col">{{ $t('common.size') }}</span>
         <span class="ob-cell bar-col"></span>
-        <span class="ob-cell price-col">卖价</span>
-        <span class="ob-cell size-col">Size</span>
+        <span class="ob-cell price-col">{{ $t('quote.ask') }}</span>
+        <span class="ob-cell size-col">{{ $t('common.size') }}</span>
         <span class="ob-cell bar-col"></span>
       </div>
       <div class="ob-rows">
@@ -153,7 +153,7 @@ onMounted(refresh)
 
     <!-- Section B: Recent Trades -->
     <div class="trades-section">
-      <div class="trades-label">最近成交</div>
+      <div class="trades-label">{{ $t('misc.recent_trades') }}</div>
       <div class="trades-list">
         <div v-for="(t, idx) in trades" :key="idx" class="trade-row">
           <span class="trade-time">{{ t.time }}</span>
@@ -173,7 +173,7 @@ onMounted(refresh)
   display: flex;
   flex-direction: column;
   color: var(--color-text, #e5e7eb);
-  background: var(--color-bg, #111827);
+  background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -185,28 +185,28 @@ onMounted(refresh)
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; align-items: center; }
 .symbol-input {
-  width: 110px; padding: 4px 8px; border: 1px solid #374151;
-  border-radius: 4px; background: #1f2937; color: #e5e7eb; font-size: 13px;
+  width: 110px; padding: 4px 8px; border: 1px solid var(--color-border-strong);
+  border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px;
 }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid #374151; border-radius: 4px;
-  background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
 }
 
 /* Last Price */
 .last-price-row {
   display: flex; align-items: baseline; gap: 10px;
-  padding: 6px 0; margin-bottom: 8px; border-bottom: 1px solid #374151;
+  padding: 6px 0; margin-bottom: 8px; border-bottom: 1px solid var(--color-border-strong);
 }
-.price-label { font-size: 12px; color: #9ca3af; }
+.price-label { font-size: 12px; color: var(--color-text-secondary); }
 .price-value { font-size: 18px; font-weight: 700; }
 .price-change { font-size: 12px; }
 
 /* Order Book */
 .orderbook { margin-bottom: 10px; }
 .ob-header {
-  display: flex; padding: 2px 0; border-bottom: 1px solid #374151;
-  font-size: 10px; color: #6b7280; text-transform: uppercase;
+  display: flex; padding: 2px 0; border-bottom: 1px solid var(--color-border-strong);
+  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;
 }
 .ob-rows { font-size: 12px; font-variant-numeric: tabular-nums; }
 .ob-row { display: flex; padding: 1px 0; }
@@ -219,20 +219,20 @@ onMounted(refresh)
 .ask-bar { background: #ef4444; }
 .bid-price { color: #22c55e; }
 .ask-price { color: #ef4444; }
-.bid-size { color: #9ca3af; }
-.ask-size { color: #9ca3af; }
+.bid-size { color: var(--color-text-secondary); }
+.ask-size { color: var(--color-text-secondary); }
 
 /* Trades */
 .trades-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.trades-label { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
-.trades-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #374151 transparent; }
+.trades-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; }
+.trades-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent; }
 .trade-row {
   display: flex; justify-content: space-between; padding: 1px 0;
   font-size: 11px; font-variant-numeric: tabular-nums;
 }
-.trade-time { color: #6b7280; width: 56px; }
+.trade-time { color: var(--color-text-tertiary); width: 56px; }
 .trade-price { width: 70px; text-align: right; }
-.trade-volume { width: 60px; text-align: right; color: #9ca3af; }
+.trade-volume { width: 60px; text-align: right; color: var(--color-text-secondary); }
 .trade-side { width: 24px; text-align: center; font-weight: 600; font-size: 10px; }
 .side-buy { color: #ef4444; }
 .side-sell { color: #22c55e; }

@@ -45,9 +45,9 @@ function formatPct(v: number | undefined | null): string {
 <template>
   <div class="panel">
     <div class="panel-header">
-      <h3>Financials — {{ symbol.toUpperCase() }}</h3>
+      <h3>{{ $t('research.financials') }} &mdash; {{ symbol.toUpperCase() }}</h3>
       <div class="header-controls">
-        <input class="symbol-input" v-model="symbol" placeholder="Symbol..." @keyup.enter="refresh" />
+        <input class="symbol-input" v-model="symbol" :placeholder="$t('research.hint_enter_symbol')" @keyup.enter="refresh" />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>
       </div>
     </div>
@@ -56,30 +56,30 @@ function formatPct(v: number | undefined | null): string {
       <div class="card-grid">
         <!-- 利润表 -->
         <div class="card">
-          <h4 class="card-title">利润表</h4>
-          <div class="card-row"><span>营收</span><span class="val">{{ formatNum(financials.data.revenue) }}</span></div>
-          <div class="card-row"><span>净利润</span><span class="val">{{ formatNum(financials.data.net_income) }}</span></div>
-          <div class="card-row"><span>EPS</span><span class="val">{{ financials.data.eps?.toFixed(2) ?? '--' }}</span></div>
+          <h4 class="card-title">{{ $t('research.income_stmt') }}</h4>
+          <div class="card-row"><span>{{ $t('research.revenue') }}</span><span class="val">{{ formatNum(financials.data.revenue) }}</span></div>
+          <div class="card-row"><span>{{ $t('research.net_profit') }}</span><span class="val">{{ formatNum(financials.data.net_income) }}</span></div>
+          <div class="card-row"><span>{{ $t('quote.eps') }}</span><span class="val">{{ financials.data.eps?.toFixed(2) ?? '--' }}</span></div>
         </div>
 
         <!-- 资产负债表 -->
         <div class="card">
-          <h4 class="card-title">资产负债表</h4>
-          <div class="card-row"><span>总资产</span><span class="val">{{ formatNum(financials.data.total_assets) }}</span></div>
-          <div class="card-row"><span>总权益</span><span class="val">{{ formatNum(financials.data.total_equity) }}</span></div>
-          <div class="card-row"><span>总负债</span><span class="val">{{ formatNum(financials.data.total_debt) }}</span></div>
+          <h4 class="card-title">{{ $t('research.balance_sheet') }}</h4>
+          <div class="card-row"><span>{{ $t('research.total_assets') }}</span><span class="val">{{ formatNum(financials.data.total_assets) }}</span></div>
+          <div class="card-row"><span>{{ $t('research.total_equity') }}</span><span class="val">{{ formatNum(financials.data.total_equity) }}</span></div>
+          <div class="card-row"><span>{{ $t('research.total_liabilities') }}</span><span class="val">{{ formatNum(financials.data.total_debt) }}</span></div>
         </div>
 
         <!-- 现金流量表 -->
         <div class="card">
-          <h4 class="card-title">现金流量表</h4>
-          <div class="card-row"><span>Free 现金流量表</span><span class="val">{{ formatNum(financials.data.free_cash_flow) }}</span></div>
-          <div class="card-row"><span>市值</span><span class="val">{{ formatNum(financials.data.market_cap) }}</span></div>
+          <h4 class="card-title">{{ $t('research.cashflow_stmt') }}</h4>
+          <div class="card-row"><span>{{ $t('research.free_cashflow') }}</span><span class="val">{{ formatNum(financials.data.free_cash_flow) }}</span></div>
+          <div class="card-row"><span>{{ $t('quote.market_cap') }}</span><span class="val">{{ formatNum(financials.data.market_cap) }}</span></div>
         </div>
 
         <!-- 财务比率 -->
         <div class="card" v-if="financials.ratios && Object.keys(financials.ratios).length > 0">
-          <h4 class="card-title">财务比率</h4>
+          <h4 class="card-title">{{ $t('research.financial_ratios') }}</h4>
           <div class="card-row" v-for="(v, k) in financials.ratios" :key="k">
             <span>{{ k.replace(/_/g, ' ') }}</span>
             <span class="val">{{ typeof v === 'number' ? (k.includes('margin') || k.includes('yield') || k.includes('rate') ? formatPct(v) : v.toFixed(2)) : v }}</span>
@@ -95,21 +95,21 @@ function formatPct(v: number | undefined | null): string {
 </template>
 
 <style scoped>
-.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, #111827); }
+.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
 .panel-content { flex: 1; overflow-y: auto; }
 .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.card { padding: 12px; border: 1px solid #374151; border-radius: 6px; background: #1f2937; }
-.card-title { margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
-.card-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px solid #1f2937; }
+.card { padding: 12px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); }
+.card-title { margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.card-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--color-bg-elevated); }
 .card-row:last-child { border-bottom: none; }
-.card-row span { color: #9ca3af; }
+.card-row span { color: var(--color-text-secondary); }
 .card-row .val { color: #e5e7eb; font-variant-numeric: tabular-nums; }
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 13px; }
+.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

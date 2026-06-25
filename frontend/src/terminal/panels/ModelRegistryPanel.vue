@@ -44,37 +44,37 @@ onMounted(() => { mlStore.fetchModels() })
     <div class="toolbar">
       <input v-model="searchQuery" placeholder="Search models..." class="search-input" />
       <select v-model="typeFilter" class="filter-select">
-        <option value="">All Types</option>
+        <option value="">{{ $t('ml.all_types') }}</option>
         <option value="xgboost">XGBoost</option>
         <option value="lightgbm">LightGBM</option>
         <option value="lstm">LSTM</option>
         <option value="transformer">Transformer</option>
       </select>
       <select v-model="categoryFilter" class="filter-select">
-        <option value="">All Categories</option>
+        <option value="">{{ $t('ml.all_categories') }}</option>
         <option value="prediction">Prediction</option>
         <option value="alpha_mining">Alpha Mining</option>
         <option value="rl">RL</option>
         <option value="risk">Risk</option>
       </select>
       <select v-model="statusFilter" class="filter-select">
-        <option value="">All Status</option>
+        <option value="">{{ $t('ml.all_status') }}</option>
         <option value="ready">Ready</option>
         <option value="training">Training</option>
-        <option value="failed">Failed</option>
-        <option value="archived">Archived</option>
+        <option value="failed">{{ $t('ml.failed') }}</option>
+        <option value="archived">{{ $t('ml.archived') }}</option>
       </select>
     </div>
 
     <table class="model-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Category</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Actions</th>
+          <th>{{ $t('common.name') }}</th>
+          <th>{{ $t('common.type') }}</th>
+          <th>{{ $t('ml.category') }}</th>
+          <th>{{ $t('common.status') }}</th>
+          <th>{{ $t('ml.created') }}</th>
+          <th>{{ $t('common.actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -85,9 +85,9 @@ onMounted(() => { mlStore.fetchModels() })
           <td><span :class="'status-badge status-' + model.status">{{ model.status }}</span></td>
           <td>{{ model.created_at?.slice(0, 10) }}</td>
           <td>
-            <button class="btn btn-sm" @click.stop="handleDragToWorkflow(model)">+ Workflow</button>
-            <button class="btn btn-sm btn-warning" @click.stop="handleArchive(model)">Archive</button>
-            <button class="btn btn-sm btn-danger" @click.stop="handleDelete(model)">Delete</button>
+            <button class="btn btn-sm" @click.stop="handleDragToWorkflow(model)">{{ $t('ml.add_to_workflow') }}</button>
+            <button class="btn btn-sm btn-warning" @click.stop="handleArchive(model)">{{ $t('ml.archive') }}</button>
+            <button class="btn btn-sm btn-danger" @click.stop="handleDelete(model)">{{ $t('common.delete') }}</button>
           </td>
         </tr>
       </tbody>
@@ -97,14 +97,14 @@ onMounted(() => { mlStore.fetchModels() })
       <div class="detail-panel" @click.stop>
         <h3>Model Details</h3>
         <dl>
-          <dt>Name</dt><dd>{{ detailModel.name }}</dd>
-          <dt>Type</dt><dd>{{ detailModel.model_type }}</dd>
-          <dt>Category</dt><dd>{{ detailModel.category }}</dd>
-          <dt>Status</dt><dd>{{ detailModel.status }}</dd>
-          <dt>Hyperparams</dt><dd><pre>{{ JSON.stringify(detailModel.hyperparams, null, 2) }}</pre></dd>
+          <dt>{{ $t('common.name') }}</dt><dd>{{ detailModel.name }}</dd>
+          <dt>{{ $t('common.type') }}</dt><dd>{{ detailModel.model_type }}</dd>
+          <dt>{{ $t('ml.category') }}</dt><dd>{{ detailModel.category }}</dd>
+          <dt>{{ $t('common.status') }}</dt><dd>{{ detailModel.status }}</dd>
+          <dt>{{ $t('ml.hyperparams') }}</dt><dd><pre>{{ JSON.stringify(detailModel.hyperparams, null, 2) }}</pre></dd>
           <dt>Metrics</dt><dd><pre>{{ JSON.stringify(detailModel.metrics, null, 2) }}</pre></dd>
         </dl>
-        <button @click="detailVisible = false">Close</button>
+        <button @click="detailVisible = false">{{ $t('common.close') }}</button>
       </div>
     </div>
   </div>

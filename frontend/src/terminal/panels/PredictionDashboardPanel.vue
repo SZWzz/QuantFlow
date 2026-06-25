@@ -62,25 +62,25 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
         <option v-for="m in mlStore.readyModels" :key="m.id" :value="m.id">{{ m.name }}</option>
       </select>
       <input v-model="selectedSymbol" placeholder="Symbol (e.g. AAPL)" class="search-input" />
-      <button @click="mlStore.fetchPredictions(selectedModelId, selectedSymbol); buildCharts()" class="btn">加载</button>
+      <button @click="mlStore.fetchPredictions(selectedModelId, selectedSymbol); buildCharts()" class="btn">{{ $t('ml.load') }}</button>
     </div>
     <div class="charts-grid">
       <div class="chart-box">
-        <h4>预测分布</h4>
+        <h4>{{ $t('ml.pred_distribution') }}</h4>
         <div class="histogram">
           <div v-for="(count, i) in chartData.distribution" :key="i" class="bar" :style="{ height: (count / Math.max(...chartData.distribution, 1) * 100) + '%' }"></div>
         </div>
       </div>
       <div class="chart-box">
-        <h4>IC 走势</h4>
+        <h4>{{ $t('ml.ic_trend') }}</h4>
         <div class="line-chart-placeholder">IC plot — {{ chartData.icTimeline.length }} points</div>
       </div>
       <div class="chart-box">
-        <h4>预测 vs 实际</h4>
+        <h4>{{ $t('ml.prediction_vs_actual') }}</h4>
         <div class="line-chart-placeholder">Scatter — {{ chartData.scatter.length }} points</div>
       </div>
       <div class="chart-box">
-        <h4>分位数收益</h4>
+        <h4>{{ $t('ml.quantile_returns') }}</h4>
         <div class="line-chart-placeholder">{{ chartData.quantile.join(', ') }}</div>
       </div>
     </div>

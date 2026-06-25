@@ -5,7 +5,7 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
 <template>
   <div class="rl-monitor-panel">
     <div class="placeholder-content">
-      <div class="placeholder-title">强化学习监控</div>
+      <div class="placeholder-title">{{ $t('ml.rl_monitor') }}</div>
       <div class="placeholder-message">
         需要 Python sidecar 支持当前功能
       </div>

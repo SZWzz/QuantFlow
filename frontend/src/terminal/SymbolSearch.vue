@@ -130,7 +130,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
         ref="inputRef"
         class="search-input"
         :value="selectedName || displayValue"
-        :placeholder="placeholder ?? '输入代码/名称/拼音...'"
+        :placeholder="placeholder ?? $t('common.search') + '...'"
         @input="onInput"
         @focus="onFocus"
         @blur="onBlur"
@@ -156,7 +156,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
     </ul>
 
     <div v-if="open && query && !loading && results.length === 0" class="dropdown empty">
-      未找到匹配股票
+      {{ $t('common.no_data') }}
     </div>
   </div>
 </template>
@@ -176,7 +176,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   padding: 6px 28px 6px 10px;
   border: 1px solid #374151;
   border-radius: 4px;
-  background: #1f2937;
+  background: var(--color-bg-elevated);
   color: #e5e7eb;
   font-size: 13px;
   outline: none;
@@ -206,7 +206,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   list-style: none;
   border: 1px solid #374151;
   border-radius: 4px;
-  background: #1f2937;
+  background: var(--color-bg-elevated);
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 .dropdown.empty {

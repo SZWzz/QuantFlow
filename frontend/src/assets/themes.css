@@ -30,6 +30,8 @@ body {
   --color-warn: #f59e0b;
   --color-warn-soft: rgba(245, 158, 11, 0.12);
   --color-info: #06b6d4;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
   --color-brand: #e94560;
   --color-brand-soft: rgba(233, 69, 96, 0.15);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -80,6 +82,8 @@ body.theme-light {
   --color-warn: #d97706;
   --color-warn-soft: rgba(217, 119, 6, 0.1);
   --color-info: #0891b2;
+  --color-success: #059669;
+  --color-danger: #dc2626;
   --color-brand: #dc2626;
   --color-brand-soft: rgba(220, 38, 38, 0.12);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);

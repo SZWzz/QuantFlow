@@ -46,7 +46,7 @@ function formatPrice(p: number): string {
 function pctColor(pct: number): string {
   if (pct > 0) return '#ef4444'
   if (pct < 0) return '#22c55e'
-  return '#9ca3af'
+  return 'var(--color-text-secondary)'
 }
 
 async function refresh() {
@@ -70,7 +70,7 @@ onMounted(refresh)
 <template>
   <div class="crypto-overview-panel">
     <div class="panel-header">
-      <h3>加密货币概览</h3>
+      <h3>{{ $t('misc.crypto_overview') }}</h3>
       <button class="refresh-btn" @click="refresh">⟳</button>
     </div>
 
@@ -80,8 +80,8 @@ onMounted(refresh)
         <thead>
           <tr>
             <th class="col-rank">#</th>
-            <th class="col-symbol sortable" @click="toggleSort('symbol')">Symbol{{ sortArrow('symbol') }}</th>
-            <th class="col-price sortable" @click="toggleSort('price')">Price{{ sortArrow('price') }}</th>
+            <th class="col-symbol sortable" @click="toggleSort('symbol')">{{ $t('quote.symbol') }}{{ sortArrow('symbol') }}</th>
+            <th class="col-price sortable" @click="toggleSort('price')">{{ $t('common.price') }}{{ sortArrow('price') }}</th>
             <th class="col-change sortable" @click="toggleSort('changePct24h')">24h涨跌%{{ sortArrow('changePct24h') }}</th>
           </tr>
         </thead>
@@ -107,7 +107,7 @@ onMounted(refresh)
   display: flex;
   flex-direction: column;
   color: var(--color-text, #e5e7eb);
-  background: var(--color-bg, #111827);
+  background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -118,8 +118,8 @@ onMounted(refresh)
 }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid #374151; border-radius: 4px;
-  background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
 }
 
 /* Dominance */
@@ -129,9 +129,9 @@ onMounted(refresh)
 .dominance-item {
   flex: 1; display: flex; align-items: center; gap: 8px;
 }
-.dom-label { font-size: 11px; color: #9ca3af; white-space: nowrap; }
+.dom-label { font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; }
 .dom-bar-track {
-  flex: 1; height: 8px; background: #1f2937; border-radius: 4px; overflow: hidden;
+  flex: 1; height: 8px; background: var(--color-bg-elevated); border-radius: 4px; overflow: hidden;
 }
 .dom-bar-fill { height: 100%; border-radius: 4px; }
 .btc-bar { background: #f7931a; }
@@ -141,7 +141,7 @@ onMounted(refresh)
 /* Table */
 .crypto-table-wrap {
   flex: 1; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: #374151 transparent;
+  scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent;
 }
 .crypto-table {
   width: 100%; border-collapse: collapse; font-size: 12px;
@@ -151,20 +151,20 @@ onMounted(refresh)
   position: sticky; top: 0; z-index: 1;
 }
 .crypto-table th {
-  padding: 6px 4px; text-align: right; font-size: 11px; color: #6b7280;
-  font-weight: 500; border-bottom: 1px solid #374151; background: #111827;
+  padding: 6px 4px; text-align: right; font-size: 11px; color: var(--color-text-tertiary);
+  font-weight: 500; border-bottom: 1px solid var(--color-border-strong); background: var(--color-bg-panel);
 }
 .crypto-table th.sortable { cursor: pointer; user-select: none; }
 .crypto-table th.sortable:hover { color: #e5e7eb; }
 .crypto-table td {
-  padding: 4px; text-align: right; border-bottom: 1px solid #1f2937;
+  padding: 4px; text-align: right; border-bottom: 1px solid var(--color-bg-elevated);
 }
 .col-rank, th:first-child { width: 24px; text-align: center; }
 .col-symbol { text-align: left !important; }
 .crypto-symbol { font-weight: 600; color: #e5e7eb; }
-.crypto-name { color: #6b7280; font-size: 10px; margin-left: 4px; }
+.crypto-name { color: var(--color-text-tertiary); font-size: 10px; margin-left: 4px; }
 .col-price { width: 90px; }
 .col-change { width: 80px; font-weight: 500; }
-.col-volume { width: 80px; color: #9ca3af; }
-.col-mcap { width: 90px; color: #9ca3af; }
+.col-volume { width: 80px; color: var(--color-text-secondary); }
+.col-mcap { width: 90px; color: var(--color-text-secondary); }
 </style>

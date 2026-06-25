@@ -19,7 +19,7 @@ function getLabel(pin: PushPin): string {
 
 <template>
   <div v-if="terminal.pushPins.length > 0" class="pushpin-bar">
-    <span class="bar-label">PINNED</span>
+    <span class="bar-label">{{ $t('misc.pinned') }}</span>
     <div
       v-for="pin in terminal.pushPins"
       :key="pin.id"

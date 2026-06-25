@@ -26,8 +26,8 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 const priceChartOption = computed(() => ({
   backgroundColor: 'transparent',
   grid: { top: 10, right: 20, bottom: 30, left: 60 },
-  xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'], axisLabel: { color: '#5a6380', fontSize: 10 } },
-  yAxis: { type: 'value', axisLabel: { color: '#5a6380', fontSize: 10 } },
+  xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'], axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
+  yAxis: { type: 'value', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
   series: [
     { type: 'line', data: [185,190,188,192,194,195.32], smooth: true, lineStyle: { color: '#58a6ff', width: 2 }, symbol: 'none' },
     { type: 'line', data: [188.5,188.5,188.5,188.5,188.5,188.5], lineStyle: { color: '#f0883e', width: 1, type: 'dashed' }, symbol: 'none', name: 'Cost Basis' }
@@ -43,15 +43,15 @@ const priceChartOption = computed(() => ({
       <span class="currency">{{ currency }}</span>
     </div>
     <div class="kpi-grid">
-      <div class="kpi-item"><span class="kpi-label">Quantity</span><span class="kpi-value">{{ detail.quantity }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">Avg Price</span><span class="kpi-value">${{ fmt(detail.avg_price) }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">Market Price</span><span class="kpi-value">${{ fmt(detail.market_price) }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">Market Value</span><span class="kpi-value">${{ fmt(detail.market_value).replace(/\B(?=(\d{3})+(?!\d))/g, ',') }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">P&amp;L</span><span :class="['kpi-value', detail.pnl >= 0 ? 'up' : 'down']">${{ fmt(detail.pnl) }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">Allocation</span><span class="kpi-value">{{ fmt(detail.alloc_pct) }}%</span></div>
+      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.quantity') }}</span><span class="kpi-value">{{ detail.quantity }}</span></div>
+      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.avg_price') }}</span><span class="kpi-value">${{ fmt(detail.avg_price) }}</span></div>
+      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.market_price') }}</span><span class="kpi-value">${{ fmt(detail.market_price) }}</span></div>
+      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.market_value') }}</span><span class="kpi-value">${{ fmt(detail.market_value).replace(/\B(?=(\d{3})+(?!\d))/g, ',') }}</span></div>
+      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.pnl') }}</span><span :class="['kpi-value', detail.pnl >= 0 ? 'up' : 'down']">${{ fmt(detail.pnl) }}</span></div>
+      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.alloc') }}</span><span class="kpi-value">{{ fmt(detail.alloc_pct) }}%</span></div>
     </div>
     <div class="chart-section">
-      <div class="chart-title">Price History (30d)</div>
+      <div class="chart-title">{{ $t('portfolio.price_history') }}</div>
       <VChart :option="priceChartOption" autoresize style="height:180px" />
     </div>
     <div class="pnl-summary">

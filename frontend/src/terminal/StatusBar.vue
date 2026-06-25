@@ -27,7 +27,7 @@ const activeGroups = computed(() =>
   <div class="status-bar">
     <div class="status-left">
       <span class="status-item connected" :class="{ offline: data.isOffline }">
-        ● {{ data.isOffline ? 'Offline' : 'Connected' }}
+        ● {{ data.isOffline ? $t('common.disconnected') : $t('common.connected') }}
       </span>
     </div>
     <div class="status-groups">
@@ -63,8 +63,8 @@ const activeGroups = computed(() =>
 }
 .status-left, .status-center, .status-right { display: flex; gap: 12px; align-items: center; }
 .status-item { font-variant-numeric: tabular-nums; }
-.status-item.connected { color: var(--color-up); }
-.status-item.connected.offline { color: var(--color-down); }
+.status-item.connected { color: var(--color-success); }
+.status-item.connected.offline { color: var(--color-danger); }
 .status-groups { display: flex; gap: 8px; }
 .group-badge {
   display: flex; align-items: center; gap: 4px;

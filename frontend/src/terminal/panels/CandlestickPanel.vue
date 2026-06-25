@@ -21,6 +21,18 @@ const hasEcharts = computed(() => !!(echarts && VChart))
 function upColor() { return document.body.classList.contains('color-cn') ? '#ef4444' : '#22c55e' }
 function downColor() { return document.body.classList.contains('color-cn') ? '#22c55e' : '#ef4444' }
 
+// A-share trading hours: 09:30-11:30, 13:00-15:00 (Mon-Fri).
+// Used to stop minute-chart polling outside market hours.
+function isTradingHours(): boolean {
+  const now = new Date()
+  const day = now.getDay()
+  if (day === 0 || day === 6) return false // weekend
+  const h = now.getHours()
+  const m = now.getMinutes()
+  const t = h * 60 + m
+  return (t >= 9 * 60 + 30 && t <= 11 * 60 + 30) || (t >= 13 * 60 && t <= 15 * 60)
+}
+
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const interval = ref(props.params?.interval || '1d')
 const ohlcvData = ref<(string | number)[][]>([])
@@ -96,8 +108,17 @@ async function loadMinuteLine() {
 
 function startMinutePolling() {
   stopMinutePolling()
+  // Always load once so the user can see today's chart, even after close.
   loadMinuteLine()
-  minuteTimer = setInterval(loadMinuteLine, 10000)
+  // Only auto-refresh during trading hours.
+  if (!isTradingHours()) return
+  minuteTimer = setInterval(() => {
+    if (!isTradingHours()) {
+      stopMinutePolling()
+      return
+    }
+    loadMinuteLine()
+  }, 10000)
 }
 
 function stopMinutePolling() {
@@ -172,12 +193,12 @@ const option = computed(() => {
       { left: 60, right: 10, top: '78%', height: '15%' },
     ],
     xAxis: [
-      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#334155' } } },
-      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#334155' } } },
+      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: 'var(--color-border-strong)' } } },
+      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: 'var(--color-border-strong)' } } },
     ],
     yAxis: [
-      { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: '#64748b', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
-      { type: 'value', gridIndex: 1, axisLabel: { color: '#64748b', fontSize: 10 }, splitLine: { show: false } },
+      { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+      { type: 'value', gridIndex: 1, axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 }, splitLine: { show: false } },
     ],
     series: [
       {
@@ -207,31 +228,42 @@ const minuteChartOption = computed(() => {
 
   return {
     backgroundColor: 'transparent',
-    grid: { top: 20, right: 60, bottom: 40, left: 60 },
-    xAxis: {
-      type: 'category', data: times,
-      axisLabel: { color: '#6b7280', fontSize: 10, interval: 30 },
-      axisLine: { lineStyle: { color: '#374151' } },
-    },
+    // Two separate grids: price chart on top (62%), volume bars below (15%)
+    grid: [
+      { left: 60, right: 20, top: 10, height: '62%' },
+      { left: 60, right: 20, top: '78%', height: '15%' },
+    ],
+    xAxis: [
+      {
+        type: 'category', data: times, gridIndex: 0,
+        axisLabel: { show: false },
+        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+        axisTick: { show: false },
+      },
+      {
+        type: 'category', data: times, gridIndex: 1,
+        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, interval: 30 },
+        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+      },
+    ],
     yAxis: [
       {
-        type: 'value', name: '价格',
-        position: 'left',
-        axisLabel: { color: '#6b7280', fontSize: 10 },
-        splitLine: { lineStyle: { color: '#1f2937' } },
+        type: 'value', gridIndex: 0, position: 'left',
+        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
         min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
         max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
       },
       {
-        type: 'value', name: '量',
-        position: 'right',
-        axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
+        type: 'value', gridIndex: 1, position: 'left',
+        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
         splitLine: { show: false },
-      }
+      },
     ],
     series: [
       {
-        type: 'line', data: prices, yAxisIndex: 0,
+        type: 'line', name: '价格', data: prices,
+        xAxisIndex: 0, yAxisIndex: 0,
         smooth: false, symbol: 'none',
         lineStyle: { color: lineColor, width: 1.5 },
         areaStyle: {
@@ -243,25 +275,26 @@ const minuteChartOption = computed(() => {
             ]
           }
         },
+        markLine: prevClose.value > 0 ? {
+          silent: true, symbol: 'none',
+          lineStyle: { color: 'var(--color-text-tertiary)', type: 'dashed', width: 1 },
+          data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: 'var(--color-text-tertiary)', fontSize: 10 } }],
+        } : undefined,
       },
       {
-        type: 'line', data: minuteTicks.value.map(t => t.avg_price), yAxisIndex: 0,
+        type: 'line', name: '均价', data: minuteTicks.value.map(t => t.avg_price),
+        xAxisIndex: 0, yAxisIndex: 0,
         smooth: true, symbol: 'none',
         lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' },
-        name: '均价',
       },
       {
-        type: 'bar', data: volumes, yAxisIndex: 1,
-        itemStyle: { color: '#374151' },
+        type: 'bar', name: '成交量', data: volumes,
+        xAxisIndex: 1, yAxisIndex: 1,
+        itemStyle: { color: 'var(--color-border-strong)' },
         barWidth: 1,
       },
     ],
     tooltip: { trigger: 'axis' },
-    markLine: prevClose.value > 0 ? {
-      silent: true, symbol: 'none',
-      lineStyle: { color: '#6b7280', type: 'dashed', width: 1 },
-      data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: '#6b7280', fontSize: 10 } }],
-    } : undefined,
   }
 })
 
@@ -285,8 +318,8 @@ onUnmounted(() => {
       <div class="header-left">
         <span class="symbol-display">{{ symbol }}</span>
         <div class="tab-btns">
-          <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">K线</button>
-          <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">分时</button>
+          <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">{{ $t('kline.kline') }}</button>
+          <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">{{ $t('kline.minute') }}</button>
         </div>
       </div>
       <div v-if="activeTab === 'kline'" class="interval-btns">
@@ -296,10 +329,10 @@ onUnmounted(() => {
       </div>
     </div>
     <div class="chart-body">
-      <div v-if="loading || minuteLoading" class="chart-fallback">加载中...</div>
+      <div v-if="loading || minuteLoading" class="chart-fallback">{{ $t('common.loading') }}</div>
       <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="symbol" :option="option" autoresize class="kline-chart" />
       <VChart v-else-if="hasEcharts && activeTab === 'minute'" :option="minuteChartOption" autoresize class="minute-chart" />
-      <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">暂无分时数据</div>
+      <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
       <div v-else class="chart-fallback">--</div>
     </div>
   </div>
@@ -323,10 +356,10 @@ onUnmounted(() => {
 }
 .tab-btns { display: flex; gap: 4px; }
 .tab-btn {
-  padding: 3px 12px; border: 1px solid #374151; border-radius: 4px;
-  background: #1f2937; color: #9ca3af; font-size: 12px; cursor: pointer;
+  padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
 }
-.tab-btn.active { background: #374151; color: #e5e7eb; border-color: #534ab7; }
+.tab-btn.active { background: var(--color-border-strong); color: #e5e7eb; border-color: #534ab7; }
 .interval-btns { display: flex; gap: 2px; }
 .interval-btn {
   padding: 2px 8px; border: 1px solid var(--color-border);
@@ -343,5 +376,5 @@ onUnmounted(() => {
 .kline-chart { width: 100%; height: 100%; }
 .minute-chart { width: 100%; height: 100%; }
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
-.no-data { color: #6b7280; padding: 40px; text-align: center; }
+.no-data { color: var(--color-text-tertiary); padding: 40px; text-align: center; }
 </style>

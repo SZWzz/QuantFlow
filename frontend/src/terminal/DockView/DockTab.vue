@@ -14,7 +14,22 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'select-tab', tabId: string): void
   (e: 'close-tab', tabId: string): void
+  (e: 'tab-drag', fromLeafId: string, tabId: string, toLeafId: string): void
 }>()
+
+function onDragStart(e: DragEvent, tabId: string) {
+  if (!e.dataTransfer) return
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', JSON.stringify({ leafId: props.leafId, tabId }))
+}
+function onDragOver(e: DragEvent) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move' }
+function onDrop(e: DragEvent) {
+  e.preventDefault(); if (!e.dataTransfer) return
+  try {
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+    if (data.leafId !== props.leafId) emit('tab-drag', data.leafId, data.tabId, props.leafId)
+  } catch { /* ignore */ }
+}
 
 const terminal = useTerminalStore()
 const ctx = useSymbolContext()
@@ -44,7 +59,7 @@ function closeTab(tabId: string) {
 
 <template>
   <div class="dock-tab">
-    <div class="tab-header">
+    <div class="tab-header" @dragover="onDragOver" @drop="onDrop">
       <div class="tab-list">
         <button
           v-for="tab in tabs"
@@ -68,7 +83,7 @@ function closeTab(tabId: string) {
         </button>
       </div>
     </div>
-    <div class="tab-content">
+    <div class="tab-content" @dragover="onDragOver" @drop="onDrop">
       <div v-if="tabs.length === 0" class="empty-content">
         Drop panels here
       </div>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import { usePortfolioStore } from '@/stores/portfolio'
 import { computeDrawdowns, sharpeRatio } from '@/lib/stats'
 import VChart from 'vue-echarts'
@@ -99,15 +101,15 @@ const equityChartOption = computed(() => ({
   xAxis: {
     type: 'category',
     data: dates.value,
-    axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v: string) => v.slice(5) },
+    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: string) => v.slice(5) },
   },
   yAxis: {
     type: 'value',
-    axisLabel: { color: '#6b7280', fontSize: 10 },
-    splitLine: { lineStyle: { color: '#1f2937' } },
+    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
+    splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
   },
   tooltip: { trigger: 'axis' },
-  legend: { textStyle: { color: '#9ca3af', fontSize: 11 }, top: 0 },
+  legend: { textStyle: { color: 'var(--color-text-secondary)', fontSize: 11 }, top: 0 },
   series: [
     {
       name: 'NAV',
@@ -128,7 +130,7 @@ const equityChartOption = computed(() => ({
       type: 'line',
       data: benchmarkValues.value,
       smooth: true,
-      lineStyle: { color: '#6b7280', width: 1.5, type: 'dashed' },
+      lineStyle: { color: 'var(--color-text-tertiary)', width: 1.5, type: 'dashed' },
       symbol: 'none',
     },
   ],
@@ -140,12 +142,12 @@ const ddChartOption = computed(() => ({
   xAxis: {
     type: 'category',
     data: dates.value,
-    axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v: string) => v.slice(5) },
+    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: string) => v.slice(5) },
   },
   yAxis: {
     type: 'value',
-    axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v: number) => (v * 100).toFixed(0) + '%' },
-    splitLine: { lineStyle: { color: '#1f2937' } },
+    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => (v * 100).toFixed(0) + '%' },
+    splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
   },
   tooltip: {
     trigger: 'axis',
@@ -170,11 +172,11 @@ const ddChartOption = computed(() => ({
 }))
 
 const metricCards = computed(() => [
-  { label: '累计收益', value: cumulativeReturn.value.toFixed(2) + '%', color: cumulativeReturn.value >= 0 ? '#22c55e' : '#ef4444' },
-  { label: '年化收益', value: annualizedReturn.value.toFixed(2) + '%', color: annualizedReturn.value >= 0 ? '#22c55e' : '#ef4444' },
-  { label: '最大回撤', value: maxDrawdown.value.toFixed(2) + '%', color: maxDrawdown.value < -20 ? '#ef4444' : '#f59e0b' },
-  { label: '夏普比率', value: sharpe.value.toFixed(2), color: sharpe.value >= 1 ? '#22c55e' : sharpe.value >= 0.5 ? '#f59e0b' : '#ef4444' },
-  { label: '卡尔玛比率', value: calmarRatio.value.toFixed(2), color: calmarRatio.value >= 1 ? '#22c55e' : calmarRatio.value >= 0.3 ? '#f59e0b' : '#ef4444' },
+  { label: t('portfolio.total_pnl'), value: cumulativeReturn.value.toFixed(2) + '%', color: cumulativeReturn.value >= 0 ? '#22c55e' : '#ef4444' },
+  { label: t('monteCarlo.annual_return'), value: annualizedReturn.value.toFixed(2) + '%', color: annualizedReturn.value >= 0 ? '#22c55e' : '#ef4444' },
+  { label: t('risk.max_drawdown'), value: maxDrawdown.value.toFixed(2) + '%', color: maxDrawdown.value < -20 ? '#ef4444' : '#f59e0b' },
+  { label: t('risk.sharpe'), value: sharpe.value.toFixed(2), color: sharpe.value >= 1 ? '#22c55e' : sharpe.value >= 0.5 ? '#f59e0b' : '#ef4444' },
+  { label: 'Calmar Ratio', value: calmarRatio.value.toFixed(2), color: calmarRatio.value >= 1 ? '#22c55e' : calmarRatio.value >= 0.3 ? '#f59e0b' : '#ef4444' },
 ])
 
 function refresh() {
@@ -189,7 +191,7 @@ onMounted(() => {
 <template>
   <div class="equity-curve-panel">
     <div class="panel-header">
-      <h3>净值曲线</h3>
+      <h3>{{ t('portfolio.equity_curve') }}</h3>
       <div class="header-controls">
         <button class="refresh-btn" @click="refresh">&#x21bb;</button>
       </div>
@@ -202,7 +204,7 @@ onMounted(() => {
         <div v-else class="fallback-table-wrap">
           <table class="fallback-table">
             <thead>
-              <tr><th>Date</th><th>NAV</th><th>Benchmark</th></tr>
+              <tr><th>{{ t('common.date') }}</th><th>{{ $t('misc.nav') }}</th><th>{{ $t('misc.benchmark') }}</th></tr>
             </thead>
             <tbody>
               <tr v-for="(pt, idx) in store.equityCurve" :key="idx">
@@ -218,7 +220,7 @@ onMounted(() => {
       <!-- Bottom section: Drawdown chart (30% height) -->
       <div class="chart-section-bottom">
         <VChart v-if="hasEcharts" :option="ddChartOption" autoresize class="drawdown-chart" />
-        <div v-else class="fallback-msg">回撤图需安装 ECharts</div>
+        <div v-else class="fallback-msg">{{ t('misc.echarts_missing') }}</div>
       </div>
 
       <!-- Stats row: metric cards -->
@@ -231,7 +233,7 @@ onMounted(() => {
     </div>
 
     <div v-else class="empty-state">
-      <p>{{ store.equityCurve ? 'Loading...' : '暂无净值曲线数据' }}</p>
+      <p>{{ store.equityCurve ? t('common.loading') : t('common.no_data') }}</p>
     </div>
   </div>
 </template>
@@ -243,7 +245,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   color: var(--color-text, #e5e7eb);
-  background: var(--color-bg, #111827);
+  background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -256,10 +258,10 @@ onMounted(() => {
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; align-items: center; }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid #374151; border-radius: 4px;
-  background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
 }
-.refresh-btn:hover { background: #374151; }
+.refresh-btn:hover { background: var(--color-border-strong); }
 
 .curve-content {
   flex: 1;
@@ -293,26 +295,26 @@ onMounted(() => {
   font-size: 12px;
 }
 .fallback-table th {
-  background: #1f2937;
-  color: #9ca3af;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
   padding: 4px 8px;
   text-align: right;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 .fallback-table th:first-child { text-align: left; }
 .fallback-table td {
   padding: 3px 8px;
   text-align: right;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid var(--color-bg-elevated);
   font-variant-numeric: tabular-nums;
 }
-.fallback-table td:first-child { text-align: left; color: #9ca3af; }
+.fallback-table td:first-child { text-align: left; color: var(--color-text-secondary); }
 .fallback-msg {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-size: 12px;
 }
 
@@ -328,15 +330,15 @@ onMounted(() => {
   min-width: 100px;
   padding: 8px 10px;
   border-radius: 6px;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .stat-label {
   font-size: 10px;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 .stat-value {
@@ -350,7 +352,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-size: 13px;
 }
 </style>

@@ -42,17 +42,17 @@ func (pe *PaperEngine) OnBar(bar OHLCVBar) []*Trade {
 			slog.Info("stop loss triggered", "symbol", pos.Symbol, "price", bar.Close, "pnl", pos.PnL)
 			// Close position at market
 			if pos.Quantity > 0 {
-				order, _ := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, pos.Quantity, 0)
-				trade, _ := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-				if trade != nil {
-					trades = append(trades, trade)
-				}
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, pos.Quantity, 0)
+				if err != nil { slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err); continue }
+				trade, err := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
+				if err != nil { slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err); continue }
+				if trade != nil { trades = append(trades, trade) }
 			} else {
-				order, _ := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, -pos.Quantity, 0)
-				trade, _ := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
-				if trade != nil {
-					trades = append(trades, trade)
-				}
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, -pos.Quantity, 0)
+				if err != nil { slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err); continue }
+				trade, err := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
+				if err != nil { slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err); continue }
+				if trade != nil { trades = append(trades, trade) }
 			}
 			continue
 		}
@@ -60,18 +60,17 @@ func (pe *PaperEngine) OnBar(bar OHLCVBar) []*Trade {
 		if pe.riskPipeline.CheckTakeProfit(pos, bar.Close) {
 			slog.Info("take profit triggered", "symbol", pos.Symbol, "price", bar.Close, "pnl", pos.PnL)
 			if pos.Quantity > 0 {
-				order, _ := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, pos.Quantity, 0)
-				trade, _ := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-				if trade != nil {
-					trades = append(trades, trade)
-				}
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, pos.Quantity, 0)
+				if err != nil { slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err); continue }
+				trade, err := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
+				if err != nil { slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err); continue }
+				if trade != nil { trades = append(trades, trade) }
 			} else {
-				// Short position: buy to cover
-				order, _ := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, -pos.Quantity, 0)
-				trade, _ := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
-				if trade != nil {
-					trades = append(trades, trade)
-				}
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, -pos.Quantity, 0)
+				if err != nil { slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err); continue }
+				trade, err := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
+				if err != nil { slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err); continue }
+				if trade != nil { trades = append(trades, trade) }
 			}
 		}
 	}

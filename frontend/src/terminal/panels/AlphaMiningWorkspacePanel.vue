@@ -41,7 +41,7 @@ function registerFactor(factor: { formula: string }) {
 
 <template>
   <div class="alpha-mining-panel">
-    <h3>Alpha 挖掘工作区</h3>
+    <h3>{{ $t('ml.alpha_mining') }}</h3>
     <div class="factor-pool">
       <h4>基础因子池 ({{ 已选Factors.length }} 已选)</h4>
       <div class="factor-chips">
@@ -51,16 +51,16 @@ function registerFactor(factor: { formula: string }) {
       </div>
     </div>
     <div class="gp-config">
-      <h4>遗传规划配置</h4>
+      <h4>{{ $t('ml.genetic_config') }}</h4>
       <div class="config-grid">
-        <label>种群: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
-        <label>代数: <input v-model.number="generations" type="number" min="5" max="200" /></label>
-        <label>交叉: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
-        <label>变异: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
-        <label>Top K: <input v-model.number="topK" type="number" min="1" max="50" /></label>
+        <label>{{ $t('ml.population') }}: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
+        <label>{{ $t('ml.generations') }}: <input v-model.number="generations" type="number" min="5" max="200" /></label>
+        <label>{{ $t('ml.crossover') }}: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
+        <label>{{ $t('ml.mutation') }}: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
+        <label>{{ $t('ml.top_k') }}: <input v-model.number="topK" type="number" min="1" max="50" /></label>
         <label>适应度:
           <select v-model="fitnessMetric">
-            <option value="ic">IC</option><option value="ir">IR</option>
+            <option value="ic">{{ $t('ml.ic') }}</option><option value="ir">{{ $t('ml.ir') }}</option>
             <option value="sharpe">Sharpe</option><option value="composite">综合</option>
           </select>
         </label>
@@ -70,12 +70,12 @@ function registerFactor(factor: { formula: string }) {
       {{ mlStore.miningRunning ? '挖掘中...' : '开始挖掘' }}
     </button>
     <div v-if="mlStore.discoveredFactors.length" class="results">
-      <h4>已发现因子</h4>
-      <table><thead><tr><th>公式</th><th>IC</th><th>IR</th><th>Sharpe</th><th>操作</th></tr></thead>
+      <h4>{{ $t('ml.discovered_factors') }}</h4>
+      <table><thead><tr><th>{{ $t('ml.formula') }}</th><th>{{ $t('ml.ic') }}</th><th>{{ $t('ml.ir') }}</th><th>Sharpe</th><th>{{ $t('common.actions') }}</th></tr></thead>
         <tbody><tr v-for="(f, i) in mlStore.discoveredFactors" :key="i">
           <td class="formula">{{ f.formula }}</td><td>{{ f.ic?.toFixed(4) }}</td>
           <td>{{ f.ir?.toFixed(4) }}</td><td>{{ f.sharpe?.toFixed(4) }}</td>
-          <td><button @click="registerFactor(f)" class="btn btn-sm">注册</button></td>
+          <td><button @click="registerFactor(f)" class="btn btn-sm">{{ $t('ml.register') }}</button></td>
         </tr></tbody>
       </table>
     </div>

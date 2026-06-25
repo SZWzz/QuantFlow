@@ -31,6 +31,7 @@ _FREQ_MAP: dict[str, str] = {
     "5m": "5m",
     "15m": "15m",
     "30m": "30m",
+    "1h": "1h",
     "1H": "1h",
 }
 
@@ -138,7 +139,7 @@ def _fetch_mootdx_ohlcv(symbols: list[str], start_date: str, end_date: str, inte
     """
     import pandas as pd
 
-    freq = _FREQ_MAP.get(interval)
+    freq = _FREQ_MAP.get(interval) or _FREQ_MAP.get(interval.lower())
     if freq is None:
         raise ValueError(
             f"mootdx: unsupported interval {interval!r}. "
@@ -494,7 +495,7 @@ class DataService(data_pb2_grpc.DataServiceServicer):
             bars = _fetch_mootdx_f10(symbols, category)
         else:
             return data_pb2.FetchDataResponse(
-                error=f"mootdx: unsupported data_type '{data_type}'. Supported: ohlcv, quote, finance, f10"
+                error=f"mootdx: unsupported data_type '{data_type}'. Supported: ohlcv, quote, minute, finance, f10"
             )
 
         return data_pb2.FetchDataResponse(

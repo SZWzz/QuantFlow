@@ -129,10 +129,10 @@ function onKeydown(event: KeyboardEvent) {
         <button class="wf-btn" @click="onRun" :disabled="workflow.executionStatus === 'running'">
           ▶ Run (F5)
         </button>
-        <button class="wf-btn secondary" @click="onSave">Save</button>
-        <button class="wf-btn secondary" @click="onLoad">Load</button>
+        <button class="wf-btn secondary" @click="onSave">{{ $t('common.save') }}</button>
+        <button class="wf-btn secondary" @click="onLoad">{{ $t('workflow.load_workflow') }}</button>
         <button class="wf-btn secondary" @click="showLog = !showLog">
-          {{ showLog ? 'Hide Log' : 'Show Log' }}
+          {{ showLog ? $t('workflow.hide_log') : $t('workflow.show_log') }}
         </button>
         <button class="wf-btn mode-switch" @click="router.push('/')">
           Terminal

@@ -54,7 +54,7 @@ onConnect((connection: Connection) => {
     targetHandle: connection.targetHandle,
     type: 'smoothstep',
     animated: false,
-    style: { stroke: '#30363d', strokeWidth: 2 },
+    style: { stroke: 'var(--color-border)', strokeWidth: 2 },
   }
   workflow.addEdge(edge)
 })
@@ -102,14 +102,14 @@ function onKeydown(event: KeyboardEvent) {
       :default-viewport="{ x: 0, y: 0, zoom: 1 }"
       :snap-to-grid="true"
       :snap-grid="[20, 20]"
-      :connection-line-style="{ stroke: '#58a6ff', strokeWidth: 2 }"
+      :connection-line-style="{ stroke: 'var(--color-accent)', strokeWidth: 2 }"
       fit-view-on-init
     >
       <Background :gap="20" :size="1" pattern-color="#1a2a3e" />
       <Controls position="bottom-right" />
       <MiniMap
         position="bottom-left"
-        :style="{ background: '#0d1117' }"
+        :style="{ background: 'var(--color-bg-input)' }"
         :mask-color="'rgba(0,0,0,0.5)'"
       />
     </VueFlow>
@@ -124,7 +124,7 @@ function onKeydown(event: KeyboardEvent) {
 .workflow-canvas {
   width: 100%;
   height: 100%;
-  background: #0d1117;
+  background: var(--color-bg-input);
   position: relative;
   outline: none;
 }
@@ -146,10 +146,10 @@ function onKeydown(event: KeyboardEvent) {
 .empty-hint kbd {
   padding: 2px 6px;
   background: #1c2333;
-  border: 1px solid #30363d;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 12px;
   font-family: monospace;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
 }
 </style>

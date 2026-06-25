@@ -53,14 +53,14 @@ function fmt(n: number, dec = 2): string {
       <table>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Symbol</th>
-            <th>Side</th>
-            <th class="num">Price</th>
-            <th class="num">Qty</th>
-            <th class="num">Value</th>
-            <th>Order ID</th>
-            <th class="num">Fee</th>
+            <th>{{ $t('common.time') }}</th>
+            <th>{{ $t('quote.symbol') }}</th>
+            <th>{{ $t('trade.side') }}</th>
+            <th class="num">{{ $t('common.price') }}</th>
+            <th class="num">{{ $t('trade.quantity') }}</th>
+            <th class="num">{{ $t('common.amount') }}</th>
+            <th>{{ $t('trade.order_id') }}</th>
+            <th class="num">{{ $t('workflow.fee') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -68,7 +68,7 @@ function fmt(n: number, dec = 2): string {
             <td class="muted">{{ formatTime(t.executed_at) }}</td>
             <td class="symbol">{{ t.symbol }}</td>
             <td :class="t.side === 'buy' ? 'up' : 'down'">
-              {{ t.side === 'buy' ? '买入' : '卖出' }}
+              {{ t.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}
             </td>
             <td class="num">{{ fmt(t.price) }}</td>
             <td class="num">{{ t.quantity.toLocaleString() }}</td>
@@ -77,7 +77,7 @@ function fmt(n: number, dec = 2): string {
             <td class="num muted">{{ fmt(t.fee, 4) }}</td>
           </tr>
           <tr v-if="visibleTrades.length === 0">
-            <td colspan="8" class="empty">暂无成交</td>
+            <td colspan="8" class="empty">{{ $t('workflow.no_executions') }}</td>
           </tr>
         </tbody>
       </table>
@@ -88,7 +88,7 @@ function fmt(n: number, dec = 2): string {
       <span class="load-count">
         Showing {{ visibleCount }} of {{ store.trades.length }}
       </span>
-      <button class="load-btn" @click="loadMore">加载更多</button>
+      <button class="load-btn" @click="loadMore">{{ $t('workflow.load_more') }}</button>
     </div>
   </div>
 </template>

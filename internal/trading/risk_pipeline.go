@@ -4,6 +4,8 @@ import "fmt"
 
 // RiskConfig defines the risk parameters for the trading engine.
 type RiskConfig struct {
+	InitialCapital  float64 // initial portfolio value (for drawdown calc)
+	PeakEquity      float64 // peak equity seen (updated externally)
 	MaxPositionPct float64 // max single position as % of portfolio (0 = disabled)
 	StopLossPct    float64 // stop loss % from entry price (0 = disabled)
 	TakeProfitPct  float64 // take profit % from entry price (0 = disabled)
@@ -32,6 +34,23 @@ func NewRiskPipeline(config RiskConfig) *RiskPipeline {
 
 // CheckOrder validates an order against risk rules.
 // Returns nil if the order passes all checks.
+// CheckDrawdown returns an error if current equity has fallen below the
+// maximum drawdown threshold relative to the peak equity.
+func (r *RiskPipeline) CheckDrawdown(currentEquity float64) error {
+	if currentEquity > r.config.PeakEquity {
+		r.config.PeakEquity = currentEquity
+	}
+	if r.config.PeakEquity <= 0 {
+		return nil
+	}
+	dd := (r.config.PeakEquity - currentEquity) / r.config.PeakEquity
+	if dd > r.config.MaxDrawdownPct {
+		return fmt.Errorf("max drawdown exceeded: %.2f%% > %.2f%%", dd*100, r.config.MaxDrawdownPct*100)
+	}
+	return nil
+}
+
+
 func (r *RiskPipeline) CheckOrder(order *Order, position *Position, portfolioValue float64) error {
 	if portfolioValue <= 0 {
 		return fmt.Errorf("invalid portfolio value: %f", portfolioValue)

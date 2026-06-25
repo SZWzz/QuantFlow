@@ -51,13 +51,13 @@ onMounted(() => {
 <template>
   <div class="heatmap-panel">
     <div class="panel-header">
-      <h3>板块热力图</h3>
+      <h3>{{ $t('misc.heatmap') }}</h3>
       <button class="refresh-btn" @click="refresh" :disabled="loading">
         {{ loading ? '...' : '⟳' }}
       </button>
     </div>
 
-    <div v-if="loading" class="loading-state">加载中...</div>
+    <div v-if="loading" class="loading-state">{{ $t('common.loading') }}</div>
 
     <div v-else-if="cells.length > 0" class="heatmap-grid">
       <div
@@ -75,7 +75,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-else class="empty-state">暂无板块数据</div>
+    <div v-else class="empty-state">{{ $t('misc.no_sector_data') }}</div>
 
     <div class="legend">
       <span class="legend-item"><span class="swatch" style="background:#dc2626"></span> +2%+</span>
@@ -94,7 +94,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   color: var(--color-text, #e5e7eb);
-  background: var(--color-bg, #111827);
+  background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -105,25 +105,25 @@ onMounted(() => {
 }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid #374151; border-radius: 4px;
-  background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .loading-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: #6b7280; font-size: 13px;
+  color: var(--color-text-tertiary); font-size: 13px;
 }
 .empty-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: #6b7280; font-size: 13px;
+  color: var(--color-text-tertiary); font-size: 13px;
 }
 
 /* Heatmap Grid */
 .heatmap-grid {
   flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start;
   gap: 2px; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: #374151 transparent;
+  scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent;
 }
 .heatmap-cell {
   min-width: 70px; min-height: 32px; padding: 6px 8px;
@@ -137,7 +137,7 @@ onMounted(() => {
 
 .legend {
   display: flex; gap: 12px; padding-top: 8px; flex-wrap: wrap;
-  border-top: 1px solid #374151; margin-top: 8px; font-size: 10px; color: #6b7280;
+  border-top: 1px solid var(--color-border-strong); margin-top: 8px; font-size: 10px; color: var(--color-text-tertiary);
 }
 .legend-item { display: flex; align-items: center; gap: 3px; }
 .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }

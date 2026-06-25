@@ -76,7 +76,7 @@ function fmtVolume(n: number): string {
 
 <template>
   <div class="quote-panel">
-    <div v-if="loading && !quote" class="loading-state">加载中...</div>
+    <div v-if="loading && !quote" class="loading-state">{{ $t('common.loading') }}</div>
     <template v-else-if="quote">
     <div class="quote-header">
       <div class="header-main">
@@ -93,27 +93,27 @@ function fmtVolume(n: number): string {
       </span>
     </div>
     <div class="ohlcv-grid">
-      <div class="kv-item"><span class="label">开盘</span><span class="value">{{ fmt(quote.open) }}</span></div>
-      <div class="kv-item"><span class="label">最高</span><span class="value up-val">{{ fmt(quote.high) }}</span></div>
-      <div class="kv-item"><span class="label">最低</span><span class="value down-val">{{ fmt(quote.low) }}</span></div>
-      <div class="kv-item"><span class="label">昨收</span><span class="value">{{ fmt(quote.prevClose) }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('kline.open') }}</span><span class="value">{{ fmt(quote.open) }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('kline.high') }}</span><span class="value up-val">{{ fmt(quote.high) }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('kline.low') }}</span><span class="value down-val">{{ fmt(quote.low) }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('kline.prev_close') }}</span><span class="value">{{ fmt(quote.prevClose) }}</span></div>
     </div>
     <div class="spread-section">
       <div class="spread-row">
-        <span class="side-label bid">买</span>
+        <span class="side-label bid">{{ $t('trade.buy') }}</span>
         <span class="side-price">{{ fmt(quote.bid) }}</span>
         <div class="spread-bar"><div class="spread-fill" :style="{ width: '35%' }" /></div>
         <span class="side-price">{{ fmt(quote.ask) }}</span>
-        <span class="side-label ask">卖</span>
+        <span class="side-label ask">{{ $t('trade.sell') }}</span>
       </div>
     </div>
     <div class="info-grid">
-      <div class="kv-item"><span class="label">成交量</span><span class="value">{{ fmtVolume(quote.volume) }}</span></div>
-      <div class="kv-item"><span class="label">均量</span><span class="value">{{ quote.avgVolume }}</span></div>
-      <div class="kv-item"><span class="label">市值</span><span class="value">{{ quote.marketCap }}</span></div>
-      <div class="kv-item"><span class="label">市盈率</span><span class="value">{{ quote.pe }}</span></div>
-      <div class="kv-item"><span class="label">每股收益</span><span class="value">{{ quote.eps }}</span></div>
-      <div class="kv-item"><span class="label">股息率</span><span class="value">{{ quote.dividendYield === '--' ? '--' : quote.dividendYield + '%' }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.volume') }}</span><span class="value">{{ fmtVolume(quote.volume) }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.avg_volume') }}</span><span class="value">{{ quote.avgVolume }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.market_cap') }}</span><span class="value">{{ quote.marketCap }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.pe') }}</span><span class="value">{{ quote.pe }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.eps') }}</span><span class="value">{{ quote.eps }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.dividend_yield') }}</span><span class="value">{{ quote.dividendYield === '--' ? '--' : quote.dividendYield + '%' }}</span></div>
     </div>
     </template>
     <div v-else class="loading-state">--</div>

@@ -71,7 +71,7 @@ function formatTime(iso: string): string {
   <div class="action-center">
     <!-- Header -->
     <div class="ac-header">
-      <span class="ac-title">操作中心</span>
+      <span class="ac-title">{{ $t('workflow.action_center') }}</span>
       <span class="ac-count">{{ 个事件.length }} 个事件</span>
     </div>
 
@@ -103,8 +103,8 @@ function formatTime(iso: string): string {
     <!-- Empty state -->
     <div v-else class="empty-state">
       <p class="empty-icon">&#10003;</p>
-      <p class="empty-text">暂无最近交易</p>
-      <p class="empty-sub">交易将显示在此处</p>
+      <p class="empty-text">{{ $t('workflow.no_recent_trades') }}</p>
+      <p class="empty-sub">{{ $t('workflow.no_trades') }}</p>
     </div>
   </div>
 </template>

@@ -200,10 +200,10 @@ onUnmounted(() => {
             v-model="query"
             type="text"
             class="search-input"
-            placeholder="搜索面板、命令、股票代码..."
+            :placeholder="$t('common.search') + '...'"
             autocomplete="off"
           />
-          <span class="shortcut-hint">Esc 关闭</span>
+          <span class="shortcut-hint">Esc {{ $t('common.close') }}</span>
         </div>
         <div v-if="results.length > 0" class="results-list">
           <template v-for="(item, idx) in results" :key="item.id">
@@ -225,7 +225,7 @@ onUnmounted(() => {
           </template>
         </div>
         <div v-else-if="query" class="no-results">
-          未找到 "{{ query }}"
+          {{ $t('common.no_data') }}
         </div>
       </div>
     </div>
@@ -275,16 +275,16 @@ onUnmounted(() => {
   flex: 1;
   background: transparent;
   border: none;
-  color: #e0e0e0;
+  color: var(--color-text-primary);
   font-size: 15px;
   outline: none;
   font-family: inherit;
 }
 
-.search-input::placeholder { color: #5a6380; }
+.search-input::placeholder { color: var(--color-text-tertiary); }
 
 .shortcut-hint {
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   font-size: 11px;
   padding: 2px 8px;
   border: 1px solid #30363d;
@@ -297,7 +297,7 @@ onUnmounted(() => {
   padding: 6px 16px 2px;
   font-size: 10px;
   text-transform: uppercase;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   letter-spacing: 0.5px;
 }
 
@@ -313,12 +313,12 @@ onUnmounted(() => {
 .result-item.selected { background: rgba(88, 166, 255, 0.15); }
 
 .item-label { font-size: 13px; font-weight: 500; color: #c9d1d9; }
-.item-desc { font-size: 11px; color: #5a6380; }
+.item-desc { font-size: 11px; color: var(--color-text-tertiary); }
 
 .no-results {
   padding: 24px 16px;
   text-align: center;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   font-size: 13px;
 }
 </style>

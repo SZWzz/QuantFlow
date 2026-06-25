@@ -28,7 +28,7 @@ const consensus = computed(() => {
 
 const consensusColor = computed(() => {
   const c = consensus.value
-  if (!c) return '#6b7280'
+  if (!c) return 'var(--color-text-tertiary)'
   if (c.label === '买入') return '#22c55e'
   if (c.label === '卖出') return '#ef4444'
   return '#eab308'
@@ -63,12 +63,12 @@ function handleSymbolSubmit(e: Event) {
 <template>
   <div class="panel">
     <div class="panel-header">
-      <h3>分析师 Estimates — {{ symbol.toUpperCase() }}</h3>
+      <h3>{{ $t('research.analyst') }} &mdash; {{ symbol.toUpperCase() }}</h3>
       <div class="header-controls">
         <input
           class="symbol-input"
           :value="symbol"
-          placeholder="代码..."
+          :placeholder="$t('research.hint_enter_symbol')"
           @keyup.enter="handleSymbolSubmit"
         />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>
@@ -78,8 +78,8 @@ function handleSymbolSubmit(e: Event) {
     <div v-if="estimates.length > 0" class="panel-content">
       <!-- Consensus Badge -->
       <div class="consensus-bar" v-if="consensus">
-        <div class="consensus-badge" :style="{ background: consensusColor, color: '#111827' }">
-          {{ consensus.label }} — {{ ((consensus.buy / consensus.total) * 100).toFixed(0) }}% 买方占比
+        <div class="consensus-badge" :style="{ background: consensusColor, color: 'var(--color-bg-panel)' }">
+          {{ consensus.label }} &mdash; {{ ((consensus.buy / consensus.total) * 100).toFixed(0) }}% 买方占比
         </div>
         <div class="consensus-breakdown">
           <span class="badge badge-buy">{{ consensus.buy }} 买入</span>
@@ -93,10 +93,10 @@ function handleSymbolSubmit(e: Event) {
         <thead>
           <tr>
             <th>分析师</th>
-            <th>机构</th>
-            <th>评级</th>
-            <th>目标价(低)</th>
-            <th>目标价(高)</th>
+            <th>{{ $t('research.institution') }}</th>
+            <th>{{ $t('research.analyst_ratings') }}</th>
+            <th>{{ $t('research.target_low') }}</th>
+            <th>{{ $t('research.target_high') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -104,7 +104,7 @@ function handleSymbolSubmit(e: Event) {
             <td>{{ e.analyst }}</td>
             <td class="firm-cell">{{ e.firm }}</td>
             <td>
-              <span class="rating-pill" :style="{ background: ratingColor(e.rating), color: '#111827' }">{{ e.rating }}</span>
+              <span class="rating-pill" :style="{ background: ratingColor(e.rating), color: 'var(--color-bg-panel)' }">{{ e.rating }}</span>
             </td>
             <td class="num-cell">{{ e.target_low ?? '--' }}</td>
             <td class="num-cell">{{ e.target_high ?? '--' }}</td>
@@ -120,16 +120,16 @@ function handleSymbolSubmit(e: Event) {
 </template>
 
 <style scoped>
-.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, #111827); }
+.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid #374151; border-radius: 4px; background: #1f2937; color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
 .panel-content { flex: 1; overflow-y: auto; }
-.consensus-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid #374151; border-radius: 6px; background: #1f2937; }
+.consensus-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); }
 .consensus-badge { padding: 4px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .consensus-breakdown { display: flex; gap: 8px; }
 .badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
@@ -137,10 +137,10 @@ function handleSymbolSubmit(e: Event) {
 .badge-hold { background: #713f12; color: #eab308; }
 .badge-sell { background: #7f1d1d; color: #ef4444; }
 .estimates-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.estimates-table th { text-align: left; padding: 6px 8px; color: #9ca3af; border-bottom: 1px solid #374151; font-weight: 500; white-space: nowrap; }
-.estimates-table td { padding: 6px 8px; border-bottom: 1px solid #1f2937; }
-.firm-cell { color: #9ca3af; }
+.estimates-table th { text-align: left; padding: 6px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); font-weight: 500; white-space: nowrap; }
+.estimates-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
+.firm-cell { color: var(--color-text-secondary); }
 .rating-pill { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .num-cell { font-variant-numeric: tabular-nums; }
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 13px; }
+.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

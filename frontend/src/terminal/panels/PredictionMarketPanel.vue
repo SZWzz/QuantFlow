@@ -1,6 +1,8 @@
 <!-- frontend/src/terminal/panels/PredictionMarketPanel.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import VChart from 'vue-echarts'
 import 'echarts'
 
@@ -39,7 +41,7 @@ const priceHistory = ref<PricePoint[]>([])
 const signalInfo = ref<{ action: string; confidence: number; description: string } | null>(null)
 
 const categoryLabels: Record<string, string> = {
-  all: '全部', economics: '经济', crypto: '加密', politics: '政治',
+  all: t('common.all'), economics: '经济', crypto: '加密', politics: '政治',
   sports: '体育', tech: '科技', entertainment: '娱乐'
 }
 
@@ -151,12 +153,12 @@ function changeClass(c: number): string {
   <div class="prediction-market-panel" :data-panel-id="panelId">
     <!-- Header -->
     <div class="panel-header">
-      <h3>📊 预测市场</h3>
+      <h3>📊 {{ t('prediction.title') }}</h3>
       <div class="header-actions">
         <span v-if="signalInfo && signalInfo.action !== 'hold'" class="signal-badge" :class="signalInfo.action">
           {{ signalInfo.action === 'buy' ? '🟢' : '🔴' }} {{ signalInfo.description }}
         </span>
-        <button class="btn-sm" @click="loadEvents()">🔄 刷新</button>
+        <button class="btn-sm" @click="loadEvents()">🔄 {{ t('common.refresh') }}</button>
       </div>
     </div>
 
@@ -175,16 +177,16 @@ function changeClass(c: number): string {
     <div class="content-area">
       <!-- Events table -->
       <div class="events-table" :class="{ 'with-detail': selectedEvent }">
-        <div v-if="loading" class="empty-state">加载中...</div>
-        <div v-else-if="sortedEvents.length === 0" class="empty-state">暂无预测市场数据</div>
+        <div v-if="loading" class="empty-state">{{ t('common.loading') }}</div>
+        <div v-else-if="sortedEvents.length === 0" class="empty-state">{{ t('prediction.no_data') }}</div>
         <table v-else>
           <thead>
             <tr>
-              <th>事件</th>
-              <th>Yes 概率</th>
-              <th>24h 变化</th>
-              <th>交易量</th>
-              <th>到期</th>
+              <th>{{ t('prediction.event') }}</th>
+              <th>{{ t('prediction.yes_prob') }}</th>
+              <th>{{ t('prediction.change_24h') }}</th>
+              <th>{{ t('prediction.volume') }}</th>
+              <th>{{ t('prediction.expiry') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -229,12 +231,12 @@ function changeClass(c: number): string {
         <div class="chart-container" v-if="priceHistory.length > 0">
           <VChart :option="chartOption" style="height: 200px" autoresize />
         </div>
-        <div v-else class="empty-state small">暂无价格历史</div>
+        <div v-else class="empty-state small">{{ t('prediction.no_history') }}</div>
 
         <!-- Meta -->
         <div class="detail-meta">
-          <span>交易量: {{ formatVolume(selectedEvent.volume) }}</span>
-          <span>到期: {{ formatEndDate(selectedEvent.end_date) }}</span>
+          <span>{{ t('prediction.volume') }}: {{ formatVolume(selectedEvent.volume) }}</span>
+          <span>{{ t('prediction.expiry') }}: {{ formatEndDate(selectedEvent.end_date) }}</span>
         </div>
       </div>
     </div>

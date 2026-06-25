@@ -245,7 +245,7 @@ func (o *OMS) UpdateMarketPrice(symbol string, marketPrice float64) {
 	}
 	pos.MarketPrice = marketPrice
 	if pos.Quantity != 0 {
-		pos.PnL = (marketPrice - pos.AvgPrice) * pos.Quantity
+		pos.PnL = pos.RealizedPnl + (marketPrice - pos.AvgPrice)*pos.Quantity
 		if pos.AvgPrice > 0 {
 			pos.PnLPct = (marketPrice - pos.AvgPrice) / pos.AvgPrice * 100
 		}

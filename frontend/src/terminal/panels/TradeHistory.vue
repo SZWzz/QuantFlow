@@ -145,7 +145,7 @@ function exportData() {
         v-model="symbolFilter"
         type="text"
         class="filter-input"
-        placeholder="搜索代码..."
+        :placeholder="$t('common.search') + '...'"
       />
 
       <div class="tab-switch">
@@ -160,13 +160,13 @@ function exportData() {
       </div>
 
       <select v-if="activeTab === 'orders'" v-model="orderStatusFilter" class="filter-select">
-        <option value="">全部状态</option>
+        <option value="">{{ $t('trade.all_status') }}</option>
         <option v-for="s in orderStatusOptions.filter(Boolean)" :key="s" :value="s">
           {{ statusLabel(s) }}
         </option>
       </select>
 
-      <button class="export-btn" @click="exportData">CSV</button>
+      <button class="export-btn" @click="exportData">{{ $t('misc.csv_export') }}</button>
     </div>
 
     <!-- 成交 Table -->
@@ -174,20 +174,20 @@ function exportData() {
       <table>
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Symbol</th>
-            <th>Side</th>
-            <th class="num">Qty</th>
-            <th class="num">Price</th>
-            <th class="num">Total</th>
-            <th>Order ID</th>
+            <th>{{ $t('common.date') }}</th>
+            <th>{{ $t('quote.symbol') }}</th>
+            <th>{{ $t('trade.side') }}</th>
+            <th class="num">{{ $t('trade.quantity') }}</th>
+            <th class="num">{{ $t('common.price') }}</th>
+            <th class="num">{{ $t('common.total') }}</th>
+            <th>{{ $t('trade.order_id') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="t in filtered成交" :key="t.orderId">
             <td class="muted">{{ t.date }}</td>
             <td class="symbol">{{ t.symbol }}</td>
-            <td :class="t.side === 'buy' ? 'up' : 'down'">{{ t.side === 'buy' ? '买入' : '卖出' }}</td>
+            <td :class="t.side === 'buy' ? 'up' : 'down'">{{ t.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}</td>
             <td class="num">{{ t.qty.toLocaleString() }}</td>
             <td class="num">{{ fmt(t.price) }}</td>
             <td class="num">{{ fmt(t.total) }}</td>
@@ -205,20 +205,20 @@ function exportData() {
       <table>
         <thead>
           <tr>
-            <th>Placed</th>
-            <th>Symbol</th>
-            <th>Side</th>
-            <th>Type</th>
-            <th class="num">Qty/Filled</th>
-            <th class="num">Price</th>
-            <th>Status</th>
+            <th>{{ $t('common.date') }}</th>
+            <th>{{ $t('quote.symbol') }}</th>
+            <th>{{ $t('trade.side') }}</th>
+            <th>{{ $t('common.type') }}</th>
+            <th class="num">{{ $t('trade.quantity') }}</th>
+            <th class="num">{{ $t('common.price') }}</th>
+            <th>{{ $t('common.status') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="o in filtered委托" :key="`${o.symbol}-${o.placed}`">
             <td class="muted">{{ o.placed }}</td>
             <td class="symbol">{{ o.symbol }}</td>
-            <td :class="o.side === 'buy' ? 'up' : 'down'">{{ o.side === 'buy' ? '买入' : '卖出' }}</td>
+            <td :class="o.side === 'buy' ? 'up' : 'down'">{{ o.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}</td>
             <td>{{ o.type }}</td>
             <td class="num">{{ o.qty }}<span class="muted">/{{ o.filled }}</span></td>
             <td class="num">{{ fmt(o.price) }}</td>

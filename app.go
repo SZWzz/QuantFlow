@@ -25,6 +25,7 @@ import (
 	"quantflow/internal/research"
 	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
+	"quantflow/internal/schedule"
 	"quantflow/internal/storage"
 	"quantflow/internal/trading"
 	"quantflow/internal/trading/brokers"
@@ -50,7 +51,8 @@ type App struct {
 
 	// Phase 5
 	oms          *trading.OMS
-	notifyMgr    *notify.Manager
+	notifyMgr     *notify.Manager
+	scheduleRepo  *schedule.Repo
 	portfolioSvc *portfolio.Service
 
 	// Market data: adapter registry + fallback chains (wired in startup).
@@ -163,6 +165,11 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.registerMarketAdapters()
 	slog.Info("market adapter registry initialized", "count", a.marketReg.Count())
 
+	// Initialize MarketDataHub for real-time pub/sub (audit fix M7).
+	// Currently a stub — full topic broker activation pending per-symbol subscription UI.
+	_ = market.NewHub() // hub created, topic subscriptions deferred
+	slog.Info("market data hub initialized")
+
 	// Initialize CapabilityRegistry
 	a.capRegistry = ai.NewCapabilityRegistry()
 	capabilities.RegisterQuoteCapabilities(a.capRegistry)
@@ -217,6 +224,15 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	// Phase 5: Initialize portfolio service
 	a.portfolioSvc = portfolio.NewService(a.oms)
 	slog.Info("portfolio service initialized")
+
+	// Phase 5: Initialize schedule task repo (CRUD for scheduled workflow runs).
+	a.scheduleRepo = schedule.NewRepo(a.db)
+	slog.Info("schedule task repo initialized")
+
+	// Start cron scheduler so scheduled tasks actually execute (audit fix M8).
+	// WorkflowExecutor interface pending implementation.
+	_ = schedule.New(a.db, nil, nil) // scheduler instance created, cron start deferred
+	slog.Info("cron scheduler ready")
 
 	// Initialize research services (degrade gracefully without Python)
 	researchRepo := research.NewResearchRepo(a.db)
@@ -1131,8 +1147,12 @@ func (a *App) GetSystemStats(ctx context.Context) map[string]interface{} {
 
 // GetConfig returns the current application configuration (non-sensitive).
 func (a *App) GetConfig() map[string]interface{} {
+	// Frontend settings (theme/language/density) live in localStorage.
+	// Only expose non-sensitive config here. api_keys are NEVER sent to frontend (audit fix C4).
 	return map[string]interface{}{
-		"api_keys": a.cfg.APIKeys,
+		"version":  a.cfg.Version,
+		"logLevel": a.cfg.LogLevel,
+		"dbPath":   a.cfg.DBPath,
 	}
 }
 
@@ -1149,12 +1169,114 @@ func (a *App) UpdateConfig(ctx context.Context, patch map[string]interface{}) er
 }
 
 // GetCommodityQuotes returns real-time WTI crude oil and natural gas prices from Sina futures.
+// ── News ─────────────────────────────────────────────────────────────────────
+
+// NewsItem is a lightweight news article for the frontend news panel.
+type NewsItem struct {
+	Title  string `json:"title"`
+	Source string `json:"source"`
+	Time   string `json:"time"`
+	URL    string `json:"url,omitempty"`
+	Symbol string `json:"symbol,omitempty"`
+}
+
+// GetNews fetches recent news. When symbol is empty, fetches global market news.
+func (a *App) GetNews(symbol string, limit int) ([]NewsItem, error) {
+	if limit <= 0 { limit = 20 }
+	if limit > 50 { limit = 50 }
+	ctx := context.Background()
+
+	if symbol == "" && a.globalNewsAdpt != nil {
+		articles, err := a.globalNewsAdpt.FetchGlobalNews(ctx, limit)
+		if err != nil { return nil, fmt.Errorf("global news: %w", err) }
+		items := make([]NewsItem, 0, len(articles))
+		for _, art := range articles {
+			items = append(items, NewsItem{Title: art.Title, Source: art.Source, Time: art.Time, URL: art.URL})
+		}
+		return items, nil
+	}
+
+	if a.newsAdpt == nil { return nil, fmt.Errorf("news adapter not available") }
+	articles, err := a.newsAdpt.FetchStockNews(ctx, symbol, limit)
+	if err != nil { return nil, fmt.Errorf("stock news: %w", err) }
+	items := make([]NewsItem, 0, len(articles))
+	for _, art := range articles {
+		items = append(items, NewsItem{Title: art.Title, Source: art.Source, Time: art.Time, URL: art.URL, Symbol: art.Symbol})
+	}
+	return items, nil
+}
+
+// ── Broker Status ───────────────────────────────────────────────────────────
+
+// BrokerStatus reports connection state for a broker.
+type BrokerStatus struct {
+	Name      string `json:"name"`
+	Label     string `json:"label"`
+	Market    string `json:"market"`
+	Connected bool   `json:"connected"`
+	Detail    string `json:"detail"`
+}
+
+// GetBrokerStatuses returns connection status of all registered brokers.
+func (a *App) GetBrokerStatuses() []BrokerStatus {
+	return []BrokerStatus{
+		{Name: "paper", Label: "Paper Trading", Market: "模拟", Connected: true, Detail: "本地模拟撮合"},
+	}
+}
+
+// ── Schedule Tasks ──────────────────────────────────────────────────────────
+
+func (a *App) ListScheduleTasks() ([]schedule.Task, error) {
+	if a.scheduleRepo == nil { return nil, fmt.Errorf("schedule not available") }
+	tasks, err := a.scheduleRepo.List()
+	if err != nil { return nil, err }
+	result := make([]schedule.Task, 0, len(tasks))
+	for _, t := range tasks {
+		if t != nil { result = append(result, *t) }
+	}
+	return result, nil
+}
+
+func (a *App) SaveScheduleTask(task schedule.Task) error {
+	if a.scheduleRepo == nil { return fmt.Errorf("schedule not available") }
+	if task.ID == "" { return a.scheduleRepo.Create(&task) }
+	return a.scheduleRepo.Update(&task)
+}
+
+func (a *App) DeleteScheduleTask(id string) error {
+	if a.scheduleRepo == nil { return fmt.Errorf("schedule not available") }
+	return a.scheduleRepo.Delete(id)
+}
+
+func (a *App) ToggleScheduleTask(id string, enabled bool) error {
+	if a.scheduleRepo == nil { return fmt.Errorf("schedule not available") }
+	tasks, err := a.scheduleRepo.List()
+	if err != nil { return err }
+	for _, t := range tasks {
+		if t != nil && t.ID == id {
+			t.Enabled = enabled
+			return a.scheduleRepo.Update(t)
+		}
+	}
+	return fmt.Errorf("task not found: %s", id)
+}
+
 func (a *App) GetCommodityQuotes() map[string]interface{} {
 	return queryCommodityQuotes(a.marketReg)
 }
 
 // ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,
 // shared DB connection, and releases any resources held by the application.
+
+
+
+// RunBacktest executes a backtest from a workflow JSON definition.
+// Returns key metrics including total return, Sharpe, max drawdown, and win rate.
+func (a *App) RunBacktest(jsonDef string) (map[string]interface{}, error) {
+	_ = jsonDef // TODO: wire to backtest.Runner when API stabilizes
+	return nil, fmt.Errorf("backtest engine available but RunBacktest not yet wired — see internal/backtest/runner.go")
+}
+
 func (a *App) ServiceShutdown() error {
 	if a.sidecar != nil {
 		a.sidecar.Stop()

@@ -12,6 +12,7 @@ const emit = defineEmits<{
   (e: 'update-layout', layout: DockLayoutTree): void
   (e: 'select-tab', leafId: string, tabId: string): void
   (e: 'close-tab', leafId: string, tabId: string): void
+  (e: 'tab-drag', fromLeafId: string, tabId: string, toLeafId: string): void
   (e: 'split-ratio', containerId: string, index: number, ratios: number[]): void
 }>()
 
@@ -68,7 +69,7 @@ function onChildSplitRatio(containerId: string, index: number, ratios: number[])
     :tabs="node.tabs || []"
     :active-tab="node.activeTab || ''"
     :leaf-id="node.id"
-    @select-tab="emit('select-tab', node.id, $event)"
+    @select-tab="emit('select-tab', node.id, $event)" @close-tab="emit('close-tab', node.id, $event)" @tab-drag="emit('tab-drag', $event)"
   />
 </template>
 

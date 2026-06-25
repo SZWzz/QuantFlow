@@ -63,53 +63,53 @@ function placeOrder() {
   <div class="order-panel">
     <div class="order-form">
       <div class="form-group">
-        <label>Symbol</label>
+        <label>{{ $t('quote.symbol') }}</label>
         <input v-model="symbol" type="text" class="form-input" />
       </div>
 
       <div class="form-group">
-        <label>Broker</label>
+        <label>{{ $t('trade.broker') }}</label>
         <select v-model="broker" class="form-input">
-          <option value="paper">模拟交易</option>
-          <option value="binance">Binance</option>
-          <option value="futu">Futu</option>
+          <option value="paper">{{ $t('trade.paper') }}</option>
+          <option value="binance">{{ $t('trade.binance') }}</option>
+          <option value="futu">{{ $t('trade.futu') }}</option>
         </select>
       </div>
 
       <div class="side-toggle">
-        <button :class="{ active: side === 'buy' }" @click="side = 'buy'">Buy</button>
-        <button :class="{ active: side === 'sell' }" @click="side = 'sell'">Sell</button>
+        <button :class="{ active: side === 'buy' }" @click="side = 'buy'">{{ $t('trade.buy') }}</button>
+        <button :class="{ active: side === 'sell' }" @click="side = 'sell'">{{ $t('trade.sell') }}</button>
       </div>
 
       <div class="form-group">
-        <label>订单类型</label>
+        <label>{{ $t('trade.order_type') }}</label>
         <select v-model="orderType" class="form-input">
-          <option value="market">Market</option>
-          <option value="limit">Limit</option>
-          <option value="stop">Stop</option>
+          <option value="market">{{ $t('trade.market') }}</option>
+          <option value="limit">{{ $t('trade.limit') }}</option>
+          <option value="stop">{{ $t('trade.stop') }}</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>数量</label>
+        <label>{{ $t('trade.quantity') }}</label>
         <input v-model.number="quantity" type="number" min="1" class="form-input" />
       </div>
 
       <div v-if="orderType !== 'market'" class="form-group">
-        <label>Price
-          <span v-if="quoteLoading" class="quote-status">加载中...</span>
+        <label>{{ $t('trade.price') }}
+          <span v-if="quoteLoading" class="quote-status">{{ $t('common.loading') }}</span>
           <span v-else-if="lastPrice > 0" class="quote-status">(实时)</span>
         </label>
         <input v-model.number="price" type="number" step="0.01" class="form-input" />
       </div>
 
       <div v-if="orderType === 'stop'" class="form-group">
-        <label>止损价</label>
+        <label>{{ $t('trade.stop_price') }}</label>
         <input v-model.number="stopPrice" type="number" step="0.01" class="form-input" />
       </div>
 
       <div class="estimated">
-        <span>预估总额</span>
+        <span>{{ $t('trade.estimated') }}</span>
         <span class="total-value">${{ estimatedTotal.toLocaleString() }}</span>
       </div>
 
@@ -118,7 +118,7 @@ function placeOrder() {
         :class="side"
         @click="placeOrder"
       >
-        {{ side === 'buy' ? 'Buy' : 'Sell' }} {{ symbol }}
+        {{ side === 'buy' ? $t('trade.buy') : $t('trade.sell') }} {{ symbol }}
       </button>
     </div>
   </div>
@@ -132,7 +132,7 @@ function placeOrder() {
 .form-group label { font-size: var(--font-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .form-input {
   padding: 6px 8px; background: var(--input); border: 1px solid var(--border); border-radius: 4px;
-  color: #c9d1d9; font-size: 13px; outline: none;
+  color: var(--color-text-primary); font-size: 13px; outline: none;
 }
 .form-input:focus { border-color: var(--accent); }
 

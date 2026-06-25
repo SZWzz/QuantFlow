@@ -96,8 +96,8 @@ const chartOption = computed(() => {
         const col = syms[xj]
         return `${row} × ${col}<br/>Correlation: ${v.toFixed(4)}`
       },
-      backgroundColor: '#1f2937',
-      borderColor: '#374151',
+      backgroundColor: 'var(--color-bg-elevated)',
+      borderColor: 'var(--color-border-strong)',
       textStyle: { color: '#e5e7eb', fontSize: 12 },
     },
     grid: {
@@ -109,15 +109,15 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'category' as const,
       data: syms,
-      axisLabel: { color: '#9ca3af', fontSize: 10, rotate: 45 },
-      axisLine: { lineStyle: { color: '#374151' } },
+      axisLabel: { color: 'var(--color-text-secondary)', fontSize: 10, rotate: 45 },
+      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
       position: 'top' as const,
     },
     yAxis: {
       type: 'category' as const,
       data: syms,
-      axisLabel: { color: '#9ca3af', fontSize: 10 },
-      axisLine: { lineStyle: { color: '#374151' } },
+      axisLabel: { color: 'var(--color-text-secondary)', fontSize: 10 },
+      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
     },
     visualMap: {
       min: -1,
@@ -127,9 +127,9 @@ const chartOption = computed(() => {
       right: '0%',
       top: 'middle',
       inRange: {
-        color: ['#3b82f6', '#1f2937', '#ef4444'],
+        color: ['#3b82f6', 'var(--color-bg-elevated)', '#ef4444'],
       },
-      textStyle: { color: '#9ca3af', fontSize: 10 },
+      textStyle: { color: 'var(--color-text-secondary)', fontSize: 10 },
     },
     series: [
       {
@@ -178,7 +178,7 @@ onMounted(() => {
 <template>
   <div class="correlation-panel">
     <div class="panel-header">
-      <h3>相关性矩阵</h3>
+      <h3>{{ $t('misc.correlation') }}</h3>
     </div>
 
     <div class="controls-row">
@@ -248,14 +248,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #111827;
+  background: var(--color-bg-panel);
   color: #e5e7eb;
   overflow: hidden;
 }
 
 .panel-header {
   padding: 10px 14px 6px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 .panel-header h3 {
   margin: 0;
@@ -267,14 +267,14 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
   align-items: stretch;
 }
 
 .symbol-input {
   flex: 1;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   color: #e5e7eb;
   border-radius: 4px;
   padding: 6px 8px;
@@ -292,15 +292,15 @@ onMounted(() => {
 
 .control-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .lookback-select {
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
   color: #e5e7eb;
   border-radius: 4px;
   padding: 4px 6px;
@@ -309,9 +309,9 @@ onMounted(() => {
 
 .compute-btn {
   padding: 5px 14px;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border-strong);
   border-radius: 4px;
-  background: #1f2937;
+  background: var(--color-bg-elevated);
   color: #e5e7eb;
   cursor: pointer;
   font-size: 12px;
@@ -319,7 +319,7 @@ onMounted(() => {
   white-space: nowrap;
 }
 .compute-btn:hover {
-  background: #374151;
+  background: var(--color-border-strong);
 }
 
 .chart-body {
@@ -331,7 +331,7 @@ onMounted(() => {
 }
 
 .placeholder-msg {
-  color: #6b7280;
+  color: var(--color-text-tertiary);
   font-size: 14px;
 }
 
@@ -347,7 +347,7 @@ onMounted(() => {
   overflow: auto;
   padding: 8px 12px;
   scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+  scrollbar-color: var(--color-border-strong) transparent;
 }
 
 .corr-table {
@@ -365,9 +365,9 @@ onMounted(() => {
 }
 
 .corr-table th {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   font-weight: 500;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .row-label {

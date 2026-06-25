@@ -72,7 +72,7 @@ function categoryColor(cat: string): string {
     volume: '#bc8cff',
     cross_sectional: '#f85149',
   }
-  return colors[cat] || '#5a6380'
+  return colors[cat] || 'var(--color-text-tertiary)'
 }
 </script>
 
@@ -145,7 +145,7 @@ function categoryColor(cat: string): string {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: #c9d1d9;
+  color: var(--color-text-primary);
   font-size: 12px;
 }
 
@@ -159,7 +159,7 @@ function categoryColor(cat: string): string {
   background: #161b22;
   border: 1px solid #30363d;
   border-radius: 6px;
-  color: #c9d1d9;
+  color: var(--color-text-primary);
   font-size: 12px;
   outline: none;
 }
@@ -193,8 +193,8 @@ function categoryColor(cat: string): string {
   transition: all 0.15s;
 }
 
-.cat-chip:hover { border-color: #58a6ff; color: #c9d1d9; }
-.cat-chip.active { background: #1a2332; color: #c9d1d9; }
+.cat-chip:hover { border-color: #58a6ff; color: var(--color-text-primary); }
+.cat-chip.active { background: var(--color-bg-subtle); color: var(--color-text-primary); }
 
 .cat-dot {
   width: 6px;
@@ -214,7 +214,7 @@ function categoryColor(cat: string): string {
 
 .factor-item {
   padding: 8px 10px;
-  border-bottom: 1px solid #1a2332;
+  border-bottom: 1px solid var(--color-bg-subtle);
   transition: background 0.15s;
 }
 
@@ -265,7 +265,7 @@ function categoryColor(cat: string): string {
 
 .param-tag {
   padding: 1px 5px;
-  background: #1a2332;
+  background: var(--color-bg-subtle);
   border-radius: 3px;
   font-size: 10px;
   color: #58a6ff;

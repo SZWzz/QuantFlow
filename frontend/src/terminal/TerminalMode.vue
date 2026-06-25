@@ -33,16 +33,16 @@ function onSwitchToWorkflow() {
     <header class="terminal-header">
       <div class="header-left">
         <span class="logo">QF</span>
-        <span class="title">QuantFlow</span>
+        <span class="title">{{ $t('misc.welcome') }}</span>
       </div>
       <div class="header-center">
-        <span class="breadcrumb">Terminal Mode</span>
+        <span class="breadcrumb">{{ $t('misc.terminal_mode') }}</span>
       </div>
       <div class="header-actions">
         <button class="header-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
           ⌘
         </button>
-        <button class="header-btn" @click="terminal.openPanel('settings')" title="系统设置">
+        <button class="header-btn" @click="terminal.openPanel('settings')" :title="$t('settings.title')">
           ⚙️
         </button>
         <button class="mode-switch" @click="onSwitchToWorkflow">

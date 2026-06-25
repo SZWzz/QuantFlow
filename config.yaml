@@ -1,5 +1,0 @@
-version: "0.0.1"
-log_level: "info"
-db_path: "data/quantflow.db"
-api_keys:
-  fred: "9988acd8bd6edfb1238993567fc0a6c3"
