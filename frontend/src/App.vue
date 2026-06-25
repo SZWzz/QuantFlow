@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useThemeStore } from '@/lib/theme'
 
-// Force theme store initialization at app startup
-useThemeStore()
+// Init theme at mount — sets body classes
+onMounted(() => {
+  useThemeStore()
+  // Re-apply if localStorage changed while app was closed
+  const t = useThemeStore()
+  t.apply()
+  // Poll for changes every 2s (SettingsPanel updates localStorage → here picks up)
+  setInterval(() => t.apply(), 2000)
+})
 
 const session = useSessionStore()
 const router = useRouter()
