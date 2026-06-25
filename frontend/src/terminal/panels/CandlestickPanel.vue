@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CandlestickChart, BarChart } from 'echarts/charts'
@@ -22,6 +22,22 @@ const interval = ref(props.params?.interval || '1d')
 const ohlcvData = ref<(string | number)[][]>([])
 const loading = ref(false)
 
+// Tab state
+const activeTab = ref<'kline' | 'minute'>('kline')
+
+// Minute chart data
+interface MinuteTick {
+  time: string
+  price: number
+  volume: number
+  avg_price: number
+}
+const minuteTicks = ref<MinuteTick[]>([])
+const prevClose = ref(0)
+const minuteLoading = ref(false)
+let minuteTimer: ReturnType<typeof setInterval> | null = null
+let klineTimer: ReturnType<typeof setInterval> | null = null
+
 async function loadOHLCV(sym: string) {
   loading.value = true
   try {
@@ -40,6 +56,51 @@ async function loadOHLCV(sym: string) {
   }
 }
 
+async function loadMinuteLine() {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  minuteLoading.value = true
+  try {
+    const result = await app.GetMinuteLine('CN', symbol.value)
+    const ticks = Array.isArray(result) ? result[0] : result
+    if (!Array.isArray(ticks) || ticks.length === 0) {
+      minuteTicks.value = []
+      return
+    }
+    const existing = new Map(minuteTicks.value.map(t => [t.time, t]))
+    for (const t of ticks) {
+      existing.set(t.time, t)
+    }
+    minuteTicks.value = Array.from(existing.values()).sort((a, b) => a.time.localeCompare(b.time))
+    if (prevClose.value === 0 && minuteTicks.value.length > 0) {
+      prevClose.value = minuteTicks.value[0].price
+    }
+  } catch {
+    // silent
+  } finally {
+    minuteLoading.value = false
+  }
+}
+
+function startMinutePolling() {
+  stopMinutePolling()
+  loadMinuteLine()
+  minuteTimer = setInterval(loadMinuteLine, 10000)
+}
+
+function stopMinutePolling() {
+  if (minuteTimer) { clearInterval(minuteTimer); minuteTimer = null }
+}
+
+function startKlineRefresh() {
+  if (klineTimer) clearInterval(klineTimer)
+  klineTimer = setInterval(() => loadOHLCV(symbol.value), 30000)
+}
+
+function stopKlineRefresh() {
+  if (klineTimer) { clearInterval(klineTimer); klineTimer = null }
+}
+
 // Subscribe to symbol context via link group
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
   if (newSymbol && newSymbol !== symbol.value) {
@@ -51,6 +112,35 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
 // Regenerate data on interval change
 watch(interval, () => {
   loadOHLCV(symbol.value)
+})
+
+// Watch tab switch for minute polling
+watch(activeTab, (tab) => {
+  if (tab === 'minute') {
+    startMinutePolling()
+  } else {
+    stopMinutePolling()
+  }
+})
+
+// Watch symbol change — reload minute data
+watch(() => symbol.value, () => {
+  if (activeTab.value === 'minute') {
+    minuteTicks.value = []
+    prevClose.value = 0
+    loadMinuteLine()
+  }
+})
+
+// K-line auto-refresh for minute intervals
+watch(interval, (iv) => {
+  if (['1m', '5m', '15m', '30m', '1h'].includes(iv as string)) {
+    if (activeTab.value === 'kline') {
+      startKlineRefresh()
+    }
+  } else {
+    stopKlineRefresh()
+  }
 })
 
 const option = computed(() => {
@@ -95,6 +185,74 @@ const option = computed(() => {
   }
 })
 
+const minuteChartOption = computed(() => {
+  if (!minuteTicks.value.length) return {}
+  const times = minuteTicks.value.map(t => t.time)
+  const prices = minuteTicks.value.map(t => t.price)
+  const volumes = minuteTicks.value.map(t => t.volume)
+  const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose.value
+  const lineColor = isUp ? '#ef4444' : '#22c55e'
+
+  return {
+    backgroundColor: 'transparent',
+    grid: { top: 20, right: 60, bottom: 40, left: 60 },
+    xAxis: {
+      type: 'category', data: times,
+      axisLabel: { color: '#6b7280', fontSize: 10, interval: 30 },
+      axisLine: { lineStyle: { color: '#374151' } },
+    },
+    yAxis: [
+      {
+        type: 'value', name: '价格',
+        position: 'left',
+        axisLabel: { color: '#6b7280', fontSize: 10 },
+        splitLine: { lineStyle: { color: '#1f2937' } },
+        min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
+        max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
+      },
+      {
+        type: 'value', name: '量',
+        position: 'right',
+        axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
+        splitLine: { show: false },
+      }
+    ],
+    series: [
+      {
+        type: 'line', data: prices, yAxisIndex: 0,
+        smooth: false, symbol: 'none',
+        lineStyle: { color: lineColor, width: 1.5 },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: lineColor === '#ef4444' ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)' },
+              { offset: 1, color: 'rgba(0,0,0,0)' }
+            ]
+          }
+        },
+      },
+      {
+        type: 'line', data: minuteTicks.value.map(t => t.avg_price), yAxisIndex: 0,
+        smooth: true, symbol: 'none',
+        lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' },
+        name: '均价',
+      },
+      {
+        type: 'bar', data: volumes, yAxisIndex: 1,
+        itemStyle: { color: '#374151' },
+        barWidth: 1,
+      },
+    ],
+    tooltip: { trigger: 'axis' },
+    markLine: prevClose.value > 0 ? {
+      silent: true, symbol: 'none',
+      lineStyle: { color: '#6b7280', type: 'dashed', width: 1 },
+      data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: '#6b7280', fontSize: 10 } }],
+    } : undefined,
+  }
+})
+
 onMounted(() => {
   const groupSym = ctx.getGroupSymbol(pg.groupId)
   if (groupSym && groupSym !== symbol.value) {
@@ -102,21 +260,34 @@ onMounted(() => {
   }
   loadOHLCV(symbol.value)
 })
+
+onUnmounted(() => {
+  stopMinutePolling()
+  stopKlineRefresh()
+})
 </script>
 
 <template>
   <div class="candlestick-panel">
     <div class="chart-header">
-      <span class="symbol-display">{{ symbol }}</span>
-      <div class="interval-btns">
+      <div class="header-left">
+        <span class="symbol-display">{{ symbol }}</span>
+        <div class="tab-btns">
+          <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">K线</button>
+          <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">分时</button>
+        </div>
+      </div>
+      <div v-if="activeTab === 'kline'" class="interval-btns">
         <button v-for="i in ['1m','5m','15m','1h','1d','1w']" :key="i"
           :class="{ active: interval === i }" class="interval-btn"
           @click="interval = i">{{ i }}</button>
       </div>
     </div>
     <div class="chart-body">
-      <div v-if="loading" class="chart-fallback">加载中...</div>
-      <VChart v-else-if="hasEcharts && ohlcvData.length > 0" :key="symbol" :option="option" autoresize class="kline-chart" />
+      <div v-if="loading || minuteLoading" class="chart-fallback">加载中...</div>
+      <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="symbol" :option="option" autoresize class="kline-chart" />
+      <VChart v-else-if="hasEcharts && activeTab === 'minute'" :option="minuteChartOption" autoresize class="minute-chart" />
+      <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">暂无分时数据</div>
       <div v-else class="chart-fallback">--</div>
     </div>
   </div>
@@ -131,10 +302,19 @@ onMounted(() => {
   display: flex; justify-content: space-between; align-items: center;
   padding: 6px 10px; border-bottom: 1px solid var(--color-border);
 }
+.header-left {
+  display: flex; align-items: center; gap: 12px;
+}
 .symbol-display {
   font-size: var(--font-lg); font-weight: 700;
   color: var(--color-brand);
 }
+.tab-btns { display: flex; gap: 4px; }
+.tab-btn {
+  padding: 3px 12px; border: 1px solid #374151; border-radius: 4px;
+  background: #1f2937; color: #9ca3af; font-size: 12px; cursor: pointer;
+}
+.tab-btn.active { background: #374151; color: #e5e7eb; border-color: #534ab7; }
 .interval-btns { display: flex; gap: 2px; }
 .interval-btn {
   padding: 2px 8px; border: 1px solid var(--color-border);
@@ -149,5 +329,7 @@ onMounted(() => {
 }
 .chart-body { flex: 1; min-height: 0; padding: 8px; position: relative; }
 .kline-chart { width: 100%; height: 100%; }
+.minute-chart { width: 100%; height: 100%; }
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
+.no-data { color: #6b7280; padding: 40px; text-align: center; }
 </style>
