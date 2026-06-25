@@ -11,7 +11,7 @@ import (
 // The first available adapter in the chain is used; if it fails, the next is tried.
 // Design aligned with astockpursue's FALLBACK_CHAINS.
 var FallbackChains = map[string][]string{
-	"CN":     {"mootdx", "sina", "tushare", "eastmoney", "tencent", "baidu", "akshare"},
+	"CN":     {"tencent", "eastmoney", "mootdx", "sina", "tushare", "baidu", "akshare"},
 	"US":     {"yahoo", "sina", "polygon", "finnhub"},
 	"HK":     {"yahoo", "tencent", "sina", "akshare"},
 	"CRYPTO": {"binance", "okx", "coingecko"},

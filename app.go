@@ -506,7 +506,8 @@ func (a *App) registerMarketAdapters() {
 	if a.bridge != nil {
 		dataClient = python.NewDataClient(a.bridge)
 	}
-	// CN chain order: mootdx → sina → tushare → eastmoney → tencent → baidu → akshare.
+	// CN chain: tencent(quickest)→eastmoney→mootdx(intraday)→...
+	// Tencent ~76ms HTTP, EastMoney ~350ms HTTPS, mootdx ~4s via Python sidecar.
 	a.marketReg.Register(adapters.NewMootdxAdapter(dataClient))
 	a.marketReg.Register(adapters.NewSinaAdapter())
 	a.marketReg.Register(adapters.NewTuShareAdapter())
