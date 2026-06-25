@@ -38,7 +38,6 @@ interface CommodityQuote {
 }
 
 const signals = ref<MacroSignal[]>([])
-const commodities = ref<CommodityQuote[]>([])
 const loading = ref(true)
 const selectedSignal = ref<MacroSignal | null>(null)
 const indicatorData = ref<IndicatorPoint[]>([])
@@ -60,10 +59,24 @@ async function loadSignals() {
       const result = await app.GetEconomicIndicators()
       signals.value = result.signals || []
     }
-    // Load real-time commodity quotes
+    // Load real-time commodity quotes, merge as MacroSignal into energy category
     if (app?.GetCommodityQuotes) {
       const result = await app.GetCommodityQuotes()
-      commodities.value = result.commodities || []
+      const commodities = (result.commodities || []) as CommodityQuote[]
+      for (const c of commodities) {
+        signals.value.push({
+          indicator_id: c.symbol,
+          name: c.name,
+          name_cn: c.name_cn,
+          latest_value: c.price,
+          change: c.change_pct,
+          direction: c.change_pct >= 0 ? 'up' : 'down',
+          signal: c.change_pct >= 0 ? 'bullish' : 'bearish',
+          unit: c.unit,
+          category: 'energy',
+          updated_at: Date.now() / 1000,
+        })
+      }
     }
   } catch {
     // show empty
@@ -223,19 +236,6 @@ function changeClass(c: number): string {
       >
         {{ categoryLabels[cat] }}
       </button>
-    </div>
-
-    <!-- Real-time Commodities -->
-    <div v-if="commodities.length > 0" class="commodities-row">
-      <div v-for="c in commodities" :key="c.symbol" class="commodity-card">
-        <span class="commodity-name">{{ c.name_cn }}</span>
-        <span class="commodity-price">{{ c.price.toFixed(2) }}</span>
-        <span :class="['commodity-change', c.change_pct >= 0 ? 'up' : 'down']">
-          {{ c.change_pct >= 0 ? '+' : '' }}{{ c.change_pct.toFixed(2) }}%
-        </span>
-        <span class="commodity-unit">{{ c.unit }}</span>
-        <span class="commodity-time">更新: {{ c.updated }}</span>
-      </div>
     </div>
 
     <!-- Main content: indicator grid + detail -->
@@ -546,18 +546,4 @@ function changeClass(c: number): string {
   grid-column: 1 / -1;
 }
 .empty-state.small { padding: 20px; font-size: 12px; }
-
-/* Commodities row */
-.commodities-row { display: flex; gap: 8px; margin-bottom: 10px; }
-.commodity-card {
-  flex: 1; background: #0f2137; border: 1px solid #1a3a5c; border-radius: 6px;
-  padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;
-}
-.commodity-name { font-size: 11px; color: #5a6380; }
-.commodity-price { font-size: 18px; font-weight: 700; color: #e0e0e0; }
-.commodity-change { font-size: 12px; }
-.commodity-change.up { color: #ef4444; }
-.commodity-change.down { color: #22c55e; }
-.commodity-unit { font-size: 10px; color: #5a6380; }
-.commodity-time { font-size: 10px; color: #5a6380; }
 </style>
