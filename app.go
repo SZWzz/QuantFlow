@@ -285,6 +285,10 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	// Alternative data: govdata (FRED + SEC EDGAR)
 	a.govDataAdpt = adapters.NewGovDataAdapter()
 	a.govDataSvc = research.NewGovDataService(a.govDataAdpt)
+	// Inject FRED API key from config (with env var fallback in NewGovDataAdapter)
+	if gha, ok := a.govDataAdpt.(*adapters.GovDataHTTPAdapter); ok {
+		gha.SetAPIKey(a.cfg.GetAPIKey("fred"))
+	}
 	nodes.SetGovDataService(a.govDataSvc)
 	slog.Info("govdata service initialized")
 
@@ -517,7 +521,9 @@ func (a *App) registerMarketAdapters() {
 	a.marketReg.Register(adapters.NewAKShareAdapter())
 	// US / HK / CRYPTO chains.
 	a.marketReg.Register(adapters.NewYahooAdapter())
-	a.marketReg.Register(adapters.NewFinnhubAdapter())
+	finnhubAdpt := adapters.NewFinnhubAdapter()
+	finnhubAdpt.SetAPIKey(a.cfg.GetAPIKey("finnhub"))
+	a.marketReg.Register(finnhubAdpt)
 	a.marketReg.Register(adapters.NewPolygonAdapter())
 	a.marketReg.Register(adapters.NewGateIOAdapter()) // primary crypto (accessible from CN)
 	a.marketReg.Register(adapters.NewOKXAdapter())
@@ -1121,6 +1127,25 @@ func (a *App) GetSystemStats(ctx context.Context) map[string]interface{} {
 		"go_version":    runtime.Version(),
 		"uptime_seconds": int(time.Since(startTime).Seconds()),
 	}
+}
+
+// GetConfig returns the current application configuration (non-sensitive).
+func (a *App) GetConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"api_keys": a.cfg.APIKeys,
+	}
+}
+
+// UpdateConfig merges partial config into the current config and persists to config.yaml.
+func (a *App) UpdateConfig(ctx context.Context, patch map[string]interface{}) error {
+	if keys, ok := patch["api_keys"].(map[string]interface{}); ok {
+		for k, v := range keys {
+			if s, ok := v.(string); ok {
+				a.cfg.APIKeys[k] = s
+			}
+		}
+	}
+	return a.cfg.Save()
 }
 
 // ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,

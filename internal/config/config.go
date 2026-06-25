@@ -10,9 +10,10 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	Version  string `yaml:"version"`
-	LogLevel string `yaml:"log_level"`
-	DBPath   string `yaml:"db_path"`
+	Version        string            `yaml:"version"`
+	LogLevel       string            `yaml:"log_level"`
+	DBPath         string            `yaml:"db_path"`
+	APIKeys        map[string]string `yaml:"api_keys"`
 }
 
 // DefaultConfig returns sensible defaults.
@@ -21,7 +22,44 @@ func DefaultConfig() *Config {
 		Version:  "0.0.1",
 		LogLevel: "info",
 		DBPath:   "data/quantflow.db",
+		APIKeys:  map[string]string{},
 	}
+}
+
+// Save writes the configuration back to config.yaml.
+func (c *Config) Save() error {
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("marshal config: %w", err)
+	}
+	if err := os.WriteFile("config.yaml", data, 0644); err != nil {
+		return fmt.Errorf("write config.yaml: %w", err)
+	}
+	return nil
+}
+
+// GetAPIKey returns the value for a named API key, falling back to
+// the corresponding environment variable (e.g. "fred" → FRED_API_KEY).
+func (c *Config) GetAPIKey(name string) string {
+	// Config file value takes precedence
+	if val := c.APIKeys[name]; val != "" {
+		return val
+	}
+	// Fall back to environment variable
+	envKey := fmt.Sprintf("%s_API_KEY", toEnvName(name))
+	return os.Getenv(envKey)
+}
+
+func toEnvName(name string) string {
+	var result []byte
+	for i, ch := range name {
+		if ch >= 'a' && ch <= 'z' && (i == 0 || name[i-1] == '_') {
+			result = append(result, byte(ch-32)) // uppercase
+		} else {
+			result = append(result, byte(ch))
+		}
+	}
+	return string(result)
 }
 
 // ResolveDBPath resolves a relative DB path against the executable directory

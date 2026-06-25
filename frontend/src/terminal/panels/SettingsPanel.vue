@@ -23,6 +23,7 @@ const sections: Section[] = [
   { id: 'language', label: 'language' },
   { id: 'notifications', label: 'notifications' },
   { id: 'data', label: 'data' },
+  { id: 'api', label: 'api' },
   { id: 'trading', label: 'trading' },
   { id: 'display', label: 'display' },
   { id: 'shortcuts', label: 'shortcuts' },
@@ -34,6 +35,23 @@ const dataSources = ['auto', 'yahoo', 'eastmoney', 'binance']
 const dateFormats = ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY']
 const decimalOptions = [0, 2, 4]
 const brokerOptions = ['paper', 'futu', 'longbridge', 'ibkr', 'binance', 'okx']
+const saveMsg = ref('')
+
+async function onSaveApiKeys() {
+  const app = (window as any).go?.main?.App
+  if (!app?.UpdateConfig) { saveMsg.value = '后端不可用'; return }
+  try {
+    await app.UpdateConfig({
+      api_keys: {
+        fred: settingsStore.settings.fredApiKey,
+        finnhub: settingsStore.settings.finnhubApiKey,
+        iwencai: settingsStore.settings.iwencaiApiKey,
+      }
+    })
+    saveMsg.value = '已保存，重启后生效'
+    setTimeout(() => saveMsg.value = '', 3000)
+  } catch { saveMsg.value = '保存失败' }
+}
 
 function onExportData() {
   alert('Export data stub — not yet implemented')
@@ -160,6 +178,43 @@ function onExportData() {
             max="365"
             @input="(e) => settingsStore.update('cacheTtlDays', Number((e.target as HTMLInputElement).value))"
           />
+        </div>
+      </section>
+
+      <!-- API Keys -->
+      <section v-if="activeSection === 'api'" class="section">
+        <h3 class="section-title">API 密钥</h3>
+        <p class="form-hint" style="margin-bottom: 14px">配置第三方数据源 API 密钥，保存后写入 config.yaml 并在下次启动生效。</p>
+
+        <div class="form-group">
+          <label class="form-label">FRED API Key <span class="api-source">(美联储经济数据)</span></label>
+          <input type="password" class="form-input"
+            :value="settingsStore.settings.fredApiKey"
+            placeholder="从 https://fred.stlouisfed.org/docs/api/api_key.html 申请"
+            @input="(e) => settingsStore.update('fredApiKey', (e.target as HTMLInputElement).value)" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Finnhub API Key <span class="api-source">(美股行情)</span></label>
+          <input type="password" class="form-input"
+            :value="settingsStore.settings.finnhubApiKey"
+            placeholder="从 https://finnhub.io/register 免费注册"
+            @input="(e) => settingsStore.update('finnhubApiKey', (e.target as HTMLInputElement).value)" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">爱问财 API Key <span class="api-source">(研报/公告搜索)</span></label>
+          <input type="password" class="form-input"
+            :value="settingsStore.settings.iwencaiApiKey"
+            placeholder="从 https://www.iwencai.com/ 申请"
+            @input="(e) => settingsStore.update('iwencaiApiKey', (e.target as HTMLInputElement).value)" />
+        </div>
+
+        <div class="form-group">
+          <button class="action-btn" @click="onSaveApiKeys">
+            保存到 config.yaml
+          </button>
+          <span v-if="saveMsg" class="save-msg">{{ saveMsg }}</span>
         </div>
       </section>
 
@@ -518,4 +573,7 @@ function onExportData() {
 .ext-link:hover {
   text-decoration: underline;
 }
+
+.api-source { color: #5a6380; font-size: 10px; font-weight: normal; }
+.save-msg { color: #22c55e; font-size: 12px; margin-left: 10px; }
 </style>

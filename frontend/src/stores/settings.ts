@@ -14,6 +14,9 @@ export interface SettingsState {
   telegramChatId: string
   dataSource: string
   cacheTtlDays: number
+  fredApiKey: string
+  finnhubApiKey: string
+  iwencaiApiKey: string
 }
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -45,6 +48,9 @@ export const useSettingsStore = defineStore('settings', () => {
       telegramChatId: '',
       dataSource: 'auto',
       cacheTtlDays: 30,
+      fredApiKey: '',
+      finnhubApiKey: '',
+      iwencaiApiKey: '',
     }
   }
 

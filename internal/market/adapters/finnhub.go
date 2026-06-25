@@ -32,6 +32,13 @@ func NewFinnhubAdapter() *FinnhubAdapter {
 	}
 }
 
+// SetAPIKey updates the Finnhub API key from app config.
+func (a *FinnhubAdapter) SetAPIKey(key string) {
+	if key != "" {
+		a.apiKey = key
+	}
+}
+
 func (a *FinnhubAdapter) Name() string      { return "finnhub" }
 func (a *FinnhubAdapter) Markets() []string  { return []string{"US"} }
 func (a *FinnhubAdapter) RequiresAuth() bool { return true }

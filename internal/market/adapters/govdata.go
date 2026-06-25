@@ -131,12 +131,19 @@ type GovDataHTTPAdapter struct {
 var _ GovDataAdapter = (*GovDataHTTPAdapter)(nil)
 
 // NewGovDataAdapter creates a new GovData HTTP adapter.
-// Reads FRED_API_KEY from environment; IsAvailable returns false without it.
+// Call SetAPIKey() later to configure the FRED API key from app config.
 func NewGovDataAdapter() *GovDataHTTPAdapter {
 	return &GovDataHTTPAdapter{
 		client:     &http.Client{Timeout: 30 * time.Second},
-		apiKey:     os.Getenv("FRED_API_KEY"),
+		apiKey:     os.Getenv("FRED_API_KEY"), // env fallback
 		indicators: FREDIndicators,
+	}
+}
+
+// SetAPIKey updates the FRED API key (called from app config after startup).
+func (a *GovDataHTTPAdapter) SetAPIKey(key string) {
+	if key != "" {
+		a.apiKey = key
 	}
 }
 
