@@ -244,16 +244,11 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
             continue
 
         df = pd.DataFrame(raw)
-        df = df.loc[:, ~df.columns.duplicated()]
-
-        col_map = {}
-        for c in df.columns:
-            cl = str(c).strip().lower()
-            if cl in ("price", "close"):
-                col_map[c] = "price"
-            elif cl in ("volume", "vol"):
-                col_map[c] = "volume"
-        df = df.rename(columns=col_map)
+        # Columns: price, vol, volume (mootdx 0.11.x)
+        # vol = per-minute volume, volume = cumulative. Use vol.
+        if "vol" in df.columns and "volume" in df.columns:
+            df = df.drop(columns=["volume"])
+        df = df.rename(columns={"vol": "volume"})
 
         if "price" not in df.columns:
             continue
