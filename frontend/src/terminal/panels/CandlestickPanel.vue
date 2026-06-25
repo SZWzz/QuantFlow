@@ -61,7 +61,7 @@ async function loadMinuteLine() {
   if (!app) return
   minuteLoading.value = true
   try {
-    const result = await app.GetMinuteLine('CN', symbol.value)
+    const result = await app.GetMinuteLine(symbol.value)
     const ticks = Array.isArray(result) ? result[0] : result
     if (!Array.isArray(ticks) || ticks.length === 0) {
       minuteTicks.value = []
