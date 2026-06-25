@@ -10,13 +10,18 @@ export const useThemeStore = defineStore('theme', () => {
 
   function apply() {
     const flop = getColorScheme() === 'us' ? 'color-us' : 'color-cn'
-    document.documentElement.className = `theme-${theme.value} density-${density.value} ${flop}`
+    const cls = `theme-${theme.value} density-${density.value} ${flop}`
+    document.documentElement.className = cls
+    // Also set on body for resilience
+    document.body.className = cls
   }
 
   function applyColorScheme(scheme: string) {
     const el = document.documentElement
     el.classList.remove('color-cn', 'color-us')
     el.classList.add(scheme === 'us' ? 'color-us' : 'color-cn')
+    document.body.classList.remove('color-cn', 'color-us')
+    document.body.classList.add(scheme === 'us' ? 'color-us' : 'color-cn')
   }
 
   function setTheme(t: Theme) {
