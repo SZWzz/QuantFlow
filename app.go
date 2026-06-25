@@ -962,9 +962,14 @@ func (a *App) getMarketReg() *market.AdapterRegistry {
 // (e.g. 000001.SH returns 平安银行's price instead of 上证指数).
 func (a *App) GetMarketOverview() (map[string]interface{}, error) {
 	ctx := context.Background()
-	indices := []struct{ code, name string }{
-		{"000001", "上证指数"}, {"399001", "深证成指"}, {"399006", "创业板指"},
-		{"000688", "科创50"}, {"000300", "沪深300"},
+	// Index codes: use sina format (sh/sz prefix) for sina adapter,
+	// bare codes for GetQuote fallback (which does its own normalization).
+	indices := []struct{ code, sinaCode, name string }{
+		{"000001.SH", "sh000001", "上证指数"},
+		{"399001.SZ", "sz399001", "深证成指"},
+		{"399006.SZ", "sz399006", "创业板指"},
+		{"000688.SH", "sh000688", "科创50"},
+		{"000300.SH", "sh000300", "沪深300"},
 	}
 	// Use sina adapter directly — mootdx doesn't handle index codes correctly.
 	sina := a.marketReg.Get("sina")
@@ -973,7 +978,7 @@ func (a *App) GetMarketOverview() (map[string]interface{}, error) {
 		var snap *market.QuoteSnapshot
 		var err error
 		if sina != nil && sina.IsAvailable(ctx) {
-			snap, err = sina.FetchQuote(ctx, idx.code)
+			snap, err = sina.FetchQuote(ctx, idx.sinaCode)
 		} else {
 			snap, _, err = a.GetQuote(ctx, "CN", idx.code)
 		}

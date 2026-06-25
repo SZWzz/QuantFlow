@@ -2,6 +2,7 @@
 package adapters
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -16,7 +17,7 @@ func (a *MootdxAdapter) FetchMinuteLine(symbol string) ([]market.MinuteTick, err
 		return nil, fmt.Errorf("mootdx: Python sidecar not connected")
 	}
 
-	resp, err := a.dataClient.FetchData(nil, &pb.FetchDataRequest{
+	resp, err := a.dataClient.FetchData(context.Background(), &pb.FetchDataRequest{
 		Source:   "mootdx",
 		DataType: "quote",
 		Symbols:  []string{symbol},
