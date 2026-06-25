@@ -221,6 +221,75 @@ def _fetch_mootdx_ohlcv(symbols: list[str], start_date: str, end_date: str, inte
     return all_bars
 
 
+def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
+    """Fetch minute-by-minute ticks for today via mootdx.
+
+    Returns a list of dicts with keys: time, price, volume, avg_price.
+    """
+    import pandas as pd
+
+    client = _get_mootdx_client()
+    all_ticks: list[dict] = []
+
+    for symbol in symbols:
+        plain = _normalize_code(symbol)
+        try:
+            raw = client.minute(symbol=plain)
+        except Exception as exc:
+            logger.warning("mootdx minute failed for %s: %s", plain, exc)
+            _reset_mootdx_client()
+            continue
+
+        if raw is None or len(raw) == 0:
+            continue
+
+        df = pd.DataFrame(raw)
+        df = df.loc[:, ~df.columns.duplicated()]
+
+        col_map = {}
+        for c in df.columns:
+            cl = str(c).strip().lower()
+            if cl in ("price", "close"):
+                col_map[c] = "price"
+            elif cl in ("volume", "vol"):
+                col_map[c] = "volume"
+        df = df.rename(columns=col_map)
+
+        if "price" not in df.columns:
+            continue
+
+        prices = df["price"].dropna()
+        if len(prices) == 0:
+            continue
+
+        cum_avg = 0.0
+        cum_vol = 0.0
+        ticks_for_symbol = []
+
+        for _, row in df.iterrows():
+            p = float(row.get("price", 0))
+            v = float(row.get("volume", 0)) if "volume" in df.columns else 0
+            cum_avg = (cum_avg * cum_vol + p * v) / (cum_vol + v) if (cum_vol + v) > 0 else p
+            cum_vol += v
+            # mootdx minute data has no time column; we use index as sequential minute
+            idx = len(ticks_for_symbol)
+            hh = 9 + (idx + 30) // 60
+            mm = (idx + 30) % 60
+            ticks_for_symbol.append({
+                "time": f"{hh:02d}:{mm:02d}",
+                "price": round(p, 2),
+                "volume": int(v),
+                "avg_price": round(cum_avg, 2),
+            })
+
+        all_ticks.extend(ticks_for_symbol)
+
+    if not all_ticks:
+        raise ValueError(f"mootdx: no minute data for {symbols}")
+
+    return all_ticks
+
+
 def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
     """Fetch minute-line (分时图) for today via mootdx and extract quote summary.
 
@@ -418,6 +487,8 @@ class DataService(data_pb2_grpc.DataServiceServicer):
             bars = _fetch_mootdx_ohlcv(symbols, start_date, end_date, interval)
         elif data_type == "quote":
             bars = _fetch_mootdx_quote(symbols)
+        elif data_type == "minute":
+            bars = _fetch_mootdx_minute(symbols)
         elif data_type == "finance":
             bars = _fetch_mootdx_finance(symbols)
         elif data_type == "f10":

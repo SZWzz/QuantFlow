@@ -19,9 +19,8 @@ func (a *MootdxAdapter) FetchMinuteLine(symbol string) ([]market.MinuteTick, err
 
 	resp, err := a.dataClient.FetchData(context.Background(), &pb.FetchDataRequest{
 		Source:   "mootdx",
-		DataType: "quote",
+		DataType: "minute",
 		Symbols:  []string{symbol},
-		Params:   map[string]string{"field": "minute"},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("mootdx minuteline: %w", err)
