@@ -100,14 +100,7 @@ var FREDIndicators = map[string]IndicatorMeta{
 		ID: "T10Y2Y", Name: "10-Year Treasury Minus 2-Year Treasury", NameCN: "美债10Y-2Y利差",
 		Unit: "%", Category: "rates",
 	},
-	"DCOILWTICO": {
-		ID: "DCOILWTICO", Name: "Crude Oil Prices: West Texas Intermediate (WTI)", NameCN: "WTI原油价格",
-		Unit: "Dollars per Barrel", Category: "energy",
-	},
-	"DHHNGSP": {
-		ID: "DHHNGSP", Name: "Henry Hub Natural Gas Spot Price", NameCN: "天然气现货价格",
-		Unit: "Dollars per Million BTU", Category: "energy",
-	},
+	// Real-time commodity prices (oil, gas) now served by App.GetCommodityQuotes via Sina futures.
 	"HOUST": {
 		ID: "HOUST", Name: "Housing Starts: Total", NameCN: "新屋开工",
 		Unit: "Thousands of Units", Category: "housing",

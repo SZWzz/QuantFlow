@@ -1148,6 +1148,11 @@ func (a *App) UpdateConfig(ctx context.Context, patch map[string]interface{}) er
 	return a.cfg.Save()
 }
 
+// GetCommodityQuotes returns real-time WTI crude oil and natural gas prices from Sina futures.
+func (a *App) GetCommodityQuotes() map[string]interface{} {
+	return queryCommodityQuotes(a.marketReg)
+}
+
 // ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,
 // shared DB connection, and releases any resources held by the application.
 func (a *App) ServiceShutdown() error {
