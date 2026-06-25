@@ -104,8 +104,8 @@ var FREDIndicators = map[string]IndicatorMeta{
 		ID: "DCOILWTICO", Name: "Crude Oil Prices: West Texas Intermediate (WTI)", NameCN: "WTI原油价格",
 		Unit: "Dollars per Barrel", Category: "energy",
 	},
-	"NGDPRPI": {
-		ID: "NGDPRPI", Name: "Natural Gas Spot Price", NameCN: "天然气现货价格",
+	"DHHNGSP": {
+		ID: "DHHNGSP", Name: "Henry Hub Natural Gas Spot Price", NameCN: "天然气现货价格",
 		Unit: "Dollars per Million BTU", Category: "energy",
 	},
 	"HOUST": {
