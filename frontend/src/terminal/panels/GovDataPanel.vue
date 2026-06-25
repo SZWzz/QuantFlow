@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import VChart from 'vue-echarts'
+import { detectMarket } from '@/lib/wails'
 import 'echarts'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -86,12 +87,26 @@ async function loadSignals() {
 
 async function loadIndicatorDetail(signal: MacroSignal) {
   selectedSignal.value = signal
-  // Commodities don't have FRED history; skip data fetch
+  chartLoading.value = true
+  // Commodities use OHLCV API instead of FRED history
   if (signal.indicator_id.startsWith('hf_')) {
-    indicatorData.value = []
+    const tradingSymbol = signal.indicator_id === 'hf_CL' ? 'CL=F' : 'NG=F'
+    const end = Math.floor(Date.now() / 1000)
+    const start = end - 90 * 86400
+    try {
+      const app = (window as any).go?.main?.App
+      if (app?.FetchOHLCV) {
+        const result = await app.FetchOHLCV(detectMarket(tradingSymbol), tradingSymbol, '1D', start, end)
+        const bars = Array.isArray(result) ? result[0] : result
+        indicatorData.value = (bars || []).map((b: any) => ({
+          date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date || b.Date).toISOString().slice(0, 10),
+          value: b.close ?? b.Close ?? 0,
+        }))
+      }
+    } catch { indicatorData.value = [] }
+    chartLoading.value = false
     return
   }
-  chartLoading.value = true
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetIndicatorData) {
