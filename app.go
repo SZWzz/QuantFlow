@@ -963,8 +963,8 @@ func (a *App) getMarketReg() *market.AdapterRegistry {
 func (a *App) GetMarketOverview() (map[string]interface{}, error) {
 	ctx := context.Background()
 	indices := []struct{ code, name string }{
-		{"000001.SH", "上证指数"}, {"399001.SZ", "深证成指"}, {"399006.SZ", "创业板指"},
-		{"000688.SH", "科创50"}, {"000300.SH", "沪深300"},
+		{"000001", "上证指数"}, {"399001", "深证成指"}, {"399006", "创业板指"},
+		{"000688", "科创50"}, {"000300", "沪深300"},
 	}
 	// Use sina adapter directly — mootdx doesn't handle index codes correctly.
 	sina := a.marketReg.Get("sina")

@@ -79,6 +79,7 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 	d := result.Data
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
+		Name:      d.F58,
 		Last:      d.F43 / 100.0,  // f43: 最新价 (分)
 		Open:      d.F46 / 100.0,  // f46: 开盘价
 		High:      d.F44 / 100.0,  // f44: 最高价
