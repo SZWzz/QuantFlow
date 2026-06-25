@@ -79,12 +79,9 @@ func (sp *SidecarProcess) waitReady(ctx context.Context) {
 	slog.Warn("python sidecar did not become ready within timeout", "addr", sp.addr)
 }
 
-// Wait blocks until the sidecar exits or the ready check completes.
+// Wait blocks until the sidecar readiness check completes.
 func (sp *SidecarProcess) Wait() {
 	<-sp.done
-	if sp.cmd != nil && sp.cmd.Process != nil {
-		sp.cmd.Wait()
-	}
 }
 
 // Stop gracefully terminates the sidecar process.
