@@ -42,6 +42,9 @@ function onSwitchToWorkflow() {
         <button class="header-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
           ⌘
         </button>
+        <button class="header-btn" @click="terminal.openPanel('settings')" title="系统设置">
+          ⚙️
+        </button>
         <button class="mode-switch" @click="onSwitchToWorkflow">
           Workflow
         </button>
