@@ -17,6 +17,10 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const hasEcharts = computed(() => !!(echarts && VChart))
 
+// Color scheme: reads body class set by theme store
+function upColor() { return document.body.classList.contains('color-cn') ? '#ef4444' : '#22c55e' }
+function downColor() { return document.body.classList.contains('color-cn') ? '#22c55e' : '#ef4444' }
+
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const interval = ref(props.params?.interval || '1d')
 const ohlcvData = ref<(string | number)[][]>([])
@@ -158,7 +162,7 @@ const option = computed(() => {
   const vdata = ohlcvData.value.map((d: any, i: number) => {
     const open = d[1] as number
     const close = d[2] as number
-    return { value: d[5], itemStyle: { color: close >= open ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)' } }
+    return { value: d[5], itemStyle: { color: close >= open ? upColor() : downColor() } }
   })
 
   return {
@@ -179,7 +183,7 @@ const option = computed(() => {
       {
         type: 'candlestick', name: 'K线',
         data: kdata, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
-        itemStyle: { color: '#22c55e', color0: '#ef4444', borderColor: '#22c55e', borderColor0: '#ef4444' },
+        itemStyle: { color: upColor(), color0: downColor(), borderColor: upColor(), borderColor0: downColor() },
       },
       {
         type: 'bar', name: 'Volume',
@@ -199,7 +203,7 @@ const minuteChartOption = computed(() => {
   const prices = minuteTicks.value.map(t => t.price)
   const volumes = minuteTicks.value.map(t => t.volume)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose.value
-  const lineColor = isUp ? '#ef4444' : '#22c55e'
+  const lineColor = isUp ? upColor() : downColor()
 
   return {
     backgroundColor: 'transparent',
@@ -234,7 +238,7 @@ const minuteChartOption = computed(() => {
           color: {
             type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: lineColor === '#ef4444' ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)' },
+              { offset: 0, color: isUp ? upColor() + '40' : downColor() + '40' },
               { offset: 1, color: 'rgba(0,0,0,0)' }
             ]
           }
