@@ -66,12 +66,12 @@ func (s *FinancialsService) fetchFromMootdx(ctx context.Context, symbol string) 
 		EPS:       fin.EPS,
 	}
 
-	// Fill additional fields from raw data
-	if v, ok := fin.Raw["总资产"]; ok {
-		fd.TotalAssets = parseFloatAny(v)
+	// Fill additional fields from raw data (try pinyin keys first, then Chinese)
+	for _, k := range []string{"zongzichan", "总资产"} {
+		if v, ok := fin.Raw[k]; ok { fd.TotalAssets = parseFloatAny(v); break }
 	}
-	if v, ok := fin.Raw["净资产"]; ok {
-		fd.TotalEquity = parseFloatAny(v)
+	for _, k := range []string{"jingzichan", "净资产"} {
+		if v, ok := fin.Raw[k]; ok { fd.TotalEquity = parseFloatAny(v); break }
 	}
 
 	return fd, nil

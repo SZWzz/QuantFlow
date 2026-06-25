@@ -182,6 +182,7 @@ func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*Mootd
 		s := fmt.Sprint(v)
 		fin.Raw[k] = s
 		switch k {
+		// Chinese keys (from old Python sidebar)
 		case "每股收益":
 			fin.EPS = parseFloatSafe(s)
 		case "每股净资产":
@@ -192,6 +193,30 @@ func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*Mootd
 			fin.Profit = parseFloatSafe(s)
 		case "主营收入":
 			fin.Income = parseFloatSafe(s)
+		// Pinyin keys (mootdx 0.11.x direct output)
+		case "jinglirun":
+			fin.Profit = parseFloatSafe(s)
+		case "zhuyingshouru":
+			fin.Income = parseFloatSafe(s)
+		case "meigujingzichan":
+			fin.BVPS = parseFloatSafe(s)
+		}
+	}
+	// Derive EPS and ROE if not directly provided
+	if fin.EPS == 0 && fin.Profit > 0 {
+		if zgb, ok := r["zongguben"]; ok {
+			fin.EPS = parseFloatAny(zgb)
+			if fin.EPS > 0 {
+				fin.EPS = fin.Profit / fin.EPS // 净利润/总股本
+			}
+		}
+	}
+	if fin.ROE == 0 && fin.Profit > 0 {
+		if jzc, ok := r["jingzichan"]; ok {
+			roe := parseFloatAny(jzc)
+			if roe > 0 {
+				fin.ROE = fin.Profit / roe * 100
+			}
 		}
 	}
 	return fin, nil
