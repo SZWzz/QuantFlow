@@ -176,9 +176,7 @@ func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, topN i
 
 		a.limiter.Wait()
 
-		// Use direct IP for push2.eastmoney.com to avoid IPv6 resolution issues.
-		// The hostname resolves to an IPv6 CNAME that is often unreachable.
-		url := "http://61.129.129.196/api/qt/clist/get" +
+		url := "http://push2.eastmoney.com/api/qt/clist/get" +
 			"?pn=1&pz=100&po=1&np=1&fltt=2&invt=2" +
 			"&fs=m:90+t:2" +
 			"&fields=f2,f3,f4,f12,f13,f14,f104,f105,f128,f136,f140,f141,f207"

@@ -173,7 +173,7 @@ func fetchPaginatedStockList(ctx context.Context, fs string, mapFn func(code, na
 
 	for {
 		url := fmt.Sprintf(
-			"http://61.129.129.196/api/qt/clist/get"+
+			"http://push2.eastmoney.com/api/qt/clist/get"+
 				"?pn=%d&pz=%d&po=1&np=1&fltt=2&invt=2"+
 				"&fs=%s&fields=f12,f14",
 			page, pageSize, fs,
