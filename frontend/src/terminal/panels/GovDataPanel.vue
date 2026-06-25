@@ -86,6 +86,11 @@ async function loadSignals() {
 
 async function loadIndicatorDetail(signal: MacroSignal) {
   selectedSignal.value = signal
+  // Commodities don't have FRED history; skip data fetch
+  if (signal.indicator_id.startsWith('hf_')) {
+    indicatorData.value = []
+    return
+  }
   chartLoading.value = true
   try {
     const app = (window as any).go?.main?.App
