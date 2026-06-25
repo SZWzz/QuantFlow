@@ -534,6 +534,21 @@ func (a *App) GetQuote(ctx context.Context, marketName, symbol string) (*market.
 	return a.marketReg.FetchQuoteWithFallback(ctx, marketName, symbol)
 }
 
+// GetMinuteLine returns today's intraday minute-by-minute ticks for a CN symbol.
+// Data is fetched via mootdx (TDX TCP protocol) when the Python sidecar is available.
+// Returns an empty slice on weekends, before market open, or when mootdx is unavailable.
+func (a *App) GetMinuteLine(ctx context.Context, symbol string) ([]market.MinuteTick, string, error) {
+	adpt := a.getMootdxAdapter()
+	if adpt == nil {
+		return nil, "unavailable", fmt.Errorf("mootdx adapter not available")
+	}
+	ticks, err := adpt.FetchMinuteLine(symbol)
+	if err != nil {
+		return nil, "unavailable", err
+	}
+	return ticks, "mootdx", nil
+}
+
 // FetchOHLCV fetches OHLCV bars for a symbol via the market's fallback chain.
 // interval is one of "1D", "1W", "1M", "1m", "5m", "15m", "30m", "1H"; start/end
 // are Unix timestamps in seconds. Returns the bars and the adapter name that
