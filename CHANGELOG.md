@@ -4,12 +4,27 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
-### 修复（前端 Mock 数据专项）
+## [2026.6.25] - 2026-06-25
 
-- [Frontend] 13 个面板从硬编码 mock 数据切换到真实 Go API：行情（GetQuote）、K 线（FetchOHLCV）、盘口（GetQuote bid/ask）、组合（GetPortfolioSummary/GetTrades/GetOrders）、加密（GetCryptoOverview）、相关矩阵（GetCorrelationMatrix）、收益率分布（GetReturnDistribution）、波动率期限结构（GetVolatilitySurface）、再平衡（store 真数据）
-- [Frontend] MarketOverview 指数/板块数据对接 GetMarketOverview 真实 API
-- [Engine] 新增 7 个 Go 后端 API：GetMarketOverview、GetMarketSnapshot、GetCryptoOverview、GetCorrelationMatrix、GetReturnDistribution、GetVolatilitySurface、GetRebalanceSuggestions
-- [Engine] 新增 internal/portfolio/analytics.go：相关性矩阵、收益分布直方图、波动率表面计算
+### 新增
+
+- [设置] API Key 持久化链路：SettingsPanel「API 密钥」section → settings store → Go UpdateConfig() → config.yaml。支持 FRED、Finnhub、爱问财三种 Key，保存后重启生效
+- [行情] GetCommodityQuotes：大商品实时报价 API（新浪期货 `hf_CL` / `hf_NG`），WTI 原油 + 天然气从 FRED 延迟数据迁到实时源
+- [前端] 涨跌颜色切换：设置→外观→A股（红涨绿跌）/ 美股（绿涨红跌），CSS 变量 `--color-up` / `--color-down` 动态注入，自选股/市场概览/K线图全面板自动响应
+- [前端] 自选股 localStorage 持久化：加/删自选股票自动保存到 `quantflow-watchlist`，重启不丢失
+- [Go] 行情快照内存缓存：AdapterRegistry 新增 5s TTL 的 quoteCache，同一股票 5 秒内不重复走容灾链
+
+### 变更
+
+- [宏观] GovDataPanel 能源分类重构：原油/天然气指标从 FRED 移除（延迟 1-3 天），改为新浪期货实时数据，与 FRED 卡片风格统一（可点击、信号徽章）
+- [前端] 主题系统重写：CSS 选择器从 `:root` 迁移到 `body`，使用 `body.classList` 而非 `documentElement`（Wails v3 管理 `<html>` class），暗色/亮色主题切换 + 3 级密度均生效
+
+### 修复
+
+- [行情] FRED 天然气系列 ID 错误：`NGDPRPI`（GDP 平减指数）→ `DHHNGSP`（Henry Hub 天然气现货）
+- [行情] 财报数据为空：mootdx `client.finance()` 返回 pinyin 字段名（`jinglirun` / `zhuyingshouru`），Go 侧原用中文字段名查询全部 miss。新增 pinyin→中文映射 + EPS/ROE 自动推算
+- [行情] 分时图无数据：mootdx `client.minute()` 返回 `price/vol/volume` 三列，rename `vol`→`volume` 产生重复列名导致 `float(Series)` 异常。修复：先 drop 原 `volume` 再 rename
+- [行情] 分时图时间轴缺失午休跳空：之前线性映射 index→time 未跳过 11:30-13:00 午休段，导致下午标签错位。修复：`idx ≥ 120` 自动补 90 分钟偏移
 
 ---
 
