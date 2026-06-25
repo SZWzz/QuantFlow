@@ -17,8 +17,8 @@ const cells = computed<HeatmapCell[]>(() => {
   const sectors = dataStore.marketOverview?.sectors ?? []
   return sectors.map(s => ({
     name: s.name,
-    changePct: s.change_pct,
-    marketCap: 800 + Math.round(s.change_pct * 300),
+    changePct: s.changePct ?? s.change_pct ?? 0,
+    marketCap: 800 + Math.round((s.changePct ?? s.change_pct ?? 0) * 300),
   }))
 })
 

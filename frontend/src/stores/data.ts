@@ -114,10 +114,14 @@ export const useDataStore = defineStore('data', () => {
         // indices remain empty
       }
 
-      // Fetch sector ranks
+      // Fetch sector ranks (Go returns snake_case JSON, map to camelCase)
       if (app.GetIndustryRanks) {
         try {
-          sectors = await app.GetIndustryRanks(30)
+          const raw = await app.GetIndustryRanks(30)
+          sectors = (raw as any[]).map((s: any) => ({
+            name: s.name,
+            changePct: s.change_pct ?? s.changePct ?? 0,
+          }))
         } catch {
           // sectors remain empty
         }
