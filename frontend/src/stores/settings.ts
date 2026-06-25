@@ -17,6 +17,7 @@ export interface SettingsState {
   fredApiKey: string
   finnhubApiKey: string
   iwencaiApiKey: string
+  colorScheme: string  // 'cn' = 红涨绿跌 (A股), 'us' = 绿涨红跌 (美股)
 }
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -51,6 +52,7 @@ export const useSettingsStore = defineStore('settings', () => {
       fredApiKey: '',
       finnhubApiKey: '',
       iwencaiApiKey: '',
+      colorScheme: 'cn',
     }
   }
 

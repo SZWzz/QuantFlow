@@ -166,3 +166,23 @@ export async function GetPositions(): Promise<
 > {
   return wailsCall('GetPositions')
 }
+
+// ── Color scheme helpers ─────────────────────────────────────────────────
+
+/**
+ * Returns CSS color for a price change percentage based on the selected color scheme.
+ * Default: CN convention (涨红跌绿). US convention: 涨绿跌红.
+ */
+export function pctColor(pct: number, scheme: string = 'cn'): string {
+  const up = scheme === 'us' ? '#22c55e' : '#ef4444'  // US: green up, CN: red up
+  const down = scheme === 'us' ? '#ef4444' : '#22c55e'
+  return pct >= 0 ? up : down
+}
+
+/**
+ * Returns change class suffix for use with CSS class bindings.
+ */
+export function changeColorClass(pct: number, scheme: string = 'cn'): string {
+  if (scheme === 'us') return pct >= 0 ? 'up' : 'down' // CSS handles mapping
+  return pct >= 0 ? 'up' : 'down'
+}

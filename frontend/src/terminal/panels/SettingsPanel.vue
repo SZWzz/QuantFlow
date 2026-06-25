@@ -107,6 +107,16 @@ function onExportData() {
             </button>
           </div>
         </div>
+
+        <div class="form-group">
+          <label class="form-label">涨跌颜色</label>
+          <div class="btn-group">
+            <button :class="['option-btn', { active: settingsStore.settings.colorScheme === 'cn' }]"
+              @click="settingsStore.update('colorScheme', 'cn'); themeStore.applyColorScheme('cn')">A股 (红涨绿跌)</button>
+            <button :class="['option-btn', { active: settingsStore.settings.colorScheme === 'us' }]"
+              @click="settingsStore.update('colorScheme', 'us'); themeStore.applyColorScheme('us')">美股 (绿涨红跌)</button>
+          </div>
+        </div>
       </section>
 
       <!-- Language -->
