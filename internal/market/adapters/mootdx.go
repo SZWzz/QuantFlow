@@ -205,7 +205,7 @@ func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*Mootd
 	// Derive EPS and ROE if not directly provided
 	if fin.EPS == 0 && fin.Profit > 0 {
 		if zgb, ok := r["zongguben"]; ok {
-			total := toFloat(zgb)
+			total := toFloatMootdx(zgb)
 			if total > 0 {
 				fin.EPS = fin.Profit / total
 			}
@@ -213,7 +213,7 @@ func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*Mootd
 	}
 	if fin.ROE == 0 && fin.Profit > 0 {
 		if jzc, ok := r["jingzichan"]; ok {
-			equity := toFloat(jzc)
+			equity := toFloatMootdx(jzc)
 			if equity > 0 {
 				fin.ROE = fin.Profit / equity * 100
 			}
@@ -222,7 +222,7 @@ func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*Mootd
 	return fin, nil
 }
 
-func toFloat(v interface{}) float64 {
+func toFloatMootdx(v interface{}) float64 {
 	return parseFloatSafe(fmt.Sprint(v))
 }
 
