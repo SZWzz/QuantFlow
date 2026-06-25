@@ -34,16 +34,18 @@ type SymbolSearchService struct {
 func NewSymbolSearchService(ctx context.Context) (*SymbolSearchService, error) {
 	var all []StockEntry
 
-	// CN A-shares
+	// CN A-shares: try API first, fall back to embedded list.
 	cn, err := fetchCNStockList(ctx)
 	if err != nil {
-		slog.Warn("symbol_search: CN stock list fetch failed", "error", err)
-	} else {
-		for i := range cn {
+		slog.Warn("symbol_search: CN stock list API fetch failed, using embedded list", "error", err)
+		cn = loadEmbeddedCNStockList()
+	}
+	for i := range cn {
+		if cn[i].Pinyin == "" {
 			cn[i].Pinyin = pinyinAbbr(cn[i].Name)
 		}
-		all = append(all, cn...)
 	}
+	all = append(all, cn...)
 
 	// HK stocks
 	hk, err := fetchHKStockList(ctx)
