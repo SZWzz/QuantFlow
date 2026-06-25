@@ -2,6 +2,10 @@
 import { watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
+import { useThemeStore } from '@/lib/theme'
+
+// Force theme store initialization at app startup
+useThemeStore()
 
 const session = useSessionStore()
 const router = useRouter()
