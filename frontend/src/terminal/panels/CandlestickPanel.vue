@@ -42,11 +42,19 @@ async function loadOHLCV(sym: string) {
   loading.value = true
   try {
     const end = Math.floor(Date.now() / 1000)
-    const start = end - 90 * 86400
-    const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, '1d', start, end)
+    // Lookback: minute intervals → 5 days, daily → 90 days, weekly → 180 days
+    const iv = interval.value
+    const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 180 : 90
+    const start = end - lookbackDays * 86400
+    const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, iv, start, end)
     const bars = Array.isArray(result) ? result[0] : result
+    const isIntraday = ['1m','5m','15m','30m','1h'].includes(iv)
     ohlcvData.value = (bars as any[]).map((b: any) => {
-      const date = typeof b.date === 'string' ? b.date : new Date(b.date || b.Date).toISOString().slice(0, 10)
+      const rawDate = b.date || b.Date || ''
+      const d = new Date(rawDate)
+      const date = isIntraday
+        ? d.toISOString().slice(0, 16).replace('T', ' ')  // "2026-06-25 09:35"
+        : d.toISOString().slice(0, 10)                     // "2026-06-25"
       return [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0]
     })
   } catch {
