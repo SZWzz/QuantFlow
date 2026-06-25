@@ -79,27 +79,19 @@ export const useMLStore = defineStore('ml', () => {
   async function fetchModels() {
     loading.value = true
     try {
-      if ((window as any).go?.main?.App) {
-        const result = await (window as any).go.main.App.ListMLModels()
-        models.value = result || []
-      }
+      // ListMLModels not yet implemented in Go backend
+      models.value = []
     } finally {
       loading.value = false
     }
   }
 
   async function archiveModel(id: string) {
-    if ((window as any).go?.main?.App) {
-      await (window as any).go.main.App.ArchiveMLModel(id)
-      await fetchModels()
-    }
+    // ArchiveMLModel not yet implemented in Go backend
   }
 
   async function deleteModel(id: string) {
-    if ((window as any).go?.main?.App) {
-      await (window as any).go.main.App.DeleteMLModel(id)
-      await fetchModels()
-    }
+    // DeleteMLModel not yet implemented in Go backend
   }
 
   function selectModel(model: MLModel | null) {
@@ -107,25 +99,17 @@ export const useMLStore = defineStore('ml', () => {
   }
 
   async function fetchPredictions(modelId: string, symbol: string) {
-    if ((window as any).go?.main?.App) {
-      const result = await (window as any).go.main.App.GetPredictions(modelId, symbol)
-      predictions.value = result || []
-    }
+    // GetPredictions not yet implemented in Go backend
+    predictions.value = []
   }
 
   async function runAlphaMining(params: {
     factorNames: string[]; factorData: any; returnsData: any;
     populationSize: number; generations: number; topK: number;
   }) {
-    miningRunning.value = true
-    try {
-      if ((window as any).go?.main?.App) {
-        const result = await (window as any).go.main.App.RunAlphaMining(params)
-        discoveredFactors.value = result || []
-      }
-    } finally {
-      miningRunning.value = false
-    }
+    // RunAlphaMining not yet implemented in Go backend
+    miningRunning.value = false
+    discoveredFactors.value = []
   }
 
   // Phase 10.3: RL Training actions
