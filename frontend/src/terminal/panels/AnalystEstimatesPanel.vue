@@ -75,10 +75,6 @@ function handleSymbolSubmit(e: Event) {
       </div>
     </div>
 
-    <div v-if="store.isBridgeAvailable === false" class="mock-banner">
-      Python sidecar 未连接，显示模拟数据
-    </div>
-
     <div v-if="estimates.length > 0" class="panel-content">
       <!-- Consensus Badge -->
       <div class="consensus-bar" v-if="consensus">

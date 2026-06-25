@@ -52,10 +52,6 @@ function amountColor(amount: string): string {
       </div>
     </div>
 
-    <div v-if="store.isBridgeAvailable === false" class="mock-banner">
-      Mock data — Python sidecar not connected
-    </div>
-
     <!-- Filters -->
     <div class="filter-bar">
       <div class="filter-group">

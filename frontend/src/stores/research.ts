@@ -64,17 +64,11 @@ export const useResearchStore = defineStore('research', () => {
       if (app?.GetSentiment && isBridgeAvailable.value) {
         sentiment.value = await app.GetSentiment(symbol)
       } else {
-        sentiment.value = {
-          symbol, score: 0, label: 'neutral', confidence: 0,
-          keywords: ['frontend_mock'], entities: [], source: 'mock', compute_time_ms: 0,
-        }
+        sentiment.value = null
       }
     } catch (e) {
       console.warn('GetSentiment unavailable:', e)
-      sentiment.value = {
-        symbol, score: 0, label: 'neutral', confidence: 0,
-        keywords: ['frontend_mock'], entities: [], source: 'mock', compute_time_ms: 0,
-      }
+      sentiment.value = null
     } finally {
       loading.value = false
     }
@@ -87,17 +81,11 @@ export const useResearchStore = defineStore('research', () => {
       if (app?.GetStockResearch) {
         research.value = await app.GetStockResearch(symbol, tabs)
       } else {
-        research.value = {
-          symbol,
-          overview: { symbol, name: symbol, sector: 'Mock', market_cap: 0 },
-        }
+        research.value = null
       }
     } catch (e) {
       console.warn('GetStockResearch unavailable:', e)
-      research.value = {
-        symbol,
-        overview: { symbol, name: symbol, sector: 'Mock', market_cap: 0 },
-      }
+      research.value = null
     } finally {
       loading.value = false
     }
@@ -123,20 +111,7 @@ export const useResearchStore = defineStore('research', () => {
       if (app?.GetCongressTrades) {
         congressTrades.value = await app.GetCongressTrades()
       } else {
-        congressTrades.value = [
-          { name: 'Nancy Pelosi', chamber: 'House', party: 'Democrat', symbol: 'NVDA', type: 'Buy', amount: '$1M-$5M', date: '2026-06-15' },
-          { name: 'Nancy Pelosi', chamber: 'House', party: 'Democrat', symbol: 'MSFT', type: 'Buy', amount: '$500K-$1M', date: '2026-06-10' },
-          { name: 'Dan Crenshaw', chamber: 'House', party: 'Republican', symbol: 'XOM', type: 'Buy', amount: '$100K-$250K', date: '2026-06-08' },
-          { name: 'Tommy Tuberville', chamber: 'Senate', party: 'Republican', symbol: 'COIN', type: 'Sell', amount: '$250K-$500K', date: '2026-06-05' },
-          { name: 'Josh Gottheimer', chamber: 'House', party: 'Democrat', symbol: 'GOOGL', type: 'Buy', amount: '$50K-$100K', date: '2026-06-03' },
-          { name: 'John Curtis', chamber: 'Senate', party: 'Republican', symbol: 'PLTR', type: 'Buy', amount: '$100K-$250K', date: '2026-06-01' },
-          { name: 'Nancy Pelosi', chamber: 'House', party: 'Democrat', symbol: 'AAPL', type: 'Buy', amount: '$500K-$1M', date: '2026-05-28' },
-          { name: 'Rick Scott', chamber: 'Senate', party: 'Republican', symbol: 'TSLA', type: 'Sell', amount: '$250K-$500K', date: '2026-05-25' },
-          { name: 'Ro Khanna', chamber: 'House', party: 'Democrat', symbol: 'AMD', type: 'Buy', amount: '$100K-$250K', date: '2026-05-22' },
-          { name: 'Pat Toomey', chamber: 'Senate', party: 'Republican', symbol: 'BTC ETF', type: 'Sell', amount: '$1M-$5M', date: '2026-05-20' },
-          { name: 'Mark Green', chamber: 'House', party: 'Republican', symbol: 'UNH', type: 'Buy', amount: '$50K-$100K', date: '2026-05-18' },
-          { name: 'Kyrsten Sinema', chamber: 'Senate', party: 'Independent', symbol: 'AMZN', type: 'Buy', amount: '$100K-$250K', date: '2026-05-15' },
-        ]
+        congressTrades.value = null
       }
     } catch (e) {
       console.warn('GetCongressTrades unavailable:', e)

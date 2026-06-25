@@ -34,15 +34,13 @@ const chartLoading = ref(false)
 async function loadRegions() {
   loading.value = true
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetSatelliteSnapshots) {
-      const result = await go.main.App.GetSatelliteSnapshots()
+    const app = (window as any).go?.main?.App
+    if (app?.GetSatelliteSnapshots) {
+      const result = await app.GetSatelliteSnapshots()
       regions.value = result.regions || []
-    } else {
-      regions.value = getMockRegions()
     }
   } catch {
-    regions.value = getMockRegions()
+    // show empty
   }
   loading.value = false
 }
@@ -51,20 +49,14 @@ async function loadRegionDetail(region: RegionSnapshot) {
   selectedRegion.value = region
   chartLoading.value = true
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetSatelliteDetail) {
-      const result = await go.main.App.GetSatelliteDetail(region.id)
+    const app = (window as any).go?.main?.App
+    if (app?.GetSatelliteDetail) {
+      const result = await app.GetSatelliteDetail(region.id)
       solarData.value = result.solar_chart || result.solar_data || []
       windData.value = result.wind_chart || result.wind_data || []
-    } else {
-      const mock = generateMockPoints(region)
-      solarData.value = mock.solar
-      windData.value = mock.wind
     }
   } catch {
-    const mock = generateMockPoints(region)
-    solarData.value = mock.solar
-    windData.value = mock.wind
+    // show empty
   }
   chartLoading.value = false
 }
@@ -198,40 +190,7 @@ function wildfireClass(count: number): string {
   return 'text-muted'
 }
 
-// ── Mock data ─────────────────────────────────────────────────────
-function getMockRegions(): RegionSnapshot[] {
-  return [
-    { id: 'texas', name: 'Texas Wind Corridor', name_cn: '德州风能走廊', lat: 32.8, lon: -100.1, solar_ghi: 5.2, wind_speed: 8.7, trend: 'up', wildfires: 15, asset_link: '天然气/电力' },
-    { id: 'north-sea', name: 'North Sea Wind Farm', name_cn: '北海风电场', lat: 56.0, lon: 3.0, solar_ghi: 2.8, wind_speed: 9.4, trend: 'up', wildfires: 0, asset_link: '欧洲电力/天然气' },
-    { id: 'gobi', name: 'Gobi Solar Base', name_cn: '戈壁太阳能基地', lat: 40.5, lon: 100.0, solar_ghi: 6.1, wind_speed: 4.8, trend: 'stable', wildfires: 0, asset_link: '中国新能源/多晶硅' },
-    { id: 'sahara', name: 'Sahara Solar Belt', name_cn: '撒哈拉太阳能带', lat: 23.0, lon: 13.0, solar_ghi: 7.2, wind_speed: 3.5, trend: 'up', wildfires: 3, asset_link: '欧洲碳配额' },
-    { id: 'midwest', name: 'US Midwest Agricultural Belt', name_cn: '美国中西部农业带', lat: 41.0, lon: -93.0, solar_ghi: 4.5, wind_speed: 6.2, trend: 'down', wildfires: 22, asset_link: '玉米/大豆/小麦期货' },
-  ]
-}
 
-function generateMockPoints(region: RegionSnapshot): { solar: EnergyPoint[]; wind: EnergyPoint[] } {
-  const solar: EnergyPoint[] = []
-  const wind: EnergyPoint[] = []
-  const now = new Date()
-  const solarBase = region.solar_ghi
-  const windBase = region.wind_speed
-
-  for (let i = 0; i < 30; i++) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - (29 - i))
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '')
-
-    const solarSeasonal = Math.sin(i / 30 * 2 * Math.PI) * 1.5
-    const solarNoise = (i % 7 - 3) * 0.3
-    const solarVal = Math.max(0, Math.round((solarBase + solarSeasonal + solarNoise) * 100) / 100)
-    solar.push({ date: dateStr, value: solarVal })
-
-    const windNoise = (i % 5 - 2) * 2.0
-    const windVal = Math.max(0, Math.round((windBase + windNoise) * 100) / 100)
-    wind.push({ date: dateStr, value: windVal })
-  }
-  return { solar, wind }
-}
 </script>
 
 <template>

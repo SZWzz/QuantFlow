@@ -55,10 +55,6 @@ function handleSymbolSubmit(e: Event) {
       </div>
     </div>
 
-    <div v-if="!store.isBridgeAvailable" class="mock-banner">
-      ⚠ Python sidecar not connected — showing mock data
-    </div>
-
     <div v-if="store.sentiment" class="sentiment-content">
       <div class="score-gauge">
         <svg viewBox="0 0 200 120" class="gauge-svg">

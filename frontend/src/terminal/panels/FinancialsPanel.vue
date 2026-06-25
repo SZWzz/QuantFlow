@@ -52,10 +52,6 @@ function formatPct(v: number | undefined | null): string {
       </div>
     </div>
 
-    <div v-if="store.isBridgeAvailable === false" class="mock-banner">
-      Mock data — Python sidecar not connected
-    </div>
-
     <div v-if="financials" class="panel-content">
       <div class="card-grid">
         <!-- 利润表 -->

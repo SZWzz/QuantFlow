@@ -1,49 +1,35 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
-defineProps<{
-  panelId: string
-  params?: Record<string, any>
-}>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const goRoutines = ref(0)
 const memAlloc = ref('0 MB')
 const memSys = ref('0 MB')
+const numGC = ref(0)
 const uptime = ref('--')
-const startTime = Date.now()
-const dataSources = ref([
-  { name: 'Yahoo Finance', status: '已连接' as const },
-  { name: 'EastMoney', status: 'dis已连接' as const },
-  { name: 'Binance', status: '已连接' as const },
-])
+const goVersion = ref('')
 
 let timer: ReturnType<typeof setInterval> | null = null
 
-function update() {
-  goRoutines.value = Math.floor(Math.random() * 50) + 10
-  const alloc = Math.floor(Math.random() * 500) + 200
-  memAlloc.value = `${alloc} MB`
-  memSys.value = `${alloc + Math.floor(Math.random() * 300)} MB`
-
-  const elapsed = Math.floor((Date.now() - startTime) / 1000)
-  const h = Math.floor(elapsed / 3600)
-  const m = Math.floor((elapsed % 3600) / 60)
-  const s = elapsed % 60
-  uptime.value = `${h}h ${m}m ${s}s`
+async function update() {
+  const app = (window as any).go?.main?.App
+  if (!app?.GetSystemStats) return
+  try {
+    const s = await app.GetSystemStats({})
+    goRoutines.value = s.goroutines || 0
+    memAlloc.value = `${s.mem_alloc_mb || 0} MB`
+    memSys.value = `${s.mem_sys_mb || 0} MB`
+    numGC.value = s.num_gc || 0
+    goVersion.value = s.go_version || ''
+    const sec = s.uptime_seconds || 0
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60
+    uptime.value = `${h}h ${m}m ${s2}s`
+  } catch {}
 }
 
-onMounted(() => {
-  update()
-  timer = setInterval(update, 2000)
-})
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
-
-function statusColor(s: string): string {
-  return s === '已连接' ? '#3fb950' : s === 'error' ? '#f85149' : '#5a6380'
-}
+onMounted(() => { update(); timer = setInterval(update, 5000) })
+onUnmounted(() => { if (timer) clearInterval(timer) })
 </script>
 
 <template>
@@ -65,22 +51,6 @@ function statusColor(s: string): string {
       <div class="metric-row">
         <span class="metric-label">运行时间</span>
         <span class="metric-value">{{ uptime }}</span>
-      </div>
-    </div>
-
-    <div class="section">
-      <h3 class="section-title">数据源</h3>
-      <div
-        v-for="src in dataSources"
-        :key="src.name"
-        class="source-row"
-      >
-        <span
-          class="status-dot"
-          :style="{ color: statusColor(src.status) }"
-        >●</span>
-        <span class="source-name">{{ src.name }}</span>
-        <span class="source-status">{{ src.status }}</span>
       </div>
     </div>
 

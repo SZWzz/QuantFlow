@@ -52,10 +52,6 @@ function formatRatio(v: number | undefined | null): string {
       </div>
     </div>
 
-    <div v-if="store.isBridgeAvailable === false" class="mock-banner">
-      Mock data — Python sidecar not connected
-    </div>
-
     <div v-if="peers.length > 0" class="panel-content">
       <table class="peer-table">
         <thead>

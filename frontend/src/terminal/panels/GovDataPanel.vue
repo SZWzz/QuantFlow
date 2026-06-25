@@ -41,15 +41,13 @@ const categoryLabels: Record<string, string> = {
 async function loadSignals() {
   loading.value = true
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetEconomicIndicators) {
-      const result = await go.main.App.GetEconomicIndicators()
+    const app = (window as any).go?.main?.App
+    if (app?.GetEconomicIndicators) {
+      const result = await app.GetEconomicIndicators()
       signals.value = result.signals || []
-    } else {
-      signals.value = getMockSignals()
     }
   } catch {
-    signals.value = getMockSignals()
+    // show empty
   }
   loading.value = false
 }
@@ -58,15 +56,13 @@ async function loadIndicatorDetail(signal: MacroSignal) {
   selectedSignal.value = signal
   chartLoading.value = true
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetIndicatorData) {
-      const result = await go.main.App.GetIndicatorData(signal.indicator_id, 12)
+    const app = (window as any).go?.main?.App
+    if (app?.GetIndicatorData) {
+      const result = await app.GetIndicatorData(signal.indicator_id, 12)
       indicatorData.value = result.data || []
-    } else {
-      indicatorData.value = generateMockPoints(signal)
     }
   } catch {
-    indicatorData.value = generateMockPoints(signal)
+    // show empty
   }
   chartLoading.value = false
 }
@@ -183,41 +179,7 @@ function changeClass(c: number): string {
   return 'text-muted'
 }
 
-// ── Mock data ─────────────────────────────────────────────────────
-function getMockSignals(): MacroSignal[] {
-  return [
-    { indicator_id: 'GDP', name: 'Gross Domestic Product', name_cn: '国内生产总值(GDP)', latest_value: 29250.3, change: 2.8, direction: 'up', signal: 'bullish', unit: 'Billions of Dollars', category: 'gdp', updated_at: Date.now() },
-    { indicator_id: 'GDPC1', name: 'Real Gross Domestic Product', name_cn: '实际GDP', latest_value: 23250.1, change: 2.1, direction: 'up', signal: 'bullish', unit: 'Billions of Chained 2017 Dollars', category: 'gdp', updated_at: Date.now() },
-    { indicator_id: 'CPIAUCSL', name: 'Consumer Price Index', name_cn: '消费者价格指数(CPI)', latest_value: 316.8, change: 0.3, direction: 'up', signal: 'bearish', unit: 'Index 1982-1984=100', category: 'inflation', updated_at: Date.now() },
-    { indicator_id: 'PCEPI', name: 'PCE Price Index', name_cn: '个人消费支出价格指数(PCE)', latest_value: 125.6, change: 0.2, direction: 'up', signal: 'bearish', unit: 'Index 2017=100', category: 'inflation', updated_at: Date.now() },
-    { indicator_id: 'PPIACO', name: 'Producer Price Index', name_cn: '生产者价格指数(PPI)', latest_value: 267.2, change: 0.5, direction: 'up', signal: 'bearish', unit: 'Index 1982=100', category: 'inflation', updated_at: Date.now() },
-    { indicator_id: 'UNRATE', name: 'Unemployment Rate', name_cn: '失业率', latest_value: 3.8, change: -2.6, direction: 'down', signal: 'bullish', unit: '%', category: 'employment', updated_at: Date.now() },
-    { indicator_id: 'PAYEMS', name: 'Total Nonfarm Payrolls', name_cn: '非农就业人数', latest_value: 159850, change: 0.15, direction: 'up', signal: 'bullish', unit: 'Thousands', category: 'employment', updated_at: Date.now() },
-    { indicator_id: 'IC4WSA', name: 'Initial Claims', name_cn: '初请失业金人数', latest_value: 215, change: -3.2, direction: 'down', signal: 'bullish', unit: 'Number', category: 'employment', updated_at: Date.now() },
-    { indicator_id: 'FEDFUNDS', name: 'Federal Funds Effective Rate', name_cn: '联邦基金利率', latest_value: 4.25, change: 0, direction: 'flat', signal: 'neutral', unit: '%', category: 'rates', updated_at: Date.now() },
-    { indicator_id: 'DGS10', name: '10-Year Treasury Rate', name_cn: '10年期国债收益率', latest_value: 4.32, change: -1.8, direction: 'down', signal: 'bullish', unit: '%', category: 'rates', updated_at: Date.now() },
-    { indicator_id: 'T10Y2Y', name: '10Y-2Y Treasury Spread', name_cn: '美债10Y-2Y利差', latest_value: -0.25, change: 10.0, direction: 'up', signal: 'bearish', unit: '%', category: 'rates', updated_at: Date.now() },
-    { indicator_id: 'DCOILWTICO', name: 'Crude Oil WTI', name_cn: 'WTI原油价格', latest_value: 72.5, change: -3.5, direction: 'down', signal: 'bullish', unit: 'Dollars per Barrel', category: 'energy', updated_at: Date.now() },
-    { indicator_id: 'NGDPRPI', name: 'Natural Gas Spot Price', name_cn: '天然气现货价格', latest_value: 3.85, change: 8.5, direction: 'up', signal: 'bearish', unit: 'Dollars per Million BTU', category: 'energy', updated_at: Date.now() },
-    { indicator_id: 'HOUST', name: 'Housing Starts', name_cn: '新屋开工', latest_value: 1480, change: 1.2, direction: 'up', signal: 'bullish', unit: 'Thousands of Units', category: 'housing', updated_at: Date.now() },
-    { indicator_id: 'MSPUS', name: 'Median Sales Price of Houses', name_cn: '房屋销售中位价', latest_value: 428500, change: 0.8, direction: 'up', signal: 'bullish', unit: 'Dollars', category: 'housing', updated_at: Date.now() },
-  ]
-}
 
-function generateMockPoints(signal: MacroSignal): IndicatorPoint[] {
-  const points: IndicatorPoint[] = []
-  const base = signal.latest_value
-  const noise = signal.signal === 'bearish' ? base * 0.02 : base * 0.01
-  const now = new Date()
-  for (let i = 0; i < 12; i++) {
-    const date = new Date(now)
-    date.setMonth(date.getMonth() - (11 - i))
-    const dateStr = date.toISOString().slice(0, 10)
-    const value = base - (11 - i) * (signal.change / 100 * base / 12) + (Math.random() - 0.5) * noise
-    points.push({ date: dateStr, value: Math.round(value * 100) / 100 })
-  }
-  return points
-}
 </script>
 
 <template>

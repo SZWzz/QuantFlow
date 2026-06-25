@@ -64,10 +64,6 @@ function handleSymbolSubmit(e: Event) {
       </div>
     </div>
 
-    <div v-if="store.isBridgeAvailable === false" class="mock-banner">
-      Mock data — Python sidecar not connected
-    </div>
-
     <div v-if="trades.length > 0" class="panel-content">
       <!-- 净交易 Indicator -->
       <div class="activity-bar">

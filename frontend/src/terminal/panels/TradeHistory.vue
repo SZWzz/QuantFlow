@@ -78,8 +78,8 @@ const orders = computed<Order[]>(() => {
 
 // -- Lifecycle --
 onMounted(async () => {
-  store.fetch委托()
-  store.fetch成交()
+  store.fetchOrders()
+  store.fetchTrades()
 })
 
 // -- State --

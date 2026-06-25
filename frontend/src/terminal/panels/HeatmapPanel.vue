@@ -6,7 +6,6 @@ import type { SectorRanking } from '@/stores/data'
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const loading = ref(false)
-const hasECharts = ref(false)
 
 interface HeatmapCell {
   name: string
@@ -14,28 +13,14 @@ interface HeatmapCell {
   marketCap: number
 }
 
-const cells = ref<HeatmapCell[]>([])
-
-const sectorsData = computed(() => dataStore.marketOverview?.sectors ?? [])
-
-function mockMarketCap(): number {
-  return Math.round(800 + Math.random() * 25000)
-}
-
-function generateMockCells(): HeatmapCell[] {
-  const names = [
-    '半导体', '软件开发', '光伏设备', '消费电子', '汽车整车', '医疗器械',
-    '化学制药', '食品饮料', '银行', '电力', '房地产', '钢铁', '煤炭开采',
-    '航运港口', '影视院线', '通信设备', '航空航天', '新能源', '人工智能',
-    '物联网', '机器人', '储能', '锂电', '氢能', '生物医药', '创新药',
-    'CXO', '医美', '白酒', '调味品',
-  ]
-  return names.map(name => ({
-    name,
-    changePct: +(Math.random() * 8 - 4).toFixed(2),
-    marketCap: mockMarketCap(),
+const cells = computed<HeatmapCell[]>(() => {
+  const sectors = dataStore.marketOverview?.sectors ?? []
+  return sectors.map(s => ({
+    name: s.name,
+    changePct: s.changePct,
+    marketCap: 800 + Math.round(s.changePct * 300),
   }))
-}
+})
 
 function changeColor(pct: number): string {
   if (pct > 2) return '#dc2626'
@@ -49,39 +34,17 @@ function textColor(pct: number): string {
   return Math.abs(pct) > 1.5 ? '#fff' : '#e5e7eb'
 }
 
-function formatMc(mc: number): string {
-  if (mc >= 10000) return (mc / 10000).toFixed(1) + '万亿'
-  return mc.toFixed(0) + '亿'
-}
-
 async function refresh() {
   loading.value = true
   try {
-    dataStore.fetchMarketOverview()
-    // Use data from store if available, else mock
-    if (sectorsData.value.length > 0) {
-      cells.value = sectorsData.value.map(s => ({
-        name: s.name,
-        changePct: s.changePct,
-        marketCap: mockMarketCap(),
-      }))
-    } else {
-      cells.value = generateMockCells()
-    }
+    await dataStore.fetchMarketOverview()
   } finally {
     loading.value = false
   }
 }
 
-onMounted(async () => {
-  // Check if echarts is available
-  try {
-    await import('echarts')
-    hasECharts.value = true
-  } catch {
-    hasECharts.value = false
-  }
-  refresh()
+onMounted(() => {
+  if (!dataStore.marketOverview) refresh()
 })
 </script>
 
@@ -96,7 +59,7 @@ onMounted(async () => {
 
     <div v-if="loading" class="loading-state">加载中...</div>
 
-    <div v-else class="heatmap-grid">
+    <div v-else-if="cells.length > 0" class="heatmap-grid">
       <div
         v-for="cell in cells"
         :key="cell.name"
@@ -111,6 +74,8 @@ onMounted(async () => {
         <span class="cell-pct">{{ cell.changePct >= 0 ? '+' : '' }}{{ cell.changePct }}%</span>
       </div>
     </div>
+
+    <div v-else class="empty-state">暂无板块数据</div>
 
     <div class="legend">
       <span class="legend-item"><span class="swatch" style="background:#dc2626"></span> +2%+</span>
@@ -149,8 +114,12 @@ onMounted(async () => {
   flex: 1; display: flex; align-items: center; justify-content: center;
   color: #6b7280; font-size: 13px;
 }
+.empty-state {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  color: #6b7280; font-size: 13px;
+}
 
-/* Heatmap Grid Fallback (when echarts unavailable) */
+/* Heatmap Grid */
 .heatmap-grid {
   flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start;
   gap: 2px; overflow-y: auto;

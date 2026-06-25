@@ -50,15 +50,13 @@ const riskBadgeMap: Record<string, string> = {
 async function loadRisks() {
   loading.value = true
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetGeopoliticsRisks) {
-      const result = await go.main.App.GetGeopoliticsRisks()
+    const app = (window as any).go?.main?.App
+    if (app?.GetGeopoliticsRisks) {
+      const result = await app.GetGeopoliticsRisks()
       risks.value = result.risks || []
-    } else {
-      risks.value = getMockRisks()
     }
   } catch {
-    risks.value = getMockRisks()
+    // show empty
   }
   loading.value = false
 }
@@ -67,26 +65,18 @@ async function loadDetail(topic: TopicRisk) {
   selectedTopic.value = topic
   detailLoading.value = true
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetGeopoliticsDetail) {
-      const result = await go.main.App.GetGeopoliticsDetail(topic.id, '7d')
+    const app = (window as any).go?.main?.App
+    if (app?.GetGeopoliticsDetail) {
+      const result = await app.GetGeopoliticsDetail(topic.id, '7d')
       if (result.volumes?.length > 0) {
         detailVolumes.value = result.volumes
-      } else {
-        detailVolumes.value = generateMockVolumes(topic.id)
       }
       if (result.tones?.length > 0) {
         detailTones.value = result.tones
-      } else {
-        detailTones.value = generateMockTones(topic.id)
       }
-    } else {
-      detailVolumes.value = generateMockVolumes(topic.id)
-      detailTones.value = generateMockTones(topic.id)
     }
   } catch {
-    detailVolumes.value = generateMockVolumes(topic.id)
-    detailTones.value = generateMockTones(topic.id)
+    // show empty
   }
   detailLoading.value = false
 }
@@ -216,60 +206,6 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-// ── Mock data ─────────────────────────────────────────────────────
-function getMockRisks(): TopicRisk[] {
-  const topics: TopicRisk[] = [
-    { id: 'middle-east', title: 'Middle East Tensions', title_cn: '中东局势', risk_level: 'high', tone: -3.5, tone_change: -1.5, vol_change: 65, associated: '原油', updated_at: Date.now() },
-    { id: 'taiwan-strait', title: 'Taiwan Strait', title_cn: '台海紧张', risk_level: 'medium', tone: -1.8, tone_change: -0.5, vol_change: 45, associated: 'A股/港股', updated_at: Date.now() },
-    { id: 'ukraine-war', title: 'Ukraine War', title_cn: '俄乌战争', risk_level: 'medium', tone: -2.2, tone_change: -0.5, vol_change: 30, associated: '能源/粮食', updated_at: Date.now() },
-    { id: 'trade-tariffs', title: 'Trade Tariffs', title_cn: '贸易关税', risk_level: 'medium', tone: -1.5, tone_change: -0.5, vol_change: 55, associated: '全球', updated_at: Date.now() },
-    { id: 'north-korea', title: 'North Korea', title_cn: '朝鲜半岛', risk_level: 'low', tone: -0.8, tone_change: -0.5, vol_change: 15, associated: '韩国/日元', updated_at: Date.now() },
-    { id: 'fed-policy', title: 'Fed Policy', title_cn: '美联储政策', risk_level: 'medium', tone: 0.5, tone_change: 0.8, vol_change: 25, associated: '美股/美元', updated_at: Date.now() },
-    { id: 'europe-energy', title: 'European Energy Crisis', title_cn: '欧洲能源', risk_level: 'high', tone: -2.8, tone_change: -1.5, vol_change: 70, associated: '天然气', updated_at: Date.now() },
-    { id: 'terrorism', title: 'Terrorism', title_cn: '恐怖主义', risk_level: 'high', tone: -4.2, tone_change: -1.5, vol_change: 80, associated: '全球', updated_at: Date.now() },
-    { id: 'china-economy', title: 'China Economy', title_cn: '中国经济', risk_level: 'medium', tone: -1.2, tone_change: -0.5, vol_change: 35, associated: 'A股/港股', updated_at: Date.now() },
-    { id: 'semiconductors', title: 'Semiconductors', title_cn: '半导体', risk_level: 'low', tone: -0.3, tone_change: -0.5, vol_change: 10, associated: '科技股', updated_at: Date.now() },
-  ]
-  return topics
-}
-
-function generateMockTones(topicID: string): TonePoint[] {
-  const toneBases: Record<string, number> = {
-    'middle-east': -3.5, 'taiwan-strait': -1.8, 'ukraine-war': -2.2,
-    'trade-tariffs': -1.5, 'north-korea': -0.8, 'fed-policy': 0.5,
-    'europe-energy': -2.8, 'terrorism': -4.2, 'china-economy': -1.2,
-    'semiconductors': -0.3,
-  }
-  const base = toneBases[topicID] ?? 0
-  const points: TonePoint[] = []
-  const now = new Date()
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(now.getTime() - (7 - i) * 86400000)
-    const dateStr = date.toISOString().slice(0, 10)
-    const variation = ((i % 5) - 2) * 0.3
-    points.push({ Date: dateStr, Tone: base + variation, Query: topicID })
-  }
-  return points
-}
-
-function generateMockVolumes(topicID: string): VolumePoint[] {
-  const bases: Record<string, number> = {
-    'middle-east': 140, 'terrorism': 170, 'europe-energy': 150,
-    'trade-tariffs': 120, 'taiwan-strait': 130, 'ukraine-war': 110,
-    'china-economy': 125, 'fed-policy': 105, 'north-korea': 95,
-    'semiconductors': 100,
-  }
-  const base = bases[topicID] ?? 100
-  const points: VolumePoint[] = []
-  const now = new Date()
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(now.getTime() - (7 - i) * 86400000)
-    const dateStr = date.toISOString().slice(0, 10)
-    const trend = (i / 6) * 40
-    points.push({ Date: dateStr, Value: base + trend, Query: topicID })
-  }
-  return points
-}
 </script>
 
 <template>

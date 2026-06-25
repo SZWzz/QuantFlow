@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -10,24 +10,51 @@ const quantity = ref(100)
 const price = ref(195.50)
 const stopPrice = ref(190.00)
 const broker = ref<'paper' | 'binance' | 'futu'>('paper')
+const lastPrice = ref(0)
+const quoteLoading = ref(false)
 
 const estimatedTotal = computed(() => {
-  if (orderType.value === 'market') return quantity.value * 195.32 // mock market price
-  return quantity.value * price.value
+  const p = orderType.value === 'market' ? (lastPrice.value || price.value) : price.value
+  return quantity.value * p
 })
 
-import { computed } from 'vue'
+async function fetchQuote() {
+  const app = (window as any).go?.main?.App
+  if (!app?.GetQuote) return
+  quoteLoading.value = true
+  try {
+    const quote = await app.GetQuote({}, 'CN', symbol.value)
+    if (quote?.last) {
+      lastPrice.value = quote.last
+      price.value = quote.last
+    }
+  } catch {
+    // empty — keep current price
+  } finally {
+    quoteLoading.value = false
+  }
+}
+
+watch(symbol, () => {
+  fetchQuote()
+})
+
+onMounted(() => {
+  fetchQuote()
+})
 
 function placeOrder() {
   try {
-    ;(window as any).go.main.App.PlaceOrder(
-      symbol.value, side.value, orderType.value, quantity.value,
-      orderType.value === 'market' ? 0 : price.value
-    )
+    const app = (window as any).go?.main?.App
+    if (app?.PlaceOrder) {
+      app.PlaceOrder(
+        symbol.value, side.value, orderType.value, quantity.value,
+        orderType.value === 'market' ? 0 : price.value
+      )
+    }
   } catch (e) {
     console.warn('PlaceOrder not available:', e)
   }
-  console.log('Place order:', { symbol: symbol.value, side: side.value, type: orderType.value, broker: broker.value, qty: quantity.value })
 }
 </script>
 
@@ -68,7 +95,10 @@ function placeOrder() {
       </div>
 
       <div v-if="orderType !== 'market'" class="form-group">
-        <label>Price</label>
+        <label>Price
+          <span v-if="quoteLoading" class="quote-status">加载中...</span>
+          <span v-else-if="lastPrice > 0" class="quote-status">(实时)</span>
+        </label>
         <input v-model.number="price" type="number" step="0.01" class="form-input" />
       </div>
 
@@ -104,6 +134,8 @@ function placeOrder() {
   color: #c9d1d9; font-size: 13px; outline: none;
 }
 .form-input:focus { border-color: var(--accent); }
+
+.quote-status { font-size: 10px; color: #60a5fa; margin-left: 4px; }
 
 .side-toggle { display: flex; gap: 0; }
 .side-toggle button {

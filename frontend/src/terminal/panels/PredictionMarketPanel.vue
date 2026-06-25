@@ -47,15 +47,13 @@ async function loadEvents() {
   loading.value = true
   const cat = activeCategory.value === 'all' ? '' : activeCategory.value
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetPredictionMarkets) {
-      const result = await go.main.App.GetPredictionMarkets(cat, 30)
+    const app = (window as any).go?.main?.App
+    if (app?.GetPredictionMarkets) {
+      const result = await app.GetPredictionMarkets(cat, 30)
       events.value = result.events || []
-    } else {
-      events.value = getMockEvents(cat)
     }
   } catch {
-    events.value = getMockEvents(cat)
+    // show empty
   }
   loading.value = false
 }
@@ -63,17 +61,18 @@ async function loadEvents() {
 async function loadDetail(event: Event) {
   selectedEvent.value = event
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetPredictionEventDetail) {
-      const result = await go.main.App.GetPredictionEventDetail(event.id)
+    const app = (window as any).go?.main?.App
+    if (app?.GetPredictionEventDetail) {
+      const result = await app.GetPredictionEventDetail(event.id)
       if (result.prices?.length > 0) {
         priceHistory.value = result.prices
         return
       }
     }
-  } catch { /* mock fallback below */ }
-  // Mock price history
-  priceHistory.value = generateMockPrices(event)
+  } catch {
+    // show empty
+  }
+  priceHistory.value = []
 }
 
 async function loadSignals() {
@@ -146,76 +145,6 @@ function changeClass(c: number): string {
   return c >= 0 ? 'text-green' : 'text-red'
 }
 
-// ── Mock data ─────────────────────────────────────────────────────
-function getMockEvents(category: string): Event[] {
-  const all: Event[] = [
-    {
-      id: 'fed-rate-cut-july-2026', title: 'Fed cuts rates by July 2026?',
-      category: 'economics', volume: 2_500_000, liquidity: 1_800_000,
-      end_date: '2026-07-31T23:59:59Z', status: 'open',
-      outcomes: [
-        { id: 'yes-1', label: 'Yes', price: 0.35, change_24h: 0.03 },
-        { id: 'no-1', label: 'No', price: 0.65, change_24h: -0.03 },
-      ],
-      description: 'Market predicts probability of a Federal Reserve rate cut by July 2026.'
-    },
-    {
-      id: 'bitcoin-100k-q3-2026', title: 'Bitcoin breaks $100K by Q3 2026?',
-      category: 'crypto', volume: 4_200_000, liquidity: 3_100_000,
-      end_date: '2026-09-30T23:59:59Z', status: 'open',
-      outcomes: [
-        { id: 'yes-2', label: 'Yes', price: 0.28, change_24h: -0.05 },
-        { id: 'no-2', label: 'No', price: 0.72, change_24h: 0.05 },
-      ],
-      description: 'Will Bitcoin price exceed $100,000 before the end of Q3 2026?'
-    },
-    {
-      id: 'cpi-above-3pct', title: 'CPI inflation above 3.0% in Q2 2026?',
-      category: 'economics', volume: 1_800_000, liquidity: 1_500_000,
-      end_date: '2026-06-30T23:59:59Z', status: 'open',
-      outcomes: [
-        { id: 'yes-3', label: 'Yes', price: 0.42, change_24h: 0.02 },
-        { id: 'no-3', label: 'No', price: 0.58, change_24h: -0.02 },
-      ],
-      description: 'Will US CPI year-over-year inflation remain above 3.0% in Q2 2026?'
-    },
-    {
-      id: 'ethereum-etf-approval', title: 'Ethereum ETF options approved by end of 2026?',
-      category: 'crypto', volume: 1_100_000, liquidity: 900_000,
-      end_date: '2026-12-31T23:59:59Z', status: 'open',
-      outcomes: [
-        { id: 'yes-4', label: 'Yes', price: 0.55, change_24h: 0.08 },
-        { id: 'no-4', label: 'No', price: 0.45, change_24h: -0.08 },
-      ],
-      description: 'SEC approves options trading on spot Ethereum ETFs by end of 2026?'
-    },
-    {
-      id: 'china-gdp-below-4pct', title: 'China GDP growth below 4% in 2026?',
-      category: 'economics', volume: 950_000, liquidity: 700_000,
-      end_date: '2026-12-31T23:59:59Z', status: 'open',
-      outcomes: [
-        { id: 'yes-5', label: 'Yes', price: 0.18, change_24h: 0.01 },
-        { id: 'no-5', label: 'No', price: 0.82, change_24h: -0.01 },
-      ],
-      description: "Will China's 2026 GDP growth rate fall below 4%?"
-    },
-  ]
-  if (!category || category === 'all') return all
-  return all.filter(e => e.category === category)
-}
-
-function generateMockPrices(event: Event): PricePoint[] {
-  const points: PricePoint[] = []
-  const now = Date.now()
-  const basePrice = event.outcomes[0]?.price ?? 0.5
-  for (let i = 0; i < 30; i++) {
-    const ts = now - (30 - i) * 86400000
-    const noise = (Math.random() - 0.5) * 0.1
-    const price = Math.max(0.01, Math.min(0.99, basePrice + noise))
-    points.push({ timestamp: ts, price })
-  }
-  return points
-}
 </script>
 
 <template>

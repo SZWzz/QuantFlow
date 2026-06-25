@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"runtime"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -28,6 +29,8 @@ import (
 	"quantflow/internal/workflow"
 	"quantflow/internal/workflow/nodes"
 )
+
+var startTime = time.Now() // used by GetSystemStats for uptime
 
 // App is the Wails-bound application struct. All exported methods are
 // available to the frontend via the generated TypeScript bindings.
@@ -1078,6 +1081,20 @@ func (a *App) GetVolatilitySurface(ctx context.Context, symbol string) ([][]floa
 // GetRebalanceSuggestions returns rebalance advice.
 func (a *App) GetRebalanceSuggestions(ctx context.Context) ([]map[string]interface{}, error) {
 	return []map[string]interface{}{}, nil
+}
+
+// GetSystemStats returns runtime statistics for the system monitor panel.
+func (a *App) GetSystemStats(ctx context.Context) map[string]interface{} {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return map[string]interface{}{
+		"goroutines": runtime.NumGoroutine(),
+		"mem_alloc_mb":  int(m.Alloc / 1024 / 1024),
+		"mem_sys_mb":    int(m.Sys / 1024 / 1024),
+		"num_gc":        int(m.NumGC),
+		"go_version":    runtime.Version(),
+		"uptime_seconds": int(time.Since(startTime).Seconds()),
+	}
 }
 
 // ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,
