@@ -205,21 +205,25 @@ func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*Mootd
 	// Derive EPS and ROE if not directly provided
 	if fin.EPS == 0 && fin.Profit > 0 {
 		if zgb, ok := r["zongguben"]; ok {
-			fin.EPS = parseFloatAny(zgb)
-			if fin.EPS > 0 {
-				fin.EPS = fin.Profit / fin.EPS // 净利润/总股本
+			total := toFloat(zgb)
+			if total > 0 {
+				fin.EPS = fin.Profit / total
 			}
 		}
 	}
 	if fin.ROE == 0 && fin.Profit > 0 {
 		if jzc, ok := r["jingzichan"]; ok {
-			roe := parseFloatAny(jzc)
-			if roe > 0 {
-				fin.ROE = fin.Profit / roe * 100
+			equity := toFloat(jzc)
+			if equity > 0 {
+				fin.ROE = fin.Profit / equity * 100
 			}
 		}
 	}
 	return fin, nil
+}
+
+func toFloat(v interface{}) float64 {
+	return parseFloatSafe(fmt.Sprint(v))
 }
 
 // ── F10 ──────────────────────────────────────────────────────────────────────
