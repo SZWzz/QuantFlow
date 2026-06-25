@@ -11,7 +11,22 @@ const dataStore = useDataStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
-const symbols = ref<string[]>(['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276'])
+const WS_KEY = 'quantflow-watchlist'
+const defaultSymbols = ['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276']
+
+function loadSymbols(): string[] {
+  try {
+    const saved = localStorage.getItem(WS_KEY)
+    if (saved) { const arr = JSON.parse(saved); if (Array.isArray(arr) && arr.length > 0) return arr }
+  } catch {}
+  return [...defaultSymbols]
+}
+
+function saveSymbols(syms: string[]) {
+  localStorage.setItem(WS_KEY, JSON.stringify(syms))
+}
+
+const symbols = ref<string[]>(loadSymbols())
 const quotes = ref<Record<string, any>>({})
 const loading = ref<Record<string, boolean>>({})
 
@@ -37,6 +52,7 @@ async function refreshQuote(sym: string) {
 function onSearchSelect(entry: StockEntry) {
   if (!symbols.value.includes(entry.code)) {
     symbols.value.push(entry.code)
+    saveSymbols(symbols.value)
     // Pre-populate name from search result
     quotes.value[entry.code] = {
       symbol: entry.code,
@@ -49,6 +65,7 @@ function onSearchSelect(entry: StockEntry) {
 
 function removeSymbol(sym: string) {
   symbols.value = symbols.value.filter(s => s !== sym)
+  saveSymbols(symbols.value)
 }
 
 function selectSymbol(sym: string) {

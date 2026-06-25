@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 )
 
 // FallbackChains defines the priority-ordered list of adapter names for each market.
@@ -17,17 +18,28 @@ var FallbackChains = map[string][]string{
 	"CRYPTO": {"binance", "okx", "coingecko"},
 }
 
+// quoteCacheTTL is the maximum age of a cached quote before it's considered stale.
+const quoteCacheTTL = 5 * time.Second
+
+type quoteCacheEntry struct {
+	snapshot *QuoteSnapshot
+	source   string
+	expires  time.Time
+}
+
 // AdapterRegistry manages registered market data adapters and provides
 // fallback-based fetching.
 type AdapterRegistry struct {
-	mu       sync.RWMutex
-	adapters map[string]Adapter // name → adapter
+	mu         sync.RWMutex
+	adapters   map[string]Adapter // name → adapter
+	quoteCache map[string]*quoteCacheEntry
 }
 
 // NewAdapterRegistry creates an empty AdapterRegistry.
 func NewAdapterRegistry() *AdapterRegistry {
 	return &AdapterRegistry{
-		adapters: make(map[string]Adapter),
+		adapters:   make(map[string]Adapter),
+		quoteCache: make(map[string]*quoteCacheEntry),
 	}
 }
 
@@ -66,6 +78,15 @@ func (r *AdapterRegistry) Count() int {
 // FetchQuoteWithFallback tries each adapter in the market's fallback chain
 // until one succeeds. Returns the quote, the adapter name used, and any error.
 func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, symbol string) (*QuoteSnapshot, string, error) {
+	// Check in-memory cache first (5s TTL)
+	cacheKey := market + ":" + symbol
+	r.mu.RLock()
+	if entry, ok := r.quoteCache[cacheKey]; ok && time.Now().Before(entry.expires) {
+		r.mu.RUnlock()
+		return entry.snapshot, entry.source, nil
+	}
+	r.mu.RUnlock()
+
 	chain, ok := FallbackChains[market]
 	if !ok {
 		return nil, "", fmt.Errorf("unknown market: %q", market)
@@ -94,6 +115,10 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 		}
 
 		slog.Debug("quote fetched", "adapter", name, "symbol", symbol, "price", quote.Last)
+		// Cache the result
+		r.mu.Lock()
+		r.quoteCache[cacheKey] = &quoteCacheEntry{snapshot: quote, source: name, expires: time.Now().Add(quoteCacheTTL)}
+		r.mu.Unlock()
 		return quote, name, nil
 	}
 
