@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -128,9 +130,12 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.engine = engine
 
 	// Auto-start Python sidecar (launches mootdx/TDX, AI, etc.)
-	sidecar, sidecarErr := python.StartSidecar(context.Background(), "python", 50051)
+	// Resolve python dir relative to executable so it works regardless of cwd.
+	execPath, _ := os.Executable()
+	pythonDir := filepath.Join(filepath.Dir(execPath), "python")
+	sidecar, sidecarErr := python.StartSidecar(context.Background(), pythonDir, 50051)
 	if sidecarErr != nil {
-		slog.Warn("python sidecar launch failed, AI features disabled", "error", sidecarErr)
+		slog.Warn("python sidecar launch failed, AI features disabled", "error", sidecarErr, "python_dir", pythonDir)
 	} else {
 		a.sidecar = sidecar
 		if sidecar != nil {

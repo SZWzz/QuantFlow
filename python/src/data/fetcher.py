@@ -5,6 +5,7 @@ Data is returned as JSON-encoded bytes for simplicity.
 
 import json
 import logging
+import socket
 import threading
 
 from src.proto import data_pb2, data_pb2_grpc
@@ -18,7 +19,6 @@ logger = logging.getLogger(__name__)
 _HAS_MOOTDX = False
 try:
     from mootdx.quotes import Quotes
-    from mootdx import config as mootdx_config
     _HAS_MOOTDX = True
 except ImportError:
     pass
@@ -54,40 +54,47 @@ def _normalize_code(symbol: str) -> str:
 def _init_mootdx_client():
     """Configure best IP and return a Quotes client.
 
-    Tries config.setup() first, then falls back to known-good server IPs.
-    mootdx's best-IP auto-probe is unreliable in many network environments,
-    so we always pass an explicit server as a last resort.
+    Uses TCP probe to find the first reachable TDX server, then explicitly
+    passes server=(ip, port) to Quotes.factory(). This avoids mootdx 0.11.x
+    BESTIP.HQ empty-string bug (ValueError: not enough values to unpack).
+
+    All values come from the SKILL.md tdx_client() helper — verified 2026-06.
     """
-    # Try config-based setup (picks best IP from bundled server list).
-    try:
-        mootdx_config.setup()
-        bestip_hq = mootdx_config.get("BESTIP", {}).get("HQ", "")
-        if bestip_hq and len(bestip_hq) == 2:
-            logger.info("mootdx: using best-IP %s:%d", bestip_hq[0], bestip_hq[1])
-            return Quotes.factory(market="std", server=bestip_hq)
-    except Exception:
-        pass
+    # Known-good TDX servers (verified 2026-06, ordered by reliability)
+    _TDX_SERVERS = [
+        ("119.97.185.59", 7709), ("124.70.133.119", 7709), ("116.205.183.150", 7709),
+        ("123.60.73.44", 7709),  ("116.205.163.254", 7709), ("121.36.225.169", 7709),
+        ("123.60.70.228", 7709), ("124.71.9.153", 7709),    ("110.41.147.114", 7709),
+        ("124.71.187.122", 7709),
+    ]
 
-    # Try first server from bundled list.
-    try:
-        server_list = mootdx_config.get("SERVER", {}).get("HQ", [])
-        if server_list:
-            srv = server_list[0][1:]  # [name, ip, port] -> [ip, port]
-            logger.info("mootdx: trying bundled server %s:%d", srv[0], srv[1])
-            return Quotes.factory(market="std", server=srv)
-    except Exception:
-        pass
-
-    # Hardcoded last-resort servers.
-    for srv in (["110.41.147.114", 7709], ["8.129.13.54", 7709], ["120.24.149.49", 7709]):
+    def _probe(ip, port, timeout=2.0):
         try:
-            logger.info("mootdx: trying fallback server %s:%d", srv[0], srv[1])
-            return Quotes.factory(market="std", server=srv)
+            with socket.create_connection((ip, port), timeout=timeout):
+                return True
         except Exception:
-            continue
+            return False
 
-    # Ultimate fallback — may fail if no server is reachable.
-    return Quotes.factory(market="std")
+    # 1) TCP probe: use the first reachable server
+    for ip, port in _TDX_SERVERS:
+        if _probe(ip, port):
+            logger.info("mootdx: connected to %s:%d", ip, port)
+            return Quotes.factory(market="std", server=(ip, port))
+
+    # 2) Fallback: try mootdx's own bestip
+    try:
+        return Quotes.factory(market="std", bestip=True)
+    except Exception:
+        pass
+
+    # 3) Fallback: bare factory (works for old users with valid config)
+    try:
+        return Quotes.factory(market="std")
+    except Exception as e:
+        raise RuntimeError(
+            "所有 mootdx 服务器均不可达。请检查网络或更新服务器列表。"
+            "原始错误：%s" % e
+        )
 
 
 # Cached mootdx Quotes client — setup()/factory() probe TDX servers and are expensive,
