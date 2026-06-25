@@ -23,7 +23,8 @@ async function fetchQuote() {
   if (!app?.GetQuote) return
   quoteLoading.value = true
   try {
-    const quote = await app.GetQuote({}, 'CN', symbol.value)
+    const result = await app.GetQuote('CN', symbol.value)
+    const quote = Array.isArray(result) ? result[0] : result
     if (quote?.last) {
       lastPrice.value = quote.last
       price.value = quote.last

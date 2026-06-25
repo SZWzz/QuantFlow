@@ -286,7 +286,7 @@ onUnmounted(() => {
         </div>
       </div>
       <div v-if="activeTab === 'kline'" class="interval-btns">
-        <button v-for="i in ['1m','5m','15m','1h','1d','1w']" :key="i"
+        <button v-for="i in ['1m','5m','15m','30m','1h','1d','1w']" :key="i"
           :class="{ active: interval === i }" class="interval-btn"
           @click="interval = i">{{ i }}</button>
       </div>

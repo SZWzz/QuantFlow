@@ -16,7 +16,7 @@ async function update() {
   const app = (window as any).go?.main?.App
   if (!app?.GetSystemStats) return
   try {
-    const s = await app.GetSystemStats({})
+    const s = await app.GetSystemStats()
     goRoutines.value = s.goroutines || 0
     memAlloc.value = `${s.mem_alloc_mb || 0} MB`
     memSys.value = `${s.mem_sys_mb || 0} MB`
