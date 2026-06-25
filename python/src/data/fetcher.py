@@ -266,10 +266,13 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
             v = float(row.get("volume", 0)) if "volume" in df.columns else 0
             cum_avg = (cum_avg * cum_vol + p * v) / (cum_vol + v) if (cum_vol + v) > 0 else p
             cum_vol += v
-            # mootdx minute data has no time column; we use index as sequential minute
+            # mootdx minute data has no time column; generate from index
             idx = len(ticks_for_symbol)
-            hh = 9 + (idx + 30) // 60
-            mm = (idx + 30) % 60
+            m = idx  # minutes from 09:30
+            if m >= 120:  # after 11:30, skip 90min lunch
+                m += 90
+            total = 9*60 + 30 + m  # minutes from midnight
+            hh, mm = total // 60, total % 60
             ticks_for_symbol.append({
                 "time": f"{hh:02d}:{mm:02d}",
                 "price": round(p, 2),
