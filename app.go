@@ -61,6 +61,7 @@ type App struct {
 	newsAdpt      adapters.NewsAdapter // news source for sentiment analysis
 	globalNewsAdpt *adapters.EastMoneyGlobalNewsAdapter
 	conceptAdpt   *adapters.EastMoneyConceptAdapter
+	macAdpt       *adapters.MacAdapter
 	signalsAdpt   *adapters.EastMoneySignalsAdapter
 	capitalAdpt   *adapters.EastMoneyCapitalAdapter
 	fundFlowAdpt  *adapters.EastMoneyFundFlowAdapter
@@ -260,6 +261,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.signalsAdpt = adapters.NewEastMoneySignalsAdapter()
 	a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
 	a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
+	a.macAdpt = adapters.NewMacAdapter("")
 	a.eastmoneyAdpt = adapters.NewEastMoneyAdapter()
 	a.northboundAdpt = adapters.NewTHSNorthboundAdapter()
 	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()

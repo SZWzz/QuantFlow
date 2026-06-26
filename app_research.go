@@ -286,3 +286,45 @@ func (a *App) ScanStocks(strategyName string) (map[string]any, error) {
 		"scanned":  0,
 	}, nil
 }
+
+// ── MAC Protocol IPC Methods ──────────────────────────────────────────────────
+
+// GetBlockRank returns block trade ranking from MAC protocol.
+func (a *App) GetBlockRank(market int, sortField int, count int) ([]adapters.BlockRank, error) {
+	if a.macAdpt == nil {
+		return nil, fmt.Errorf("MAC adapter not initialized")
+	}
+	return a.macAdpt.GetBlockRank(market, sortField, count)
+}
+
+// GetMACCapitalFlow returns real-time capital flow for a symbol via MAC protocol.
+func (a *App) GetMACCapitalFlow(symbol string) (*adapters.CapitalFlow, error) {
+	if a.macAdpt == nil {
+		return nil, fmt.Errorf("MAC adapter not initialized")
+	}
+	return a.macAdpt.GetCapitalFlow(symbol)
+}
+
+// GetAuction returns pre-market call auction data for a symbol.
+func (a *App) GetAuction(symbol string) ([]adapters.AuctionItem, error) {
+	if a.macAdpt == nil {
+		return nil, fmt.Errorf("MAC adapter not initialized")
+	}
+	return a.macAdpt.GetAuction(symbol)
+}
+
+// GetAbnormalStocks returns stocks with abnormal price/volume behavior.
+func (a *App) GetAbnormalStocks(market int) ([]adapters.AbnormalStock, error) {
+	if a.macAdpt == nil {
+		return nil, fmt.Errorf("MAC adapter not initialized")
+	}
+	return a.macAdpt.GetAbnormalStocks(market)
+}
+
+// GetMultiDayMinute fetches multi-day minute-line data for a symbol.
+func (a *App) GetMultiDayMinute(symbol string, days int) (*adapters.MultiDayMinute, error) {
+	if a.macAdpt == nil {
+		return nil, fmt.Errorf("MAC adapter not initialized")
+	}
+	return a.macAdpt.GetMultiDayMinute(symbol, days)
+}
