@@ -87,13 +87,34 @@ function selectIndicator(ind: IndicatorDef) {
   results.value = []
 }
 
-function runComputation() {
+async function runComputation() {
+  if (!symbol.value || !selectedIndicator.value) return
   loading.value = true
-  // In production, this calls the Go sidecar via the indicator workflow nodes
-  setTimeout(() => {
-    results.value = []
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    const result = await app.ComputeIndicator(symbol.value, selectedIndicator.value.id, paramValues.value)
+    if (result?.data) {
+      results.value = convertToRows(result.data)
+    }
+  } catch (e) {
+    console.error('[Indicator] compute failed:', e)
+  } finally {
     loading.value = false
-  }, 800)
+  }
+}
+
+function convertToRows(data: any[]): ResultRow[] {
+  if (!Array.isArray(data)) return []
+  return data.map((item: any) => {
+    const row: ResultRow = { date: item.date || item.Date || '' }
+    for (const key of Object.keys(item)) {
+      if (key !== 'date' && key !== 'Date') {
+        row[key.toLowerCase()] = item[key]
+      }
+    }
+    return row
+  })
 }
 
 function goBack() {

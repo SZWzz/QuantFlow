@@ -93,7 +93,8 @@ async function loadOHLCV(sym: string) {
     const iv = interval.value
     const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 180 : 90
     const start = end - lookbackDays * 86400
-    const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, iv, start, end)
+    const fqfactor = 'qfq'  // default to 前复权 for A-shares
+    const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, iv, fqfactor, start, end)
     const bars = Array.isArray(result) ? result[0] : result
     const isIntraday = ['1m','5m','15m','30m','1h'].includes(iv)
     ohlcvData.value = (bars as any[]).map((b: any) => {

@@ -638,7 +638,7 @@ func (a *App) GetCorrelationMatrix(ctx context.Context, symbols []string, lookba
 	start := end - int64(lookback*86400)
 	for _, sym := range symbols {
 		mkt := market.MarketForSymbol(sym)
-		bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, sym, "1d", start, end)
+		bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, sym, "1d", "", start, end)
 		if err != nil || len(bars) < 2 {
 			continue
 		}
@@ -659,7 +659,7 @@ func (a *App) GetReturnDistribution(ctx context.Context, symbol string, lookback
 	mkt := market.MarketForSymbol(symbol)
 	end := time.Now().Unix()
 	start := end - int64(lookback*86400)
-	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", "", start, end)
 	if err != nil || len(bars) < 2 {
 		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
 	}
@@ -683,7 +683,7 @@ func (a *App) GetVolatilitySurface(ctx context.Context, symbol string) ([][]floa
 	mkt := market.MarketForSymbol(symbol)
 	end := time.Now().Unix()
 	start := end - int64(365*86400)
-	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", "", start, end)
 	if err != nil || len(bars) < 5 {
 		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
 	}

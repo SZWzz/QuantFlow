@@ -59,7 +59,7 @@ func TestApp_GetQuote_NoRegistryErrors(t *testing.T) {
 // TestApp_FetchOHLCV_NoRegistryErrors guards the IPC guard for OHLCV.
 func TestApp_FetchOHLCV_NoRegistryErrors(t *testing.T) {
 	a := &App{} // marketReg is nil
-	_, _, err := a.FetchOHLCV(context.Background(), "CN", "600519", "1D", 0, 0)
+	_, _, err := a.FetchOHLCV(context.Background(), "CN", "600519", "1D", "", 0, 0)
 	if err == nil {
 		t.Fatal("FetchOHLCV should error when market registry is nil")
 	}

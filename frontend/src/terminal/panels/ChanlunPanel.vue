@@ -68,17 +68,24 @@ const zsSummary = computed(() => {
   return { up, down, total: zsBlocks.value.length }
 })
 
-function processQuery() {
+async function processQuery() {
   loading.value = true
   selectedSymbol.value = searchSymbol.value
 
-  // Demo data — in production this is fetched from the Go sidecar via chanlun analysis engine
-  setTimeout(() => {
-    fractals.value = []
-    biSegments.value = []
-    zsBlocks.value = []
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    const result = await app.GetChanlun(selectedSymbol.value)
+    if (result) {
+      fractals.value = result.fractals || []
+      biSegments.value = result.bi_list || []
+      zsBlocks.value = result.zs_list || []
+    }
+  } catch (e) {
+    console.error('[Chanlun] fetch failed:', e)
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
 function formatPct(v: number): string {

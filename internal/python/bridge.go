@@ -129,3 +129,36 @@ func isTransient(err error) bool {
 	}
 	return false
 }
+
+// AnalyzeChanlun calls the Python sidecar to perform 缠论 (Chanlun) analysis on a symbol.
+// Returns fractals, bi segments (笔), and zhongshu blocks (中枢).
+// TODO: Add gRPC service endpoints in proto and Python sidecar.
+func (b *PythonBridge) AnalyzeChanlun(symbol string) (map[string]any, error) {
+	// Stub: Python sidecar does not yet expose a chanlun service.
+	// When the chanlun API is added to proto/ and python/src/, replace this
+	// with a real gRPC call via a ChanlunClient.
+	return map[string]any{
+		"fractals":  []any{},
+		"bi_list":   []any{},
+		"zs_list":   []any{},
+		"symbol":    symbol,
+		"available": false,
+	}, nil
+}
+
+// ComputeIndicator calculates a technical indicator via the Python sidecar.
+// indicatorName is an ID like "kdj", "dmi", "atr", etc.
+// params carries indicator-specific parameters (e.g. {"n": 9, "m1": 3}).
+// TODO: Add gRPC service endpoints in proto and Python sidecar.
+func (b *PythonBridge) ComputeIndicator(symbol string, indicatorName string, params map[string]any) (map[string]any, error) {
+	// Stub: Python sidecar does not yet expose an indicator service.
+	// When the indicator API is added to proto/ and python/src/, replace this
+	// with a real gRPC call via a TechIndicatorClient.
+	return map[string]any{
+		"symbol":     symbol,
+		"indicator":  indicatorName,
+		"params":     params,
+		"data":       []any{},
+		"available":  false,
+	}, nil
+}

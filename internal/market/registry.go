@@ -130,7 +130,8 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 
 // FetchOHLCVWithFallback tries each adapter in the market's fallback chain
 // until one succeeds. Returns OHLCV bars, the adapter name, and any error.
-func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, symbol, interval string, start, end int64) ([]OHLCVBar, string, error) {
+// fqfactor controls price adjustment: "" (不复权), "qfq" (前复权), "hfq" (后复权).
+func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, symbol, interval, fqfactor string, start, end int64) ([]OHLCVBar, string, error) {
 	interval = NormalizeInterval(interval)
 
 	chain, ok := FallbackChains[market]
@@ -149,7 +150,7 @@ func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, sy
 		}
 
 		bars, err := RetryWithBudget(
-			func() ([]OHLCVBar, error) { return adapter.FetchOHLCV(ctx, symbol, interval, "", start, end) },
+			func() ([]OHLCVBar, error) { return adapter.FetchOHLCV(ctx, symbol, interval, fqfactor, start, end) },
 			DefaultRetryConfig(name),
 		)
 		if err != nil {

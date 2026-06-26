@@ -95,15 +95,32 @@ function selectStrategy(strategy: StrategyDef) {
   results.value = []
 }
 
-function startScan() {
+async function startScan() {
   scanning.value = true
   results.value = []
 
-  // Demo results — in production this calls the Go sidecar
-  setTimeout(() => {
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    const result = await app.ScanStocks(selectedStrategy.value?.id || 'momentum')
+    if (result?.results) {
+      results.value = result.results.map((r: any) => ({
+        symbol: r.symbol,
+        name: r.name,
+        score: r.score || r.sharpe || 0,
+        signal: r.signal || 'hold',
+        last_price: r.price || r.last_price || 0,
+        change_pct: r.change_pct || 0,
+        volume: r.volume || 0,
+        matched_conditions: r.matched_conditions || [],
+      }))
+    }
+  } catch (e) {
+    console.error('[Scanner] scan failed:', e)
     results.value = []
+  } finally {
     scanning.value = false
-  }, 1500)
+  }
 }
 
 function toggleSort(field: 'score' | 'change_pct' | 'volume') {

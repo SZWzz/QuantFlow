@@ -106,13 +106,14 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 
 // FetchOHLCV fetches OHLCV bars for a symbol via the market's fallback chain.
 // interval is one of "1D", "1W", "1M", "1m", "5m", "15m", "30m", "1H"; start/end
-// are Unix timestamps in seconds. Returns the bars and the adapter name that
-// succeeded.
-func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval string, start, end int64) ([]market.OHLCVBar, string, error) {
+// are Unix timestamps in seconds. fqfactor controls price adjustment (复权):
+// "" (不复权), "qfq" (前复权), "hfq" (后复权) — only applicable to CN-market adapters.
+// Returns the bars and the adapter name that succeeded.
+func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval, fqfactor string, start, end int64) ([]market.OHLCVBar, string, error) {
 	if a.marketReg == nil {
 		return nil, "", fmt.Errorf("market registry not initialized")
 	}
-	return a.marketReg.FetchOHLCVWithFallback(ctx, marketName, symbol, interval, start, end)
+	return a.marketReg.FetchOHLCVWithFallback(ctx, marketName, symbol, interval, fqfactor, start, end)
 }
 
 // GetFundFlow returns capital flow data for a symbol.

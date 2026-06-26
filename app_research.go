@@ -260,3 +260,29 @@ func (a *App) GetSatelliteDetail(regionID string) (map[string]interface{}, error
 		"wind_chart":  windPts,
 	}, nil
 }
+
+// GetChanlun returns chanlun (缠论) analysis for a symbol.
+func (a *App) GetChanlun(symbol string) (map[string]any, error) {
+	if a.bridge == nil {
+		return nil, fmt.Errorf("python bridge not available")
+	}
+	return a.bridge.AnalyzeChanlun(symbol)
+}
+
+// ComputeIndicator calculates a technical indicator for a symbol.
+func (a *App) ComputeIndicator(symbol string, indicatorName string, params map[string]any) (map[string]any, error) {
+	if a.bridge == nil {
+		return nil, fmt.Errorf("python bridge not available")
+	}
+	return a.bridge.ComputeIndicator(symbol, indicatorName, params)
+}
+
+// ScanStocks scans all A-share stocks for a given strategy and returns ranked results.
+func (a *App) ScanStocks(strategyName string) (map[string]any, error) {
+	// Full scan implementation will be added when MAC adapter is complete.
+	return map[string]any{
+		"strategy": strategyName,
+		"results":  []map[string]any{},
+		"scanned":  0,
+	}, nil
+}
