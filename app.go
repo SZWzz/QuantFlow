@@ -45,6 +45,7 @@ type App struct {
 	capRegistry *ai.CapabilityRegistry
 	emitter     *ai.EventEmitter
 	profileMgr  *ai.ProfileManager
+	minuteCache *market.MinuteCache
 
 	// Shared DB connection (opened once at startup, reused across IPC calls).
 	db *sql.DB
@@ -116,6 +117,14 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		return fmt.Errorf("open database: %w", err)
 	}
 	a.db = db
+
+	mc, err := market.NewMinuteCache(a.db)
+	if err != nil {
+		slog.Error("failed to init minute cache", "err", err)
+	} else {
+		a.minuteCache = mc
+	}
+
 	migrations, migErr := storage.BuiltinMigrations()
 	if migErr == nil {
 		if err := storage.Run(db, migrations); err != nil {
@@ -561,18 +570,47 @@ func (a *App) GetQuote(ctx context.Context, marketName, symbol string) (*market.
 }
 
 // GetMinuteLine returns today's intraday minute-by-minute ticks for a CN symbol.
-// Data is fetched via mootdx (TDX TCP protocol) when the Python sidecar is available.
-// Returns an empty slice on weekends, before market open, or when mootdx is unavailable.
-func (a *App) GetMinuteLine(ctx context.Context, symbol string) ([]market.MinuteTick, string, error) {
+// If sinceTimestamp is 0, returns all ticks for today.
+// If sinceTimestamp > 0, returns only ticks after the given Unix timestamp.
+// Data is cached in SQLite + LRU; source data comes from mootdx when not cached.
+func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp int64) ([]market.MinuteTick, string, error) {
+	if a.minuteCache == nil {
+		return nil, "unavailable", fmt.Errorf("minute cache not initialized")
+	}
+
+	// 1. Try cache first (SQLite + LRU).
+	ticks, err := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
+	if err != nil {
+		slog.Warn("minute_cache: get failed", "symbol", symbol, "err", err)
+		// Fall through to live fetch.
+	}
+
+	// 2. If cache has data and the request is incremental (since > 0),
+	//    return cached data. For initial load (since == 0), if cache
+	//    is empty, fall through to live fetch.
+	if len(ticks) > 0 || sinceTimestamp > 0 {
+		return ticks, "cache", nil
+	}
+
+	// 3. Live fetch via mootdx.
 	adpt := a.getMootdxAdapter()
 	if adpt == nil {
 		return nil, "unavailable", fmt.Errorf("mootdx adapter not available")
 	}
-	ticks, err := adpt.FetchMinuteLine(symbol)
+	liveTicks, err := adpt.FetchMinuteLine(symbol)
 	if err != nil {
 		return nil, "unavailable", err
 	}
-	return ticks, "mootdx", nil
+
+	// 4. Persist live data to cache.
+	if len(liveTicks) > 0 {
+		today := time.Now().Format("2006-01-02")
+		if err := a.minuteCache.SaveTicks(symbol, today, liveTicks); err != nil {
+			slog.Warn("minute_cache: save failed", "symbol", symbol, "err", err)
+		}
+	}
+
+	return liveTicks, "mootdx", nil
 }
 
 // FetchOHLCV fetches OHLCV bars for a symbol via the market's fallback chain.
