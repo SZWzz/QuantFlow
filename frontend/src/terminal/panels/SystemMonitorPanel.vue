@@ -1,57 +1,51 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
+import { useDataFetch } from '@/lib/composables/useDataFetch'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-const goRoutines = ref(0)
-const memAlloc = ref('0 MB')
-const memSys = ref('0 MB')
-const numGC = ref(0)
-const uptime = ref('--')
-const goVersion = ref('')
+const statsFetcher = useDataFetch(async () => {
+  return await (window as any).go.main.App.GetSystemStats()
+})
 
 let timer: ReturnType<typeof setInterval> | null = null
 
-async function update() {
-  const app = (window as any).go?.main?.App
-  if (!app?.GetSystemStats) return
-  try {
-    const s = await app.GetSystemStats()
-    goRoutines.value = s.goroutines || 0
-    memAlloc.value = `${s.mem_alloc_mb || 0} MB`
-    memSys.value = `${s.mem_sys_mb || 0} MB`
-    numGC.value = s.num_gc || 0
-    goVersion.value = s.go_version || ''
-    const sec = s.uptime_seconds || 0
-    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60
-    uptime.value = `${h}h ${m}m ${s2}s`
-  } catch {}
-}
+onMounted(() => {
+  statsFetcher.execute()
+  timer = setInterval(() => statsFetcher.execute(), 5000)
+})
 
-onMounted(() => { update(); timer = setInterval(update, 5000) })
-onUnmounted(() => { if (timer) clearInterval(timer) })
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
 
 <template>
   <div class="sysmon-panel">
     <div class="section">
       <h3 class="section-title">{{ $t('monitor.go_runtime') }}</h3>
-      <div class="metric-row">
-        <span class="metric-label">{{ $t('monitor.goroutines') }}</span>
-        <span class="metric-value">{{ goRoutines }}</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">{{ $t('monitor.heap_memory') }}</span>
-        <span class="metric-value">{{ memAlloc }}</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">{{ $t('monitor.system_memory') }}</span>
-        <span class="metric-value">{{ memSys }}</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">{{ $t('monitor.uptime') }}</span>
-        <span class="metric-value">{{ uptime }}</span>
-      </div>
+
+      <div v-if="statsFetcher.loading.value" class="stat-loading">加载中...</div>
+      <div v-else-if="statsFetcher.error.value" class="stat-error">错误: {{ statsFetcher.error.value }}</div>
+      <div v-else-if="!statsFetcher.data.value" class="stat-empty">--</div>
+      <template v-else>
+        <div class="metric-row">
+          <span class="metric-label">{{ $t('monitor.goroutines') }}</span>
+          <span class="metric-value">{{ statsFetcher.data.value.goroutines || 0 }}</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">{{ $t('monitor.heap_memory') }}</span>
+          <span class="metric-value">{{ statsFetcher.data.value.mem_alloc_mb || 0 }} MB</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">{{ $t('monitor.system_memory') }}</span>
+          <span class="metric-value">{{ statsFetcher.data.value.mem_sys_mb || 0 }} MB</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">{{ $t('monitor.uptime') }}</span>
+          <span class="metric-value">{{ statsFetcher.data.value.uptime_seconds || 0 }}s</span>
+        </div>
+      </template>
     </div>
 
     <div class="section">
@@ -109,6 +103,23 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   color: var(--color-text-primary);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+}
+
+.stat-loading {
+  color: var(--color-text-tertiary);
+  padding: 8px 0;
+  font-style: italic;
+}
+
+.stat-error {
+  color: var(--color-error);
+  padding: 8px 0;
+  font-size: 11px;
+}
+
+.stat-empty {
+  color: var(--color-text-tertiary);
+  padding: 8px 0;
 }
 
 .source-row {
