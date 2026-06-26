@@ -18,7 +18,7 @@ function loadSymbols(): string[] {
   try {
     const saved = localStorage.getItem(WS_KEY)
     if (saved) { const arr = JSON.parse(saved); if (Array.isArray(arr) && arr.length > 0) return arr }
-  } catch {}
+  } catch(e) { console.error('[Watchlist] localStorage:', e) }
   return [...defaultSymbols]
 }
 
@@ -42,7 +42,8 @@ async function refreshQuote(sym: string) {
       change: snapshot.change ?? 0,
       changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
     }
-  } catch {
+  } catch(e) {
+    console.error('[Watchlist] fetch:', e)
     quotes.value[sym] = null as any
   } finally {
     loading.value[sym] = false

@@ -16,7 +16,8 @@ async function loadPositions() {
   try {
     const result = await (window as any).go.main.App.GetPositions()
     positions.value = Array.isArray(result) ? result : []
-  } catch {
+  } catch(e) {
+    console.error('[Position] fetch:', e)
     positions.value = []
   } finally {
     loading.value = false

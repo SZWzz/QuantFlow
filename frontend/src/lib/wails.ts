@@ -98,6 +98,10 @@ export async function ListNodes(): Promise<
   return wailsCall('ListNodes')
 }
 
+export async function GetNodePorts(nodeType: string): Promise<{ inputs: Array<{ name: string; type: string }>; outputs: Array<{ name: string; type: string }> }> {
+  return wailsCall('GetNodePorts', nodeType)
+}
+
 export async function ValidateWorkflow(jsonDef: string): Promise<string> {
   return wailsCall('ValidateWorkflow', jsonDef)
 }

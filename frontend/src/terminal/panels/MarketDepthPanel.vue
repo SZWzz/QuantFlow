@@ -61,8 +61,8 @@ async function refresh() {
     // No real tick data for A-shares via free APIs
     trades.value = []
     isSimulated.value = true
-  } catch {
-    // silent
+  } catch(e) {
+    console.error('[MarketDepth]', e)
   }
 }
 

@@ -17,7 +17,7 @@ async function loadNews() {
     const sym = props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || ''
     const result = await (window as any).go.main.App.GetNews(sym, 20)
     items.value = Array.isArray(result) ? result : []
-  } catch { items.value = [] }
+  } catch(e) { console.error('[News] fetch:', e); items.value = [] }
   finally { loading.value = false }
 }
 

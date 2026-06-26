@@ -32,6 +32,27 @@ func TestPortDefinition(t *testing.T) {
 	}
 }
 
+func TestCacheKeyDeterministic(t *testing.T) {
+	inputsA := map[string]any{"fast": 5.0, "slow": 20.0}
+	inputsB := map[string]any{"slow": 20.0, "fast": 5.0}
+	keyA := CacheKey("test", inputsA)
+	keyB := CacheKey("test", inputsB)
+	if keyA != keyB {
+		t.Errorf("CacheKey not deterministic: %q != %q", keyA, keyB)
+	}
+	if keyA == "" {
+		t.Error("CacheKey returned empty string")
+	}
+}
+
+func TestCacheKeyDifferentInputs(t *testing.T) {
+	keyA := CacheKey("node", map[string]any{"period": 5})
+	keyB := CacheKey("node", map[string]any{"period": 10})
+	if keyA == keyB {
+		t.Error("CacheKey should differ for different input values")
+	}
+}
+
 func TestParamDef(t *testing.T) {
 	pd := ParamDef{Name: "period", Type: "int", Default: 20, Description: "SMA window"}
 	if pd.Name != "period" {

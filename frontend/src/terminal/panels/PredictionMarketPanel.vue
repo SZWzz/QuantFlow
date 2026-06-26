@@ -54,8 +54,8 @@ async function loadEvents() {
       const result = await app.GetPredictionMarkets(cat, 30)
       events.value = result.events || []
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[PredictionMarket] loadEvents:', e)
   }
   loading.value = false
 }
@@ -71,10 +71,9 @@ async function loadDetail(event: Event) {
         return
       }
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[PredictionMarket] loadDetail:', e)
   }
-  priceHistory.value = []
 }
 
 async function loadSignals() {
@@ -84,7 +83,7 @@ async function loadSignals() {
       const result = await go.main.App.GetPredictionSignals('', 0.05)
       signalInfo.value = result.signal || null
     }
-  } catch { /* no signal available */ }
+  } catch(e) { console.error('[PredictionMarket] loadSignals:', e) }
 }
 
 onMounted(() => {

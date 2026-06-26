@@ -82,8 +82,8 @@ async function loadSignals() {
         })
       }
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[GovData] loadSignals:', e)
   }
   loading.value = false
 }
@@ -106,7 +106,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
           value: b.close ?? b.Close ?? 0,
         }))
       }
-    } catch { indicatorData.value = [] }
+    } catch(e) { console.error('[GovData] commodity OHLCV:', e); indicatorData.value = [] }
     chartLoading.value = false
     return
   }
@@ -116,10 +116,9 @@ async function loadIndicatorDetail(signal: MacroSignal) {
       const result = await app.GetIndicatorData(signal.indicator_id, 12)
       indicatorData.value = result.data || []
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[GovData] loadDetail:', e)
   }
-  chartLoading.value = false
 }
 
 onMounted(() => {

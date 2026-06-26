@@ -42,8 +42,8 @@ async function loadRegions() {
       const result = await app.GetSatelliteSnapshots()
       regions.value = result.regions || []
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[Satellite] loadRegions:', e)
   }
   loading.value = false
 }
@@ -58,10 +58,9 @@ async function loadRegionDetail(region: RegionSnapshot) {
       solarData.value = result.solar_chart || result.solar_data || []
       windData.value = result.wind_chart || result.wind_data || []
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[Satellite] loadDetail:', e)
   }
-  chartLoading.value = false
 }
 
 onMounted(() => {

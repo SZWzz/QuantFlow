@@ -95,13 +95,14 @@ func (e *Engine) Execute(ctx context.Context, wf *Workflow) (*ExecutionResult, e
 		}
 	}
 
-	result.Status = "success"
+	result.Status = "completed"
 	result.NodeResults = nodeResults
 	return result, nil
 }
 
 // executeNode instantiates and runs a single node within a workflow layer.
 func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, layerIdx int, upstreamOutputs *sync.Map, nodeResultByID map[string]*NodeResult) error {
+	nr := nodeResultByID[nodeID]
 	var nodeInstance *NodeInstance
 	for i := range wf.Nodes {
 		if wf.Nodes[i].ID == nodeID {
@@ -110,10 +111,10 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 		}
 	}
 	if nodeInstance == nil {
+		nr.Status = "failed"
 		return fmt.Errorf("node %q not found in workflow", nodeID)
 	}
 
-	nr := nodeResultByID[nodeID]
 	start := time.Now()
 
 	node, err := e.registry.Create(nodeInstance.NodeType, nodeInstance.ID, nodeInstance.Params)
@@ -137,7 +138,7 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 	}
 	cacheKey := CacheKey(nodeID, inputs)
 	if cached, ok := e.cache.Get(cacheKey); ok {
-		nr.Status = "success"
+		nr.Status = "completed"
 		nr.Outputs = cached
 		nr.Duration = time.Since(start)
 		slog.Debug("cache hit", "node", nodeID, "layer", layerIdx)
@@ -153,7 +154,7 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 		return fmt.Errorf("execute node %q: %w", nodeID, err)
 	}
 
-	nr.Status = "success"
+	nr.Status = "completed"
 	nr.Outputs = outputs
 	upstreamOutputs.Store(nodeID, outputs)
 	e.cache.Put(cacheKey, outputs)

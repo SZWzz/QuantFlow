@@ -55,8 +55,8 @@ async function loadRisks() {
       const result = await app.GetGeopoliticsRisks()
       risks.value = result.risks || []
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[Geopolitics] loadRisks:', e)
   }
   loading.value = false
 }
@@ -75,10 +75,9 @@ async function loadDetail(topic: TopicRisk) {
         detailTones.value = result.tones
       }
     }
-  } catch {
-    // show empty
+  } catch(e) {
+    console.error('[Geopolitics] loadDetail:', e)
   }
-  detailLoading.value = false
 }
 
 onMounted(() => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { ListNodes } from '@/lib/wails'
 
 interface NodeMeta { node_type: string; category: string }
 
@@ -10,7 +11,7 @@ const loading = ref(false)
 async function loadNodes() {
   loading.value = true
   try {
-    const result = await (window as any).go.main.App.ListNodes()
+    const result = await ListNodes()
     nodes.value = Array.isArray(result) ? result : []
   } catch { nodes.value = [] }
   finally { loading.value = false }

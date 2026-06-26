@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
+import { useDataFetch } from '@/lib/composables/useDataFetch'
 import { detectMarket } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -13,9 +14,7 @@ interface TickerItem {
 
 const SYMBOLS = ['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276']
 
-const items = ref<TickerItem[]>([])
-
-onMounted(async () => {
+const { data: items, loading, execute } = useDataFetch<TickerItem[]>(async () => {
   const results: TickerItem[] = []
   for (const sym of SYMBOLS) {
     try {
@@ -31,14 +30,17 @@ onMounted(async () => {
       // skip failed symbols
     }
   }
-  items.value = results
+  return results
 })
+
+onMounted(() => execute())
 </script>
 
 <template>
   <div class="ticker-tape-panel">
     <span class="tape-title">{{ $t('watchlist.ticker_tape') }}</span>
-    <div class="tape-track-container">
+    <div v-if="loading && !items" class="tape-loading">{{ $t('common.loading') }}</div>
+    <div v-else class="tape-track-container">
       <div class="tape-track">
         <span v-for="(item, idx) in items" :key="idx" class="tape-item">
           <span class="tape-symbol">{{ item.symbol }}</span>
@@ -81,6 +83,14 @@ onMounted(async () => {
   white-space: nowrap;
   flex-shrink: 0;
   margin-right: 4px;
+}
+.tape-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
 }
 .tape-track-container {
   flex: 1;

@@ -19,8 +19,13 @@ export interface WorkflowJSON {
   edges: { from_node: string; from_port: string; to_node: string; to_port: string }[]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VFNode = Node<any, any, any>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VFEdge = Edge<any, any, any>
+
 export const useWorkflowStore = defineStore('workflow', () => {
-  const nodes = ref<Node[]>([])
+  const nodes = ref<VFNode[]>([])
   const edges = ref<Edge[]>([])
   const viewport = ref<ViewportTransform>({ x: 0, y: 0, zoom: 1 })
   const executionStatus = ref<ExecutionStatus>('idle')
@@ -29,7 +34,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const selectedNodeId = ref<string | null>(null)
 
   // Undo/redo history
-  const history = ref<{ nodes: Node[]; edges: Edge[] }[]>([])
+  const history = ref<{ nodes: VFNode[]; edges: Edge[] }[]>([])
   const historyIndex = ref(-1)
 
   function pushHistory() {
@@ -64,19 +69,19 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
-  function addNode(type: string, position: { x: number; y: number }, params?: Record<string, any>) {
+  function addNode(type: string, position: { x: number; y: number }, params?: Record<string, any>, portOverrides?: { inputs: string[]; outputs: string[] }) {
     pushHistory()
     const id = `${type}-${Date.now()}`
-    const portMap: Record<string, { inputs: string[]; outputs: string[] }> = {
+    const pmap: Record<string, { inputs: string[]; outputs: string[] }> = {
       data_loader: { inputs: [], outputs: ['ohlcv'] },
       sma: { inputs: ['input'], outputs: ['output'] },
       cross_signal: { inputs: ['fast', 'slow'], outputs: ['signal'] },
       log_output: { inputs: ['input'], outputs: ['output'] },
       loop: { inputs: ['items'], outputs: ['batched'] },
     }
-    const ports = portMap[type] || { inputs: ['input'], outputs: ['output'] }
+    const ports = portOverrides || pmap[type] || { inputs: ['input'], outputs: ['output'] }
 
-    nodes.value.push({
+    nodes.value = [...nodes.value as VFNode[], {
       id,
       type: 'custom',
       position,
@@ -88,29 +93,31 @@ export const useWorkflowStore = defineStore('workflow', () => {
         outputs: ports.outputs,
         status: 'idle',
       },
-    })
+    } as VFNode]
     return id
   }
 
   function removeNode(id: string) {
     pushHistory()
-    nodes.value = nodes.value.filter((n) => n.id !== id)
-    edges.value = edges.value.filter(
-      (e) => e.source !== id && e.target !== id
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    nodes.value = (nodes.value as any).filter((n: any) => n.id !== id)
+    edges.value = (edges.value as any).filter(
+      (e: any) => e.source !== id && e.target !== id
     )
     if (selectedNodeId.value === id) {
       selectedNodeId.value = null
     }
   }
 
-  function addEdge(edge: Edge) {
+  function addEdge(edge: VFEdge) {
     pushHistory()
-    edges.value.push(edge)
+    ;(edges.value as VFEdge[]).push(edge)
   }
 
   function removeEdge(id: string) {
     pushHistory()
-    edges.value = edges.value.filter((e) => e.id !== id)
+    const list = edges.value as VFEdge[]
+    edges.value = list.filter((e) => e.id !== id) as VFEdge[]
   }
 
   function selectNode(id: string | null) {
@@ -122,7 +129,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     nodeStatuses.value = new Map()
     runId.value = null
     // Reset node status visuals
-    for (const node of nodes.value) {
+    for (const node of nodes.value as VFNode[]) {
       node.data.status = 'idle'
       node.data.error = undefined
     }
@@ -133,12 +140,12 @@ export const useWorkflowStore = defineStore('workflow', () => {
     return {
       id: `canvas-${Date.now()}`,
       name,
-      nodes: nodes.value.map((n) => ({
+      nodes: (nodes.value as VFNode[]).map((n) => ({
         id: n.id,
         node_type: n.data.nodeType,
         params: n.data.params || {},
       })),
-      edges: edges.value.map((e) => ({
+      edges: (edges.value as VFEdge[]).map((e) => ({
         from_node: e.source,
         from_port: e.sourceHandle || 'output',
         to_node: e.target,
@@ -150,41 +157,52 @@ export const useWorkflowStore = defineStore('workflow', () => {
   // Load from Phase 1 JSON format
   function fromWorkflowJSON(wf: WorkflowJSON) {
     pushHistory()
-    nodes.value = []
-    edges.value = []
+    nodes.value = [] as VFNode[]
+    edges.value = [] as VFEdge[]
     resetExecution()
 
-    // Create nodes
+    // Build ID mapping: oldID → newID
+    const nodeIdMap = new Map<string, string>()
     for (const n of wf.nodes) {
-      addNode(n.node_type, {
-        x: 100 + Math.random() * 300,
-        y: 100 + Math.random() * 200,
-      }, n.params)
+      const newId = `${n.node_type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+      nodeIdMap.set(n.id, newId)
+      const portMap: Record<string, { inputs: string[]; outputs: string[] }> = {
+        data_loader: { inputs: [], outputs: ['ohlcv'] },
+        sma: { inputs: ['input'], outputs: ['output'] },
+        cross_signal: { inputs: ['fast', 'slow'], outputs: ['signal'] },
+        log_output: { inputs: ['input'], outputs: ['output'] },
+        loop: { inputs: ['items'], outputs: ['batched'] },
+      }
+      const ports = portMap[n.node_type] || { inputs: ['input'], outputs: ['output'] }
+      ;(nodes.value as VFNode[]).push({
+        id: newId,
+        type: 'custom',
+        position: { x: 100 + Math.random() * 300, y: 100 + Math.random() * 200 },
+        data: {
+          nodeType: n.node_type,
+          label: n.node_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          params: n.params || {},
+          inputs: ports.inputs,
+          outputs: ports.outputs,
+          status: 'idle',
+        },
+      } as VFNode)
     }
 
-    // Create edges (match by index since IDs might change)
-    const createdNodes = nodes.value
+    // Create edges using ID map
     for (const e of wf.edges) {
-      const sourceNode = createdNodes.find((n) => n.data.nodeType ===
-        wf.nodes.find((wn) => wn.id === e.from_node)?.node_type &&
-        !edges.value.some((edge) => edge.source === n.id && edge.target ===
-          createdNodes.find((n2) => n2.data.nodeType ===
-            wf.nodes.find((wn) => wn.id === e.to_node)?.node_type)?.id)
-      )
-      const targetNode = createdNodes.find((n) => n.data.nodeType ===
-        wf.nodes.find((wn) => wn.id === e.to_node)?.node_type &&
-        !edges.value.some((edge) => edge.target === n.id)
-      )
-      if (sourceNode && targetNode && sourceNode.id !== targetNode.id) {
-        edges.value.push({
-          id: `e-${sourceNode.id}-${targetNode.id}`,
-          source: sourceNode.id,
-          target: targetNode.id,
+      const sourceId = nodeIdMap.get(e.from_node)
+      const targetId = nodeIdMap.get(e.to_node)
+      if (sourceId && targetId && sourceId !== targetId) {
+        ;(edges.value as VFEdge[]).push({
+          id: `e-${sourceId}-${targetId}`,
+          source: sourceId,
+          target: targetId,
           sourceHandle: e.from_port,
           targetHandle: e.to_port,
           type: 'smoothstep',
           style: { stroke: '#30363d', strokeWidth: 2 },
-        })
+        } as VFEdge)
       }
     }
   }

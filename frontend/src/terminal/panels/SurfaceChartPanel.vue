@@ -24,7 +24,7 @@ async function loadSurface() {
   try {
     const data = await app.GetVolatilitySurface(symbol.value)
     surfaceData.value = data || []
-  } catch { surfaceData.value = [] }
+  } catch(e) { console.error('[SurfaceChart] fetch:', e); surfaceData.value = [] }
 }
 
 onMounted(loadSurface)

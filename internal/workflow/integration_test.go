@@ -57,8 +57,8 @@ func TestIntegration_SMACrossFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
-	if result.Status != "success" {
-		t.Errorf("Status = %q, want success", result.Status)
+	if result.Status != "completed" {
+		t.Errorf("Status = %q, want completed", result.Status)
 	}
 
 	var signalResult *workflow.NodeResult
@@ -71,7 +71,7 @@ func TestIntegration_SMACrossFromFile(t *testing.T) {
 	if signalResult == nil {
 		t.Fatal("missing signal node result")
 	}
-	if signalResult.Status != "success" {
-		t.Errorf("signal status = %q, want success", signalResult.Status)
+	if signalResult.Status != "completed" {
+		t.Errorf("signal status = %q, want completed", signalResult.Status)
 	}
 }

@@ -88,7 +88,8 @@ async function loadOHLCV(sym: string) {
         : d.toISOString().slice(0, 10)                     // "2026-06-25"
       return [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0]
     })
-  } catch {
+  } catch(e) {
+    console.error('[Candlestick]', e)
     ohlcvData.value = []
   } finally {
     loading.value = false
@@ -133,8 +134,8 @@ async function loadMinuteLine() {
     // Update shared cache
     const cacheKey = `${symbol.value}:${getTodayDateString()}`
     minuteDataCache.set(cacheKey, minuteTicks.value)
-  } catch {
-    // silent
+  } catch(e) {
+    console.error('[Candlestick] minute fetch:', e)
   } finally {
     minuteLoading.value = false
   }

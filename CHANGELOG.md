@@ -13,6 +13,14 @@
 
 ### 修复
 
+- [工作流] Go 状态字符串 `"success"` → `"completed"` 对齐前端 `ExecutionStatus` 类型，`ExecutionLog` Done 标签正常显示
+- [工作流] `CacheKey` map 迭代顺序不确定导致 2+ 输入节点缓存命中率 ~50%：改为排序 map 键后再 SHA256
+- [工作流] `executeNode` 中 `nodeInstance == nil` 时 `nr.Status` 未赋值残留零值：补 `nr.Status = "failed"`
+- [工作流] `fromWorkflowJSON` 边重连按 `node_type` 匹配，同类型多节点时边全连错：改为 ID 映射表 `oldID → newID` 精准重建
+- [前端] `NodePalette.vue` 使用 `(window as any).go.main.App.ListNodes()` → 改用 `@/lib/wails` 类型化 `ListNodes` 封装
+- [前端] Pin to Terminal 符号写死 `'AAPL'` → 改为读取 `node.data.params.symbol`，兜底 `'600519'`
+- [前端] 端口映射仅覆盖 5 种节点类型 → 新增 `GetNodePorts` Go API，`WorkflowCanvas.onDrop` 调用动态获取端口定义
+- [工作流] 调度器 `WorkflowExecutor` 接口定义了未实现 → 新增 `ExecuteWorkflowByID` + `workflowExecutorAdapter` 接入 cron scheduler
 - [前端] 白色主题全面板文字不可见：根因 `--color-text`/`--color-bg` 变量未定义 → 始终回退 `#e5e7eb`（暗色近白）。`themes.css` 补全变量定义，另 CongressTradingPanel/SentimentPanel/PeerComparisonPanel 等面板的标签徽章对比度提升
 - [行情] 全部 EastMoney 适配器 HTTP/2 EOF：Go `net/http` 默认 ALPN 协商 HTTP/2，东方财富 `push2.eastmoney.com` CDN 不兼容 → 连接被 EOF 断开。创建 `newEastMoneyHTTPClient()` 共用工厂，`TLSNextProto` 空 map + TLS 1.2+ 强制 HTTP/1.1。涵盖 `eastmoney.go`、`eastmoney_concept.go`、`eastmoney_signals.go`、`eastmoney_fundflow.go`、`eastmoney_capital.go`
 - [财务] PE/PB 始终为 0：Sina 财报不提供 MarketCap → `ComputeRatios` 跳过计算。`GetStockResearch` 从 EastMoney `StockInfo` 回填 `fd.MarketCap`，`TotalDebt` 用 `TotalAssets - TotalEquity` 兜底

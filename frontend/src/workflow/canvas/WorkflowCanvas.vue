@@ -5,6 +5,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import { useWorkflowStore } from '@/stores/workflow'
+import { GetNodePorts } from '@/lib/wails'
 import CustomNode from './CustomNode.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
@@ -67,7 +68,7 @@ function onDragOver(event: DragEvent) {
   }
 }
 
-function onDrop(event: DragEvent) {
+async function onDrop(event: DragEvent) {
   event.preventDefault()
   const nodeType = event.dataTransfer?.getData('application/node-type')
   if (!nodeType) return
@@ -78,7 +79,19 @@ function onDrop(event: DragEvent) {
     y: event.clientY - bounds.top - 20,
   }
 
-  const nodeId = workflow.addNode(nodeType, position)
+  // Fetch dynamic port definitions from backend
+  let portOverrides: { inputs: string[]; outputs: string[] } | undefined
+  try {
+    const result = await GetNodePorts(nodeType)
+    portOverrides = {
+      inputs: result.inputs.map(p => p.name),
+      outputs: result.outputs.map(p => p.name),
+    }
+  } catch {
+    // Fallback to local port map
+  }
+
+  const nodeId = workflow.addNode(nodeType, position, undefined, portOverrides)
   workflow.selectNode(nodeId)
 }
 

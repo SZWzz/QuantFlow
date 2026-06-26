@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useDataFetch } from '@/lib/composables/useDataFetch'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -9,12 +10,25 @@ interface CryptoRow {
   changePct24h: number
 }
 
-const cryptos = ref<CryptoRow[]>([])
 const sortKey = ref<string>('changePct24h')
 const sortDir = ref<number>(-1)
 
+const { data: cryptos, loading, error, execute: refreshExec } = useDataFetch<CryptoRow[]>(async () => {
+  const app = (window as any).go?.main?.App
+  if (!app) return []
+  const result = await app.GetCryptoOverview([])
+  if (result?.cryptos) {
+    return result.cryptos.map((c: any) => ({
+      symbol: c.symbol?.replace('USDT', '') || c.symbol,
+      price: c.price || 0,
+      changePct24h: c.change_pct || 0,
+    }))
+  }
+  return []
+})
+
 const sortedCryptos = computed(() => {
-  const arr = [...cryptos.value]
+  const arr = [...(cryptos.value || [])]
   arr.sort((a, b) => {
     const aVal = a[sortKey.value as keyof CryptoRow]
     const bVal = b[sortKey.value as keyof CryptoRow]
@@ -49,19 +63,8 @@ function pctColor(pct: number): string {
   return 'var(--color-text-secondary)'
 }
 
-async function refresh() {
-  const app = (window as any).go?.main?.App
-  if (!app) return
-  try {
-    const result = await app.GetCryptoOverview([])
-    if (result?.cryptos) {
-      cryptos.value = result.cryptos.map((c: any) => ({
-        symbol: c.symbol?.replace('USDT', '') || c.symbol,
-        price: c.price || 0,
-        changePct24h: c.change_pct || 0,
-      }))
-    }
-  } catch { /* silent */ }
+function refresh() {
+  refreshExec()
 }
 
 onMounted(refresh)
@@ -75,7 +78,9 @@ onMounted(refresh)
     </div>
 
     <!-- Crypto Table -->
-    <div class="crypto-table-wrap">
+    <div v-if="loading && !cryptos" class="empty-state">{{ $t('common.loading') }}</div>
+    <div v-else-if="error" class="empty-state error-state">{{ error }}</div>
+    <div v-else class="crypto-table-wrap">
       <table class="crypto-table">
         <thead>
           <tr>
@@ -120,6 +125,18 @@ onMounted(refresh)
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+.error-state {
+  color: #dc2626;
 }
 
 /* Dominance */

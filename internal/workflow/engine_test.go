@@ -31,8 +31,8 @@ func TestEngine_ExecuteSimpleDAG(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
-	if result.Status != "success" {
-		t.Errorf("Status = %q, want success", result.Status)
+	if result.Status != "completed" {
+		t.Errorf("Status = %q, want completed", result.Status)
 	}
 	if len(result.NodeResults) != 2 {
 		t.Errorf("len(NodeResults) = %d, want 2", len(result.NodeResults))
@@ -78,8 +78,8 @@ func TestEngine_ExecuteParallelDAG(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
-	if result.Status != "success" {
-		t.Errorf("Status = %q, want success", result.Status)
+	if result.Status != "completed" {
+		t.Errorf("Status = %q, want completed", result.Status)
 	}
 	if len(result.NodeResults) != 4 {
 		t.Errorf("len = %d, want 4", len(result.NodeResults))

@@ -50,7 +50,7 @@ function pinToTerminal() {
     loop: 'watchlist',
   }
   const panelId = panelMap[node.data.nodeType] || 'system-monitor'
-  terminal.openPanel(panelId, { symbol: 'AAPL' })
+  terminal.openPanel(panelId, { symbol: node.data.params?.symbol || '600519' })
 }
 </script>
 
@@ -80,7 +80,7 @@ function pinToTerminal() {
           <input
             class="param-input"
             :value="value"
-            @input="updateParam(key, ($event.target as HTMLInputElement).value)"
+            @input="updateParam(String(key), ($event.target as HTMLInputElement).value)"
             type="text"
           />
         </div>

@@ -85,7 +85,7 @@ function pinToTerminal() {
   }
   const panelId = panelMap[node.data.nodeType] || 'system-monitor'
   const instanceId = terminal.openPanel(panelId, {
-    symbol: node.data.params?.symbol || 'AAPL',
+    symbol: node.data.params?.symbol || '600519',
   })
   // Also add to push pins
   terminal.pushPins.push({
@@ -101,7 +101,7 @@ function pinOutputToTerminal() {
   const node = workflow.nodes.find((n) => n.id === workflow.selectedNodeId)
   if (!node) return
 
-  terminal.openPanel('candlestick', { symbol: 'AAPL' })
+  terminal.openPanel('candlestick', { symbol: node.data.params?.symbol || '600519' })
 }
 
 // Keyboard shortcuts

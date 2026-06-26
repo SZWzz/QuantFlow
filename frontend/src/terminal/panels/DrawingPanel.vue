@@ -37,7 +37,8 @@ function loadDrawings() {
     const raw = localStorage.getItem(storageKey()) || '[]'
     drawings.value = JSON.parse(raw)
     nextId.value = drawings.value.reduce((max, d) => Math.max(max, d.id), 0) + 1
-  } catch {
+  } catch(e) {
+    console.error('[Drawing] loadDrawings:', e)
     drawings.value = []
   }
 }

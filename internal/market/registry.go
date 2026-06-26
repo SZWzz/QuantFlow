@@ -13,9 +13,9 @@ import (
 // Design aligned with astockpursue's FALLBACK_CHAINS.
 var FallbackChains = map[string][]string{
 	"CN":     {"tencent", "eastmoney", "mootdx", "sina", "tushare", "baidu", "akshare"},
-	"US":     {"yahoo", "sina", "polygon", "finnhub"},
+	"US":     {"yahoo", "sina", "finnhub"},
 	"HK":     {"yahoo", "tencent", "sina", "akshare"},
-	"CRYPTO": {"binance", "okx", "coingecko"},
+	"CRYPTO": {"binance", "okx", "coingecko", "gateio"},
 }
 
 // quoteCacheTTL is the maximum age of a cached quote before it's considered stale.

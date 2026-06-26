@@ -23,7 +23,7 @@ const cronPresets = [
 async function loadTasks() {
   loading.value = true
   try { const r = await (window as any).go.main.App.ListScheduleTasks(); tasks.value = Array.isArray(r) ? r : [] }
-  catch { tasks.value = [] }
+  catch(e) { console.error('[Schedule] fetch:', e); tasks.value = [] }
   finally { loading.value = false }
 }
 

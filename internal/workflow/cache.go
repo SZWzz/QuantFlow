@@ -3,6 +3,8 @@ package workflow
 import (
 	"crypto/sha256"
 	"fmt"
+	"sort"
+	"strings"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
@@ -29,9 +31,23 @@ func NewNodeCache(size int) (*NodeCache, error) {
 }
 
 // CacheKey produces a deterministic cache key from a node ID and its inputs.
+// Map keys are sorted before hashing to ensure the same logical inputs
+// always produce the same key, regardless of iteration order.
 func CacheKey(nodeID string, inputs map[string]any) string {
-	data := fmt.Sprintf("%s:%v", nodeID, inputs)
-	hash := sha256.Sum256([]byte(data))
+	keys := make([]string, 0, len(inputs))
+	for k := range inputs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var b strings.Builder
+	b.WriteString(nodeID)
+	for _, k := range keys {
+		b.WriteByte('|')
+		b.WriteString(k)
+		b.WriteByte(':')
+		fmt.Fprint(&b, inputs[k])
+	}
+	hash := sha256.Sum256([]byte(b.String()))
 	return fmt.Sprintf("%x", hash[:16])
 }
 

@@ -15,7 +15,7 @@ async function loadStatus() {
   try {
     const result = await (window as any).go.main.App.GetBrokerStatuses()
     brokers.value = Array.isArray(result) ? result : []
-  } catch { brokers.value = [] }
+  } catch(e) { console.error('[BrokerStatus] fetch:', e); brokers.value = [] }
   finally { loading.value = false }
 }
 

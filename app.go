@@ -54,6 +54,7 @@ type App struct {
 	oms          *trading.OMS
 	notifyMgr     *notify.Manager
 	scheduleRepo  *schedule.Repo
+	sched         *schedule.Scheduler
 	portfolioSvc *portfolio.Service
 
 	// Market data: adapter registry + fallback chains (wired in startup).
@@ -239,10 +240,13 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.scheduleRepo = schedule.NewRepo(a.db)
 	slog.Info("schedule task repo initialized")
 
-	// Start cron scheduler so scheduled tasks actually execute (audit fix M8).
-	// WorkflowExecutor interface pending implementation.
-	_ = schedule.New(a.db, nil, nil) // scheduler instance created, cron start deferred
-	slog.Info("cron scheduler ready")
+	// Start cron scheduler so scheduled tasks actually execute.
+	a.sched = schedule.New(a.db, workflowExecutorAdapter{a: a}, nil)
+	if err := a.sched.Start(); err != nil {
+		slog.Warn("cron scheduler start skipped", "error", err)
+	} else {
+		slog.Info("cron scheduler started")
+	}
 
 	// Initialize research services (degrade gracefully without Python)
 	researchRepo := research.NewResearchRepo(a.db)
@@ -344,6 +348,26 @@ func (a *App) ListNodes() []workflow.NodeMeta {
 	return a.registry.ListAll()
 }
 
+// GetNodePorts returns the input/output port definitions for a given node type.
+func (a *App) GetNodePorts(nodeType string) (map[string]any, error) {
+	if a.registry == nil {
+		return nil, fmt.Errorf("registry not initialized")
+	}
+	node, err := a.registry.Create(nodeType, "__dummy__", nil)
+	if err != nil {
+		return nil, fmt.Errorf("create node %q: %w", nodeType, err)
+	}
+	inputs := make([]map[string]any, 0)
+	for _, p := range node.InputPorts() {
+		inputs = append(inputs, map[string]any{"name": p.Name, "type": string(p.Type)})
+	}
+	outputs := make([]map[string]any, 0)
+	for _, p := range node.OutputPorts() {
+		outputs = append(outputs, map[string]any{"name": p.Name, "type": string(p.Type)})
+	}
+	return map[string]any{"inputs": inputs, "outputs": outputs}, nil
+}
+
 // ValidateWorkflow parses and validates a workflow JSON definition.
 // Returns "valid" on success, or an error message.
 func (a *App) ValidateWorkflow(jsonDef string) (string, error) {
@@ -367,6 +391,30 @@ func (a *App) RunWorkflow(ctx context.Context, jsonDef string) (*workflow.Execut
 		return nil, fmt.Errorf("parse json: %w", err)
 	}
 	return a.engine.Execute(ctx, &wf)
+}
+
+// ExecuteWorkflowByID loads a saved workflow by ID and executes it.
+// Used by the cron scheduler's WorkflowExecutor interface.
+func (a *App) ExecuteWorkflowByID(ctx context.Context, workflowID string) (string, error) {
+	repo := storage.NewWorkflowRepo(a.db)
+	wf, err := repo.Load(workflowID, nil)
+	if err != nil {
+		return "", fmt.Errorf("load workflow %q: %w", workflowID, err)
+	}
+	result, err := a.engine.Execute(ctx, wf)
+	if err != nil {
+		return result.WorkflowID, err
+	}
+	return result.WorkflowID, nil
+}
+
+// workflowExecutorAdapter adapts App to the schedule.WorkflowExecutor interface.
+type workflowExecutorAdapter struct {
+	a *App
+}
+
+func (w workflowExecutorAdapter) Execute(ctx context.Context, workflowID string) (string, error) {
+	return w.a.ExecuteWorkflowByID(ctx, workflowID)
 }
 
 // LoadWorkflow loads a saved workflow by ID from storage.
@@ -1110,9 +1158,14 @@ func (a *App) GetMarketOverview() (map[string]interface{}, error) {
 
 // GetMarketSnapshot returns batch quotes for a list of symbols.
 func (a *App) GetMarketSnapshot(ctx context.Context, symbols []string) ([]map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	if reg == nil {
+		return nil, fmt.Errorf("market registry not initialized")
+	}
 	result := make([]map[string]interface{}, 0, len(symbols))
 	for _, sym := range symbols {
-		snap, _, err := a.GetQuote(ctx, "CN", sym)
+		mkt := market.MarketForSymbol(sym)
+		snap, _, err := reg.FetchQuoteWithFallback(ctx, mkt, sym)
 		if err != nil {
 			continue
 		}
@@ -1155,7 +1208,8 @@ func (a *App) GetCorrelationMatrix(ctx context.Context, symbols []string, lookba
 	end := time.Now().Unix()
 	start := end - int64(lookback*86400)
 	for _, sym := range symbols {
-		bars, _, err := reg.FetchOHLCVWithFallback(ctx, "CN", sym, "1d", start, end)
+		mkt := market.MarketForSymbol(sym)
+		bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, sym, "1d", start, end)
 		if err != nil || len(bars) < 2 {
 			continue
 		}
@@ -1173,9 +1227,10 @@ func (a *App) GetCorrelationMatrix(ctx context.Context, symbols []string, lookba
 // GetReturnDistribution computes a histogram of daily log returns for a symbol.
 func (a *App) GetReturnDistribution(ctx context.Context, symbol string, lookback int, bins int) (map[string]interface{}, error) {
 	reg := a.getMarketReg()
+	mkt := market.MarketForSymbol(symbol)
 	end := time.Now().Unix()
 	start := end - int64(lookback*86400)
-	bars, _, err := reg.FetchOHLCVWithFallback(ctx, "CN", symbol, "1d", start, end)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
 	if err != nil || len(bars) < 2 {
 		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
 	}
@@ -1196,9 +1251,10 @@ func (a *App) GetReturnDistribution(ctx context.Context, symbol string, lookback
 // GetVolatilitySurface computes historical volatility across multiple time windows.
 func (a *App) GetVolatilitySurface(ctx context.Context, symbol string) ([][]float64, error) {
 	reg := a.getMarketReg()
+	mkt := market.MarketForSymbol(symbol)
 	end := time.Now().Unix()
 	start := end - int64(365*86400)
-	bars, _, err := reg.FetchOHLCVWithFallback(ctx, "CN", symbol, "1d", start, end)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
 	if err != nil || len(bars) < 5 {
 		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
 	}
