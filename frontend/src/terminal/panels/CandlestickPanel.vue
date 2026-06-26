@@ -388,7 +388,7 @@ onUnmounted(() => {
     <div class="chart-body">
       <div v-if="loading || minuteLoading" class="chart-fallback">{{ $t('common.loading') }}</div>
       <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="symbol" :option="option" autoresize class="kline-chart" />
-      <VChart v-else-if="hasEcharts && activeTab === 'minute'" :option="minuteChartOption" autoresize class="minute-chart" />
+      <VChart v-else-if="hasEcharts && activeTab === 'minute'" :option="minuteChartOption" :update-options="{ notMerge: false }" autoresize class="minute-chart" />
       <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
       <div v-else class="chart-fallback">--</div>
     </div>
