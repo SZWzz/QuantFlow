@@ -11,6 +11,7 @@ const brokers = ref<BrokerStatus[]>([])
 const loading = ref(false)
 
 async function loadStatus() {
+  // TODO: move to store
   loading.value = true
   try {
     const result = await (window as any).go.main.App.GetBrokerStatuses()

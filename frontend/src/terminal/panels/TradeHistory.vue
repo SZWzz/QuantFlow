@@ -194,7 +194,7 @@ function exportData() {
             <td class="muted">{{ t.orderId }}</td>
           </tr>
           <tr v-if="filtered成交.length === 0">
-            <td colspan="7" class="empty">--</td>
+            <td colspan="7" class="empty">{{ $t('common.no_data') }}</td>
           </tr>
         </tbody>
       </table>
@@ -227,7 +227,7 @@ function exportData() {
             </td>
           </tr>
           <tr v-if="filtered委托.length === 0">
-            <td colspan="7" class="empty">--</td>
+            <td colspan="7" class="empty">{{ $t('common.no_data') }}</td>
           </tr>
         </tbody>
       </table>

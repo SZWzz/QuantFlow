@@ -626,11 +626,18 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		return nil, "unavailable", fmt.Errorf("minute cache not initialized")
 	}
 
+	mkt := market.MarketForSymbol(symbol)
+
+	// Non-CN markets: minute data not available via free adapters,
+	// return daily OHLCV as fallback (frontend will display as daily bars).
+	if mkt != "CN" {
+		return nil, "unavailable", fmt.Errorf("minute data not available for market %s, use 1d interval instead", mkt)
+	}
+
 	// 1. Try cache first (SQLite + LRU).
 	ticks, err := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
 	if err != nil {
 		slog.Warn("minute_cache: get failed", "symbol", symbol, "err", err)
-		// Fall through to live fetch.
 	}
 
 	// 2. If cache has data and the request is incremental (since > 0),
@@ -640,7 +647,7 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		return ticks, "cache", nil
 	}
 
-	// 3. Live fetch via mootdx.
+	// 3. Live fetch via mootdx (CN only).
 	adpt := a.getMootdxAdapter()
 	if adpt == nil {
 		return nil, "unavailable", fmt.Errorf("mootdx adapter not available")

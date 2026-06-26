@@ -66,7 +66,8 @@ onMounted(() => { mlStore.fetchModels() })
       </select>
     </div>
 
-    <table class="model-table">
+    <div v-if="mlStore.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+    <table v-else class="model-table">
       <thead>
         <tr>
           <th>{{ $t('common.name') }}</th>
@@ -78,6 +79,7 @@ onMounted(() => { mlStore.fetchModels() })
         </tr>
       </thead>
       <tbody>
+        <tr v-if="filteredModels.length === 0"><td colspan="6" class="no-data">{{ $t('common.no_data') }}</td></tr>
         <tr v-for="model in filteredModels" :key="model.id" @click="showDetail(model)" class="model-row">
           <td>{{ model.name }}</td>
           <td>{{ model.model_type }}</td>
@@ -133,4 +135,6 @@ onMounted(() => { mlStore.fetchModels() })
 .detail-panel dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px; }
 .detail-panel dt { font-weight: bold; }
 .detail-panel pre { background: var(--code-bg); padding: 8px; border-radius: 4px; font-size: 0.85em; overflow-x: auto; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); padding: 40px; text-align: center; }
+.no-data { color: var(--color-text-tertiary); text-align: center; padding: 40px; }
 </style>

@@ -12,6 +12,7 @@ const quote = ref<any>(null)
 const loading = ref(false)
 
 async function fetchQuote(sym: string) {
+  // TODO: move to store
   loading.value = true
   try {
     const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)

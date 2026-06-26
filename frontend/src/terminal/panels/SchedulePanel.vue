@@ -21,6 +21,7 @@ const cronPresets = [
 ]
 
 async function loadTasks() {
+  // TODO: move to store
   loading.value = true
   try { const r = await (window as any).go.main.App.ListScheduleTasks(); tasks.value = Array.isArray(r) ? r : [] }
   catch(e) { console.error('[Schedule] fetch:', e); tasks.value = [] }
@@ -33,6 +34,7 @@ function openNew() {
 }
 
 async function saveTask() {
+  // TODO: move to store
   const t = editTask.value
   await (window as any).go.main.App.SaveScheduleTask({
     id: t.editingId, name: t.name, cron_expr: t.cron_expr,
@@ -42,10 +44,12 @@ async function saveTask() {
 }
 
 async function toggleTask(id: string, enabled: boolean) {
+  // TODO: move to store
   await (window as any).go.main.App.ToggleScheduleTask(id, !enabled); loadTasks()
 }
 
 async function deleteTask(id: string) {
+  // TODO: move to store
   await (window as any).go.main.App.DeleteScheduleTask(id); loadTasks()
 }
 

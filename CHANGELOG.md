@@ -32,6 +32,12 @@
 - [情感] `SentimentOutput` 序列化丢失：Wails v3 自定义序列化器对 `json:"sentiment,omitempty"` 处理异常 → 移除 `omitempty`
 - [情感] 语言参数固定 `en`：中文新闻走 VADER → 永远中性 → `detectLanguage()` 自动识别 zh/en
 - [情感] Python sidecar 版本号更新 → 强制重启加载新 NLP 包
+- [行情] `GetMarketSnapshot` 硬编码 `"CN"` → 使用 `MarketForSymbol()` 逐 symbol 动态路由，传入 `"AAPL"` 时自动走 US 链而非 CN
+- [行情] `GetCorrelationMatrix` / `GetReturnDistribution` / `GetVolatilitySurface` 同理：每个 symbol 独立推断市场，修复这些 API 对港股/美股/加密返回 CN 数据的错误
+- [行情] CRYPTO 回退链缺少 `gateio`：国内用户无法获取加密行情 → 加入链尾 (`gateio` 在国内可访问)
+- [行情] Polygon 适配器是完全的 stub（总是返回 "not implemented"）→ 从 US 回退链移除，US 链变为 `yahoo → sina → finnhub`
+- [前端] `OrderEntryPanel` 调用 `GetQuote` 时市场参数写死 `'CN'`，输入 AAPL 也走 CN 链 → 改为 `detectMarket(symbol)` 动态路由
+- [行情] `GetMinuteLine` 仅支持 CN（依赖 mootdx）→ 对非 CN 市场返回明确错误，提示前端切到 1d 间隔
 
 ### 变更
 

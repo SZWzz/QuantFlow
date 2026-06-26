@@ -83,7 +83,8 @@ function amountColor(amount: string): string {
     </div>
 
     <!-- Trades Table -->
-    <div v-if="store.congressTrades" class="panel-content">
+    <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+    <div v-else-if="store.congressTrades" class="panel-content">
       <table v-if="filteredTrades.length > 0" class="congress-table">
         <thead>
           <tr>
@@ -116,7 +117,7 @@ function amountColor(amount: string): string {
     </div>
 
     <div v-else class="empty-state">
-      <p>{{ $t('research.congress_loading') }}</p>
+      <p>{{ $t('common.no_data') }}</p>
     </div>
   </div>
 </template>
@@ -153,4 +154,5 @@ function amountColor(amount: string): string {
 .date-cell { color: var(--color-text-primary); }
 .no-data { color: var(--color-text-tertiary); font-size: 13px; text-align: center; padding: 20px; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

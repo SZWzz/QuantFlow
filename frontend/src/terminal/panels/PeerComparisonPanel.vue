@@ -52,7 +52,8 @@ function formatRatio(v: number | undefined | null): string {
       </div>
     </div>
 
-    <div v-if="peers.length > 0" class="panel-content">
+    <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+    <div v-else-if="peers.length > 0" class="panel-content">
       <p class="peer-hint">{{ $t('research.peer_hint') }}</p>
       <table class="peer-table">
         <thead>
@@ -99,4 +100,5 @@ function formatRatio(v: number | undefined | null): string {
 .num-cell.positive { color: #22c55e; }
 .num-cell.negative { color: #ef4444; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

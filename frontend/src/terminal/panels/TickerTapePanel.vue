@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
 import { detectMarket } from '@/lib/wails'
 
@@ -12,7 +12,15 @@ interface TickerItem {
   changePct: number
 }
 
-const SYMBOLS = ['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276']
+const MARKET_SYMBOLS: Record<string, string[]> = {
+  CN: ['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276'],
+  HK: ['00700.HK', '09988.HK', '00388.HK', '00941.HK', '03690.HK', '09888.HK', '01810.HK', '01211.HK'],
+  US: ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'META', 'SPY'],
+}
+const activeMarket = ref<'CN' | 'HK' | 'US'>(
+  (params?.market as 'CN' | 'HK' | 'US') || 'CN'
+)
+const SYMBOLS = computed(() => MARKET_SYMBOLS[activeMarket.value])
 
 const { data: items, loading, execute } = useDataFetch<TickerItem[]>(async () => {
   const results: TickerItem[] = []
@@ -39,7 +47,14 @@ onMounted(() => execute())
 <template>
   <div class="ticker-tape-panel">
     <span class="tape-title">{{ $t('watchlist.ticker_tape') }}</span>
+    <div class="market-tabs">
+      <button v-for="mkt in ['CN', 'HK', 'US']" :key="mkt"
+        :class="['mkt-tab', { active: activeMarket === mkt }]"
+        @click="activeMarket = mkt; execute()"
+      >{{ mkt }}</button>
+    </div>
     <div v-if="loading && !items" class="tape-loading">{{ $t('common.loading') }}</div>
+    <div v-else-if="!items" class="tape-loading">{{ $t('common.no_data') }}</div>
     <div v-else class="tape-track-container">
       <div class="tape-track">
         <span v-for="(item, idx) in items" :key="idx" class="tape-item">

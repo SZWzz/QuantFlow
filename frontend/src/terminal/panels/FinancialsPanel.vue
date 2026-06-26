@@ -52,7 +52,8 @@ function formatPct(v: number | undefined | null): string {
       </div>
     </div>
 
-    <div v-if="financials" class="panel-content">
+    <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+    <div v-else-if="financials" class="panel-content">
       <div class="card-grid">
         <!-- 利润表 -->
         <div class="card">
@@ -112,4 +113,5 @@ function formatPct(v: number | undefined | null): string {
 .card-row span { color: var(--color-text-secondary); }
 .card-row .val { color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

@@ -78,6 +78,8 @@ function refresh() {
     </div>
 
     <div class="tab-content">
+      <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+      <template v-else>
       <!-- 概览 -->
       <div v-if="activeTab === 'overview'" class="tab-pane">
         <div v-if="store.research?.overview" class="kv-grid">
@@ -152,6 +154,7 @@ function refresh() {
         </table>
         <p v-else class="no-data">{{ $t('research.no_insider') }}</p>
       </div>
+      </template>
     </div>
   </div>
 </template>
@@ -180,4 +183,5 @@ function refresh() {
 .data-table td { padding: 4px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
 .buy { color: #22c55e; } .sell { color: #ef4444; }
 .no-data { color: var(--color-text-tertiary); font-size: 13px; text-align: center; padding: 20px; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

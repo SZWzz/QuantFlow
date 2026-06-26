@@ -75,7 +75,8 @@ function handleSymbolSubmit(e: Event) {
       </div>
     </div>
 
-    <div v-if="estimates.length > 0" class="panel-content">
+    <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+    <div v-else-if="estimates.length > 0" class="panel-content">
       <!-- Consensus Badge -->
       <div class="consensus-bar" v-if="consensus">
         <div class="consensus-badge" :style="{ background: consensusColor, color: 'var(--color-bg-panel)' }">
@@ -143,4 +144,5 @@ function handleSymbolSubmit(e: Event) {
 .rating-pill { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .num-cell { font-variant-numeric: tabular-nums; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

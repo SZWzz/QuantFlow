@@ -64,7 +64,8 @@ function handleSymbolSubmit(e: Event) {
       </div>
     </div>
 
-    <div v-if="trades.length > 0" class="panel-content">
+    <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+    <div v-else-if="trades.length > 0" class="panel-content">
       <!-- 净交易 Indicator -->
       <div class="activity-bar">
         <span class="activity-label">{{ $t('research.insider_net') }}</span>
@@ -133,4 +134,5 @@ function handleSymbolSubmit(e: Event) {
 .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
 .date-cell { color: var(--color-text-secondary); }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

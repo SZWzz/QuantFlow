@@ -31,6 +31,7 @@ const quotes = ref<Record<string, any>>({})
 const loading = ref<Record<string, boolean>>({})
 
 async function refreshQuote(sym: string) {
+  // TODO: move to store
   loading.value[sym] = true
   try {
     const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)

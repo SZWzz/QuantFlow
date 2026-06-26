@@ -70,6 +70,7 @@ function parseMinuteTimeToUnix(timeStr: string): number {
 }
 
 async function loadOHLCV(sym: string) {
+  // TODO: move to store
   loading.value = true
   try {
     const end = Math.floor(Date.now() / 1000)
@@ -109,7 +110,7 @@ async function loadMinuteLine() {
       ? parseMinuteTimeToUnix(lastTick.time)
       : 0
 
-    const result = await app.GetMinuteLine(symbol.value, sinceTimestamp)
+    const result = await app.GetMinuteLine(symbol.value, sinceTimestamp)  // TODO: move to store
     const ticks: MinuteTick[] = Array.isArray(result) ? result[0] : result
     if (!Array.isArray(ticks) || ticks.length === 0) {
       return

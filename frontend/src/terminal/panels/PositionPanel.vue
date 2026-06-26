@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { usePortfolioStore } from '@/stores/portfolio'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -8,21 +9,21 @@ interface Position {
   PnL: number; PnLPct: number
 }
 
-const positions = ref<Position[]>([])
+const store = usePortfolioStore()
 const loading = ref(false)
 
 async function loadPositions() {
   loading.value = true
   try {
-    const result = await (window as any).go.main.App.GetPositions()
-    positions.value = Array.isArray(result) ? result : []
+    await store.fetchPositions()
   } catch(e) {
     console.error('[Position] fetch:', e)
-    positions.value = []
   } finally {
     loading.value = false
   }
 }
+
+const positions = computed(() => store.positions as unknown as Position[])
 
 const totalPnl = computed(() => positions.value.reduce((s, p) => s + (p.PnL || 0), 0))
 function fmt(n: number, dec = 2): string { return n.toFixed(dec) }
