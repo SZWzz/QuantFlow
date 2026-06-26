@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CandlestickChart, BarChart } from 'echarts/charts'
@@ -14,6 +14,9 @@ use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+
+// Shared minute data cache from parent DockView
+const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new Map())
 
 const hasEcharts = computed(() => !!(echarts && VChart))
 
@@ -54,6 +57,18 @@ const minuteLoading = ref(false)
 let minuteTimer: ReturnType<typeof setInterval> | null = null
 let klineTimer: ReturnType<typeof setInterval> | null = null
 
+function getTodayDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function parseMinuteTimeToUnix(timeStr: string): number {
+  // timeStr like "09:30", combine with today's date
+  const today = getTodayDateString()
+  const d = new Date(`${today}T${timeStr}:00+08:00`)
+  return Math.floor(d.getTime() / 1000)
+}
+
 async function loadOHLCV(sym: string) {
   loading.value = true
   try {
@@ -85,20 +100,39 @@ async function loadMinuteLine() {
   if (!app) return
   minuteLoading.value = true
   try {
-    const result = await app.GetMinuteLine(symbol.value)
-    const ticks = Array.isArray(result) ? result[0] : result
+    // Calculate sinceTimestamp from last tick
+    const lastTick = minuteTicks.value.length > 0
+      ? minuteTicks.value[minuteTicks.value.length - 1]
+      : null
+    const sinceTimestamp = lastTick
+      ? parseMinuteTimeToUnix(lastTick.time)
+      : 0
+
+    const result = await app.GetMinuteLine(symbol.value, sinceTimestamp)
+    const ticks: MinuteTick[] = Array.isArray(result) ? result[0] : result
     if (!Array.isArray(ticks) || ticks.length === 0) {
-      minuteTicks.value = []
       return
     }
-    const existing = new Map(minuteTicks.value.map(t => [t.time, t]))
-    for (const t of ticks) {
-      existing.set(t.time, t)
+
+    if (sinceTimestamp === 0) {
+      // First load: full replacement
+      minuteTicks.value = ticks
+    } else {
+      // Incremental update: deduplicate and merge
+      const existing = new Map(minuteTicks.value.map(t => [t.time, t]))
+      for (const t of ticks) {
+        existing.set(t.time, t)
+      }
+      minuteTicks.value = Array.from(existing.values()).sort((a, b) => a.time.localeCompare(b.time))
     }
-    minuteTicks.value = Array.from(existing.values()).sort((a, b) => a.time.localeCompare(b.time))
+
     if (prevClose.value === 0 && minuteTicks.value.length > 0) {
       prevClose.value = minuteTicks.value[0].price
     }
+
+    // Update shared cache
+    const cacheKey = `${symbol.value}:${getTodayDateString()}`
+    minuteDataCache.set(cacheKey, minuteTicks.value)
   } catch {
     // silent
   } finally {
@@ -157,10 +191,25 @@ watch(activeTab, (tab) => {
 })
 
 // Watch symbol change — reload minute data
-watch(() => symbol.value, () => {
-  if (activeTab.value === 'minute') {
+watch(() => symbol.value, (newSymbol, oldSymbol) => {
+  // Save old symbol data to shared cache
+  if (oldSymbol) {
+    const cacheKey = `${oldSymbol}:${getTodayDateString()}`
+    minuteDataCache.set(cacheKey, minuteTicks.value)
+  }
+
+  // Try to restore new symbol data from shared cache
+  const cacheKey = `${newSymbol}:${getTodayDateString()}`
+  const cached = minuteDataCache.get(cacheKey)
+  if (cached && cached.length > 0) {
+    minuteTicks.value = cached
+    prevClose.value = cached[0].price
+  } else {
     minuteTicks.value = []
     prevClose.value = 0
+  }
+
+  if (activeTab.value === 'minute') {
     loadMinuteLine()
   }
 })
@@ -227,6 +276,9 @@ const minuteChartOption = computed(() => {
   const lineColor = isUp ? upColor() : downColor()
 
   return {
+    animation: false,
+    animationDurationUpdate: 0,
+    animationEasingUpdate: 'linear',
     backgroundColor: 'transparent',
     // Two separate grids: price chart on top (62%), volume bars below (15%)
     grid: [
@@ -309,6 +361,11 @@ onMounted(() => {
 onUnmounted(() => {
   stopMinutePolling()
   stopKlineRefresh()
+  // Save current data to shared cache so data survives component destruction
+  if (symbol.value && minuteTicks.value.length > 0) {
+    const cacheKey = `${symbol.value}:${getTodayDateString()}`
+    minuteDataCache.set(cacheKey, minuteTicks.value)
+  }
 })
 </script>
 
