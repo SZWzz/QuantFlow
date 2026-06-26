@@ -24,8 +24,9 @@ func (s *Service) SetRepo(repo *Repo) {
 	s.repo = repo
 }
 
-// GetSummary calculates the portfolio summary from current positions.
-func (s *Service) GetSummary(cashBalance float64) *Summary {
+// GetSummary calculates the portfolio summary from current positions and cash ledger.
+func (s *Service) GetSummary() *Summary {
+	cashBalance := s.oms.GetCashBalance()
 	positions := s.oms.GetAllPositions()
 	var mv, pnl float64
 	for _, p := range positions {
@@ -100,11 +101,11 @@ func (s *Service) GetAllocation() *Allocation {
 }
 
 // RecordDailySnapshot persists today's portfolio state.
-func (s *Service) RecordDailySnapshot(cashBalance float64) error {
+func (s *Service) RecordDailySnapshot() error {
 	if s.repo == nil {
 		return nil
 	}
-	return s.repo.RecordDailySnapshot(s.GetSummary(cashBalance))
+	return s.repo.RecordDailySnapshot(s.GetSummary())
 }
 
 // GetPnLHistory returns daily P&L history from the repository.

@@ -8,6 +8,10 @@ import (
 
 func TestService_GetSummary(t *testing.T) {
 	oms := trading.NewOMS()
+
+	// Deposit initial cash so the ledger has funds to trade with.
+	oms.GetCashLedger().Deposit(50000.0)
+
 	oms.PlaceOrder("AAPL", trading.SideBuy, trading.TypeLimit, 100, 150.0)
 
 	var orderID string
@@ -19,11 +23,15 @@ func TestService_GetSummary(t *testing.T) {
 	oms.UpdateMarketPrice("AAPL", 155.0)
 
 	svc := NewService(oms)
-	s := svc.GetSummary(50000.0)
+	s := svc.GetSummary()
 
-	if s.TotalValue != 65500.0 {
-		t.Errorf("total = %f, want 65500", s.TotalValue)
+	// Cash: 50000 - (150*100 + 5 commission) = 50000 - 15005 = 34995
+	// Market value: 100 * 155 = 15500
+	// TotalValue: 34995 + 15500 = 50495
+	if s.TotalValue != 50495.0 {
+		t.Errorf("total = %f, want 50495", s.TotalValue)
 	}
+	// Unrealized PnL: (155 - 150) * 100 = 500
 	if s.TotalPnL != 500.0 {
 		t.Errorf("pnl = %f, want 500", s.TotalPnL)
 	}

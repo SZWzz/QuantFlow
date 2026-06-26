@@ -61,13 +61,15 @@ type Order struct {
 
 // Trade is a filled execution record.
 type Trade struct {
-	ID        string    `json:"id"`
-	OrderID   string    `json:"order_id"`
-	Symbol    string    `json:"symbol"`
-	Side      OrderSide `json:"side"`
-	Quantity  float64   `json:"quantity"`
-	Price     float64   `json:"price"`
-	Timestamp time.Time `json:"timestamp"`
+	ID         string    `json:"id"`
+	OrderID    string    `json:"order_id"`
+	Symbol     string    `json:"symbol"`
+	Side       OrderSide `json:"side"`
+	Quantity   float64   `json:"quantity"`
+	Price      float64   `json:"price"`
+	Commission float64   `json:"commission"`  // 佣金
+	StampTax   float64   `json:"stamp_tax"`   // 印花税 (仅卖出)
+	Timestamp  time.Time `json:"timestamp"`
 }
 
 // Position represents a current holding.

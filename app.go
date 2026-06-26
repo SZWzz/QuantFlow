@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"runtime"
 	"time"
 
@@ -526,21 +527,13 @@ func (a *App) GetPortfolioSummary() map[string]interface{} {
 	if a.portfolioSvc == nil {
 		return map[string]interface{}{"total_value": 0}
 	}
-	// Cash is tracked separately from OMS positions. Use the OMS to derive
-	// market value and P&L; cash must be provided by the caller/trading engine.
-	// For the live path, cash starts at 0 until a proper cash ledger is wired.
-	cash := 0.0
-	if a.oms != nil {
-		// Derive estimated cash from trade history: net cash flow from filled orders.
-		for _, t := range a.oms.GetTrades() {
-			if t.Side == "buy" {
-				cash -= t.Price * t.Quantity
-			} else {
-				cash += t.Price * t.Quantity
-			}
-		}
+	// Cash is tracked by the OMS cash ledger.
+	var s *portfolio.Summary
+	if a.portfolioSvc != nil {
+		s = a.portfolioSvc.GetSummary()
+	} else {
+		s = &portfolio.Summary{}
 	}
-	s := a.portfolioSvc.GetSummary(cash)
 	return map[string]interface{}{
 		"total_value": s.TotalValue, "cash_balance": s.CashBalance,
 		"market_value": s.MarketValue, "total_pnl": s.TotalPnL, "total_pnl_pct": s.TotalPnLPct,
@@ -1120,30 +1113,51 @@ func (a *App) getMarketReg() *market.AdapterRegistry {
 
 // — Market Overview & Analytics —
 
-// GetMarketOverview returns index snapshots for major A-share indices.
-// Queries sina directly — mootdx confuses index codes with individual stocks
-// (e.g. 000001.SH returns 平安银行's price instead of 上证指数).
-func (a *App) GetMarketOverview() (map[string]interface{}, error) {
+// GetMarketOverview returns major market indices for the given market.
+func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	ctx := context.Background()
-	// Index codes: use sina format (sh/sz prefix) for sina adapter,
-	// bare codes for GetQuote fallback (which does its own normalization).
-	indices := []struct{ code, sinaCode, name string }{
-		{"000001.SH", "sh000001", "上证指数"},
-		{"399001.SZ", "sz399001", "深证成指"},
-		{"399006.SZ", "sz399006", "创业板指"},
-		{"000688.SH", "sh000688", "科创50"},
-		{"000300.SH", "sh000300", "沪深300"},
+	type idxDef struct{ code, name string }
+	var indices []idxDef
+	switch mkt {
+	case "HK":
+		indices = []idxDef{
+			{"^HSI", "恒生指数"},
+			{"^HSCE", "国企指数"},
+			{"^HSTECH", "恒生科技"},
+		}
+	case "US":
+		indices = []idxDef{
+			{"^GSPC", "S&P 500"},
+			{"^IXIC", "NASDAQ"},
+			{"^DJI", "Dow Jones"},
+		}
+	default:
+		indices = []idxDef{
+			{"000001.SH", "上证指数"},
+			{"399001.SZ", "深证成指"},
+			{"399006.SZ", "创业板指"},
+			{"000688.SH", "科创50"},
+			{"000300.SH", "沪深300"},
+		}
 	}
-	// Use sina adapter directly — mootdx doesn't handle index codes correctly.
 	sina := a.marketReg.Get("sina")
 	result := make([]map[string]interface{}, 0, len(indices))
 	for _, idx := range indices {
 		var snap *market.QuoteSnapshot
 		var err error
-		if sina != nil && sina.IsAvailable(ctx) {
-			snap, err = sina.FetchQuote(ctx, idx.sinaCode)
+		if mkt == "CN" || mkt == "" {
+			if sina != nil && sina.IsAvailable(ctx) {
+				sc := idx.code
+				parts := strings.Split(sc, ".")
+				if len(parts) == 2 {
+					sc = strings.ToLower(parts[1]) + parts[0]
+				}
+				snap, err = sina.FetchQuote(ctx, sc)
+			} else {
+				snap, _, err = a.GetQuote(ctx, "CN", idx.code)
+			}
 		} else {
-			snap, _, err = a.GetQuote(ctx, "CN", idx.code)
+			snap, _, err = a.GetQuote(ctx, mkt, idx.code)
 		}
 		if err != nil {
 			slog.Warn("GetMarketOverview: failed for", "code", idx.code, "error", err)

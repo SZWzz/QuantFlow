@@ -9,6 +9,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// TradingCosts holds fee configuration for trade execution.
+type TradingCosts struct {
+	CommissionRate float64 // 佣金率，默认 0.00025 (万分之2.5)
+	StampTaxRate   float64 // 印花税率，卖出 0.0005 (万分之5)，买入 0
+	MinCommission  float64 // 最低佣金，默认 5 元
+}
+
+// PriceLimitConfig defines daily price limits for a symbol.
+type PriceLimitConfig struct {
+	PrevClose float64 // 昨日收盘价
+	MaxPct    float64 // 0.10 for main board, 0.20 for STAR/ChiNext
+}
+
 // OMS (Order Management System) manages orders, trades, and positions.
 // It is safe for concurrent use.
 type OMS struct {
@@ -19,13 +32,33 @@ type OMS struct {
 	broker     Broker
 	orderCbs   []func(*Order) // notified on order state changes
 	tradeCbs   []func(*Trade) // notified on new trades
+
+	// P0-1: T+1 lock for A-share (today's buys can't be sold same day)
+	t1Lock map[string]time.Time // symbol → buy date
+
+	// P0-2: Price limits (涨跌停)
+	priceLimits map[string]PriceLimitConfig
+
+	// P0-3: Trading costs (佣金 + 印花税)
+	costConfig TradingCosts
+
+	// P0-4: Cash ledger
+	cashLedger *CashLedger
 }
 
 // NewOMS creates a new Order Management System.
 func NewOMS() *OMS {
 	return &OMS{
-		orders:    make(map[string]*Order),
-		positions: make(map[string]*Position),
+		orders:      make(map[string]*Order),
+		positions:   make(map[string]*Position),
+		t1Lock:      make(map[string]time.Time),
+		priceLimits: make(map[string]PriceLimitConfig),
+		costConfig: TradingCosts{
+			CommissionRate: 0.00025, // 万分之2.5
+			StampTaxRate:   0.0005,  // 万分之5
+			MinCommission:  5.0,     // 最低 5 元
+		},
+		cashLedger: NewCashLedger(),
 	}
 }
 
@@ -133,10 +166,31 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 		if fillQty <= 0 {
 			return nil, fmt.Errorf("fill %s: no position to sell for %s", order.ID, order.Symbol)
 		}
+
+		// P0-1: T+1 lock — cannot sell shares bought today
+		if buyDate, locked := o.t1Lock[order.Symbol]; locked && isSameDay(buyDate, time.Now()) {
+			return nil, fmt.Errorf("T+1 lock: cannot sell %s bought today", order.Symbol)
+		}
 	}
 	if !ok {
 		pos = &Position{Symbol: order.Symbol}
 		o.positions[order.Symbol] = pos
+	}
+
+	// P0-2: Price limit validation (涨跌停)
+	if err := o.CheckPriceLimit(order.Symbol, fillPrice); err != nil {
+		return nil, err
+	}
+
+	// P0-3: Compute trading costs (佣金 + 印花税)
+	tradeAmount := fillPrice * fillQty
+	commission := tradeAmount * o.costConfig.CommissionRate
+	if commission < o.costConfig.MinCommission {
+		commission = o.costConfig.MinCommission
+	}
+	var stampTax float64
+	if order.Side == SideSell {
+		stampTax = tradeAmount * o.costConfig.StampTaxRate
 	}
 
 	// Update average fill price (fillQty is now the final, clipped value)
@@ -153,13 +207,15 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 	}
 
 	trade := &Trade{
-		ID:        uuid.New().String()[:8],
-		OrderID:   orderID,
-		Symbol:    order.Symbol,
-		Side:      order.Side,
-		Quantity:  fillQty,
-		Price:     fillPrice,
-		Timestamp: time.Now(),
+		ID:         uuid.New().String()[:8],
+		OrderID:    orderID,
+		Symbol:     order.Symbol,
+		Side:       order.Side,
+		Quantity:   fillQty,
+		Price:      fillPrice,
+		Commission: commission,
+		StampTax:   stampTax,
+		Timestamp:  time.Now(),
 	}
 	o.trades = append(o.trades, trade)
 
@@ -170,9 +226,13 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 		if pos.Quantity > 0 {
 			pos.AvgPrice = totalPosValue / pos.Quantity
 		}
+		// P0-1: Mark T+1 lock for today's buy
+		o.t1Lock[order.Symbol] = time.Now()
 	} else {
-		// Realize P&L for the sold portion.
-		pos.PnL = (fillPrice - pos.AvgPrice) * fillQty
+		// Realize P&L for the sold portion, deducting trading costs.
+		realizedPnl := (fillPrice-pos.AvgPrice)*fillQty - commission - stampTax
+		pos.PnL = realizedPnl
+		pos.RealizedPnl += realizedPnl
 		if pos.AvgPrice > 0 {
 			pos.PnLPct = (fillPrice - pos.AvgPrice) / pos.AvgPrice * 100
 		}
@@ -182,6 +242,9 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 			pos.AvgPrice = 0
 		}
 	}
+
+	// P0-4: Record transaction in cash ledger
+	o.cashLedger.RecordTrade(order.Side, order.ID, tradeAmount, commission, stampTax)
 
 	o.notifyTrade(trade)
 	o.notifyOrder(order)
@@ -264,6 +327,49 @@ func (o *OMS) HasBroker() bool {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 	return o.broker != nil
+}
+
+// SetPriceLimit configures the daily price limit for a symbol.
+// prevClose is yesterday's close, maxPct is the daily limit (e.g. 0.10 for main board).
+func (o *OMS) SetPriceLimit(symbol string, prevClose, maxPct float64) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.priceLimits[symbol] = PriceLimitConfig{
+		PrevClose: prevClose,
+		MaxPct:    maxPct,
+	}
+}
+
+// CheckPriceLimit validates whether fillPrice is within the symbol's price limits.
+// Returns an error if price limits are configured and the price is out of bounds.
+func (o *OMS) CheckPriceLimit(symbol string, fillPrice float64) error {
+	cfg, ok := o.priceLimits[symbol]
+	if !ok {
+		return nil // no limit configured
+	}
+	low := cfg.PrevClose * (1 - cfg.MaxPct)
+	high := cfg.PrevClose * (1 + cfg.MaxPct)
+	if fillPrice < low || fillPrice > high {
+		return fmt.Errorf("price limit: %s fillPrice %.2f outside [%.2f, %.2f]", symbol, fillPrice, low, high)
+	}
+	return nil
+}
+
+// GetCashBalance returns the current cash balance from the cash ledger.
+func (o *OMS) GetCashBalance() float64 {
+	return o.cashLedger.GetBalance()
+}
+
+// GetCashLedger returns the underlying CashLedger for external access.
+func (o *OMS) GetCashLedger() *CashLedger {
+	return o.cashLedger
+}
+
+// isSameDay returns true if both times fall on the same calendar day.
+func isSameDay(t1, t2 time.Time) bool {
+	y1, m1, d1 := t1.Date()
+	y2, m2, d2 := t2.Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
 // PlaceOrderLive places an order through the attached broker instead of paper.
