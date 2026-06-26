@@ -19,7 +19,7 @@ func (s *stubNode) Category() string              { return s.cat }
 func (s *stubNode) InputPorts() []PortDefinition  { return nil }
 func (s *stubNode) OutputPorts() []PortDefinition { return nil }
 func (s *stubNode) ParamSchema() []ParamDef       { return nil }
-func (s *stubNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (s *stubNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *NodeContext) (map[string]any, error) {
 	return nil, nil
 }
 func (s *stubNode) Validate() error { return nil }

@@ -41,16 +41,12 @@ func TestSentimentNode_Ports(t *testing.T) {
 }
 
 func TestSentimentNode_Execute_Mock(t *testing.T) {
-	oldEngine := sentimentEngine
-	sentimentEngine = nil
-	defer func() { sentimentEngine = oldEngine }()
-
 	node, _ := NewSentimentNode("test-1", map[string]any{})
 	_, _ = node.(workflow.BaseNode)
 
 	result, err := node.Execute(context.Background(),
 		map[string]any{"symbol": "AAPL"},
-		map[string]any{"text_type": "news", "language": "en"},
+		map[string]any{"text_type": "news", "language": "en"}, nil,
 	)
 	if err != nil {
 		t.Fatalf("Execute should not error in mock mode: %v", err)
@@ -71,7 +67,7 @@ func TestSentimentNode_Execute_Mock(t *testing.T) {
 
 func TestSentimentNode_Execute_MissingSymbol(t *testing.T) {
 	node, _ := NewSentimentNode("test-1", nil)
-	_, err := node.Execute(context.Background(), map[string]any{}, nil)
+	_, err := node.Execute(context.Background(), map[string]any{}, nil, nil)
 	if err == nil {
 		t.Error("expected error for missing symbol")
 	}

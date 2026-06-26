@@ -29,7 +29,7 @@ func TestFactorNode(t *testing.T) {
 	inputs := map[string]any{"ohlcv": []float64{10, 11, 12, 13, 14}}
 	outputs, err := node.Execute(context.Background(), inputs, map[string]any{
 		"factor_name": "momentum_20d",
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestStrategyNode(t *testing.T) {
 
 	outputs, err := node.Execute(context.Background(), nil, map[string]any{
 		"signal_type": "sma_cross",
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestBacktestNode_Execute(t *testing.T) {
 	}, map[string]any{
 		"market":       "CN",
 		"initial_cash": 100000,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}

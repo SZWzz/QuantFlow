@@ -32,7 +32,7 @@ func TestEvaluateModelNode_Execute(t *testing.T) {
 			"value": {1.1, 1.9, 3.2, 3.8, 5.1},
 		},
 	}
-	outputs, err := node.Execute(context.Background(), inputs, map[string]any{})
+	outputs, err := node.Execute(context.Background(), inputs, map[string]any{}, nil)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestEvaluateModelNode_LengthMismatch(t *testing.T) {
 			"value": {1.0, 2.0},
 		},
 	}
-	_, err := node.Execute(context.Background(), inputs, map[string]any{})
+	_, err := node.Execute(context.Background(), inputs, map[string]any{}, nil)
 	if err == nil {
 		t.Error("expected error for length mismatch")
 	}

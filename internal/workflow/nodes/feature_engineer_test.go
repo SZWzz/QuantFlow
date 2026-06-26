@@ -36,7 +36,7 @@ func TestFeatureEngineerNode_Execute(t *testing.T) {
 			"momentum_1m": {0.01, 0.02, 0.015, 0.03, 0.025},
 		},
 	}
-	outputs, err := node.Execute(context.Background(), inputs, map[string]any{})
+	outputs, err := node.Execute(context.Background(), inputs, map[string]any{}, nil)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}

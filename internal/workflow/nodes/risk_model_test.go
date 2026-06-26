@@ -76,7 +76,7 @@ func TestRiskModelNodeExecute(t *testing.T) {
 	}
 	_, err = node.Execute(context.Background(), inputs, map[string]any{
 		"model_type": "garch",
-	})
+	}, nil)
 	// RiskModel is not yet wired to the Python sidecar — expect an honest error
 	// instead of silently returning fake data.
 	if err == nil {
@@ -102,7 +102,7 @@ func TestRLEnvNode(t *testing.T) {
 
 	outputs, err := node.Execute(context.Background(), map[string]any{}, map[string]any{
 		"window_size": 10, "action_type": "discrete", "initial_cash": 50000,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestRLTrainNode(t *testing.T) {
 
 	outputs, err := node.Execute(context.Background(), map[string]any{}, map[string]any{
 		"algorithm": "ppo", "total_episodes": 50,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestRLPredictNode(t *testing.T) {
 	outputs, err := node.Execute(context.Background(), map[string]any{
 		"model_id":    "rl_ppo_100",
 		"observation": []float64{},
-	}, map[string]any{"deterministic": "true"})
+	}, map[string]any{"deterministic": "true"}, nil)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}

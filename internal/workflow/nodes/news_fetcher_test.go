@@ -45,16 +45,12 @@ func TestNewsFetcherNode_Ports(t *testing.T) {
 }
 
 func TestNewsFetcherNode_Execute_Mock(t *testing.T) {
-	oldAdapter := newsAdapter
-	newsAdapter = nil
-	defer func() { newsAdapter = oldAdapter }()
-
 	node, _ := NewNewsFetcherNode("news-1", map[string]any{})
 	_, _ = node.(workflow.BaseNode)
 
 	result, err := node.Execute(context.Background(),
 		map[string]any{"symbol": "600519"},
-		map[string]any{"source": "eastmoney", "language": "zh"},
+		map[string]any{"source": "eastmoney", "language": "zh"}, nil,
 	)
 	if err != nil {
 		t.Fatalf("Execute should not error in mock mode: %v", err)
@@ -80,7 +76,7 @@ func TestNewsFetcherNode_Execute_Mock(t *testing.T) {
 
 func TestNewsFetcherNode_Execute_MissingSymbol(t *testing.T) {
 	node, _ := NewNewsFetcherNode("news-1", nil)
-	_, err := node.Execute(context.Background(), map[string]any{}, nil)
+	_, err := node.Execute(context.Background(), map[string]any{}, nil, nil)
 	if err == nil {
 		t.Error("expected error for missing symbol")
 	}

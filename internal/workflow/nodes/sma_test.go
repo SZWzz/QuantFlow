@@ -25,7 +25,7 @@ func TestSMANode_Execute(t *testing.T) {
 	inputs := map[string]any{"input": []float64{1.0, 2.0, 3.0, 4.0, 5.0}}
 	params := map[string]any{"period": float64(3)}
 
-	outputs, err := node.Execute(context.Background(), inputs, params)
+	outputs, err := node.Execute(context.Background(), inputs, params, nil)
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}

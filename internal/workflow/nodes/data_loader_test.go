@@ -19,7 +19,7 @@ func TestDataLoaderNode_CSV(t *testing.T) {
 		t.Fatalf("NewDataLoaderNode() error = %v", err)
 	}
 
-	outputs, err := node.Execute(context.Background(), nil, nil)
+	outputs, err := node.Execute(context.Background(), nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}

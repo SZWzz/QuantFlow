@@ -7,7 +7,7 @@ import (
 
 func TestLoopNode_StringArray(t *testing.T) {
 	node, _ := NewLoopNode("loop1", nil)
-	outputs, err := node.Execute(context.Background(), map[string]any{"items": []string{"a", "b", "c"}}, nil)
+	outputs, err := node.Execute(context.Background(), map[string]any{"items": []string{"a", "b", "c"}}, nil, nil)
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -22,7 +22,7 @@ func TestLoopNode_StringArray(t *testing.T) {
 
 func TestLoopNode_AnyArray(t *testing.T) {
 	node, _ := NewLoopNode("loop2", nil)
-	outputs, err := node.Execute(context.Background(), map[string]any{"items": []any{1, "two", 3.0}}, nil)
+	outputs, err := node.Execute(context.Background(), map[string]any{"items": []any{1, "two", 3.0}}, nil, nil)
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
