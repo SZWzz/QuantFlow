@@ -40,7 +40,7 @@ type EastMoneyFundFlowAdapter struct {
 // NewEastMoneyFundFlowAdapter creates a new fund flow adapter.
 func NewEastMoneyFundFlowAdapter() *EastMoneyFundFlowAdapter {
 	return &EastMoneyFundFlowAdapter{
-		client:  &http.Client{Timeout: 15 * time.Second},
+		client:  newEastMoneyHTTPClient(15 * time.Second),
 		limiter: GlobalEMLimiter,
 	}
 }

@@ -248,7 +248,7 @@ onUnmounted(() => {
   width: 560px;
   max-height: 480px;
   background: #1c2333;
-  border: 1px solid #30363d;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
   overflow: hidden;
@@ -260,7 +260,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #30363d;
+  border-bottom: 1px solid var(--color-border);
   gap: 10px;
 }
 
@@ -287,7 +287,7 @@ onUnmounted(() => {
   color: var(--color-text-tertiary);
   font-size: 11px;
   padding: 2px 8px;
-  border: 1px solid #30363d;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
@@ -312,7 +312,7 @@ onUnmounted(() => {
 
 .result-item.selected { background: rgba(88, 166, 255, 0.15); }
 
-.item-label { font-size: 13px; font-weight: 500; color: #c9d1d9; }
+.item-label { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
 .item-desc { font-size: 11px; color: var(--color-text-tertiary); }
 
 .no-results {

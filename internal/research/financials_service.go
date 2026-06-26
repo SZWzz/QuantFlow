@@ -73,6 +73,12 @@ func (s *FinancialsService) fetchFromMootdx(ctx context.Context, symbol string) 
 	for _, k := range []string{"jingzichan", "净资产"} {
 		if v, ok := fin.Raw[k]; ok { fd.TotalEquity = parseFloatAny(v); break }
 	}
+	for _, k := range []string{"zongfuzhai", "总负债", "fuzhaiheji", "负债合计"} {
+		if v, ok := fin.Raw[k]; ok { fd.TotalDebt = parseFloatAny(v); break }
+	}
+	for _, k := range []string{"jingyingxianjinliu", "经营活动现金流量净额", "jingyinghuodongchanshengdexianjinliuliangjing"} {
+		if v, ok := fin.Raw[k]; ok { fd.FreeCashFlow = parseFloatAny(v); break }
+	}
 
 	return fd, nil
 }

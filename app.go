@@ -70,7 +70,8 @@ type App struct {
 	northboundAdpt *adapters.THSNorthboundAdapter
 	cninfoAdpt     *adapters.CninfoAdapter
 	iwencaiAdpt    *adapters.IwencaiAdapter
-	eastmoneyAdpt  *adapters.EastMoneyAdapter // stock info for research overview
+	eastmoneyAdpt  *adapters.EastMoneyAdapter       // stock info for research overview
+	congressAdpt   *adapters.CongressTradesAdapter  // US congressional trades
 
 	polymarketAdpt      adapters.PolymarketAdapter  // prediction market data source
 	predictionMarketSvc *research.PredictionMarketService
@@ -243,6 +244,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.signalsAdpt = adapters.NewEastMoneySignalsAdapter()
 	a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
 	a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
+	a.eastmoneyAdpt = adapters.NewEastMoneyAdapter()
 	a.northboundAdpt = adapters.NewTHSNorthboundAdapter()
 	a.sinaFinAdpt = adapters.NewSinaFinancialsAdapter()
 
@@ -251,6 +253,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.consensusAdpt = adapters.NewTHSConsensusAdapter()
 	a.cninfoAdpt = adapters.NewCninfoAdapter()
 	a.iwencaiAdpt = adapters.NewIwencaiAdapter()
+	a.congressAdpt = adapters.NewCongressTradesAdapter()
 
 	nodes.SetNewsAdapter(a.newsAdpt)
 	if a.bridge != nil {
@@ -266,7 +269,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	nodes.SetPeerComparisonService(research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt))
 	nodes.SetAnalystEstimatesService(research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt))
 	nodes.SetInsiderTradingService(research.NewInsiderTradingService())
-	nodes.SetCongressTradingService(research.NewCongressTradingService())
+	nodes.SetCongressTradingService(research.NewCongressTradingService(a.congressAdpt))
 	slog.Info("research services initialized")
 
 	// Symbol search service (in-memory A-share index)
@@ -588,7 +591,26 @@ func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval strin
 // GetSentiment returns sentiment analysis for a symbol.
 func (a *App) GetSentiment(symbol string) (*research.SentimentOutput, error) {
 	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db), a.newsAdpt)
-	return engine.AnalyzeSentiment(context.Background(), symbol, "", "news", "en")
+	return engine.AnalyzeSentiment(context.Background(), symbol, "", "news", detectLanguage(symbol))
+}
+
+// detectLanguage returns "zh" for A-share symbols (starts with 0/3/6 and is 6-digit numeric, or has .SZ/.SH suffix), "en" otherwise.
+func detectLanguage(symbol string) string {
+	sym := symbol
+	// Strip market suffix if present
+	if len(sym) > 3 && sym[len(sym)-3] == '.' {
+		sym = sym[:len(sym)-3]
+	}
+	// 6-digit numeric = A-share
+	if len(sym) == 6 {
+		for _, c := range sym {
+			if c < '0' || c > '9' {
+				return "en"
+			}
+		}
+		return "zh"
+	}
+	return "en"
 }
 
 // GetSentimentHistory returns historical sentiment for a symbol.
@@ -599,6 +621,7 @@ func (a *App) GetSentimentHistory(symbol string, days int) ([]research.Sentiment
 
 // GetStockResearch returns multi-dimensional research data for a symbol.
 func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockResearchResult, error) {
+	slog.Info("GetStockResearch called", "symbol", symbol, "tabs", tabs)
 	repo := research.NewResearchRepo(a.db)
 	finSvc := research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
 	peerSvc := research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt)
@@ -613,9 +636,11 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 		},
 	}
 
-	// Try EastMoney stock_info for overview data
+	// Try EastMoney stock_info for overview data and market cap
+	var emInfo *adapters.EastMoneyStockInfo
 	if a.eastmoneyAdpt != nil {
 		if info, err := a.eastmoneyAdpt.FetchStockInfo(context.Background(), symbol); err == nil {
+			emInfo = info
 			result.Overview["name"] = info.Name
 			result.Overview["sector"] = info.Industry
 			result.Overview["market_cap"] = fmt.Sprintf("%.0f亿", info.MarketCap/1e8)
@@ -623,13 +648,27 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 			result.Overview["float_shares"] = fmt.Sprintf("%.2f亿股", info.FloatShares/1e8)
 			result.Overview["list_date"] = info.ListDate
 			result.Overview["price"] = info.Price
+		} else {
+			slog.Warn("eastmoney stock_info failed", "symbol", symbol, "error", err)
 		}
+	} else {
+		slog.Warn("eastmoney adapter not initialized", "symbol", symbol)
 	}
 
 	for _, tab := range tabs {
 		switch tab {
 		case "financials":
 			fd, _ := finSvc.GetFinancials(context.Background(), symbol)
+			// Sina financials adapter does not provide market cap — fill from EastMoney
+			if fd != nil && fd.MarketCap == 0 && emInfo != nil {
+				fd.MarketCap = emInfo.MarketCap
+			}
+			if fd != nil && fd.TotalDebt == 0 {
+				// Some Sina responses omit total liabilities — use total assets - total equity as fallback
+				if fd.TotalAssets > 0 && fd.TotalEquity > 0 {
+					fd.TotalDebt = fd.TotalAssets - fd.TotalEquity
+				}
+			}
 			result.Financials = &research.FinancialsBundle{
 				Data:   fd,
 				Ratios: finSvc.ComputeRatios(fd),
@@ -645,8 +684,16 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 			result.InsiderTxns = txns
 		case "sentiment":
 			engine := research.NewSentimentEngine(a.bridge, repo, a.newsAdpt)
-			s, _ := engine.AnalyzeSentiment(context.Background(), symbol, "", "news", "en")
+			s, err := engine.AnalyzeSentiment(context.Background(), symbol, "", "news", detectLanguage(symbol))
+			if err != nil {
+				slog.Warn("sentiment analysis error", "symbol", symbol, "error", err)
+			}
+			slog.Info("GetStockResearch sentiment", "symbol", symbol, "lang", detectLanguage(symbol), "has_data", s != nil, "score", s.Score, "label", s.Label)
 			result.Sentiment = s
+			// Also embed in overview for reliability (Wails serialization fallback)
+			result.Overview["sentiment_score"] = s.Score
+			result.Overview["sentiment_label"] = s.Label
+			result.Overview["sentiment_confidence"] = s.Confidence
 		}
 	}
 
@@ -656,7 +703,7 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 // GetCongressTrades returns recent US Congress trading activity.
 // Used by the CongressTradingPanel frontend.
 func (a *App) GetCongressTrades() ([]research.CongressTrade, error) {
-	svc := research.NewCongressTradingService()
+	svc := research.NewCongressTradingService(a.congressAdpt)
 	return svc.GetCongressTrades(context.Background())
 }
 

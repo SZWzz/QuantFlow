@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,7 +26,24 @@ type EastMoneyAdapter struct {
 // NewEastMoneyAdapter creates a new EastMoney adapter.
 func NewEastMoneyAdapter() *EastMoneyAdapter {
 	return &EastMoneyAdapter{
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: newEastMoneyHTTPClient(10 * time.Second),
+	}
+}
+
+// newEastMoneyHTTPClient creates an HTTP/1.1-only client for EastMoney APIs.
+// EastMoney CDN does not handle Go's HTTP/2 ALPN negotiation — connections get
+// dropped with EOF if HTTP/2 is allowed. TLSNextProto empty map prevents it.
+// All EastMoney adapters MUST use this helper.
+func newEastMoneyHTTPClient(timeout time.Duration) *http.Client {
+	tr := &http.Transport{
+		TLSNextProto:    make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
+		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
+		MaxIdleConns:    10,
+		IdleConnTimeout: 30 * time.Second,
+	}
+	return &http.Client{
+		Transport: tr,
+		Timeout:   timeout,
 	}
 }
 

@@ -249,7 +249,7 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   background: var(--color-bg-panel);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   overflow: hidden;
 }
 
@@ -275,7 +275,7 @@ onMounted(() => {
   flex: 1;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   border-radius: 4px;
   padding: 6px 8px;
   font-size: 12px;
@@ -301,7 +301,7 @@ onMounted(() => {
 .lookback-select {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   border-radius: 4px;
   padding: 4px 6px;
   font-size: 12px;
@@ -312,7 +312,7 @@ onMounted(() => {
   border: 1px solid var(--color-border-strong);
   border-radius: 4px;
   background: var(--color-bg-elevated);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
@@ -372,7 +372,7 @@ onMounted(() => {
 
 .row-label {
   font-weight: 600;
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   text-align: left !important;
 }
 

@@ -7,6 +7,7 @@ import { useSymbolContext } from '@/stores/symbolContext'
 const { t } = useI18n()
 
 const KEY_MAP: Record<string, string> = {
+  symbol: 'common.symbol', name: 'common.name',
   market_cap: 'research.market_cap', pe_ratio: 'research.pe_ratio', pb_ratio: 'research.pb_ratio',
   roe: 'research.roe', roa: 'research.roa', debt_to_equity: 'research.debt_to_equity',
   net_margin: 'research.net_margin', revenue: 'research.revenue',
@@ -158,22 +159,22 @@ function refresh() {
 <style scoped>
 .research-panel {
   padding: 16px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel));
+  color: var(--color-text-primary); background: var(--color-bg-panel);
 }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .tab-bar { display: flex; gap: 2px; margin-bottom: 12px; border-bottom: 1px solid var(--color-border-strong); overflow-x: auto; }
 .tab-btn { padding: 6px 14px; border: none; background: none; color: var(--color-text-secondary); cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; white-space: nowrap; }
-.tab-btn.active { color: #e5e7eb; border-bottom-color: #3b82f6; }
+.tab-btn.active { color: var(--color-text-primary); border-bottom-color: #3b82f6; }
 .tab-content { flex: 1; overflow-y: auto; }
 .tab-pane { padding: 8px 0; }
 .kv-grid { display: flex; flex-direction: column; gap: 6px; }
 .kv-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--color-bg-elevated); }
 .kv-key { color: var(--color-text-secondary); font-size: 12px; text-transform: capitalize; }
-.kv-value { font-size: 13px; font-variant-numeric: tabular-nums; }
+.kv-value { color: var(--color-text-primary); font-size: 13px; font-variant-numeric: tabular-nums; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .data-table th { text-align: left; padding: 4px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); }
 .data-table td { padding: 4px 8px; border-bottom: 1px solid var(--color-bg-elevated); }

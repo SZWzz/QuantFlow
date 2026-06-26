@@ -177,7 +177,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   border: 1px solid #374151;
   border-radius: 4px;
   background: var(--color-bg-elevated);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
@@ -186,7 +186,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   border-color: #3b82f6;
 }
 .search-input::placeholder {
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 .spinner {
   position: absolute;
@@ -211,7 +211,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
 }
 .dropdown.empty {
   padding: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-size: 13px;
   text-align: center;
 }
@@ -243,6 +243,6 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   flex-shrink: 0;
 }
 .item-name {
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 </style>

@@ -186,11 +186,11 @@ onMounted(refresh)
 .header-controls { display: flex; gap: 8px; align-items: center; }
 .symbol-input {
   width: 110px; padding: 4px 8px; border: 1px solid var(--color-border-strong);
-  border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px;
+  border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px;
 }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
+  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 
 /* Last Price */

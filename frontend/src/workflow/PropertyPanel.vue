@@ -118,8 +118,8 @@ function pinToTerminal() {
 <style scoped>
 .property-panel {
   width: 240px;
-  background: #161b22;
-  border-left: 1px solid #30363d;
+  background: var(--color-bg-input);
+  border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -127,13 +127,13 @@ function pinToTerminal() {
 
 .panel-header {
   padding: 10px;
-  border-bottom: 1px solid #30363d;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .panel-header h3 {
   font-size: 11px;
   text-transform: uppercase;
-  color: #5a6380;
+  color: var(--color-text-tertiary);
   letter-spacing: 0.5px;
 }
 
@@ -145,27 +145,27 @@ function pinToTerminal() {
   display: flex; justify-content: space-between; align-items: center;
   padding: 4px 0; font-size: 12px;
 }
-.prop-label { color: #5a6380; }
-.prop-value { color: #c9d1d9; }
+.prop-label { color: var(--color-text-tertiary); }
+.prop-value { color: var(--color-text-primary); }
 .prop-value.mono { font-family: monospace; font-size: 11px; }
-.type-badge { padding: 1px 6px; background: #1a2a3e; border: 1px solid #30363d; border-radius: 3px; }
+.type-badge { padding: 1px 6px; background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: 3px; }
 
 .section-title {
-  font-size: 10px; color: #5a6380; text-transform: uppercase;
+  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;
   letter-spacing: 0.5px; margin-bottom: 6px; padding-bottom: 3px;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .param-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
-.param-label { font-size: 10px; color: #5a6380; text-transform: uppercase; letter-spacing: 0.5px; }
+.param-label { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; }
 .param-input {
-  padding: 4px 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 3px;
-  color: #c9d1d9; font-size: 12px; outline: none;
+  padding: 4px 8px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: 3px;
+  color: var(--color-text-primary); font-size: 12px; outline: none;
 }
 .param-input:focus { border-color: #58a6ff; }
 
-.port-item { font-size: 11px; color: #5a6380; padding: 2px 0; }
-.port-dir { color: #30363d; }
+.port-item { font-size: 11px; color: var(--color-text-secondary); padding: 2px 0; }
+.port-dir { color: var(--color-text-tertiary); }
 
 .status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
 .status-badge.running { background: rgba(240,136,62,0.15); color: #f0883e; }

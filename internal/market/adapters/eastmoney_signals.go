@@ -62,7 +62,7 @@ type EastMoneySignalsAdapter struct {
 // NewEastMoneySignalsAdapter creates a new signals adapter.
 func NewEastMoneySignalsAdapter() *EastMoneySignalsAdapter {
 	return &EastMoneySignalsAdapter{
-		client:  &http.Client{Timeout: 15 * time.Second},
+		client:  newEastMoneyHTTPClient(15 * time.Second),
 		limiter: GlobalEMLimiter,
 	}
 }

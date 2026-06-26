@@ -320,7 +320,7 @@ async function runSimulation() {
   flex-direction: column;
   height: 100%;
   background: var(--color-bg-panel);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 
 .panel-header {
@@ -367,7 +367,7 @@ async function runSimulation() {
   padding: 6px 8px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   border-radius: 4px;
   font-size: 13px;
   outline: none;

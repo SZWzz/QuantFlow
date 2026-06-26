@@ -22,7 +22,7 @@ import (
 // ExpectedSidecarVersion must match the version string hardcoded in
 // python/src/server.py. When the running sidecar reports a different
 // version, StartSidecar kills it and launches a fresh process.
-const ExpectedSidecarVersion = "2026.6.25"
+const ExpectedSidecarVersion = "2026.6.26"
 
 // SidecarProcess wraps a running Python sidecar child process.
 type SidecarProcess struct {

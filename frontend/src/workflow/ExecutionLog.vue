@@ -91,8 +91,8 @@ function statusColor(s: string): string {
 
 <style scoped>
 .execution-log {
-  background: #0d1117;
-  border-top: 1px solid #30363d;
+  background: var(--color-bg-input);
+  border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   max-height: 180px;
@@ -101,10 +101,10 @@ function statusColor(s: string): string {
 
 .log-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 10px; background: #161b22; border-bottom: 1px solid #21262d;
+  padding: 6px 10px; background: var(--color-bg-input); border-bottom: 1px solid var(--color-border);
 }
 
-.log-title { font-size: 11px; font-weight: 600; color: #c9d1d9; text-transform: uppercase; letter-spacing: 0.5px; }
+.log-title { font-size: 11px; font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
 .log-actions { display: flex; align-items: center; gap: 8px; }
 
 .running-badge { font-size: 10px; color: #f0883e; animation: pulse 1s ease-in-out infinite; }
@@ -117,19 +117,19 @@ function statusColor(s: string): string {
 }
 
 .clear-btn {
-  padding: 2px 8px; background: transparent; border: 1px solid #30363d;
-  color: #5a6380; border-radius: 3px; font-size: 10px; cursor: pointer;
+  padding: 2px 8px; background: transparent; border: 1px solid var(--color-border);
+  color: var(--color-text-tertiary); border-radius: 3px; font-size: 10px; cursor: pointer;
 }
-.clear-btn:hover { color: #c9d1d9; border-color: #5a6380; }
+.clear-btn:hover { color: var(--color-text-primary); border-color: var(--color-border-strong); }
 
 .log-content { flex: 1; overflow-y: auto; padding: 6px; font-family: monospace; }
 
-.empty-log { padding: 16px; text-align: center; color: #3a4a6c; font-size: 12px; font-family: system-ui; }
+.empty-log { padding: 16px; text-align: center; color: var(--color-text-tertiary); font-size: 12px; font-family: system-ui; }
 
 .log-entry { display: flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: 11px; }
 .entry-icon { font-size: 10px; width: 12px; text-align: center; }
-.entry-node { color: #c9d1d9; min-width: 80px; }
+.entry-node { color: var(--color-text-primary); min-width: 80px; }
 .entry-status { font-weight: 500; }
-.entry-time { color: #5a6380; margin-left: auto; }
+.entry-time { color: var(--color-text-tertiary); margin-left: auto; }
 .entry-error { color: #f85149; font-size: 10px; }
 </style>

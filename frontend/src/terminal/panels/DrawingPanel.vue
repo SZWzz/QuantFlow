@@ -308,7 +308,7 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   background: var(--color-bg-panel);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 
 .panel-header {
@@ -359,7 +359,7 @@ onMounted(() => {
   justify-content: center;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;

@@ -350,7 +350,7 @@ onMounted(async () => {
   overflow-y: auto;
   padding: 12px;
   background: var(--color-bg-panel);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -444,7 +444,7 @@ onMounted(async () => {
 .alloc-pct {
   width: 44px;
   font-size: 11px;
-  color: #d1d5db;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   text-align: left;
 }
@@ -501,7 +501,7 @@ onMounted(async () => {
 .target-input {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 11px;

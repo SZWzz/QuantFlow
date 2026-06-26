@@ -105,14 +105,14 @@ onMounted(async () => {
 }
 .tape-symbol {
   font-weight: 600;
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 .tape-name {
   color: var(--color-text-secondary);
   font-size: 11px;
 }
 .tape-price {
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 .tape-change {
   font-weight: 500;

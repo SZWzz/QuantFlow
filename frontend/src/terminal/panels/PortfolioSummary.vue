@@ -116,7 +116,7 @@ const equityChartOption = computed(() => ({
   xAxis: {
     type: 'category' as const,
     data: equityData.value.map((p) => p.date),
-    axisLine: { lineStyle: { color: '#30363d' } },
+    axisLine: { lineStyle: { color: 'var(--color-border)' } },
     axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
     axisTick: { show: false },
   },
@@ -147,7 +147,7 @@ const equityChartOption = computed(() => ({
   tooltip: {
     trigger: 'axis' as const,
     backgroundColor: 'var(--color-bg-subtle)',
-    borderColor: '#30363d',
+    borderColor: 'var(--color-border)',
     textStyle: { color: 'var(--color-text-primary)', fontSize: 12 },
     formatter: (params: any) => {
       const p = params[0]
@@ -163,7 +163,7 @@ const pieChartOption = computed(() => ({
   tooltip: {
     trigger: 'item' as const,
     backgroundColor: 'var(--color-bg-subtle)',
-    borderColor: '#30363d',
+    borderColor: 'var(--color-border)',
     textStyle: { color: 'var(--color-text-primary)', fontSize: 12 },
     formatter: (params: any) =>
       `<b>${params.name}</b><br/>${t('portfolio.allocation')}: ${params.value}%`,
@@ -181,7 +181,7 @@ const pieChartOption = computed(() => ({
       fontSize: 10,
       formatter: '{b}\n{d}%',
     },
-    labelLine: { lineStyle: { color: '#30363d' } },
+    labelLine: { lineStyle: { color: 'var(--color-border)' } },
     data: allocationData.value.map((a) => ({
       name: a.market,
       value: a.value,

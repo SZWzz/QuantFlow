@@ -121,11 +121,11 @@ function handleSymbolSubmit(e: Event) {
 .header-controls { display: flex; gap: 8px; align-items: center; }
 .symbol-input {
   width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong);
-  border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px;
+  border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px;
 }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
+  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner {
@@ -143,7 +143,7 @@ function handleSymbolSubmit(e: Event) {
 .keyword-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .keyword-tag {
   padding: 2px 10px; border-radius: 12px; font-size: 12px;
-  background: var(--color-bg-elevated); color: #e5e7eb; border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-elevated); color: var(--color-text-primary); border: 1px solid var(--color-border-strong);
 }
 .no-data { color: var(--color-text-tertiary); font-size: 12px; }
 .info-row {

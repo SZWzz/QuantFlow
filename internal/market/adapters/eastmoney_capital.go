@@ -61,7 +61,7 @@ type EastMoneyCapitalAdapter struct {
 // NewEastMoneyCapitalAdapter creates a new capital data adapter.
 func NewEastMoneyCapitalAdapter() *EastMoneyCapitalAdapter {
 	return &EastMoneyCapitalAdapter{
-		client:  &http.Client{Timeout: 15 * time.Second},
+		client:  newEastMoneyHTTPClient(15 * time.Second),
 		limiter: GlobalEMLimiter,
 		signals: nil, // will use its own
 	}

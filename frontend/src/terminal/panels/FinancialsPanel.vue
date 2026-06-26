@@ -81,7 +81,7 @@ function formatPct(v: number | undefined | null): string {
         <div class="card" v-if="financials.ratios && Object.keys(financials.ratios).length > 0">
           <h4 class="card-title">{{ $t('research.financial_ratios') }}</h4>
           <div class="card-row" v-for="(v, k) in financials.ratios" :key="k">
-            <span>{{ k.replace(/_/g, ' ') }}</span>
+            <span>{{ $t('research.' + k) }}</span>
             <span class="val">{{ typeof v === 'number' ? (k.includes('margin') || k.includes('yield') || k.includes('rate') ? formatPct(v) : v.toFixed(2)) : v }}</span>
           </div>
         </div>
@@ -95,12 +95,12 @@ function formatPct(v: number | undefined | null): string {
 </template>
 
 <style scoped>
-.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
+.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text-primary); background: var(--color-bg-panel); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
 .panel-content { flex: 1; overflow-y: auto; }
@@ -110,6 +110,6 @@ function formatPct(v: number | undefined | null): string {
 .card-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--color-bg-elevated); }
 .card-row:last-child { border-bottom: none; }
 .card-row span { color: var(--color-text-secondary); }
-.card-row .val { color: #e5e7eb; font-variant-numeric: tabular-nums; }
+.card-row .val { color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

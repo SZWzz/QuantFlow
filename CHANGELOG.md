@@ -4,7 +4,35 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
-## [2026.6.25] - 2026-06-25
+## [2026.6.26] - 2026-06-26
+
+### 新增
+
+- [研究] 真实国会交易数据：接入 `trades.telep.io` Capitol Trades API（免费无需 Key），覆盖 House + Senate 两院 ~10000+ 条 STOCK Act 披露交易。新增 `CongressTradesAdapter`，过滤仅保留 Stock 类型
+- [情感] 中文 NLP 情感分析：`detectLanguage()` 自动识别 A 股代码走 `zh` 通道，启用 SnowNLP + jieba 分词。安装 `nltk`/`snownlp`/`jieba` 到 Python venv
+
+### 修复
+
+- [前端] 白色主题全面板文字不可见：根因 `--color-text`/`--color-bg` 变量未定义 → 始终回退 `#e5e7eb`（暗色近白）。`themes.css` 补全变量定义，另 CongressTradingPanel/SentimentPanel/PeerComparisonPanel 等面板的标签徽章对比度提升
+- [行情] 全部 EastMoney 适配器 HTTP/2 EOF：Go `net/http` 默认 ALPN 协商 HTTP/2，东方财富 `push2.eastmoney.com` CDN 不兼容 → 连接被 EOF 断开。创建 `newEastMoneyHTTPClient()` 共用工厂，`TLSNextProto` 空 map + TLS 1.2+ 强制 HTTP/1.1。涵盖 `eastmoney.go`、`eastmoney_concept.go`、`eastmoney_signals.go`、`eastmoney_fundflow.go`、`eastmoney_capital.go`
+- [财务] PE/PB 始终为 0：Sina 财报不提供 MarketCap → `ComputeRatios` 跳过计算。`GetStockResearch` 从 EastMoney `StockInfo` 回填 `fd.MarketCap`，`TotalDebt` 用 `TotalAssets - TotalEquity` 兜底
+- [财务] EPS 为 0（负利润场景）：mootdx `fin.Profit > 0` 跳过负利润 EPS 推导 → 改为 `fin.Profit != 0`
+- [财务] 自由现金流为 0：`fetchFromMootdx` 未提取负债/现金流字段 → 添加 `zongfuzhai`/`经营活动现金流量净额` 映射
+- [财务] 财务比率标签硬编码英文：`FinancialsPanel.vue` 使用 `k.replace(/_/g, ' ')` → 改为 `$t('research.' + k)`
+- [前端] `eastmoneyAdpt` 未初始化：App struct 仅声明字段无赋值 → 所有 EastMoney 数据源（总市值/行业/概念等）全部失效
+- [同业] 同业对比显示假美股数据：conceptAdapter HTTP/2 EOF → `mockPeerData` 回退返回 MSFT/GOOGL/AMZN → 删除 mock，`ConceptBlock` 新增 `LeadStockCode` 字段（f140），按龙头股代码去重
+- [情感] `SentimentOutput` 序列化丢失：Wails v3 自定义序列化器对 `json:"sentiment,omitempty"` 处理异常 → 移除 `omitempty`
+- [情感] 语言参数固定 `en`：中文新闻走 VADER → 永远中性 → `detectLanguage()` 自动识别 zh/en
+- [情感] Python sidecar 版本号更新 → 强制重启加载新 NLP 包
+
+### 变更
+
+- [前端] FinancialPanel/StockResearchPanel/CongressTradingPanel 面板级 color 从 `var(--color-text, #e5e7eb)` → `var(--color-text-primary)`
+- [前端] StockResearchPanel overview 的 `symbol` 标签从硬编码英文 → i18n `common.symbol`
+- [前端] `PeerComparisonPanel` 列简化：代码+名称+市值+市盈率（去除无数据的营收增长/利润率/ROE），添加数据来源提示
+- [Go] `eastmoneyAdpt` 初始化 hook 到 App 构造函数，`GetStockResearch` 增加 eastmoney 初始化/失败日志
+- [Go] `fetchFromMootdx` 额外提取 `zongfuzhai`/`经营活动现金流量净额` 字段
+- [Python] NLP pipeline：`jieba` 中文分词 + 停用词过滤；`NLPPipeline.analyze()` 结果包含 `engine` 诊断字段
 
 ### 新增
 

@@ -200,10 +200,12 @@ func (a *MootdxAdapter) FetchFinance(ctx context.Context, symbol string) (*Mootd
 			fin.Income = parseFloatSafe(s)
 		case "meigujingzichan":
 			fin.BVPS = parseFloatSafe(s)
+		case "meigushouyi":
+			fin.EPS = parseFloatSafe(s)
 		}
 	}
-	// Derive EPS and ROE if not directly provided
-	if fin.EPS == 0 && fin.Profit > 0 {
+	// Derive EPS if not directly provided (works for both positive and negative profit)
+	if fin.EPS == 0 && fin.Profit != 0 {
 		if zgb, ok := r["zongguben"]; ok {
 			total := toFloatMootdx(zgb)
 			if total > 0 {

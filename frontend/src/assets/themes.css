@@ -42,6 +42,8 @@ body {
   --input: var(--color-bg-input);
   --text: var(--color-text-primary);
   --muted: var(--color-text-secondary);
+  --color-text: var(--color-text-primary);
+  --color-bg: var(--color-bg-panel);
   --up: var(--color-up);
   --down: var(--color-down);
   --accent: var(--color-accent);
@@ -67,7 +69,7 @@ body.theme-light {
   --color-bg-input: #f1f5f9;
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
-  --color-text-tertiary: #94a3b8;
+  --color-text-tertiary: #64748b;
   --color-text-inverse: #ffffff;
   --color-border: #e2e8f0;
   --color-border-subtle: #f1f5f9;
@@ -94,6 +96,8 @@ body.theme-light {
   --input: var(--color-bg-input);
   --text: var(--color-text-primary);
   --muted: var(--color-text-secondary);
+  --color-text: var(--color-text-primary);
+  --color-bg: var(--color-bg-panel);
   --up: var(--color-up);
   --down: var(--color-down);
   --accent: var(--color-accent);

@@ -359,7 +359,7 @@ onUnmounted(() => {
   padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
 }
-.tab-btn.active { background: var(--color-border-strong); color: #e5e7eb; border-color: #534ab7; }
+.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: #534ab7; }
 .interval-btns { display: flex; gap: 2px; }
 .interval-btn {
   padding: 2px 8px; border: 1px solid var(--color-border);

@@ -286,7 +286,7 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   background: var(--color-bg-panel);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   overflow: hidden;
 }
 
@@ -319,7 +319,7 @@ onMounted(() => {
 .symbol-input {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   border-radius: 4px;
   padding: 5px 8px;
   font-size: 12px;
@@ -330,7 +330,7 @@ onMounted(() => {
 .lookback-select {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   border-radius: 4px;
   padding: 5px 6px;
   font-size: 12px;
@@ -341,7 +341,7 @@ onMounted(() => {
   border: 1px solid var(--color-border-strong);
   border-radius: 4px;
   background: var(--color-bg-elevated);
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
@@ -382,7 +382,7 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 
 /* Chart body */
@@ -434,6 +434,6 @@ onMounted(() => {
 
 .dist-table td {
   font-variant-numeric: tabular-nums;
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 </style>

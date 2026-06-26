@@ -84,7 +84,7 @@ type StockResearchResult struct {
 	UpdatedAt   time.Time              `json:"updated_at"`
 	Overview    map[string]interface{} `json:"overview,omitempty"`
 	Financials  *FinancialsBundle      `json:"financials,omitempty"`
-	Sentiment   *SentimentOutput       `json:"sentiment,omitempty"`
+	Sentiment   *SentimentOutput       `json:"sentiment"`
 	Peers       []PeerComparisonData   `json:"peers,omitempty"`
 	Estimates   []AnalystEstimate      `json:"estimates,omitempty"`
 	InsiderTxns []InsiderTransaction   `json:"insider,omitempty"`

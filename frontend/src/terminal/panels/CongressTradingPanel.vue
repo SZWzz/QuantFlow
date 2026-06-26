@@ -122,16 +122,16 @@ function amountColor(amount: string): string {
 </template>
 
 <style scoped>
-.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
+.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text-primary); background: var(--color-bg-panel); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
 .filter-bar { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 6px; }
-.filter-label { font-size: 11px; color: var(--color-text-secondary); font-weight: 500; text-transform: uppercase; }
+.filter-label { font-size: 11px; color: var(--color-text-primary); font-weight: 500; text-transform: uppercase; }
 .filter-buttons { display: flex; gap: 2px; }
 .filter-btn { padding: 3px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-secondary); cursor: pointer; font-size: 11px; }
 .filter-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
@@ -139,18 +139,18 @@ function amountColor(amount: string): string {
 .panel-content { flex: 1; overflow-y: auto; }
 .congress-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .congress-table th { text-align: left; padding: 6px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); font-weight: 500; white-space: nowrap; }
-.congress-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
-.name-cell { font-weight: 500; }
+.congress-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); color: var(--color-text-primary); }
+.name-cell { font-weight: 500; color: var(--color-text-primary); }
 .symbol-cell { font-weight: 600; color: #60a5fa; }
 .party-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-.party-badge.democrat { background: #1e3a5f; color: #93c5fd; }
-.party-badge.republican { background: #5f1e1e; color: #fca5a5; }
-.party-badge.independent { background: var(--color-border-strong); color: #d1d5db; }
+.party-badge.democrat { background: #dbeafe; color: #1e40af; }
+.party-badge.republican { background: #fee2e2; color: #991b1b; }
+.party-badge.independent { background: var(--color-border-subtle); color: var(--color-text-secondary); }
 .type-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.type-badge.buy { background: #14532d; color: #22c55e; }
-.type-badge.sell { background: #7f1d1d; color: #ef4444; }
-.amount-cell { font-variant-numeric: tabular-nums; font-weight: 500; }
-.date-cell { color: var(--color-text-secondary); }
+.type-badge.buy { background: #d1fae5; color: #065f46; }
+.type-badge.sell { background: #fee2e2; color: #991b1b; }
+.amount-cell { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--color-text-primary); }
+.date-cell { color: var(--color-text-primary); }
 .no-data { color: var(--color-text-tertiary); font-size: 13px; text-align: center; padding: 20px; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

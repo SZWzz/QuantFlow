@@ -119,7 +119,7 @@ onMounted(refresh)
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
+  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 
 /* Dominance */
@@ -155,13 +155,13 @@ onMounted(refresh)
   font-weight: 500; border-bottom: 1px solid var(--color-border-strong); background: var(--color-bg-panel);
 }
 .crypto-table th.sortable { cursor: pointer; user-select: none; }
-.crypto-table th.sortable:hover { color: #e5e7eb; }
+.crypto-table th.sortable:hover { color: var(--color-text-primary); }
 .crypto-table td {
   padding: 4px; text-align: right; border-bottom: 1px solid var(--color-bg-elevated);
 }
 .col-rank, th:first-child { width: 24px; text-align: center; }
 .col-symbol { text-align: left !important; }
-.crypto-symbol { font-weight: 600; color: #e5e7eb; }
+.crypto-symbol { font-weight: 600; color: var(--color-text-primary); }
 .crypto-name { color: var(--color-text-tertiary); font-size: 10px; margin-left: 4px; }
 .col-price { width: 90px; }
 .col-change { width: 80px; font-weight: 500; }

@@ -176,7 +176,7 @@ onUnmounted(() => {
 .auto-btn.active { color: #60a5fa; border-color: #3b82f6; }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px;
+  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -219,7 +219,7 @@ onUnmounted(() => {
   display: flex; justify-content: space-between; align-items: center;
   padding: 4px 0; font-size: 12px;
 }
-.sector-name { color: #e5e7eb; }
+.sector-name { color: var(--color-text-primary); }
 .sector-pct { font-weight: 500; font-variant-numeric: tabular-nums; }
 
 .loading-overlay {

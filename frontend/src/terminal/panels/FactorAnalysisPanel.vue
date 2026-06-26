@@ -141,7 +141,7 @@ function categoryColor(cat: string): string {
 <style scoped>
 .factor-panel {
   padding: 10px;
-  background: #0d1117;
+  background: var(--color-bg-input);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -156,8 +156,8 @@ function categoryColor(cat: string): string {
 .search-input {
   width: 100%;
   padding: 6px 10px;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   color: var(--color-text-primary);
   font-size: 12px;
@@ -165,11 +165,11 @@ function categoryColor(cat: string): string {
 }
 
 .search-input:focus {
-  border-color: #58a6ff;
+  border-color: var(--color-accent);
 }
 
 .search-input::placeholder {
-  color: #484f58;
+  color: var(--color-text-tertiary);
 }
 
 .category-filters {
@@ -184,16 +184,16 @@ function categoryColor(cat: string): string {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   font-size: 10px;
-  color: #8b949e;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.cat-chip:hover { border-color: #58a6ff; color: var(--color-text-primary); }
+.cat-chip:hover { border-color: var(--color-accent); color: var(--color-text-primary); }
 .cat-chip.active { background: var(--color-bg-subtle); color: var(--color-text-primary); }
 
 .cat-dot {
@@ -203,7 +203,7 @@ function categoryColor(cat: string): string {
 }
 
 .cat-count {
-  color: #484f58;
+  color: var(--color-text-tertiary);
   font-size: 9px;
 }
 
@@ -219,7 +219,7 @@ function categoryColor(cat: string): string {
 }
 
 .factor-item:hover {
-  background: #161b22;
+  background: var(--color-bg-subtle);
 }
 
 .factor-header {
@@ -245,12 +245,12 @@ function categoryColor(cat: string): string {
 .factor-category {
   margin-left: auto;
   font-size: 9px;
-  color: #484f58;
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
 }
 
 .factor-desc {
-  color: #8b949e;
+  color: var(--color-text-tertiary);
   font-size: 11px;
   margin-left: 14px;
   margin-bottom: 2px;
@@ -268,7 +268,7 @@ function categoryColor(cat: string): string {
   background: var(--color-bg-subtle);
   border-radius: 3px;
   font-size: 10px;
-  color: #58a6ff;
+  color: var(--color-accent);
   font-family: 'SF Mono', monospace;
 }
 
@@ -277,15 +277,15 @@ function categoryColor(cat: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #484f58;
+  color: var(--color-text-tertiary);
   font-size: 13px;
 }
 
 .summary-bar {
   padding-top: 8px;
-  border-top: 1px solid #21262d;
+  border-top: 1px solid var(--color-border);
   font-size: 10px;
-  color: #484f58;
+  color: var(--color-text-tertiary);
   text-align: center;
 }
 </style>

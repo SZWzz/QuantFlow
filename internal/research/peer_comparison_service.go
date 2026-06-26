@@ -22,37 +22,45 @@ func NewPeerComparisonService(concept *adapters.EastMoneyConceptAdapter, signals
 }
 
 // GetPeers returns peer comparison data for a symbol.
-// Uses concept blocks to find peers in the same industry.
+// Uses concept blocks to identify peer stocks in the same industry sectors.
+// Deduplicates lead stocks from overlapping concept blocks.
 func (s *PeerComparisonService) GetPeers(ctx context.Context, symbol string) ([]PeerComparisonData, error) {
 	if s.conceptAdapter == nil {
-		return mockPeerData(symbol), nil
+		return nil, nil
 	}
 
 	blocks, err := s.conceptAdapter.FetchConceptBlocks(ctx, symbol)
 	if err != nil {
-		slog.Warn("peer comparison: concept blocks failed, using mock", "symbol", symbol, "error", err)
-		return mockPeerData(symbol), nil
+		slog.Warn("peer comparison: concept blocks failed", "symbol", symbol, "error", err)
+		return nil, nil
 	}
 
-	// Convert blocks to peer comparison data
-	peers := make([]PeerComparisonData, 0, len(blocks))
+	// Collect unique lead stocks from all blocks, deduplicating by stock code.
+	// A single stock often leads multiple concept/industry blocks.
+	seen := make(map[string]bool)
+	peers := make([]PeerComparisonData, 0)
 	for _, b := range blocks {
+		if b.LeadStockCode == "" || b.LeadStock == "" {
+			continue
+		}
+		if seen[b.LeadStockCode] {
+			continue
+		}
+		seen[b.LeadStockCode] = true
+
 		peers = append(peers, PeerComparisonData{
-			Symbol:        b.Code,
-			Name:          b.Name,
-			MarketCap:     0, // would need additional API call per peer
-			PE:            0,
-			RevenueGrowth: 0,
+			Symbol:        b.LeadStockCode,
+			Name:          b.LeadStock,
+			MarketCap:     0, // Block-level data, per-stock MarketCap requires additional API calls.
+			PE:            0, // Future: batch StockInfo calls for unique lead stocks.
+			RevenueGrowth: 0, // Revenue growth not available from concept blocks.
 			NetMargin:     0,
 			ROE:           0,
 		})
 	}
 
-	// If no blocks found, fall back to mock
-	if len(peers) == 0 {
-		return mockPeerData(symbol), nil
-	}
-
+	slog.Debug("peer comparison: built peers from concept blocks",
+		"symbol", symbol, "blocks", len(blocks), "unique_peers", len(peers))
 	return peers, nil
 }
 
@@ -62,13 +70,4 @@ func (s *PeerComparisonService) GetIndustryRanks(ctx context.Context, topN int) 
 		return nil, fmt.Errorf("peer comparison: signals adapter not configured")
 	}
 	return s.signalsAdapter.FetchIndustryRanks(ctx, topN)
-}
-
-func mockPeerData(symbol string) []PeerComparisonData {
-	return []PeerComparisonData{
-		{Symbol: symbol, Name: symbol, MarketCap: 2.5e12, PE: 28.5, RevenueGrowth: 0.12, NetMargin: 0.25, ROE: 0.35},
-		{Symbol: "MSFT", Name: "Microsoft", MarketCap: 3.0e12, PE: 35.0, RevenueGrowth: 0.15, NetMargin: 0.35, ROE: 0.42},
-		{Symbol: "GOOGL", Name: "Alphabet", MarketCap: 1.8e12, PE: 25.0, RevenueGrowth: 0.10, NetMargin: 0.28, ROE: 0.30},
-		{Symbol: "AMZN", Name: "Amazon", MarketCap: 1.9e12, PE: 40.0, RevenueGrowth: 0.11, NetMargin: 0.08, ROE: 0.22},
-	}
 }

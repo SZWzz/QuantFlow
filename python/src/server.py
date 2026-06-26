@@ -52,7 +52,7 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
         uptime = int(time.time() - self.start_time)
         return health_pb2.PingResponse(
             healthy=True,
-            version="2026.6.25",
+            version="2026.6.26",
             uptime_seconds=uptime,
         )
 
@@ -68,7 +68,7 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
         uptime = int(time.time() - self.start_time)
         return health_pb2.StatusResponse(
             healthy=True,
-            version="2026.6.25",
+            version="2026.6.26",
             uptime_seconds=uptime,
             active_requests=0,
             memory_mb=mem_mb,

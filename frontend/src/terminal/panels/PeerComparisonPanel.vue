@@ -53,25 +53,22 @@ function formatRatio(v: number | undefined | null): string {
     </div>
 
     <div v-if="peers.length > 0" class="panel-content">
+      <p class="peer-hint">{{ $t('research.peer_hint') }}</p>
       <table class="peer-table">
         <thead>
           <tr>
             <th>{{ $t('quote.symbol') }}</th>
+            <th>{{ $t('common.name') }}</th>
             <th>{{ $t('quote.market_cap') }}</th>
             <th>{{ $t('research.pe_ratio') }}</th>
-            <th>{{ $t('research.revenue_growth') }}</th>
-            <th>{{ $t('research.margin') }}</th>
-            <th>{{ $t('research.roe') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="p in peers" :key="p.symbol ?? Math.random()">
             <td class="symbol-cell">{{ p.symbol }}</td>
+            <td>{{ p.name }}</td>
             <td class="num-cell">{{ formatMarketCap(p.market_cap) }}</td>
             <td class="num-cell">{{ formatRatio(p.pe_ratio) }}</td>
-            <td class="num-cell" :class="{ positive: p.revenue_growth > 0, negative: p.revenue_growth < 0 }">{{ formatPct(p.revenue_growth) }}</td>
-            <td class="num-cell" :class="{ positive: p.margin > 0, negative: p.margin < 0 }">{{ formatPct(p.margin) }}</td>
-            <td class="num-cell" :class="{ positive: p.roe > 0, negative: p.roe < 0 }">{{ formatPct(p.roe) }}</td>
           </tr>
         </tbody>
       </table>
@@ -88,10 +85,11 @@ function formatRatio(v: number | undefined | null): string {
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: #e5e7eb; cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
+.peer-hint { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 8px; }
 .panel-content { flex: 1; overflow-y: auto; }
 .peer-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .peer-table th { text-align: left; padding: 6px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); font-weight: 500; white-space: nowrap; }

@@ -24,6 +24,13 @@ try:
 except ImportError:
     _SNOWNLP_AVAILABLE = False
 
+# ----- jieba (Chinese word segmentation) -----
+try:
+    import jieba
+    _JIEBA_AVAILABLE = True
+except ImportError:
+    _JIEBA_AVAILABLE = False
+
 # ----- TextBlob (English fallback) -----
 try:
     from textblob import TextBlob
@@ -47,6 +54,24 @@ _NEGATIVE_WORDS = {
 
 # Common threshold for label classification (aligned with Go sentimentToSignal).
 _LABEL_THRESHOLD = 0.15
+
+# Common Chinese stopwords to filter from keywords.
+_CN_STOPWORDS = {
+    "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一",
+    "一个", "上", "也", "很", "到", "说", "要", "去", "你", "会", "着",
+    "没有", "看", "好", "自己", "这", "他", "她", "它", "们", "那", "些",
+    "什么", "怎么", "如何", "为什么", "可以", "这个", "那个", "已经",
+    "因为", "所以", "但是", "如果", "虽然", "而且", "以及", "或者",
+    "从", "对", "与", "对于", "关于", "通过", "被", "把", "将",
+    "等", "其", "之", "所", "为", "以", "年", "月", "日", "时",
+    "元", "万", "亿", "只", "股", "股票", "公司", "市场", "投资",
+    "投资者", "资金", "交易", "价格", "走势", "行情", "板块", "指数",
+    "主力", "机构", "散户", "涨停", "跌停", "上涨", "下跌",
+}
+
+def _is_stopword(word: str) -> bool:
+    """Check if a word is a stopword."""
+    return word in _CN_STOPWORDS or len(word) <= 1
 
 # Lazy, one-time VADER readiness check (module-level to avoid repeated network hangs).
 _vader_ready: Optional[bool] = None
@@ -187,8 +212,12 @@ class NLPPipeline:
             engine = "keyword"
 
         # Extract keywords from text
-        words = [w.strip(".,!?;:()[]{}\"'") for w in text.split() if len(w) > 3]
-        keywords = [w for w in words if w.isalpha()][:10]
+        if language == "zh" and _JIEBA_AVAILABLE:
+            words = jieba.lcut(text)
+            keywords = [w for w in words if len(w) >= 2 and not _is_stopword(w)][:10]
+        else:
+            words = [w.strip(".,!?;:()[]{}\"'") for w in text.split() if len(w) > 3]
+            keywords = [w for w in words if w.isalpha()][:10]
         if not keywords:
             keywords = [text[:20]]
 
