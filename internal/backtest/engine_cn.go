@@ -7,6 +7,43 @@ import (
 	"quantflow/internal/trading"
 )
 
+// ── Slippage Models ──────────────────────────────────────────────────────────
+
+// SlippageModel applies execution friction to trade fills.
+type SlippageModel interface {
+	Apply(order trading.Order, bar trading.OHLCVBar) float64
+}
+
+// FixedSlippage applies a constant bps-based slippage.
+// E.g. Bps=0.001 represents 0.1% of the bar's mid/close price.
+type FixedSlippage struct{ Bps float64 }
+
+func (s *FixedSlippage) Apply(order trading.Order, bar trading.OHLCVBar) float64 {
+	if s.Bps <= 0 {
+		return 0
+	}
+	return bar.Close * s.Bps
+}
+
+// SquareRootSlippage models price impact proportional to sqrt(volume).
+// Formula: base + volRatio * sqrt(orderQty / barVolume)
+type SquareRootSlippage struct {
+	Base     float64
+	VolRatio float64
+}
+
+func (s *SquareRootSlippage) Apply(order trading.Order, bar trading.OHLCVBar) float64 {
+	if bar.Volume <= 0 {
+		return s.Base
+	}
+	impact := s.VolRatio * float64(order.Quantity) / bar.Volume
+	// sqrt impact: larger orders in thin markets cost more
+	if impact > 0 {
+		return s.Base * (1 + impact*impact)
+	}
+	return s.Base
+}
+
 // CNEngine is the A-share backtesting engine with market-specific rules:
 //   - T+1 settlement: shares bought today cannot be sold until tomorrow
 //   - Price limits: ±10% (main board) or ±20% (ChiNext/STAR)
@@ -15,8 +52,9 @@ import (
 //   - Commission: 0.03% (万三) default
 type CNEngine struct {
 	*Runner
-	t1Lock    *t1Tracker         // tracks T+1 locked shares
-	prevClose map[string]float64 // symbol → previous trading day close (for price limit)
+	t1Lock        *t1Tracker         // tracks T+1 locked shares
+	prevClose     map[string]float64 // symbol → previous trading day close (for price limit)
+	slippageModel SlippageModel      // execution slippage model
 }
 
 // t1Tracker tracks shares locked by T+1 settlement.
@@ -38,9 +76,10 @@ func NewCNEngine(config Config) *CNEngine {
 		config.Slippage = 0.001 // 10 bps
 	}
 	return &CNEngine{
-		Runner:    NewRunner(config),
-		t1Lock:    newT1Tracker(),
-		prevClose: make(map[string]float64),
+		Runner:        NewRunner(config),
+		t1Lock:        newT1Tracker(),
+		prevClose:     make(map[string]float64),
+		slippageModel: &FixedSlippage{Bps: 0.001},
 	}
 }
 
@@ -165,7 +204,13 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		return
 	}
 
-	effectivePrice := bar.Close * (1 + e.config.Slippage)
+	// Compute slippage via model if available, fall back to config.Slippage
+	slippage := e.config.Slippage
+	if e.slippageModel != nil {
+		mockOrder := trading.Order{Symbol: bar.Symbol, Side: trading.SideBuy, Quantity: qty}
+		slippage = e.slippageModel.Apply(mockOrder, bar) / bar.Close
+	}
+	effectivePrice := bar.Close * (1 + slippage)
 	cost := effectivePrice*qty + effectivePrice*qty*e.config.Commission
 
 	if cost > portfolio.Cash {
@@ -224,7 +269,13 @@ func (e *CNEngine) processCNSellSignal(bar trading.OHLCVBar, signal *trading.Sig
 		qty = heldQty
 	}
 
-	effectivePrice := bar.Close * (1 - e.config.Slippage)
+	// Compute slippage via model if available, fall back to config.Slippage
+	slippage := e.config.Slippage
+	if e.slippageModel != nil {
+		mockOrder := trading.Order{Symbol: bar.Symbol, Side: trading.SideSell, Quantity: qty}
+		slippage = e.slippageModel.Apply(mockOrder, bar) / bar.Close
+	}
+	effectivePrice := bar.Close * (1 - slippage)
 	revenue := effectivePrice*qty - stampDuty(effectivePrice*qty) - effectivePrice*qty*e.config.Commission
 
 	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)

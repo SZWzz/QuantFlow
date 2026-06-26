@@ -84,6 +84,11 @@ register('settings', () => import('./SettingsPanel.vue'), { label: '系统设置
 // ── 欢迎页 ──
 register('welcome', () => import('./WelcomePanel.vue'), { label: '欢迎', category: '系统', description: '欢迎页面' })
 
+// ── 量化分析 (继续) ──
+register('chanlun', () => import('./ChanlunPanel.vue'), { label: '缠论分析', category: '量化分析', description: '缠中说禅技术分析' })
+register('indicator', () => import('./IndicatorPanel.vue'), { label: '技术指标', category: '量化分析', description: '19项技术指标计算' })
+register('stock-scanner', () => import('./StockScannerPanel.vue'), { label: '选股扫描', category: '量化分析', description: '多策略全市场选股' })
+
 export function getPanelComponent(panelId: string): Component | undefined {
   return panelRegistry.get(panelId)
 }

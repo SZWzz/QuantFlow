@@ -169,3 +169,115 @@ class FactorService(factor_pb2_grpc.FactorServiceServicer):
                 for f in factors
             ]
         )
+
+
+# ── Factor Analysis Utilities ──────────────────────────────────────────────────
+
+import numpy as np
+from pandas import Series, DataFrame
+from typing import List, Dict, Tuple, Optional
+
+
+def compute_ic(factor_values: Series, forward_returns: Series) -> float:
+    """Compute Information Coefficient (rank correlation) between factor and forward returns."""
+    common = factor_values.dropna().index.intersection(forward_returns.dropna().index)
+    if len(common) < 5:
+        return 0.0
+    return factor_values.loc[common].rank().corr(forward_returns.loc[common].rank())
+
+
+def quantile_backtest(
+    factor_values: Series, returns: Series, n_quantiles: int = 5
+) -> Dict[str, List[float]]:
+    """分层回测: group assets by factor quantile, compute avg return per group per period.
+
+    Returns dict with keys 'q1'..'qN', 'spread', 'cum_pnl'."""
+    common = factor_values.dropna().index.intersection(returns.dropna().index)
+    if len(common) < n_quantiles:
+        return {"q1": [], "spread": [], "cum_pnl": []}
+
+    fv = factor_values.loc[common]
+    ret = returns.loc[common]
+    fv_clean = fv.replace([np.inf, -np.inf], np.nan).dropna()
+    ret_clean = ret.replace([np.inf, -np.inf], np.nan)
+    common_clean = fv_clean.index.intersection(ret_clean.index)
+    if len(common_clean) < n_quantiles:
+        return {"q1": [], "spread": [], "cum_pnl": []}
+
+    fv = fv.loc[common_clean]
+    ret = ret.loc[common_clean]
+    labels = [f"q{i+1}" for i in range(n_quantiles)]
+    quantiles = pd.qcut(fv, n_quantiles, labels=labels, duplicates="drop")
+    result: Dict[str, List[float]] = {}
+    for q in labels:
+        mask = quantiles == q
+        if mask.any():
+            result[q] = ret[mask].values.tolist()
+        else:
+            result[q] = []
+
+    if result[labels[0]] and result[labels[-1]]:
+        top = np.mean(result[labels[-1]])
+        bottom = np.mean(result[labels[0]])
+        result["spread"] = [top - bottom]
+    else:
+        result["spread"] = []
+
+    result["cum_pnl"] = [(np.mean(r) if r else 0.0) for r in result.values() if r]
+    return result
+
+
+def ic_decay(
+    factor_values: Series, forward_returns: DataFrame, periods: List[int] = None
+) -> List[float]:
+    """IC decay over multiple forward periods."""
+    if periods is None:
+        periods = [1, 5, 10, 20]
+    decay = []
+    for p in periods:
+        col = f"ret_{p}d" if f"ret_{p}d" in forward_returns.columns else forward_returns.columns[0]
+        fwd = forward_returns[col] if col in forward_returns.columns else forward_returns.iloc[:, 0]
+        decay.append(compute_ic(factor_values, fwd))
+    return decay
+
+
+def winsorize(series: Series, limits: Tuple[float, float] = (0.01, 0.99)) -> Series:
+    """Winsorize (clamp) extreme values at percentile limits."""
+    lower = series.quantile(limits[0])
+    upper = series.quantile(limits[1])
+    return series.clip(lower, upper)
+
+
+def neutralize(
+    factor: Series, industry: Series, market_cap: Series
+) -> Series:
+    """Industry + market-cap neutralization via OLS residuals.
+
+    Regresses factor ~ industry_dummies + log(market_cap), returns residuals."""
+    import statsmodels.api as sm
+    common = factor.dropna().index.intersection(industry.dropna().index).intersection(market_cap.dropna().index)
+    if len(common) < 10:
+        return factor
+
+    df = DataFrame({
+        "factor": factor.loc[common],
+        "industry": industry.loc[common].astype(str),
+        "log_mcap": np.log(market_cap.loc[common].replace(0, np.nan)).fillna(0),
+    })
+    industry_dummies = pd.get_dummies(df["industry"], drop_first=True).astype(float)
+    X = sm.add_constant(industry_dummies)
+    X["log_mcap"] = df["log_mcap"].values
+    X = X.replace([np.inf, -np.inf], np.nan).fillna(0)
+    model = sm.OLS(df["factor"].values, X.values).fit()
+    residuals = model.resid
+    result = Series(residuals, index=common)
+    return result.reindex(factor.index).fillna(0.0)
+
+
+def standardize(series: Series) -> Series:
+    """Z-score standardization: (x - mean) / std."""
+    mu = series.mean()
+    sigma = series.std()
+    if sigma == 0:
+        return series - mu
+    return (series - mu) / sigma

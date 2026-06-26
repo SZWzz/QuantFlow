@@ -109,4 +109,25 @@ func RegisterAll(r *workflow.NodeRegistry) {
 
 	// Satellite: NASA POWER solar/wind + FIRMS wildfire
 	r.RegisterWithCategory("satellite", NewSatelliteNode, "alternative_data")
+
+	// easy-tdx integration: 19 indicator nodes
+	r.RegisterWithCategory("indicator_kdj", NewIndicatorKDJNode, "indicators")
+	r.RegisterWithCategory("indicator_dmi", NewIndicatorDMINode, "indicators")
+	r.RegisterWithCategory("indicator_atr", NewIndicatorATRNode, "indicators")
+	r.RegisterWithCategory("indicator_wr", NewIndicatorWRNode, "indicators")
+	r.RegisterWithCategory("indicator_cci", NewIndicatorCCINode, "indicators")
+	r.RegisterWithCategory("indicator_bias", NewIndicatorBIASNode, "indicators")
+	r.RegisterWithCategory("indicator_bias_signal", NewIndicatorBIASSignalNode, "indicators")
+	r.RegisterWithCategory("indicator_obv", NewIndicatorOBVNode, "indicators")
+	r.RegisterWithCategory("indicator_mfi", NewIndicatorMFINode, "indicators")
+	r.RegisterWithCategory("indicator_sar", NewIndicatorSARNode, "indicators")
+	r.RegisterWithCategory("indicator_vwap", NewIndicatorVWAPNode, "indicators")
+	r.RegisterWithCategory("indicator_zhuoyao", NewIndicatorZhuoyaoNode, "indicators")
+	r.RegisterWithCategory("indicator_aroon", NewIndicatorAroonNode, "indicators")
+	r.RegisterWithCategory("indicator_asi", NewIndicatorASINode, "indicators")
+	r.RegisterWithCategory("indicator_brar", NewIndicatorBRARNode, "indicators")
+	r.RegisterWithCategory("indicator_mass", NewIndicatorMASSNode, "indicators")
+	r.RegisterWithCategory("indicator_psy", NewIndicatorPSYNode, "indicators")
+	r.RegisterWithCategory("indicator_roc", NewIndicatorROCNode, "indicators")
+	r.RegisterWithCategory("indicator_bbi", NewIndicatorBBINode, "indicators")
 }
