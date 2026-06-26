@@ -26,7 +26,7 @@ func (m *mockAdapter) FetchQuote(ctx context.Context, symbol string) (*QuoteSnap
 	return m.quoteResult, m.quoteErr
 }
 
-func (m *mockAdapter) FetchOHLCV(ctx context.Context, symbol, interval string, start, end int64) ([]OHLCVBar, error) {
+func (m *mockAdapter) FetchOHLCV(ctx context.Context, symbol, interval, _ string, start, end int64) ([]OHLCVBar, error) {
 	return nil, nil
 }
 

@@ -149,7 +149,7 @@ func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, sy
 		}
 
 		bars, err := RetryWithBudget(
-			func() ([]OHLCVBar, error) { return adapter.FetchOHLCV(ctx, symbol, interval, start, end) },
+			func() ([]OHLCVBar, error) { return adapter.FetchOHLCV(ctx, symbol, interval, "", start, end) },
 			DefaultRetryConfig(name),
 		)
 		if err != nil {

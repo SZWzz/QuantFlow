@@ -72,7 +72,7 @@ func (a *SinaAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Qu
 	return parseSinaQuote(symbol, bodyStr)
 }
 
-func (a *SinaAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *SinaAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	// Sina doesn't have a public OHLCV endpoint. Use Tencent K-line via AkShare adapter instead.
 	return nil, fmt.Errorf("sina: OHLCV not supported (real-time quotes only, use akshare or yahoo for historical data)")
 }

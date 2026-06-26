@@ -91,7 +91,7 @@ func (a *GateIOAdapter) FetchQuote(ctx context.Context, symbol string) (*market.
 }
 
 // FetchOHLCV fetches OHLCV bars from Gate.io candlestick endpoint.
-func (a *GateIOAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *GateIOAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	pair := toGateIOPair(symbol)
 	gateInterval := toGateIOInterval(interval)
 

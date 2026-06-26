@@ -12,14 +12,14 @@ func TestFetchOHLCV_NoFreeOHLCV_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("sina", func(t *testing.T) {
-		_, err := NewSinaAdapter().FetchOHLCV(ctx, "600519", "1d", 0, 0)
+		_, err := NewSinaAdapter().FetchOHLCV(ctx, "600519", "1d", "", 0, 0)
 		if err == nil {
 			t.Error("sina: FetchOHLCV should return an error (real-time quotes only, no free OHLCV API)")
 		}
 	})
 
 	t.Run("akshare", func(t *testing.T) {
-		_, err := NewAKShareAdapter().FetchOHLCV(ctx, "600519", "1d", 0, 0)
+		_, err := NewAKShareAdapter().FetchOHLCV(ctx, "600519", "1d", "", 0, 0)
 		if err == nil {
 			t.Error("akshare: FetchOHLCV should return an error (Tencent quote API only, no direct OHLCV)")
 		}
@@ -32,14 +32,14 @@ func TestFetchOHLCV_ReturnsErrorWhenNotSupported(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("coingecko", func(t *testing.T) {
-		_, err := NewCoinGeckoAdapter().FetchOHLCV(ctx, "BTCUSDT", "1d", 0, 0)
+		_, err := NewCoinGeckoAdapter().FetchOHLCV(ctx, "BTCUSDT", "1d", "", 0, 0)
 		if err == nil {
 			t.Error("coingecko: FetchOHLCV should return an error (not supported on free tier)")
 		}
 	})
 
 	t.Run("polygon", func(t *testing.T) {
-		_, err := NewPolygonAdapter().FetchOHLCV(ctx, "AAPL", "1d", 0, 0)
+		_, err := NewPolygonAdapter().FetchOHLCV(ctx, "AAPL", "1d", "", 0, 0)
 		if err == nil {
 			t.Error("polygon: FetchOHLCV should return an error (not implemented without API key)")
 		}
@@ -52,7 +52,7 @@ func TestFetchOHLCV_KlineAdapters_DoNotPanic(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("tencent", func(t *testing.T) {
-		_, err := NewTencentAdapter().FetchOHLCV(ctx, "600519", "1D", 0, 0)
+		_, err := NewTencentAdapter().FetchOHLCV(ctx, "600519", "1D", "", 0, 0)
 		if err != nil {
 			msg := err.Error()
 			if contains(msg, "not supported") || contains(msg, "real-time quotes only") {
@@ -62,7 +62,7 @@ func TestFetchOHLCV_KlineAdapters_DoNotPanic(t *testing.T) {
 	})
 
 	t.Run("baidu", func(t *testing.T) {
-		_, err := NewBaiduAdapter().FetchOHLCV(ctx, "600519", "1D", 0, 0)
+		_, err := NewBaiduAdapter().FetchOHLCV(ctx, "600519", "1D", "", 0, 0)
 		if err != nil {
 			msg := err.Error()
 			if contains(msg, "not supported") || contains(msg, "quote API only") {
@@ -73,7 +73,7 @@ func TestFetchOHLCV_KlineAdapters_DoNotPanic(t *testing.T) {
 
 	t.Run("mootdx", func(t *testing.T) {
 		// mootdx requires Python sidecar — without bridge, it returns error
-		_, err := NewMootdxAdapter(nil).FetchOHLCV(ctx, "600519", "1D", 0, 0)
+		_, err := NewMootdxAdapter(nil).FetchOHLCV(ctx, "600519", "1D", "", 0, 0)
 		if err != nil {
 			msg := err.Error()
 			if contains(msg, "not supported") {

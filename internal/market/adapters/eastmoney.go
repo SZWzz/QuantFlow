@@ -109,7 +109,7 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 	}, nil
 }
 
-func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	secid := toEastMoneySecID(symbol)
 
 	// Map interval to EastMoney klt code

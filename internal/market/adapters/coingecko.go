@@ -73,7 +73,7 @@ func (a *CoinGeckoAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 	}, nil
 }
 
-func (a *CoinGeckoAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *CoinGeckoAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	// CoinGecko free tier doesn't support OHLCV via simple API
 	return nil, fmt.Errorf("coingecko: OHLCV not supported on free tier")
 }

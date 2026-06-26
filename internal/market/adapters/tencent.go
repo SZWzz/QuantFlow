@@ -70,7 +70,7 @@ var tencentIntervalMap = map[string]string{
 	"1M": "month",
 }
 
-func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	period, ok := tencentIntervalMap[strings.ToUpper(interval)]
 	if !ok {
 		return nil, fmt.Errorf("tencent: unsupported interval %s (supported: 1D, 1W, 1M)", interval)

@@ -85,9 +85,17 @@ func (a *MootdxAdapter) FetchQuote(ctx context.Context, symbol string) (*market.
 
 // ── OHLCV ──────────────────────────────────────────────────────────────────────
 
-func (a *MootdxAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *MootdxAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, fqfactor string, start, end int64) ([]market.OHLCVBar, error) {
 	if a.dataClient == nil {
 		return nil, fmt.Errorf("mootdx: Python sidecar not connected")
+	}
+
+	params := map[string]string{"interval": interval}
+	if fqfactor != "" {
+		if fqfactor != "qfq" && fqfactor != "hfq" {
+			return nil, fmt.Errorf("mootdx: invalid fqfactor %q, must be one of: \"\" (不复权), \"qfq\" (前复权), \"hfq\" (后复权)", fqfactor)
+		}
+		params["fqfactor"] = fqfactor
 	}
 
 	resp, err := a.dataClient.FetchData(ctx, &pb.FetchDataRequest{
@@ -96,7 +104,7 @@ func (a *MootdxAdapter) FetchOHLCV(ctx context.Context, symbol string, interval 
 		Symbols:   []string{symbol},
 		StartDate: time.Unix(start, 0).Format("2006-01-02"),
 		EndDate:   time.Unix(end, 0).Format("2006-01-02"),
-		Params:    map[string]string{"interval": interval},
+		Params:    params,
 	})
 	if err != nil {
 		return nil, err

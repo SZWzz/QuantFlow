@@ -79,7 +79,7 @@ func (a *BaiduAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Q
 
 // ── K-line ─────────────────────────────────────────────────────────────────────
 
-func (a *BaiduAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *BaiduAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	if strings.ToUpper(interval) != "1D" {
 		return nil, fmt.Errorf("baidu: only 1D interval supported, got %s", interval)
 	}

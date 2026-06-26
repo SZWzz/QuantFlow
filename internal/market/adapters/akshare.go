@@ -71,7 +71,7 @@ func (a *AKShareAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 	return parseTencentQuote(symbol, string(body))
 }
 
-func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	code := toTencentCode(symbol)
 	// Determine period: day/week/month
 	period := "day"

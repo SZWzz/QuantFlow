@@ -57,7 +57,7 @@ func TestMootdxAdapter_FetchQuote_NoBridge(t *testing.T) {
 
 func TestMootdxAdapter_FetchOHLCV_NoBridge(t *testing.T) {
 	a := NewMootdxAdapter(nil)
-	_, err := a.FetchOHLCV(context.Background(), "600519", "1D", 0, 0)
+	_, err := a.FetchOHLCV(context.Background(), "600519", "1D", "", 0, 0)
 	if err == nil {
 		t.Error("FetchOHLCV should return error without Python bridge")
 	}

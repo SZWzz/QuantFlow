@@ -33,7 +33,7 @@ func (a *PolygonAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 	return nil, fmt.Errorf("polygon: not implemented (requires POLYGON_API_KEY)")
 }
 
-func (a *PolygonAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *PolygonAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	if a.apiKey == "" {
 		return nil, fmt.Errorf("polygon: POLYGON_API_KEY not set")
 	}

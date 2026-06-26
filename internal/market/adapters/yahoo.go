@@ -121,7 +121,7 @@ func (a *YahooAdapter) setHeaders(req *http.Request) {
 
 // FetchQuote builds a quote from recent OHLCV data.
 func (a *YahooAdapter) FetchQuote(ctx context.Context, symbol string) (*market.QuoteSnapshot, error) {
-	bars, err := a.FetchOHLCV(ctx, symbol, "1d", time.Now().AddDate(0, 0, -5).Unix(), time.Now().Unix())
+	bars, err := a.FetchOHLCV(ctx, symbol, "1d", "", time.Now().AddDate(0, 0, -5).Unix(), time.Now().Unix())
 	if err != nil {
 		return nil, fmt.Errorf("yahoo: %w", err)
 	}
@@ -151,7 +151,7 @@ func (a *YahooAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Q
 }
 
 // FetchOHLCV fetches OHLCV bars from Yahoo Finance v8 chart API.
-func (a *YahooAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *YahooAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	// Normalize symbol for Yahoo: Yahoo uses .HK suffix for Hong Kong stocks.
 	// If symbol is a 5-digit HK code (e.g., "00700"), convert to "0700.HK".
 	yahooSymbol := normalizeYahooSymbol(symbol)

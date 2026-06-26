@@ -24,7 +24,9 @@ type Adapter interface {
 
 	// FetchOHLCV fetches OHLCV bars for a symbol within a date range.
 	// start and end are Unix timestamps in seconds.
-	FetchOHLCV(ctx context.Context, symbol, interval string, start, end int64) ([]OHLCVBar, error)
+	// fqfactor controls price adjustment (复权): "" (不复权), "qfq" (前复权), "hfq" (后复权).
+	// Only applicable to CN-market adapters (mootdx); other adapters should pass "".
+	FetchOHLCV(ctx context.Context, symbol, interval, fqfactor string, start, end int64) ([]OHLCVBar, error)
 
 	// HealthCheck checks if the adapter is operational.
 	HealthCheck(ctx context.Context) error

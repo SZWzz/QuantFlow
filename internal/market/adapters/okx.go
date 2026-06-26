@@ -83,7 +83,7 @@ func (a *OKXAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Quo
 	}, nil
 }
 
-func (a *OKXAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *OKXAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	instID := toOKXInstID(symbol)
 	// OKX candles API uses Unix millisecond timestamps for after/before.
 	url := fmt.Sprintf("https://www.okx.com/api/v5/market/candles?instId=%s&bar=%s&limit=100&after=%d000&before=%d000",

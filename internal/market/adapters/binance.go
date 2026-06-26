@@ -102,7 +102,7 @@ func (a *BinanceAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 	}, nil
 }
 
-func (a *BinanceAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *BinanceAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	// Map interval to Binance format
 	binanceInterval := interval
 	switch interval {

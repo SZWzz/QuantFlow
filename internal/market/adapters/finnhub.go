@@ -115,7 +115,7 @@ func (a *FinnhubAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 }
 
 // FetchOHLCV fetches historical OHLCV from Finnhub's stock/candle endpoint.
-func (a *FinnhubAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *FinnhubAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	if a.apiKey == "" {
 		return nil, fmt.Errorf("finnhub: API key not configured (set FINNHUB_API_KEY)")
 	}

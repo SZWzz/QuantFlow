@@ -48,7 +48,7 @@ func TestMootdxAdapter_WithBridge(t *testing.T) {
 	now := time.Now()
 	end := now.Unix()
 	start := now.AddDate(0, 0, -10).Unix()
-	bars, err := adapter.FetchOHLCV(ctx, "600519", "1D", start, end)
+	bars, err := adapter.FetchOHLCV(ctx, "600519", "1D", "", start, end)
 	if err != nil {
 		t.Fatalf("mootdx FetchOHLCV(600519) error: %v", err)
 	}

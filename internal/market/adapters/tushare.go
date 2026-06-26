@@ -77,7 +77,7 @@ func (a *TuShareAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 	}, nil
 }
 
-func (a *TuShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *TuShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	if a.token == "" {
 		return nil, fmt.Errorf("tushare: TUSHARE_TOKEN not set")
 	}
