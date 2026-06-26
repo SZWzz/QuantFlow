@@ -49,7 +49,11 @@ func (mc *MinuteCache) GetIncremental(symbol string, since int64) ([]MinuteTick,
 	if since == 0 {
 		date = time.Now().Format("2006-01-02")
 	} else {
-		date = time.Unix(since, 0).UTC().Format("2006-01-02")
+		loc, err := time.LoadLocation("Asia/Shanghai")
+		if err != nil {
+			loc = time.FixedZone("CST", 8 * 3600)
+		}
+		date = time.Unix(since, 0).In(loc).Format("2006-01-02")
 	}
 	key := symbol + ":" + date
 
@@ -190,7 +194,11 @@ func filterSince(ticks []MinuteTick, since int64) []MinuteTick {
 	if since == 0 || len(ticks) == 0 {
 		return ticks
 	}
-	ref := time.Unix(since, 0).UTC().Format("15:04")
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		loc = time.FixedZone("CST", 8 * 3600)
+	}
+	ref := time.Unix(since, 0).In(loc).Format("15:04")
 	for i := len(ticks) - 1; i >= 0; i-- {
 		if strings.Compare(ticks[i].Time, ref) <= 0 {
 			return ticks[i+1:]

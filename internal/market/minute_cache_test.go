@@ -136,7 +136,7 @@ func TestMinuteCache_LRUFull(t *testing.T) {
 }
 
 func parseTimeToUnix(date, timeStr string) int64 {
-	// Helper for test — parse "2026-06-26 09:31" to Unix timestamp
-	t, _ := time.Parse("2006-01-02 15:04", date+" "+timeStr)
+	loc, _ := time.LoadLocation("Asia/Shanghai")
+	t, _ := time.ParseInLocation("2006-01-02 15:04", date+" "+timeStr, loc)
 	return t.Unix()
 }
