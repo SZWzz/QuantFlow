@@ -24,6 +24,7 @@ register('market-depth', () => import('./MarketDepthPanel.vue'), { label: '市�
 register('heatmap', () => import('./HeatmapPanel.vue'), { label: '板块热力图', category: '市场行情', description: '行业板块涨跌热力' })
 register('ticker-tape', () => import('./TickerTapePanel.vue'), { label: '滚动报价条', category: '市场行情', description: '滚动实时行情' })
 register('crypto-overview', () => import('./CryptoOverviewPanel.vue'), { label: '加密货币概览', category: '市场行情', description: '主流加密货币行情' })
+register('abnormal-stocks', () => import('./AbnormalStocksPanel.vue'), { label: '异动监控', category: '市场行情', description: '全市场异动股票实时监控' })
 
 // ── 交易执行 ──
 register('order-entry', () => import('./OrderEntryPanel.vue'), { label: '下单面板', category: '交易执行', description: '买入/卖出下单' })

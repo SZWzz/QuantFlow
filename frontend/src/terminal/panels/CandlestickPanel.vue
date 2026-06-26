@@ -57,7 +57,22 @@ const ohlcvData = ref<(string | number)[][]>([])
 const loading = ref(false)
 
 // Tab state
-const activeTab = ref<'kline' | 'minute'>('kline')
+const activeTab = ref<'kline' | 'minute' | 'multiDay'>('kline')
+
+// Multi-day minute data
+interface DayMinute {
+  date: string
+  ticks: MinuteTick[]
+  prevClose: number
+}
+const multiDayData = ref<DayMinute[]>([])
+const multiDayLoading = ref(false)
+const selectedDayIndex = ref(0)
+
+const selectedDayDate = computed(() => {
+  if (multiDayData.value.length === 0) return ''
+  return multiDayData.value[selectedDayIndex.value]?.date || ''
+})
 
 // Minute chart data
 interface MinuteTick {
@@ -158,6 +173,32 @@ async function loadMinuteLine() {
   }
 }
 
+async function fetchMultiDayMinute() {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  multiDayLoading.value = true
+  try {
+    const result = await app.GetMultiDayMinute(symbol.value, 3)
+    const days: any[] = Array.isArray(result) ? result : (result ? [result] : [])
+    multiDayData.value = days.map((d: any) => ({
+      date: d.date || '',
+      ticks: (d.ticks || []).map((t: any) => ({
+        time: t.time || '',
+        price: t.price || 0,
+        volume: t.volume || 0,
+        avg_price: t.avg_price || 0,
+      })),
+      prevClose: d.prev_close || d.prevClose || (d.ticks?.[0]?.price || 0),
+    }))
+    selectedDayIndex.value = 0
+  } catch(e) {
+    console.error('[Candlestick] multi-day minute:', e)
+    multiDayData.value = []
+  } finally {
+    multiDayLoading.value = false
+  }
+}
+
 function startMinutePolling() {
   stopMinutePolling()
   // Always load once so the user can see today's chart, even after close.
@@ -203,6 +244,8 @@ watch(interval, () => {
 watch(activeTab, (tab) => {
   if (tab === 'minute') {
     startMinutePolling()
+  } else if (tab === 'multiDay') {
+    fetchMultiDayMinute()
   } else {
     stopMinutePolling()
   }
@@ -368,6 +411,90 @@ const minuteChartOption = computed(() => {
   }
 })
 
+const multiDayChartOption = computed(() => {
+  const day = multiDayData.value[selectedDayIndex.value]
+  if (!day || !day.ticks.length) return {}
+  const ticks = day.ticks
+  const times = ticks.map(t => t.time)
+  const prices = ticks.map(t => t.price)
+  const volumes = ticks.map(t => t.volume)
+  const isUp = prices.length > 0 && prices[prices.length - 1] >= day.prevClose
+  const lineColor = isUp ? upColor() : downColor()
+
+  return {
+    animation: false,
+    animationDurationUpdate: 0,
+    animationEasingUpdate: 'linear',
+    backgroundColor: 'transparent',
+    grid: [
+      { left: 60, right: 20, top: 10, height: '62%' },
+      { left: 60, right: 20, top: '78%', height: '15%' },
+    ],
+    xAxis: [
+      {
+        type: 'category', data: times, gridIndex: 0,
+        axisLabel: { show: false },
+        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+        axisTick: { show: false },
+      },
+      {
+        type: 'category', data: times, gridIndex: 1,
+        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, interval: 30 },
+        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+      },
+    ],
+    yAxis: [
+      {
+        type: 'value', gridIndex: 0, position: 'left',
+        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
+        splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+        min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
+        max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
+      },
+      {
+        type: 'value', gridIndex: 1, position: 'left',
+        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
+        splitLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        type: 'line', name: '价格', data: prices,
+        xAxisIndex: 0, yAxisIndex: 0,
+        smooth: false, symbol: 'none',
+        lineStyle: { color: lineColor, width: 1.5 },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: isUp ? upColor() + '40' : downColor() + '40' },
+              { offset: 1, color: 'rgba(0,0,0,0)' }
+            ]
+          }
+        },
+        markLine: day.prevClose > 0 ? {
+          silent: true, symbol: 'none',
+          lineStyle: { color: 'var(--color-text-tertiary)', type: 'dashed', width: 1 },
+          data: [{ yAxis: day.prevClose, label: { formatter: `昨收 ${day.prevClose.toFixed(2)}`, color: 'var(--color-text-tertiary)', fontSize: 10 } }],
+        } : undefined,
+      },
+      {
+        type: 'line', name: '均价', data: ticks.map(t => t.avg_price),
+        xAxisIndex: 0, yAxisIndex: 0,
+        smooth: true, symbol: 'none',
+        lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' },
+      },
+      {
+        type: 'bar', name: '成交量', data: volumes,
+        xAxisIndex: 1, yAxisIndex: 1,
+        itemStyle: { color: 'var(--color-border-strong)' },
+        barWidth: 1,
+      },
+    ],
+    tooltip: { trigger: 'axis' },
+  }
+})
+
 onMounted(() => {
   const groupSym = ctx.getGroupSymbol(pg.groupId)
   if (groupSym && groupSym !== symbol.value) {
@@ -395,6 +522,7 @@ onUnmounted(() => {
         <div class="tab-btns">
           <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">{{ $t('kline.kline') }}</button>
           <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">{{ $t('kline.minute') }}</button>
+          <button :class="{ active: activeTab === 'multiDay' }" class="tab-btn" @click="activeTab = 'multiDay'">{{ $t('kline.multi_day_minute') }}</button>
         </div>
       </div>
       <div v-if="activeTab === 'kline'" class="interval-btns">
@@ -404,7 +532,18 @@ onUnmounted(() => {
       </div>
     </div>
     <div class="chart-body">
-      <div v-if="loading || minuteLoading" class="chart-fallback">{{ $t('common.loading') }}</div>
+      <div v-if="loading || minuteLoading || multiDayLoading" class="chart-fallback">{{ $t('common.loading') }}</div>
+      <template v-else-if="activeTab === 'multiDay'">
+        <div v-if="multiDayData.length === 0" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
+        <div v-else class="multi-day-chart-wrapper">
+          <div class="day-selector">
+            <select v-model="selectedDayIndex" class="day-select">
+              <option v-for="(d, i) in multiDayData" :key="i" :value="i">{{ d.date }}</option>
+            </select>
+          </div>
+          <VChart :key="`multi-${symbol}-${selectedDayDate}`" :option="multiDayChartOption" autoresize class="minute-chart" />
+        </div>
+      </template>
       <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="symbol" :option="option" autoresize class="kline-chart" />
       <VChart v-else-if="hasEcharts && activeTab === 'minute'" :option="minuteChartOption" :update-options="{ notMerge: false }" autoresize class="minute-chart" />
       <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
@@ -452,4 +591,18 @@ onUnmounted(() => {
 .minute-chart { width: 100%; height: 100%; }
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 .no-data { color: var(--color-text-tertiary); padding: 40px; text-align: center; }
+
+/* Multi-Day Minute */
+.multi-day-chart-wrapper {
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+}
+.day-selector {
+  display: flex; justify-content: flex-end; padding: 4px 0; margin-bottom: 4px;
+}
+.day-select {
+  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 12px;
+  cursor: pointer;
+}
+.minute-chart { width: 100%; flex: 1; }
 </style>

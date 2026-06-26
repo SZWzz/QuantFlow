@@ -14,6 +14,17 @@ const refreshInterval = ref(15)
 const countdown = ref(refreshInterval.value)
 let timer: ReturnType<typeof setInterval> | null = null
 
+// Block rank data
+interface BlockRankItem {
+  symbol: string
+  name: string
+  price: number
+  volume: number
+  amount: number
+}
+const blockRank = ref<BlockRankItem[]>([])
+const blockRankLoading = ref(false)
+
 const indices = computed(() => dataStore.marketOverview?.indices ?? [])
 const breadth = computed(() => dataStore.marketOverview?.breadth ?? { advancers: 0, decliners: 0, unchanged: 0 })
 const sectors = computed(() => dataStore.marketOverview?.sectors ?? [])
@@ -26,6 +37,29 @@ const topLosers = computed(() => [...sectors.value].sort((a, b) => a.changePct -
 function refresh() {
   dataStore.fetchMarketOverview(activeMarket.value)
   countdown.value = refreshInterval.value
+  fetchBlockRank()
+}
+
+async function fetchBlockRank() {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  blockRankLoading.value = true
+  try {
+    const result = await app.GetBlockRank(1, 0, 10)
+    const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
+    blockRank.value = items.map((i: any) => ({
+      symbol: i.symbol || '',
+      name: i.name || '',
+      price: i.price || 0,
+      volume: i.volume || 0,
+      amount: i.amount || 0,
+    }))
+  } catch(e) {
+    console.error('[MarketOverview] block rank:', e)
+    blockRank.value = []
+  } finally {
+    blockRankLoading.value = false
+  }
 }
 function switchMarket(mkt: typeof activeMarket.value) {
   activeMarket.value = mkt
@@ -66,6 +100,17 @@ function changeColor(pct: number): string {
 
 function formatPct(pct: number): string {
   return (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%'
+}
+
+function formatVolume(v: number): string {
+  if (v >= 1e8) return (v / 1e8).toFixed(2) + '亿'
+  if (v >= 1e4) return (v / 1e4).toFixed(1) + '万'
+  return String(v)
+}
+function formatAmount(a: number): string {
+  if (a >= 1e8) return (a / 1e8).toFixed(2) + '亿'
+  if (a >= 1e4) return (a / 1e4).toFixed(1) + '万'
+  return a.toFixed(0)
 }
 
 onMounted(() => {
@@ -159,6 +204,29 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Section D: Block Rank -->
+    <div class="block-rank-section">
+      <div class="block-rank-label">{{ $t('misc.block_rank') }}</div>
+      <div v-if="blockRankLoading" class="block-loading">{{ $t('common.loading') }}</div>
+      <div v-else-if="blockRank.length === 0" class="block-empty">{{ $t('common.no_data') }}</div>
+      <div v-else class="block-rank-table">
+        <div class="br-header-row">
+          <span class="br-col symbol-col">{{ $t('common.symbol') }}</span>
+          <span class="br-col name-col">{{ $t('common.name') }}</span>
+          <span class="br-col price-col">{{ $t('common.price') }}</span>
+          <span class="br-col vol-col">{{ $t('common.volume') }}</span>
+          <span class="br-col amt-col">{{ $t('common.amount') }}</span>
+        </div>
+        <div v-for="(item, idx) in blockRank" :key="idx" class="br-row">
+          <span class="br-col symbol-col">{{ item.symbol }}</span>
+          <span class="br-col name-col">{{ item.name }}</span>
+          <span class="br-col price-col">{{ item.price.toFixed(2) }}</span>
+          <span class="br-col vol-col">{{ formatVolume(item.volume) }}</span>
+          <span class="br-col amt-col">{{ formatAmount(item.amount) }}</span>
+        </div>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading-overlay">{{ $t('common.loading') }}</div>
   </div>
 </template>
@@ -246,4 +314,31 @@ onUnmounted(() => {
   display: flex; align-items: center; justify-content: center;
   background: rgba(17, 24, 39, 0.7); font-size: 14px; color: var(--color-text-tertiary);
 }
+
+/* Block Rank */
+.block-rank-section {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border-strong);
+  flex-shrink: 0;
+}
+.block-rank-label {
+  font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; font-weight: 600;
+}
+.block-loading, .block-empty {
+  font-size: 11px; color: var(--color-text-tertiary); padding: 8px 0; text-align: center;
+}
+.block-rank-table { font-size: 11px; font-variant-numeric: tabular-nums; }
+.br-header-row {
+  display: flex; padding: 2px 0; border-bottom: 1px solid var(--color-border-strong);
+  color: var(--color-text-tertiary); font-size: 10px;
+}
+.br-row {
+  display: flex; padding: 1px 0;
+}
+.br-row:nth-child(odd) { background: rgba(255,255,255,0.02); }
+.br-col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.symbol-col { width: 70px; }
+.name-col { flex: 1; min-width: 0; }
+.price-col { width: 70px; text-align: right; }
+.vol-col { width: 70px; text-align: right; }
+.amt-col { width: 80px; text-align: right; }
 </style>

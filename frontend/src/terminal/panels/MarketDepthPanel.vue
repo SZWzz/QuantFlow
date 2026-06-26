@@ -16,6 +16,17 @@ const bidLevels = ref<{ price: number; size: number }[]>([])
 const askLevels = ref<{ price: number; size: number }[]>([])
 const trades = ref<{ time: string; price: number; volume: number; side: 'B' | 'S' }[]>([])
 const isSimulated = ref(true) // A-share no free L2; show simulated from bid/ask
+const activeTab = ref<'depth' | 'auction'>('depth')
+
+// Auction data
+interface AuctionItem {
+  time: string
+  price: number
+  matched: number
+  unmatched: number
+}
+const auctionItems = ref<AuctionItem[]>([])
+const auctionLoading = ref(false)
 
 const maxSize = computed(() => {
   const all = [...bidLevels.value, ...askLevels.value]
@@ -67,12 +78,40 @@ async function refresh() {
   }
 }
 
+async function fetchAuction() {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  auctionLoading.value = true
+  try {
+    const result = await app.GetAuction(symbol.value)
+    const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
+    auctionItems.value = items.map((i: any) => ({
+      time: i.time || '',
+      price: i.price || 0,
+      matched: i.matched || 0,
+      unmatched: i.unmatched || 0,
+    }))
+  } catch(e) {
+    console.error('[MarketDepth] auction:', e)
+    auctionItems.value = []
+  } finally {
+    auctionLoading.value = false
+  }
+}
+
 function handleSymbolSubmit(e: Event) {
   const input = e.target as HTMLInputElement
   symbol.value = input.value.trim().toUpperCase()
   input.blur()
   refresh()
 }
+
+// Watch tab switch
+watch(activeTab, (tab) => {
+  if (tab === 'auction') {
+    fetchAuction()
+  }
+})
 
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   if (pg.linked && newSym && newSym !== symbol.value) {
@@ -88,6 +127,10 @@ onMounted(refresh)
   <div class="market-depth-panel">
     <div class="panel-header">
       <h3>{{ $t('misc.depth') }}</h3>
+      <div class="tab-btns">
+        <button :class="{ active: activeTab === 'depth' }" class="tab-btn" @click="activeTab = 'depth'">{{ $t('misc.depth') }}</button>
+        <button :class="{ active: activeTab === 'auction' }" class="tab-btn" @click="activeTab = 'auction'">{{ $t('misc.auction') }}</button>
+      </div>
       <div class="header-controls">
         <input
           class="symbol-input"
@@ -99,6 +142,8 @@ onMounted(refresh)
       </div>
     </div>
 
+    <!-- Tab: Depth -->
+    <template v-if="activeTab === 'depth'">
     <div class="last-price-row">
       <span class="price-label">{{ name || symbol }}</span>
       <span class="price-value" :style="{ color: marketChangeColor(symbol, changePct) }">
@@ -164,6 +209,29 @@ onMounted(refresh)
         </div>
       </div>
     </div>
+    </template>
+
+    <!-- Tab: Auction -->
+    <template v-if="activeTab === 'auction'">
+      <div v-if="auctionLoading" class="auction-loading">{{ $t('common.loading') }}</div>
+      <div v-else-if="auctionItems.length === 0" class="auction-empty">{{ $t('common.no_data') }}</div>
+      <div v-else class="auction-table-wrapper">
+        <div class="auction-header-row">
+          <span class="ac-col time-col">{{ $t('misc.auction_time') }}</span>
+          <span class="ac-col price-col">{{ $t('common.price') }}</span>
+          <span class="ac-col size-col">{{ $t('misc.matched') }}</span>
+          <span class="ac-col size-col">{{ $t('misc.unmatched') }}</span>
+        </div>
+        <div class="auction-rows">
+          <div v-for="(item, idx) in auctionItems" :key="idx" class="auction-row">
+            <span class="ac-col time-col">{{ item.time }}</span>
+            <span class="ac-col price-col" :style="{ color: item.price > 0 ? marketChangeColor(symbol, 1) : '' }">{{ item.price.toFixed(2) }}</span>
+            <span class="ac-col size-col">{{ formatSize(item.matched) }}</span>
+            <span class="ac-col size-col">{{ formatSize(item.unmatched) }}</span>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -237,4 +305,30 @@ onMounted(refresh)
 .trade-side { width: 24px; text-align: center; font-weight: 600; font-size: 10px; }
 .side-buy { color: #ef4444; }
 .side-sell { color: #22c55e; }
+
+/* Tabs */
+.tab-btns { display: flex; gap: 4px; }
+.tab-btn {
+  padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
+}
+.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: #534ab7; }
+
+/* Auction */
+.auction-loading, .auction-empty {
+  display: flex; align-items: center; justify-content: center; flex: 1;
+  color: var(--color-text-tertiary); font-size: 13px;
+}
+.auction-table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.auction-header-row {
+  display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);
+  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;
+}
+.auction-rows { flex: 1; overflow-y: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
+.auction-row { display: flex; padding: 2px 0; }
+.auction-row:hover { background: var(--color-bg-elevated); }
+.ac-col { display: flex; align-items: center; }
+.time-col { width: 70px; }
+.price-col { width: 80px; }
+.size-col { width: 70px; text-align: right; justify-content: flex-end; }
 </style>

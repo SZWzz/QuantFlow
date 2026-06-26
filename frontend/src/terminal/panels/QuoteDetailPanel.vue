@@ -11,6 +11,29 @@ const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '60
 const quote = ref<any>(null)
 const loading = ref(false)
 
+// Capital flow
+interface CapitalFlowData {
+  main_flow: number
+  super_flow: number
+  large_flow: number
+  medium_flow: number
+  small_flow: number
+}
+const capitalFlow = ref<CapitalFlowData | null>(null)
+const capitalFlowLoading = ref(false)
+
+const maxFlowAbs = computed(() => {
+  if (!capitalFlow.value) return 1
+  const vals = [
+    Math.abs(capitalFlow.value.main_flow),
+    Math.abs(capitalFlow.value.super_flow),
+    Math.abs(capitalFlow.value.large_flow),
+    Math.abs(capitalFlow.value.medium_flow),
+    Math.abs(capitalFlow.value.small_flow),
+  ]
+  return Math.max(...vals, 1)
+})
+
 async function fetchQuote(sym: string) {
   // TODO: move to store
   loading.value = true
@@ -42,6 +65,31 @@ async function fetchQuote(sym: string) {
   } finally {
     loading.value = false
   }
+  fetchCapitalFlow(sym)
+}
+
+async function fetchCapitalFlow(sym: string) {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  capitalFlowLoading.value = true
+  try {
+    const result = await app.GetMACCapitalFlow(sym)
+    const cf = Array.isArray(result) ? result[0] : result
+    if (cf) {
+      capitalFlow.value = {
+        main_flow: cf.main_flow || 0,
+        super_flow: cf.super_flow || 0,
+        large_flow: cf.large_flow || 0,
+        medium_flow: cf.medium_flow || 0,
+        small_flow: cf.small_flow || 0,
+      }
+    }
+  } catch(e) {
+    console.error('[QuoteDetail] capital flow:', e)
+    capitalFlow.value = null
+  } finally {
+    capitalFlowLoading.value = false
+  }
 }
 
 // Subscribe to symbol context via link group
@@ -72,6 +120,19 @@ function fmtVolume(n: number): string {
   if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B'
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
   return n.toLocaleString()
+}
+function fmtFlow(n: number): string {
+  if (typeof n !== 'number') return '--'
+  const sign = n >= 0 ? '+' : ''
+  const abs = Math.abs(n)
+  if (abs >= 1e8) return sign + (abs / 1e8).toFixed(2) + '亿'
+  if (abs >= 1e4) return sign + (abs / 1e4).toFixed(1) + '万'
+  return sign + n.toFixed(0)
+}
+function flowBarStyle(val: number): Record<string, string> {
+  const pct = (Math.abs(val) / maxFlowAbs.value * 100).toFixed(0)
+  const color = val >= 0 ? '#ef4444' : '#22c55e'
+  return { width: pct + '%', background: color }
 }
 </script>
 
@@ -115,6 +176,39 @@ function fmtVolume(n: number): string {
       <div class="kv-item"><span class="label">{{ $t('quote.pe') }}</span><span class="value">{{ quote.pe }}</span></div>
       <div class="kv-item"><span class="label">{{ $t('quote.eps') }}</span><span class="value">{{ quote.eps }}</span></div>
       <div class="kv-item"><span class="label">{{ $t('quote.dividend_yield') }}</span><span class="value">{{ quote.dividendYield === '--' ? '--' : quote.dividendYield + '%' }}</span></div>
+    </div>
+    <!-- Capital Flow -->
+    <div class="capital-flow-section">
+      <div class="cf-label">{{ $t('misc.capital_flow') }}</div>
+      <div v-if="capitalFlowLoading && !capitalFlow" class="cf-loading">{{ $t('common.loading') }}</div>
+      <div v-else-if="capitalFlow" class="cf-bars">
+        <div class="cf-row">
+          <span class="cf-name">{{ $t('misc.main_flow') }}</span>
+          <div class="cf-bar-track"><span class="cf-bar" :style="flowBarStyle(capitalFlow.main_flow)"></span></div>
+          <span class="cf-value" :style="{ color: capitalFlow.main_flow >= 0 ? '#ef4444' : '#22c55e' }">{{ fmtFlow(capitalFlow.main_flow) }}</span>
+        </div>
+        <div class="cf-row">
+          <span class="cf-name">{{ $t('misc.super_flow') }}</span>
+          <div class="cf-bar-track"><span class="cf-bar" :style="flowBarStyle(capitalFlow.super_flow)"></span></div>
+          <span class="cf-value" :style="{ color: capitalFlow.super_flow >= 0 ? '#ef4444' : '#22c55e' }">{{ fmtFlow(capitalFlow.super_flow) }}</span>
+        </div>
+        <div class="cf-row">
+          <span class="cf-name">{{ $t('misc.large_flow') }}</span>
+          <div class="cf-bar-track"><span class="cf-bar" :style="flowBarStyle(capitalFlow.large_flow)"></span></div>
+          <span class="cf-value" :style="{ color: capitalFlow.large_flow >= 0 ? '#ef4444' : '#22c55e' }">{{ fmtFlow(capitalFlow.large_flow) }}</span>
+        </div>
+        <div class="cf-row">
+          <span class="cf-name">{{ $t('misc.medium_flow') }}</span>
+          <div class="cf-bar-track"><span class="cf-bar" :style="flowBarStyle(capitalFlow.medium_flow)"></span></div>
+          <span class="cf-value" :style="{ color: capitalFlow.medium_flow >= 0 ? '#ef4444' : '#22c55e' }">{{ fmtFlow(capitalFlow.medium_flow) }}</span>
+        </div>
+        <div class="cf-row">
+          <span class="cf-name">{{ $t('misc.small_flow') }}</span>
+          <div class="cf-bar-track"><span class="cf-bar" :style="flowBarStyle(capitalFlow.small_flow)"></span></div>
+          <span class="cf-value" :style="{ color: capitalFlow.small_flow >= 0 ? '#ef4444' : '#22c55e' }">{{ fmtFlow(capitalFlow.small_flow) }}</span>
+        </div>
+      </div>
+      <div v-else class="cf-empty">--</div>
     </div>
     </template>
     <div v-else class="loading-state">--</div>
@@ -163,4 +257,34 @@ function fmtVolume(n: number): string {
 .side-price { font-size: var(--font-sm); color: var(--color-text-primary); }
 .spread-bar { flex: 1; height: 3px; background: var(--color-border); border-radius: 2px; }
 .spread-fill { height: 100%; background: var(--color-accent); border-radius: 2px; margin: 0 auto; }
+
+/* Capital Flow */
+.capital-flow-section {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border-strong);
+}
+.cf-label {
+  font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; font-weight: 600;
+}
+.cf-loading, .cf-empty {
+  font-size: 11px; color: var(--color-text-tertiary); padding: 4px 0;
+}
+.cf-bars { display: flex; flex-direction: column; gap: 4px; }
+.cf-row {
+  display: flex; align-items: center; gap: 6px;
+}
+.cf-name {
+  font-size: 11px; color: var(--color-text-secondary); width: 72px; text-align: right; flex-shrink: 0;
+}
+.cf-bar-track {
+  flex: 1; height: 10px; background: var(--color-bg-subtle); border-radius: 2px;
+  position: relative; overflow: hidden;
+}
+.cf-bar {
+  position: absolute; left: 50%; top: 0; height: 100%; border-radius: 2px;
+  transform: translateX(-50%);
+  min-width: 2px;
+}
+.cf-value {
+  font-size: 11px; font-variant-numeric: tabular-nums; width: 68px; text-align: right; flex-shrink: 0;
+}
 </style>
