@@ -24,20 +24,35 @@ export const useTerminalStore = defineStore('terminal', () => {
   const pushPins = ref<PushPin[]>([])
   const focusMode = ref(false)
 
-  const layout = reactive<DockLayoutTree>({
-    id: 'root',
-    type: 'tab',
-    tabs: [{ id: 'welcome', panelId: 'welcome', label: '欢迎', icon: '🏠' }],
-    activeTab: 'welcome',
-  })
+  const layout = reactive<DockLayoutTree>(loadLayout())
+
+  function loadLayout(): DockLayoutTree {
+    try {
+      const saved = localStorage.getItem('quantflow-layout')
+      if (saved) return JSON.parse(saved)
+    } catch {}
+    return {
+      id: 'root',
+      type: 'tab',
+      tabs: [{ id: 'welcome', panelId: 'welcome', label: '欢迎', icon: '🏠' }],
+      activeTab: 'welcome',
+    }
+  }
+
+  function persistLayout() {
+    try {
+      localStorage.setItem('quantflow-layout', JSON.stringify(layout))
+    } catch {}
+  }
 
   /** Replace layout object to force reactivity propagation. */
   function applyLayout(next: DockLayoutTree) {
     Object.assign(layout, next)
+    persistLayout()
   }
 
   function openPanel(panelId: string, params?: Record<string, any>) {
-    const instanceId = `${panelId}-${Date.now()}`
+    const instanceId = `${panelId}-${crypto.randomUUID().slice(0, 6)}`
     const panel: PanelState = {
       instanceId,
       panelId,
@@ -80,8 +95,29 @@ export const useTerminalStore = defineStore('terminal', () => {
     }
   }
 
-  function closeTab(_leafId: string, tabId: string) {
+  function closeTab(leafId: string, tabId: string) {
+    const leaf = findLeaf(layout, leafId)
     function removeFrom(n: DockLayoutTree): boolean {
+      if (n.id === leafId && n.type === 'tab' && n.tabs) {
+        const idx = n.tabs.findIndex(t => t.id === tabId)
+        if (idx !== -1) {
+          n.tabs.splice(idx, 1)
+          if (n.activeTab === tabId) n.activeTab = n.tabs[0]?.id ?? ''
+          if (n.tabs.length === 0) {
+            n.tabs = [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }]
+            n.activeTab = 'welcome'
+          }
+          return true
+        }
+        return false
+      }
+      if (n.children) {
+        for (const c of n.children) { if (removeFrom(c)) return true }
+      }
+      return false
+    }
+    const target = leaf || layout
+    function searchFromRoot(n: DockLayoutTree): boolean {
       if (n.type === 'tab' && n.tabs) {
         const idx = n.tabs.findIndex(t => t.id === tabId)
         if (idx !== -1) {
@@ -95,11 +131,16 @@ export const useTerminalStore = defineStore('terminal', () => {
         }
       }
       if (n.children) {
-        for (const c of n.children) { if (removeFrom(c)) return true }
+        for (const c of n.children) { if (searchFromRoot(c)) return true }
       }
       return false
     }
-    removeFrom(layout)
+    if (leaf?.type === 'tab' && leaf.tabs?.some(t => t.id === tabId)) {
+      removeFrom(layout)
+    } else {
+      searchFromRoot(layout)
+    }
+    persistLayout()
     activePanels.value = activePanels.value.filter(p => p.instanceId !== tabId)
   }
 
@@ -119,6 +160,6 @@ export const useTerminalStore = defineStore('terminal', () => {
   return {
     activePanels, commandHistory, pushPins, focusMode, layout,
     openPanel, closePanel, addCommand, toggleFocusMode,
-    selectTab, closeTab, moveTab, updateSplitRatios, applyLayout,
+    selectTab, closeTab, moveTab, updateSplitRatios, applyLayout, persistLayout,
   }
 })

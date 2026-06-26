@@ -36,5 +36,13 @@ export const useSessionStore = defineStore('session', () => {
     ui.value.theme = theme
   }
 
-  return { ui, toggleMode, setTheme }
+  function setDensity(density: 'compact' | 'default' | 'comfortable') {
+    ui.value.density = density
+  }
+
+  function setLanguage(language: 'zh' | 'en') {
+    ui.value.language = language
+  }
+
+  return { ui, toggleMode, setTheme, setDensity, setLanguage }
 })

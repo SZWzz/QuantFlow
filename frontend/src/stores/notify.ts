@@ -9,23 +9,30 @@ export const useNotifyStore = defineStore('notify', () => {
   const notifications = ref<Notification[]>([])
   const unreadCount = ref(0)
   const levelFilter = ref<string>('all')
+  const error = ref<string | null>(null)
 
   async function fetchNotifications(limit = 50, offset = 0) {
+    error.value = null
     try {
-      const result = await (window as any).go.main.App.GetNotifications(limit, offset)
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      const result = await app.GetNotifications(limit, offset)
       if (result) {
         notifications.value = result
         unreadCount.value = result.filter((n: Notification) => !n.is_read).length
       }
-    } catch (e) { console.warn('GetNotifications not available:', e) }
+    } catch (e) { error.value = String(e) }
   }
 
   async function markRead(id: number) {
+    error.value = null
     try {
-      await (window as any).go.main.App.MarkNotificationRead(id)
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      await app.MarkNotificationRead(id)
       const n = notifications.value.find(x => x.id === id)
       if (n && !n.is_read) { n.is_read = true; unreadCount.value-- }
-    } catch (e) { console.warn('MarkNotificationRead not available:', e) }
+    } catch (e) { error.value = String(e) }
   }
 
   async function markAllRead() {
@@ -38,5 +45,5 @@ export const useNotifyStore = defineStore('notify', () => {
     return notifications.value.filter(n => n.level === levelFilter.value)
   })
   function setFilter(level: string) { levelFilter.value = level }
-  return { notifications, unreadCount, levelFilter, filteredNotifications, fetchNotifications, markRead, markAllRead, setFilter }
+  return { notifications, unreadCount, levelFilter, filteredNotifications, error, fetchNotifications, markRead, markAllRead, setFilter }
 })

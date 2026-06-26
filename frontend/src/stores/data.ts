@@ -60,6 +60,7 @@ export const useDataStore = defineStore('data', () => {
   const isOffline = ref(false)
   const marketOverview = ref<MarketOverview | null>(null)
   const marketLoading = ref(false)
+  const error = ref<string | null>(null)
 
   function updateQuote(symbol: string, quote: QuoteSnapshot) {
     quotes.value.set(symbol, quote)
@@ -81,7 +82,7 @@ export const useDataStore = defineStore('data', () => {
     isOffline.value = !isOffline.value
   }
 
-  async function fetchMarketOverview() {
+  async function fetchMarketOverview(market = 'CN') {
     marketLoading.value = true
     try {
       const app = (window as any).go?.main?.App
@@ -93,7 +94,7 @@ export const useDataStore = defineStore('data', () => {
       let sectors: SectorRanking[] = []
 
       try {
-        const overview = await app.GetMarketOverview()
+        const overview = await app.GetMarketOverview(market)
         if (overview?.indices) {
           indices = (overview.indices as any[]).map((idx: any) => ({
             symbol: idx.code,
@@ -129,7 +130,7 @@ export const useDataStore = defineStore('data', () => {
 
       marketOverview.value = { indices, breadth, sectors, updatedAt: Date.now() }
     } catch (e) {
-      console.warn('fetchMarketOverview failed:', e)
+      error.value = String(e)
     } finally {
       marketLoading.value = false
     }
@@ -142,6 +143,7 @@ export const useDataStore = defineStore('data', () => {
     isOffline,
     marketOverview,
     marketLoading,
+    error,
     updateQuote,
     getQuote,
     setOHLCV,

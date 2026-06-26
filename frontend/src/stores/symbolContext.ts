@@ -57,6 +57,10 @@ export const useSymbolContext = defineStore('symbolContext', () => {
     return panelGroups[panelId]?.groupId || 'group-1'
   }
 
+  function releasePanelGroup(panelId: string) {
+    delete panelGroups[panelId]
+  }
+
   function getActiveSymbolForPanel(panelId: string): string | null {
     const pg = panelGroups[panelId]
     if (!pg || !pg.linked) return null
@@ -74,5 +78,6 @@ export const useSymbolContext = defineStore('symbolContext', () => {
     setGroupSymbol, getGroupSymbol, setActiveGroup,
     getOrCreatePanelGroup, setPanelGroup, setPanelLinked,
     getPanelGroupId, getActiveSymbolForPanel, initFromLegacy,
+    releasePanelGroup,
   }
 })

@@ -51,66 +51,87 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const orders = ref<Order[]>([])
   const trades = ref<Trade[]>([])
   const equityCurve = ref<EquityCurvePoint[] | null>(null)
+  const error = ref<string | null>(null)
 
   async function fetchSummary() {
-    try { summary.value = await (window as any).go.main.App.GetPortfolioSummary() }
-    catch (e) { console.warn('GetPortfolioSummary not available:', e) }
+    error.value = null
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      summary.value = await app.GetPortfolioSummary()
+    } catch (e) { error.value = String(e) }
   }
   async function fetchAllocation() {
-    try { allocation.value = await (window as any).go.main.App.GetPortfolioAllocation() }
-    catch (e) { console.warn('GetPortfolioAllocation not available:', e) }
+    error.value = null
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      allocation.value = await app.GetPortfolioAllocation()
+    } catch (e) { error.value = String(e) }
   }
   async function fetchPositions() {
-    try { positions.value = await (window as any).go.main.App.GetPositions() }
-    catch (e) { console.warn('GetPositions not available:', e) }
+    error.value = null
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      positions.value = await app.GetPositions()
+    } catch (e) { error.value = String(e) }
   }
 
   async function fetchOrders() {
+    error.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetOrders) {
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      if (app.GetOrders) {
         orders.value = await app.GetOrders()
       } else {
         orders.value = []
       }
     } catch (e) {
-      console.warn('GetOrders unavailable:', e)
+      error.value = String(e)
       orders.value = []
     }
   }
 
   async function fetchTrades() {
+    error.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetTrades) {
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      if (app.GetTrades) {
         trades.value = await app.GetTrades()
       } else {
         trades.value = []
       }
     } catch (e) {
-      console.warn('GetTrades unavailable:', e)
+      error.value = String(e)
       trades.value = []
     }
   }
 
   async function fetchEquityCurve() {
+    error.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetEquityCurve) {
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      if (app.GetEquityCurve) {
         equityCurve.value = await app.GetEquityCurve()
       } else {
         equityCurve.value = null
       }
     } catch (e) {
-      console.warn('fetchEquityCurve failed:', e)
+      error.value = String(e)
       equityCurve.value = null
     }
   }
 
   async function cancelOrder(orderId: string) {
+    error.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.CancelOrder) {
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      if (app.CancelOrder) {
         await app.CancelOrder(orderId)
       }
       // Update local state optimistically
@@ -119,7 +140,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
         orders.value[idx] = { ...orders.value[idx], status: 'cancelled' }
       }
     } catch (e) {
-      console.warn('CancelOrder failed:', e)
+      error.value = String(e)
     }
   }
 
@@ -130,7 +151,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   }
   function stopAutoRefresh() { if (timer.value) { clearInterval(timer.value); timer.value = null } }
   return {
-    summary, allocation, positions, orders, trades, equityCurve,
+    summary, allocation, positions, orders, trades, equityCurve, error,
     fetchSummary, fetchAllocation, fetchPositions, fetchOrders, fetchTrades, fetchEquityCurve, cancelOrder,
     startAutoRefresh, stopAutoRefresh, timer,
   }

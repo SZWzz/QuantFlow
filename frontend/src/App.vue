@@ -4,19 +4,21 @@ import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useThemeStore } from '@/lib/theme'
 
-// Init theme at mount — sets body classes
+// Init theme at mount — sets body classes and watches reactive session state
 onMounted(() => {
-  useThemeStore()
-  // Re-apply if localStorage changed while app was closed
   const t = useThemeStore()
   t.apply()
-  // Poll for changes every 2s (SettingsPanel updates localStorage → here picks up)
-  setInterval(() => t.apply(), 2000)
 })
 
 const session = useSessionStore()
 const router = useRouter()
 const route = useRoute()
+
+// Sync theme/density body classes when session changes
+watch(() => [session.ui.theme, session.ui.density], () => {
+  const t = useThemeStore()
+  t.apply()
+})
 
 // Keep URL in sync with session mode — this runs in the root component
 // so it survives route changes (TerminalMode ↔ WorkflowMode).

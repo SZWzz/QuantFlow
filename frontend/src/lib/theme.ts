@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useSessionStore } from '@/stores/session'
 
 export type Theme = 'dark' | 'light'
 export type Density = 'compact' | 'default' | 'comfortable'
@@ -9,15 +10,16 @@ function readLS(key: string, fallback: string): string {
 }
 
 export const useThemeStore = defineStore('theme', () => {
-  const theme = ref<Theme>(readLS('theme', 'dark') as Theme)
-  const density = ref<Density>(readLS('density', 'default') as Density)
+  const session = useSessionStore()
+
+  const theme = computed<Theme>(() => session.ui.theme as Theme)
+  const density = computed<Density>(() => session.ui.density as Density)
 
   function apply() {
     const body = document.body
     body.classList.remove('theme-dark', 'theme-light', 'color-cn', 'color-us', 'density-default', 'density-compact', 'density-comfortable')
     body.classList.add(`theme-${theme.value}`, `density-${density.value}`)
-    // Color scheme from settings or separate key
-    const cs = readLS('quantflow-color-scheme', readLS('quantflow-settings-fallback', 'cn'))
+    const cs = readLS('quantflow-color-scheme', 'cn')
     if (cs === 'us') body.classList.add('color-us')
     else body.classList.add('color-cn')
   }
@@ -28,14 +30,12 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function setTheme(t: Theme) {
-    theme.value = t
-    try { localStorage.setItem('theme', t) } catch {}
+    session.setTheme(t)
     apply()
   }
 
   function setDensity(d: Density) {
-    density.value = d
-    try { localStorage.setItem('density', d) } catch {}
+    session.setDensity(d)
     apply()
   }
 

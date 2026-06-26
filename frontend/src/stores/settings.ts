@@ -60,8 +60,8 @@ export const useSettingsStore = defineStore('settings', () => {
     localStorage.setItem('quantflow-settings', JSON.stringify(settings.value))
   }
 
-  function update(key: keyof SettingsState, value: string | number) {
-    ;(settings.value as Record<string, unknown>)[key] = value
+  function update<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
+    settings.value[key] = value
     save()
   }
 

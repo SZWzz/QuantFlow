@@ -41,12 +41,18 @@ export const useResearchStore = defineStore('research', () => {
   const loading = ref(false)
   const isBridgeAvailable = ref<boolean | null>(null) // null = not checked yet
 
+  // Per-method error refs
+  const sentimentError = ref<string | null>(null)
+  const researchError = ref<string | null>(null)
+  const congressError = ref<string | null>(null)
+
   // Check bridge availability on first load
   async function checkBridge() {
     if (isBridgeAvailable.value !== null) return
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetVersion) {
+      if (!app) { isBridgeAvailable.value = false; return }
+      if (app.GetVersion) {
         // Try a lightweight call to verify the bridge
         await app.GetVersion()
         isBridgeAvailable.value = true
@@ -58,16 +64,18 @@ export const useResearchStore = defineStore('research', () => {
 
   async function fetchSentiment(symbol: string) {
     loading.value = true
-    await checkBridge()
+    sentimentError.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetSentiment && isBridgeAvailable.value) {
+      if (!app) { sentimentError.value = 'Bridge unavailable'; return }
+      await checkBridge()
+      if (app.GetSentiment && isBridgeAvailable.value) {
         sentiment.value = await app.GetSentiment(symbol)
       } else {
         sentiment.value = null
       }
     } catch (e) {
-      console.warn('GetSentiment unavailable:', e)
+      sentimentError.value = String(e)
       sentiment.value = null
     } finally {
       loading.value = false
@@ -76,15 +84,17 @@ export const useResearchStore = defineStore('research', () => {
 
   async function fetchStockResearch(symbol: string, tabs: string[] = ['overview', 'financials', 'sentiment']) {
     loading.value = true
+    researchError.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetStockResearch) {
+      if (!app) { researchError.value = 'Bridge unavailable'; return }
+      if (app.GetStockResearch) {
         research.value = await app.GetStockResearch(symbol, tabs)
       } else {
         research.value = null
       }
     } catch (e) {
-      console.warn('GetStockResearch unavailable:', e)
+      researchError.value = String(e)
       research.value = null
     } finally {
       loading.value = false
@@ -92,13 +102,15 @@ export const useResearchStore = defineStore('research', () => {
   }
 
   async function fetchSentimentHistory(symbol: string, days: number = 30) {
+    sentimentError.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetSentimentHistory) {
+      if (!app) { sentimentError.value = 'Bridge unavailable'; return }
+      if (app.GetSentimentHistory) {
         sentimentHistory.value = await app.GetSentimentHistory(symbol, days)
       }
     } catch (e) {
-      console.warn('GetSentimentHistory unavailable:', e)
+      sentimentError.value = String(e)
     }
   }
 
@@ -106,15 +118,17 @@ export const useResearchStore = defineStore('research', () => {
 
   async function fetchCongressTrades() {
     loading.value = true
+    congressError.value = null
     try {
       const app = (window as any).go?.main?.App
-      if (app?.GetCongressTrades) {
+      if (!app) { congressError.value = 'Bridge unavailable'; return }
+      if (app.GetCongressTrades) {
         congressTrades.value = await app.GetCongressTrades()
       } else {
         congressTrades.value = null
       }
     } catch (e) {
-      console.warn('GetCongressTrades unavailable:', e)
+      congressError.value = String(e)
       congressTrades.value = null
     } finally {
       loading.value = false
@@ -124,6 +138,7 @@ export const useResearchStore = defineStore('research', () => {
   return {
     sentiment, research, sentimentHistory, loading, isBridgeAvailable,
     congressTrades,
+    sentimentError, researchError, congressError,
     fetchSentiment, fetchStockResearch, fetchSentimentHistory, fetchCongressTrades,
   }
 })

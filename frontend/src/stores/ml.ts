@@ -62,6 +62,7 @@ export const useMLStore = defineStore('ml', () => {
   const trainingProgress = ref<Record<string, number>>({})
   const predictions = ref<Prediction[]>([])
   const loading = ref(false)
+  const error = ref<string | null>(null)
   const discoveredFactors = ref<DiscoveredFactor[]>([])
   const miningRunning = ref(false)
 
@@ -78,9 +79,14 @@ export const useMLStore = defineStore('ml', () => {
 
   async function fetchModels() {
     loading.value = true
+    error.value = null
     try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
       // ListMLModels not yet implemented in Go backend
       models.value = []
+    } catch (e) {
+      error.value = String(e)
     } finally {
       loading.value = false
     }
@@ -99,8 +105,26 @@ export const useMLStore = defineStore('ml', () => {
   }
 
   async function fetchPredictions(modelId: string, symbol: string) {
-    // GetPredictions not yet implemented in Go backend
-    predictions.value = []
+    error.value = null
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      // GetPredictions not yet implemented in Go backend
+      predictions.value = []
+    } catch (e) {
+      error.value = String(e)
+    }
+  }
+
+  async function fetchEvaluations(modelId: string) {
+    error.value = null
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      // GetEvaluations not yet implemented in Go backend
+    } catch (e) {
+      error.value = String(e)
+    }
   }
 
   async function runAlphaMining(params: {
@@ -127,17 +151,44 @@ export const useMLStore = defineStore('ml', () => {
     rlTrainingRunning.value = false
   }
 
+  async function trainRL(algorithm: string) {
+    error.value = null
+    rlTrainingEpisodes.value = []
+    rlTrainingRunning.value = true
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      // TrainRL not yet implemented in Go backend
+      startRLTraining(algorithm)
+    } catch (e) {
+      error.value = String(e)
+      rlTrainingRunning.value = false
+    }
+  }
+
   // Phase 10.4: Risk Modeling actions
   function setRiskModelResult(result: RiskModelResult | null) {
     riskModelResult.value = result
   }
 
+  async function assessRisk(symbols: string[], modelType: string) {
+    error.value = null
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app) { error.value = 'Bridge unavailable'; return }
+      // AssessRisk not yet implemented in Go backend
+      riskModelResult.value = null
+    } catch (e) {
+      error.value = String(e)
+    }
+  }
+
   return {
     models, selectedModel, trainingJobs, trainingProgress, predictions, loading,
-    readyModels, predictionModels, discoveredFactors, miningRunning,
-    fetchModels, archiveModel, deleteModel, selectModel, fetchPredictions, runAlphaMining,
+    readyModels, predictionModels, discoveredFactors, miningRunning, error,
+    fetchModels, archiveModel, deleteModel, selectModel, fetchPredictions, fetchEvaluations, runAlphaMining,
     rlTrainingEpisodes, rlTrainingRunning, rlAlgorithm,
-    startRLTraining, addRLUpdate, stopRLTraining,
-    riskModelResult, setRiskModelResult,
+    trainRL, startRLTraining, addRLUpdate, stopRLTraining,
+    riskModelResult, assessRisk, setRiskModelResult,
   }
 })
