@@ -8,6 +8,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import * as echarts from 'echarts'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
+import { marketUpColor, marketDownColor, marketChangeColor } from '@/lib/composables/useMarketColors'
 
 use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
 
@@ -20,16 +21,30 @@ const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new
 
 const hasEcharts = computed(() => !!(echarts && VChart))
 
-// Color scheme: reads body class set by theme store
-function upColor() { return document.body.classList.contains('color-cn') ? '#ef4444' : '#22c55e' }
-function downColor() { return document.body.classList.contains('color-cn') ? '#22c55e' : '#ef4444' }
+// Color scheme: per-market (CN 红涨绿跌, others 绿涨红跌)
+function upColor() { return marketUpColor(symbol.value) }
+function downColor() { return marketDownColor(symbol.value) }
 
-// A-share trading hours: 09:30-11:30, 13:00-15:00 (Mon-Fri).
-// Used to stop minute-chart polling outside market hours.
+// Market-aware trading hours check (polling guard).
 function isTradingHours(): boolean {
   const now = new Date()
   const day = now.getDay()
-  if (day === 0 || day === 6) return false // weekend
+  if (day === 0 || day === 6) return false
+  const market = detectMarket(symbol.value)
+  if (market === 'CRYPTO') return true
+  if (market === 'HK') {
+    // HKEX: 09:30-12:00, 13:00-16:00 (Mon-Fri)
+    const h = now.getHours()
+    const m = now.getMinutes()
+    const t = h * 60 + m
+    return (t >= 9 * 60 + 30 && t <= 12 * 60) || (t >= 13 * 60 && t <= 16 * 60)
+  }
+  if (market === 'US') {
+    // NYSE/Nasdaq: 09:30-16:00 ET ≈ 13:30-21:00 UTC (DST + standard range)
+    const ut = now.getUTCHours() * 60 + now.getUTCMinutes()
+    return ut >= 13 * 60 + 30 && ut <= 21 * 60
+  }
+  // CN default: 09:30-11:30, 13:00-15:00 (Mon-Fri)
   const h = now.getHours()
   const m = now.getMinutes()
   const t = h * 60 + m

@@ -68,7 +68,7 @@ func (n *AgentNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *AgentNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *AgentNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	profileName := getStringParam(params, "profile", "general")
 	model := getStringParam(params, "model", "")
 	temperature := float32(getFloatParam(params, "temperature", 0.7))

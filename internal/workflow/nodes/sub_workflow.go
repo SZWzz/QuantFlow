@@ -44,7 +44,7 @@ func (n *SubWorkflowNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *SubWorkflowNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *SubWorkflowNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	workflowID := getStringParam(params, "workflow_id", "")
 	if workflowID == "" {
 		return nil, fmt.Errorf("sub_workflow: workflow_id param is required")

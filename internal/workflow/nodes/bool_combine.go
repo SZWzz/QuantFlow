@@ -36,7 +36,7 @@ func (n *BoolCombineNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *BoolCombineNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *BoolCombineNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	a := extractFloatSlice(inputs["a"])
 	if a == nil {
 		return nil, fmt.Errorf("bool_combine: input a is required")

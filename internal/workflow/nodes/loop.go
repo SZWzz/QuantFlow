@@ -36,7 +36,7 @@ func (n *LoopNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *LoopNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *LoopNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *LoopNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	raw, ok := inputs["items"]
 	if !ok {
 		return nil, fmt.Errorf("loop: missing required input 'items'")

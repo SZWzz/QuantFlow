@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
-import * as echarts from 'echarts'
-import VChart from 'vue-echarts'
+import { detectMarket } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -10,52 +9,82 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
-const market = ref('US')
-const currency = ref('USD')
+const market = ref('')
+const currency = ref('')
+const loading = ref(false)
 
-const detail = ref({ quantity: 100, avg_price: 188.50, market_price: 195.32, market_value: 19532, pnl: 682, pnl_pct: 3.62, alloc_pct: 26.7 })
+interface PositionData {
+  symbol: string
+  quantity: number
+  avg_price: number
+  market_price: number
+  pnl: number
+  pnl_pct: number
+  market: string
+  currency: string
+  cost_basis: number
+  alloc_pct: number
+}
+const position = ref<PositionData | null>(null)
 
 const fmt = (n: number, dec = 2) => n.toFixed(dec)
 
-watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+async function fetchPosition() {
+  loading.value = true
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app?.GetPositions) return
+    const all: PositionData[] = await app.GetPositions()
+    const found = all?.find((p: PositionData) => p.symbol === symbol.value)
+    if (found) {
+      position.value = found
+      market.value = found.market || detectMarket(symbol.value)
+      currency.value = found.currency
+    } else {
+      position.value = null
+      market.value = detectMarket(symbol.value)
+      currency.value = market.value === 'CN' ? 'CNY' : market.value === 'HK' ? 'HKD' : 'USD'
+    }
+  } catch {
+    position.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (newSym) => {
   if (pg.linked && newSym && newSym !== symbol.value) {
     symbol.value = newSym
+    fetchPosition()
   }
 })
 
-const priceChartOption = computed(() => ({
-  backgroundColor: 'transparent',
-  grid: { top: 10, right: 20, bottom: 30, left: 60 },
-  xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'], axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
-  yAxis: { type: 'value', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
-  series: [
-    { type: 'line', data: [185,190,188,192,194,195.32], smooth: true, lineStyle: { color: '#58a6ff', width: 2 }, symbol: 'none' },
-    { type: 'line', data: [188.5,188.5,188.5,188.5,188.5,188.5], lineStyle: { color: '#f0883e', width: 1, type: 'dashed' }, symbol: 'none', name: 'Cost Basis' }
-  ]
-}))
+onMounted(fetchPosition)
 </script>
 
 <template>
   <div class="position-detail-panel">
-    <div class="header">
-      <span class="symbol-name">{{ symbol }}</span>
-      <span class="market-badge">{{ market }}</span>
-      <span class="currency">{{ currency }}</span>
-    </div>
-    <div class="kpi-grid">
-      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.quantity') }}</span><span class="kpi-value">{{ detail.quantity }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.avg_price') }}</span><span class="kpi-value">${{ fmt(detail.avg_price) }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.market_price') }}</span><span class="kpi-value">${{ fmt(detail.market_price) }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.market_value') }}</span><span class="kpi-value">${{ fmt(detail.market_value).replace(/\B(?=(\d{3})+(?!\d))/g, ',') }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.pnl') }}</span><span :class="['kpi-value', detail.pnl >= 0 ? 'up' : 'down']">${{ fmt(detail.pnl) }}</span></div>
-      <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.alloc') }}</span><span class="kpi-value">{{ fmt(detail.alloc_pct) }}%</span></div>
-    </div>
-    <div class="chart-section">
-      <div class="chart-title">{{ $t('portfolio.price_history') }}</div>
-      <VChart :option="priceChartOption" autoresize style="height:180px" />
-    </div>
-    <div class="pnl-summary">
-      <span :class="detail.pnl >= 0 ? 'up' : 'down'">{{ detail.pnl >= 0 ? '+' : '' }}${{ fmt(detail.pnl) }} ({{ detail.pnl >= 0 ? '+' : '' }}{{ fmt(detail.pnl_pct) }}%)</span>
+    <div v-if="loading" class="loading-text">{{ $t('common.loading') }}</div>
+    <template v-else-if="position">
+      <div class="header">
+        <span class="symbol-name">{{ symbol }}</span>
+        <span class="market-badge">{{ market }}</span>
+        <span class="currency">{{ currency }}</span>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.quantity') }}</span><span class="kpi-value">{{ position.quantity }}</span></div>
+        <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.avg_price') }}</span><span class="kpi-value">${{ fmt(position.avg_price) }}</span></div>
+        <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.market_price') }}</span><span class="kpi-value">${{ fmt(position.market_price) }}</span></div>
+        <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.market_value') }}</span><span class="kpi-value">${{ fmt(position.market_price * position.quantity).replace(/\B(?=(\d{3})+(?!\d))/g, ',') }}</span></div>
+        <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.pnl') }}</span><span :class="['kpi-value', position.pnl >= 0 ? 'up' : 'down']">${{ fmt(position.pnl) }}</span></div>
+        <div class="kpi-item"><span class="kpi-label">{{ $t('portfolio.alloc') }}</span><span class="kpi-value">{{ fmt(position.alloc_pct) }}%</span></div>
+      </div>
+      <div class="pnl-summary">
+        <span :class="position.pnl >= 0 ? 'up' : 'down'">{{ position.pnl >= 0 ? '+' : '' }}${{ fmt(position.pnl) }} ({{ position.pnl >= 0 ? '+' : '' }}{{ fmt(position.pnl_pct) }}%)</span>
+      </div>
+    </template>
+    <div v-else class="empty-state">
+      <div class="empty-text">{{ $t('portfolio.no_positions') }}</div>
     </div>
   </div>
 </template>

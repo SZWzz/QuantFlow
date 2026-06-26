@@ -36,7 +36,7 @@ func (n *BollingerNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *BollingerNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *BollingerNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	prices := extractFloatSlice(inputs["prices"])
 	if prices == nil { return nil, fmt.Errorf("bollinger: prices input required") }
 

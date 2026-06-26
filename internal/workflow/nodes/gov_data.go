@@ -49,7 +49,7 @@ func (n *GovDataNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	indicator := resolveStringParam(params, n.params, "indicator", "all")
 	if v, ok := inputs["indicator"].(string); ok && v != "" {
 		indicator = v

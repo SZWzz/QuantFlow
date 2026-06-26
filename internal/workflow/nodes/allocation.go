@@ -37,7 +37,7 @@ func (n *AllocationNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *AllocationNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *AllocationNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *AllocationNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	// TODO: Compute real allocation from positions input.
 	_ = inputs["positions"]
 	return nil, fmt.Errorf("allocation: not yet implemented — returns placeholder data has been removed; real computation requires position-to-market/sector mapping")

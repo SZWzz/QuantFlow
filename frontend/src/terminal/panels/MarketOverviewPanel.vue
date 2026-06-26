@@ -6,6 +6,9 @@ import type { IndexSnapshot, SectorRanking } from '@/stores/data'
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 
+const activeMarket = ref<'CN' | 'HK' | 'US'>(
+  (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
+)
 const autoRefresh = ref(true)
 const refreshInterval = ref(15)
 const countdown = ref(refreshInterval.value)
@@ -21,8 +24,12 @@ const topGainers = computed(() => [...sectors.value].sort((a, b) => b.changePct 
 const topLosers = computed(() => [...sectors.value].sort((a, b) => a.changePct - b.changePct).slice(0, 8))
 
 function refresh() {
-  dataStore.fetchMarketOverview()
+  dataStore.fetchMarketOverview(activeMarket.value)
   countdown.value = refreshInterval.value
+}
+function switchMarket(mkt: typeof activeMarket.value) {
+  activeMarket.value = mkt
+  refresh()
 }
 
 function toggleAutoRefresh() {
@@ -83,6 +90,12 @@ onUnmounted(() => {
   <div class="market-overview-panel">
     <div class="panel-header">
       <h3>{{ $t('misc.market_overview') }}</h3>
+      <div class="market-tabs">
+        <button v-for="mkt in (['CN', 'HK', 'US'] as const)" :key="mkt"
+          :class="['mkt-tab', { active: activeMarket === mkt }]"
+          @click="switchMarket(mkt)"
+        >{{ mkt }}</button>
+      </div>
       <div class="header-controls">
         <span class="update-time">{{ formatTime(updatedAt) }}</span>
         <button class="auto-btn" :class="{ active: autoRefresh }" @click="toggleAutoRefresh">
@@ -167,6 +180,12 @@ onUnmounted(() => {
   margin-bottom: 12px;
 }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.market-tabs { display: flex; gap: 4px; margin: 0 8px; }
+.mkt-tab {
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
+}
+.mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
 .header-controls { display: flex; gap: 8px; align-items: center; }
 .update-time { font-size: 11px; color: var(--color-text-tertiary); }
 .auto-btn {

@@ -33,7 +33,7 @@ func (n *IfElseNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *IfElseNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *IfElseNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *IfElseNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	condition := extractFloatSlice(inputs["condition"])
 	if condition == nil {
 		return nil, fmt.Errorf("if_else: condition input is required")

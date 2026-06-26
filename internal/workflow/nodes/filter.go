@@ -35,7 +35,7 @@ func (n *FilterNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *FilterNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *FilterNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	series := extractFloatSlice(inputs["series"])
 	if series == nil {
 		return nil, fmt.Errorf("filter: series input is required")

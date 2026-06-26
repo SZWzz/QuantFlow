@@ -58,7 +58,7 @@ func (n *FeatureEngineerNode) Validate() error {
 	return nil
 }
 
-func (n *FeatureEngineerNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *FeatureEngineerNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	factors, ok := inputs["factors"].(map[string][]float64)
 	if !ok {
 		return nil, fmt.Errorf("feature_engineer: factors must be map[string][]float64")

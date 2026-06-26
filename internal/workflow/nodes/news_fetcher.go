@@ -56,7 +56,7 @@ func (n *NewsFetcherNode) ParamSchema() []workflow.ParamDef {
 }
 
 // Execute fetches news and concatenates the text for NLP consumption.
-func (n *NewsFetcherNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *NewsFetcherNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("news_fetcher: missing required input 'symbol'")

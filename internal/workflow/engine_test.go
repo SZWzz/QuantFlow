@@ -12,7 +12,7 @@ func TestEngine_ExecuteSimpleDAG(t *testing.T) {
 		return &passthroughNode{id: id}, nil
 	}, "test")
 
-	engine, err := NewEngine(reg, 64)
+	engine, err := NewEngine(reg, 64, nil)
 	if err != nil {
 		t.Fatalf("NewEngine() error = %v", err)
 	}
@@ -44,7 +44,7 @@ func TestEngine_ExecuteWithTimeout(t *testing.T) {
 	reg.RegisterWithCategory("slow", func(id string, params map[string]any) (BaseNode, error) {
 		return &slowNode{id: id}, nil
 	}, "test")
-	engine, _ := NewEngine(reg, 64)
+	engine, _ := NewEngine(reg, 64, nil)
 	wf := &Workflow{ID: "timeout_test", Nodes: []NodeInstance{{ID: "s1", NodeType: "slow"}}}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
@@ -59,7 +59,7 @@ func TestEngine_ExecuteParallelDAG(t *testing.T) {
 	reg.RegisterWithCategory("passthrough", func(id string, params map[string]any) (BaseNode, error) {
 		return &passthroughNode{id: id}, nil
 	}, "test")
-	engine, _ := NewEngine(reg, 64)
+	engine, _ := NewEngine(reg, 64, nil)
 	wf := &Workflow{
 		ID: "parallel",
 		Nodes: []NodeInstance{
@@ -97,7 +97,7 @@ func (n *passthroughNode) InputPorts() []PortDefinition  { return []PortDefiniti
 func (n *passthroughNode) OutputPorts() []PortDefinition { return []PortDefinition{{Name: "output", Type: PortAny, Required: false}} }
 func (n *passthroughNode) ParamSchema() []ParamDef       { return nil }
 func (n *passthroughNode) Validate() error               { return nil }
-func (n *passthroughNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *passthroughNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *NodeContext) (map[string]any, error) {
 	if v, ok := params["value"]; ok {
 		return map[string]any{"output": v}, nil
 	}
@@ -116,7 +116,7 @@ func (n *slowNode) InputPorts() []PortDefinition  { return nil }
 func (n *slowNode) OutputPorts() []PortDefinition { return nil }
 func (n *slowNode) ParamSchema() []ParamDef       { return nil }
 func (n *slowNode) Validate() error               { return nil }
-func (n *slowNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *slowNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *NodeContext) (map[string]any, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()

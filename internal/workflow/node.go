@@ -40,6 +40,6 @@ type BaseNode interface {
 	InputPorts() []PortDefinition
 	OutputPorts() []PortDefinition
 	ParamSchema() []ParamDef
-	Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error)
+	Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *NodeContext) (map[string]any, error)
 	Validate() error
 }

@@ -46,7 +46,7 @@ func (n *PositionSizerNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *PositionSizerNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *PositionSizerNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	pv := extractFloat(inputs["portfolio_value"])
 	if pv == nil {
 		return nil, fmt.Errorf("position_sizer: portfolio_value input is required")

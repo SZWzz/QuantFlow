@@ -38,7 +38,7 @@ func (n *ExitSignalNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *ExitSignalNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *ExitSignalNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *ExitSignalNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	condition := extractFloatSlice(inputs["condition"])
 	if condition == nil {
 		return nil, fmt.Errorf("exit_signal: condition input is required")

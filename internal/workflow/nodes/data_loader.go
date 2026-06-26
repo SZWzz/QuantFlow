@@ -42,7 +42,7 @@ func (n *DataLoaderNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *DataLoaderNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *DataLoaderNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	source := "csv"
 	path := ""
 	if s, ok := n.params["source"]; ok {

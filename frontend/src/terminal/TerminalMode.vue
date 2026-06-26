@@ -37,6 +37,12 @@ function onSwitchToWorkflow() {
       </div>
       <div class="header-center">
         <span class="breadcrumb">{{ $t('misc.terminal_mode') }}</span>
+        <div class="header-market">
+          <button v-for="m in (['CN', 'HK', 'US'] as const)" :key="m"
+            :class="['mkt-btn', { active: session.ui.activeMarket === m }]"
+            @click="session.setActiveMarket(m)"
+          >{{ m }}</button>
+        </div>
       </div>
       <div class="header-actions">
         <button class="header-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
@@ -117,9 +123,9 @@ function onSwitchToWorkflow() {
 }
 
 .header-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
 }
 
 .breadcrumb {
@@ -127,6 +133,26 @@ function onSwitchToWorkflow() {
   color: var(--color-text-tertiary);
 }
 
+.header-market {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.mkt-btn {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.mkt-btn.active {
+  color: #60a5fa;
+  border-color: #3b82f6;
+  background: rgba(59,130,246,0.1);
+}
 .header-actions {
   display: flex;
   gap: var(--space-sm);

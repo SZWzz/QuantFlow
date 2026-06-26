@@ -43,7 +43,7 @@ func (n *MathOpNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *MathOpNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *MathOpNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	a := extractFloat(inputs["a"])
 	if a == nil {
 		return nil, fmt.Errorf("math_op: input a is required")

@@ -43,7 +43,7 @@ func (n *PeerCompareNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *PeerCompareNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *PeerCompareNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("peer_compare: missing required input 'symbol'")

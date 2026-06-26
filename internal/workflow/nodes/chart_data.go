@@ -67,7 +67,7 @@ type echartsSeries struct {
 	Name string    `json:"name,omitempty"`
 }
 
-func (n *ChartDataNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *ChartDataNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	chartType := getStringParam(params, "chart_type", "line")
 	title := getStringParam(params, "title", "")
 

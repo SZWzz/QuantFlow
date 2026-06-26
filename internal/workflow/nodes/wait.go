@@ -31,7 +31,7 @@ func (n *WaitNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *WaitNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *WaitNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	d := getFloatParam(params, "duration_sec", 1)
 	if d < 0 {
 		d = 0

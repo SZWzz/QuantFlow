@@ -85,7 +85,7 @@ func (n *TrainModelNode) Validate() error {
 	return fmt.Errorf("train_model: unsupported model_type '%s'", modelType)
 }
 
-func (n *TrainModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *TrainModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	if bridge == nil {
 		return nil, fmt.Errorf("train_model: PythonBridge not set — call SetPythonBridge() first")
 	}

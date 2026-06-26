@@ -55,7 +55,7 @@ func (n *RLEnvNode) Validate() error {
 	return nil
 }
 
-func (n *RLEnvNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RLEnvNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	windowSize := getIntParam(params, "window_size", 20)
 	actionType := getStringParam(params, "action_type", "discrete")
 	initialCash := getIntParam(params, "initial_cash", 10000)

@@ -43,7 +43,7 @@ func (n *FinancialsNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *FinancialsNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *FinancialsNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("financials: missing required input 'symbol'")

@@ -14,7 +14,7 @@ func BenchmarkEngine_100NodePipeline(b *testing.B) {
 		return &passthroughNode{id: id}, nil
 	}, "test")
 
-	engine, _ := NewEngine(reg, 512)
+	engine, _ := NewEngine(reg, 512, nil)
 
 	nodes := make([]NodeInstance, 100)
 	edges := make([]Edge, 0)
@@ -50,7 +50,7 @@ func BenchmarkEngine_WideDAG(b *testing.B) {
 		return &passthroughNode{id: id}, nil
 	}, "test")
 
-	engine, _ := NewEngine(reg, 512)
+	engine, _ := NewEngine(reg, 512, nil)
 
 	nodes := []NodeInstance{
 		{ID: "source", NodeType: "passthrough", Params: map[string]any{"value": "data"}},

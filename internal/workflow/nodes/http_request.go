@@ -44,7 +44,7 @@ func (n *HTTPRequestNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *HTTPRequestNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *HTTPRequestNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	url := getStringParam(params, "url", "")
 	if url == "" {
 		return nil, fmt.Errorf("http_request: url parameter is required")

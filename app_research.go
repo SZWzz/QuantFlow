@@ -16,12 +16,14 @@ func (a *App) GetSentiment(symbol string) (*research.SentimentOutput, error) {
 	return engine.AnalyzeSentiment(context.Background(), symbol, "", "news", detectLanguage(symbol))
 }
 
-// detectLanguage returns "zh" for A-share symbols, "en" otherwise.
+// detectLanguage returns "zh" for A-share symbols (starts with 0/3/6 and is 6-digit numeric, or has .SZ/.SH suffix), "en" otherwise.
 func detectLanguage(symbol string) string {
 	sym := symbol
+	// Strip market suffix if present
 	if len(sym) > 3 && sym[len(sym)-3] == '.' {
 		sym = sym[:len(sym)-3]
 	}
+	// 6-digit numeric = A-share
 	if len(sym) == 6 {
 		for _, c := range sym {
 			if c < '0' || c > '9' {
@@ -56,6 +58,7 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 		},
 	}
 
+	// Try EastMoney stock_info for overview data and market cap
 	var emInfo *adapters.EastMoneyStockInfo
 	if a.eastmoneyAdpt != nil {
 		if info, err := a.eastmoneyAdpt.FetchStockInfo(context.Background(), symbol); err == nil {
@@ -78,10 +81,12 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 		switch tab {
 		case "financials":
 			fd, _ := finSvc.GetFinancials(context.Background(), symbol)
+			// Sina financials adapter does not provide market cap — fill from EastMoney
 			if fd != nil && fd.MarketCap == 0 && emInfo != nil {
 				fd.MarketCap = emInfo.MarketCap
 			}
 			if fd != nil && fd.TotalDebt == 0 {
+				// Some Sina responses omit total liabilities — use total assets - total equity as fallback
 				if fd.TotalAssets > 0 && fd.TotalEquity > 0 {
 					fd.TotalDebt = fd.TotalAssets - fd.TotalEquity
 				}
@@ -107,6 +112,7 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 			}
 			slog.Info("GetStockResearch sentiment", "symbol", symbol, "lang", detectLanguage(symbol), "has_data", s != nil, "score", s.Score, "label", s.Label)
 			result.Sentiment = s
+			// Also embed in overview for reliability (Wails serialization fallback)
 			result.Overview["sentiment_score"] = s.Score
 			result.Overview["sentiment_label"] = s.Label
 			result.Overview["sentiment_confidence"] = s.Confidence
@@ -117,34 +123,14 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 }
 
 // GetCongressTrades returns recent US Congress trading activity.
+// Used by the CongressTradingPanel frontend.
 func (a *App) GetCongressTrades() ([]research.CongressTrade, error) {
 	svc := research.NewCongressTradingService(a.congressAdpt)
 	return svc.GetCongressTrades(context.Background())
 }
 
-// SearchResearch performs NL semantic search over research reports.
-func (a *App) SearchResearch(query string, channel string, size int) ([]adapters.IwencaiArticle, error) {
-	if a.iwencaiAdpt == nil {
-		return nil, fmt.Errorf("iwencai adapter not initialized")
-	}
-	if !a.iwencaiAdpt.IsAvailable(context.Background()) {
-		return nil, fmt.Errorf("iwencai not available: IWENCAI_API_KEY not set or endpoint unreachable")
-	}
-	return a.iwencaiAdpt.Search(context.Background(), query, channel, size)
-}
-
-// GetAnnouncements returns company announcements for a symbol.
-func (a *App) GetAnnouncements(symbol string, pageSize int) ([]adapters.Announcement, error) {
-	if a.announcementSvc == nil {
-		return nil, fmt.Errorf("announcement service not initialized")
-	}
-	if pageSize <= 0 {
-		pageSize = 30
-	}
-	return a.announcementSvc.GetAnnouncements(context.Background(), symbol, pageSize)
-}
-
 // GetPredictionMarkets returns prediction market events for a category.
+// category: "", "economics", "crypto", "politics", "sports", "tech", "all".
 func (a *App) GetPredictionMarkets(category string, limit int) (map[string]interface{}, error) {
 	if a.predictionMarketSvc == nil {
 		return nil, fmt.Errorf("prediction market service not initialized")
@@ -238,4 +224,39 @@ func (a *App) GetGeopoliticsDetail(topicID, timespan string) (map[string]interfa
 		return nil, fmt.Errorf("geopolitics service not initialized")
 	}
 	return a.geopoliticsSvc.GetTopicDetail(context.Background(), topicID, timespan)
+}
+
+// GetSatelliteSnapshots returns satellite energy data snapshots for all 5 regions.
+func (a *App) GetSatelliteSnapshots() (map[string]interface{}, error) {
+	if a.satelliteSvc == nil {
+		return nil, fmt.Errorf("satellite service not initialized")
+	}
+	snapshots, err := a.satelliteSvc.GetRegionSnapshots(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"regions": snapshots, "count": len(snapshots)}, nil
+}
+
+// GetSatelliteDetail returns detailed satellite data for a single region.
+func (a *App) GetSatelliteDetail(regionID string) (map[string]interface{}, error) {
+	if a.satelliteSvc == nil {
+		return nil, fmt.Errorf("satellite service not initialized")
+	}
+	ctx := context.Background()
+	snapshot, _, err := a.satelliteSvc.GetRegionDetail(ctx, regionID)
+	if err != nil {
+		return nil, err
+	}
+	solarPts, windPts, err := a.satelliteSvc.GetRegionEnergyData(ctx, regionID)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"snapshot":    snapshot,
+		"solar_data":  solarPts,
+		"wind_data":   windPts,
+		"solar_chart": solarPts,
+		"wind_chart":  windPts,
+	}, nil
 }

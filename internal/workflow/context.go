@@ -1,0 +1,41 @@
+package workflow
+
+// NodeContext holds all shared service dependencies available to workflow nodes.
+// Services are stored as interface{} to avoid import cycles between the workflow
+// package and packages like trading, python, research, etc.
+// Nodes that need these services should type-assert the interface{} fields.
+type NodeContext struct {
+	// Trading
+	OMS interface{} // *trading.OMS
+
+	// Python bridge for ML/AI nodes
+	Bridge interface{} // *python.PythonBridge
+
+	// AI agent dependencies
+	CapRegistry interface{} // *ai.CapabilityRegistry
+	Emitter     interface{} // *ai.EventEmitter
+	ProfileMgr  interface{} // *ai.ProfileManager
+
+	// ML model registry
+	ModelRegistry interface{} // *ml.ModelRegistry
+
+	// Market adapters
+	NewsAdapter       interface{} // adapters.NewsAdapter
+	GlobalNewsAdapter interface{} // adapters.GlobalNewsAdapter
+
+	// Research services
+	SentimentEngine         interface{} // *research.SentimentEngine
+	FinancialsService       interface{} // *research.FinancialsService
+	PeerComparisonService   interface{} // *research.PeerComparisonService
+	AnalystEstimatesService interface{} // *research.AnalystEstimatesService
+	InsiderTradingService   interface{} // *research.InsiderTradingService
+	CongressTradingService  interface{} // *research.CongressTradingService
+	CapitalService          interface{} // *research.CapitalService
+	FundFlowService         interface{} // *research.FundFlowService
+	NorthboundService       interface{} // *research.NorthboundService
+	AnnouncementService     interface{} // *research.AnnouncementService
+	PredictionMarketService interface{} // *research.PredictionMarketService
+	GeopoliticsService      interface{} // *research.GeopoliticsService
+	GovDataService          interface{} // *research.GovDataService
+	SatelliteService        interface{} // *research.SatelliteService
+}

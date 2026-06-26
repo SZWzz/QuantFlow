@@ -36,7 +36,7 @@ func (n *MergeNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *MergeNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *MergeNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	how := getStringParam(params, "how", "outer")
 	a := extractFloatSlice(inputs["series_a"])
 	b := extractFloatSlice(inputs["series_b"])

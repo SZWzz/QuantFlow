@@ -30,7 +30,7 @@ func (n *RSINode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{{Name: "period", Type: "number", Default: "14", Description: "RSI period"}}
 }
 
-func (n *RSINode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RSINode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	prices := extractFloatSlice(inputs["prices"])
 	if prices == nil { return nil, fmt.Errorf("rsi: prices input required") }
 

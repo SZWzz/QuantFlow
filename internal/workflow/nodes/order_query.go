@@ -37,7 +37,7 @@ func (n *OrderQueryNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *OrderQueryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *OrderQueryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	if tradingOMS == nil {
 		return map[string]any{"orders": []*trading.Order{}, "trades": []*trading.Trade{}}, nil
 	}

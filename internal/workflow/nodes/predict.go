@@ -49,7 +49,7 @@ func (n *PredictNode) ParamSchema() []workflow.ParamDef {
 
 func (n *PredictNode) Validate() error { return nil }
 
-func (n *PredictNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *PredictNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	if bridge == nil {
 		return nil, fmt.Errorf("predict: PythonBridge not set — call SetPythonBridge() first")
 	}

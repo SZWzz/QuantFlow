@@ -41,7 +41,7 @@ func (n *SMANode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *SMANode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *SMANode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	raw, ok := inputs["input"]
 	if !ok {
 		return nil, fmt.Errorf("sma: missing required input 'input'")

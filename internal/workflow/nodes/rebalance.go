@@ -43,7 +43,7 @@ func (n *RebalanceNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *RebalanceNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RebalanceNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	weights := extractFloatSlice(inputs["weights"])
 	if weights == nil {
 		return nil, fmt.Errorf("rebalance: weights input is required")

@@ -13,8 +13,23 @@ const emit = defineEmits<{
 }>()
 
 const { query, results, loading } = useSymbolSearch()
+const marketFilter = ref<string>('ALL')
 const open = ref(false)
 const selectedIndex = ref(-1)
+
+const filteredResults = computed(() => {
+  if (marketFilter.value === 'ALL') return results.value
+  return results.value.filter(e => e.market === marketFilter.value)
+})
+
+const MARKET_TABS = [
+  { key: 'ALL', label: 'All' },
+  { key: 'SH', label: '沪' },
+  { key: 'SZ', label: '深' },
+  { key: 'HK', label: '港' },
+  { key: 'US', label: '美' },
+  { key: 'BJ', label: '京' },
+] as const
 const inputRef = ref<HTMLInputElement | null>(null)
 const listRef = ref<HTMLUListElement | null>(null)
 
@@ -141,8 +156,15 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
     </div>
 
     <ul v-if="open && results.length > 0" ref="listRef" class="dropdown">
+      <li class="filter-row">
+        <button
+          v-for="tab in MARKET_TABS" :key="tab.key"
+          :class="['filter-tab', { active: marketFilter === tab.key }]"
+          @mousedown.prevent="marketFilter = tab.key"
+        >{{ tab.label }}</button>
+      </li>
       <li
-        v-for="(entry, i) in results"
+        v-for="(entry, i) in filteredResults"
         :key="entry.code"
         :class="['dropdown-item', { active: i === selectedIndex }]"
         @mousedown.prevent="select(entry)"
@@ -153,6 +175,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
         <span class="item-code">{{ entry.code }}</span>
         <span class="item-name">{{ entry.name }}</span>
       </li>
+      <li v-if="filteredResults.length === 0" class="empty-result">{{ $t('common.no_data') }}</li>
     </ul>
 
     <div v-if="open && query && !loading && results.length === 0" class="dropdown empty">
@@ -226,6 +249,37 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
 .dropdown-item:hover,
 .dropdown-item.active {
   background: #374151;
+}
+.filter-row {
+  display: flex;
+  gap: 4px;
+  padding: 4px 10px 8px;
+  border-bottom: 1px solid #374151;
+  margin-bottom: 4px;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-elevated);
+  z-index: 1;
+}
+.filter-tab {
+  padding: 2px 8px;
+  border: 1px solid #4b5563;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+}
+.filter-tab.active {
+  color: #60a5fa;
+  border-color: #3b82f6;
+  background: rgba(59,130,246,0.1);
+}
+.empty-result {
+  padding: 8px 10px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-align: center;
 }
 .market-badge {
   padding: 1px 6px;

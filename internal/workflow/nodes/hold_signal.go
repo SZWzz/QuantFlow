@@ -38,7 +38,7 @@ func (n *HoldSignalNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *HoldSignalNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *HoldSignalNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *HoldSignalNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	signal := extractFloatSlice(inputs["signal"])
 	if signal == nil {
 		return nil, fmt.Errorf("hold_signal: signal input is required")

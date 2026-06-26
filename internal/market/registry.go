@@ -196,5 +196,18 @@ func MarketForSymbol(symbol string) string {
 	case "BTC", "ETH", "SOL", "BNB":
 		return "CRYPTO"
 	}
+	// 6-digit numeric → CN A-share (bare code, e.g. "600519")
+	if len(symbol) == 6 {
+		isNum := true
+		for _, c := range symbol {
+			if c < '0' || c > '9' {
+				isNum = false
+				break
+			}
+		}
+		if isNum {
+			return "CN"
+		}
+	}
 	return "US"
 }

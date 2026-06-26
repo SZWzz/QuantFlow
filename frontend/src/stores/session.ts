@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 
+export type MarketKey = 'CN' | 'HK' | 'US'
+
 export interface SessionUI {
   theme: 'light' | 'dark'
   density: 'compact' | 'default' | 'comfortable'
   language: 'zh' | 'en'
   mode: 'terminal' | 'workflow'
+  activeMarket: MarketKey
 }
 
 export const useSessionStore = defineStore('session', () => {
@@ -15,6 +18,7 @@ export const useSessionStore = defineStore('session', () => {
     density: 'default',
     language: 'zh',
     mode: 'terminal',
+    activeMarket: 'CN',
   }
 
   const saved = stored ? { ...defaults, ...JSON.parse(stored) } : defaults
@@ -44,5 +48,9 @@ export const useSessionStore = defineStore('session', () => {
     ui.value.language = language
   }
 
-  return { ui, toggleMode, setTheme, setDensity, setLanguage }
+  function setActiveMarket(m: MarketKey) {
+    ui.value.activeMarket = m
+  }
+
+  return { ui, toggleMode, setTheme, setDensity, setLanguage, setActiveMarket }
 })

@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
+import { marketChangeColor } from '@/lib/composables/useMarketColors'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -100,10 +101,10 @@ onMounted(refresh)
 
     <div class="last-price-row">
       <span class="price-label">{{ name || symbol }}</span>
-      <span class="price-value" :style="{ color: change >= 0 ? '#ef4444' : '#22c55e' }">
+      <span class="price-value" :style="{ color: marketChangeColor(symbol, changePct) }">
         {{ lastPrice.toFixed(2) }}
       </span>
-      <span class="price-change" :style="{ color: change >= 0 ? '#ef4444' : '#22c55e' }">
+      <span class="price-change" :style="{ color: marketChangeColor(symbol, changePct) }">
         {{ change >= 0 ? '+' : '' }}{{ change.toFixed(2) }} ({{ changePct >= 0 ? '+' : '' }}{{ changePct.toFixed(2) }}%)
       </span>
       <span v-if="isSimulated" class="sim-badge">{{ $t('misc.simulated_depth') }}</span>
@@ -157,7 +158,7 @@ onMounted(refresh)
       <div class="trades-list">
         <div v-for="(t, idx) in trades" :key="idx" class="trade-row">
           <span class="trade-time">{{ t.time }}</span>
-          <span class="trade-price" :style="{ color: t.side === 'B' ? '#ef4444' : '#22c55e' }">{{ t.price.toFixed(2) }}</span>
+          <span class="trade-price" :style="{ color: t.side === 'B' ? marketChangeColor(symbol, 1) : marketChangeColor(symbol, -1) }">{{ t.price.toFixed(2) }}</span>
           <span class="trade-volume">{{ t.volume }}</span>
           <span class="trade-side" :class="t.side === 'B' ? 'side-buy' : 'side-sell'">{{ t.side === 'B' ? 'B' : 'S' }}</span>
         </div>

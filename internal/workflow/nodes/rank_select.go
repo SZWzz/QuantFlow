@@ -43,7 +43,7 @@ func (n *RankSelectNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *RankSelectNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RankSelectNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	values := extractFloatSlice(inputs["factor_values"])
 	if values == nil {
 		return nil, fmt.Errorf("rank_select: factor_values input is required")

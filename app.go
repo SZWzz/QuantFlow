@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -64,9 +65,9 @@ type App struct {
 	capitalAdpt   *adapters.EastMoneyCapitalAdapter
 	fundFlowAdpt  *adapters.EastMoneyFundFlowAdapter
 	sinaFinAdpt   *adapters.SinaFinancialsAdapter
-	reportAdpt    *adapters.EastMoneyReportAdapter
-	consensusAdpt *adapters.THSConsensusAdapter
-	thsHotAdpt    *adapters.THSHotAdapter
+	reportAdpt     *adapters.EastMoneyReportAdapter
+	consensusAdpt  *adapters.THSConsensusAdapter
+	thsHotAdpt     *adapters.THSHotAdapter
 	northboundAdpt *adapters.THSNorthboundAdapter
 	cninfoAdpt     *adapters.CninfoAdapter
 	iwencaiAdpt    *adapters.IwencaiAdapter
@@ -134,7 +135,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.registry = workflow.NewRegistry()
 	nodes.RegisterAll(a.registry)
 
-	engine, err := workflow.NewEngine(a.registry, 256)
+	// Build shared NodeContext for workflow execution (replaces global setters).
+	nctx := &workflow.NodeContext{}
+	engine, err := workflow.NewEngine(a.registry, 256, nctx)
 	if err != nil {
 		return fmt.Errorf("create engine: %w", err)
 	}
@@ -162,7 +165,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Warn("python sidecar not available, AI features disabled", "error", err)
 	} else {
 		a.bridge = bridge
-		nodes.SetPythonBridge(a.bridge)
+		nctx.Bridge = a.bridge
 		slog.Info("python sidecar connected", "address", bridgeOpts.Address)
 	}
 
@@ -198,20 +201,22 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Warn("failed to load agent profiles", "error", err)
 	}
 
-	// Set agent dependencies for workflow AgentNode
+	// Set agent dependencies to NodeContext for workflow AgentNode
 	if a.bridge != nil {
-		nodes.SetAgentDependencies(a.bridge, a.capRegistry, a.emitter, a.profileMgr)
+		nctx.CapRegistry = a.capRegistry
+		nctx.Emitter = a.emitter
+		nctx.ProfileMgr = a.profileMgr
 	}
 
 	// Wire ML bridge and model registry to workflow nodes.
 	// ModelRegistry needs a DB connection (not yet shared at startup); pass nil
 	// so that model persistence is gracefully skipped. The bridge is the critical
 	// dependency — it enables gRPC communication with the Python sidecar.
-	nodes.SetModelRegistry(nil)
+	nctx.ModelRegistry = nil
 
 	// Phase 5: Initialize trading OMS and wire to workflow nodes
 	a.oms = trading.NewOMS()
-	nodes.SetTradingOMS(a.oms)
+	nctx.OMS = a.oms
 
 	// Phase 5: Initialize broker adapters. Alpaca (US equities) is optional —
 	// when ALPACA_API_KEY is not set, the broker stays disconnected and panels
@@ -250,7 +255,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	researchRepo := research.NewResearchRepo(a.db)
 	a.newsAdpt = adapters.NewEastMoneyNewsAdapter()
 	a.globalNewsAdpt = adapters.NewEastMoneyGlobalNewsAdapter()
-	nodes.SetGlobalNewsAdapter(a.globalNewsAdpt)
+	nctx.GlobalNewsAdapter = a.globalNewsAdpt
 	a.conceptAdpt = adapters.NewEastMoneyConceptAdapter()
 	a.signalsAdpt = adapters.NewEastMoneySignalsAdapter()
 	a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
@@ -266,21 +271,21 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.iwencaiAdpt = adapters.NewIwencaiAdapter()
 	a.congressAdpt = adapters.NewCongressTradesAdapter()
 
-	nodes.SetNewsAdapter(a.newsAdpt)
+	nctx.NewsAdapter = a.newsAdpt
 	if a.bridge != nil {
 		sentimentEngine := research.NewSentimentEngine(a.bridge, researchRepo, a.newsAdpt)
-		nodes.SetSentimentEngine(sentimentEngine)
+		nctx.SentimentEngine = sentimentEngine
 		slog.Info("sentiment engine initialized with Python bridge")
 	} else {
 		sentimentEngine := research.NewSentimentEngine(nil, researchRepo, a.newsAdpt)
-		nodes.SetSentimentEngine(sentimentEngine)
+		nctx.SentimentEngine = sentimentEngine
 		slog.Info("sentiment engine initialized in mock mode (no Python bridge)")
 	}
-	nodes.SetFinancialsService(research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter()))
-	nodes.SetPeerComparisonService(research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt))
-	nodes.SetAnalystEstimatesService(research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt))
-	nodes.SetInsiderTradingService(research.NewInsiderTradingService())
-	nodes.SetCongressTradingService(research.NewCongressTradingService(a.congressAdpt))
+	nctx.FinancialsService = research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
+	nctx.PeerComparisonService = research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt)
+	nctx.AnalystEstimatesService = research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt)
+	nctx.InsiderTradingService = research.NewInsiderTradingService()
+	nctx.CongressTradingService = research.NewCongressTradingService(a.congressAdpt)
 	slog.Info("research services initialized")
 
 	// Symbol search service (in-memory A-share index)
@@ -292,24 +297,24 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Info("symbol search service initialized", "stocks", searchSvc.Size())
 	}
 	a.capitalSvc = research.NewCapitalService(a.capitalAdpt)
-	nodes.SetCapitalService(a.capitalSvc)
+	nctx.CapitalService = a.capitalSvc
 	a.fundFlowSvc = research.NewFundFlowService(a.fundFlowAdpt)
-	nodes.SetFundFlowService(a.fundFlowSvc)
+	nctx.FundFlowService = a.fundFlowSvc
 	a.northboundSvc = research.NewNorthboundService(a.northboundAdpt)
-	nodes.SetNorthboundService(a.northboundSvc)
+	nctx.NorthboundService = a.northboundSvc
 	a.announcementSvc = research.NewAnnouncementService(a.cninfoAdpt)
-	nodes.SetAnnouncementService(a.announcementSvc)
+	nctx.AnnouncementService = a.announcementSvc
 
 	// Alternative data: prediction market (Polymarket)
 	a.polymarketAdpt = adapters.NewPolymarketAdapter()
 	a.predictionMarketSvc = research.NewPredictionMarketService(a.polymarketAdpt)
-	nodes.SetPredictionMarketService(a.predictionMarketSvc)
+	nctx.PredictionMarketService = a.predictionMarketSvc
 	slog.Info("prediction market service initialized")
 
 	// Alternative data: geopolitics (GDELT)
 	a.geopoliticsAdpt = adapters.NewGDELTAdapter()
 	a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
-	nodes.SetGeopoliticsService(a.geopoliticsSvc)
+	nctx.GeopoliticsService = a.geopoliticsSvc
 	slog.Info("geopolitics service initialized")
 
 	// Alternative data: govdata (FRED + SEC EDGAR)
@@ -319,45 +324,15 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	if gha, ok := a.govDataAdpt.(*adapters.GovDataHTTPAdapter); ok {
 		gha.SetAPIKey(a.cfg.GetAPIKey("fred"))
 	}
-	nodes.SetGovDataService(a.govDataSvc)
+	nctx.GovDataService = a.govDataSvc
 	slog.Info("govdata service initialized")
 
 	// Alternative data: satellite (NASA POWER + FIRMS)
 	a.satelliteAdpt = adapters.NewSatelliteAdapter()
 	a.satelliteSvc = research.NewSatelliteService(a.satelliteAdpt)
-	nodes.SetSatelliteService(a.satelliteSvc)
+	nctx.SatelliteService = a.satelliteSvc
 	slog.Info("satellite service initialized")
 	return nil
-}
-
-// registerMarketAdapters populates the adapter registry with every data source,
-// in the order the fallback chains expect (see market.FallbackChains). mootdx
-// alone needs the Python sidecar; it degrades to IsAvailable()==false when the
-// bridge is absent.
-func (a *App) registerMarketAdapters() {
-	var dataClient *python.DataClient
-	if a.bridge != nil {
-		dataClient = python.NewDataClient(a.bridge)
-	}
-	// CN chain: tencent(quickest)→eastmoney→mootdx(intraday)→...
-	// Tencent ~76ms HTTP, EastMoney ~350ms HTTPS, mootdx ~4s via Python sidecar.
-	a.marketReg.Register(adapters.NewMootdxAdapter(dataClient))
-	a.marketReg.Register(adapters.NewSinaAdapter())
-	a.marketReg.Register(adapters.NewTuShareAdapter())
-	a.marketReg.Register(adapters.NewEastMoneyAdapter())
-	a.marketReg.Register(adapters.NewTencentAdapter())
-	a.marketReg.Register(adapters.NewBaiduAdapter())
-	a.marketReg.Register(adapters.NewAKShareAdapter())
-	// US / HK / CRYPTO chains.
-	a.marketReg.Register(adapters.NewYahooAdapter())
-	finnhubAdpt := adapters.NewFinnhubAdapter()
-	finnhubAdpt.SetAPIKey(a.cfg.GetAPIKey("finnhub"))
-	a.marketReg.Register(finnhubAdpt)
-	a.marketReg.Register(adapters.NewPolygonAdapter())
-	a.marketReg.Register(adapters.NewGateIOAdapter()) // primary crypto (accessible from CN)
-	a.marketReg.Register(adapters.NewOKXAdapter())
-	a.marketReg.Register(adapters.NewBinanceAdapter())
-	a.marketReg.Register(adapters.NewCoinGeckoAdapter())
 }
 
 // ListNodes returns metadata for all registered workflow node types.
@@ -522,6 +497,250 @@ func (a *App) MarkNotificationRead(id int64) error {
 	return a.notifyMgr.MarkRead(id)
 }
 
+// SearchSymbols searches A-share stocks by code, name, or pinyin abbreviation.
+// Returns up to 20 matches sorted by relevance. Returns empty slice (not error)
+// when the search service is unavailable.
+func (a *App) SearchSymbols(query string) ([]market.StockEntry, error) {
+	if a.searchSvc == nil {
+		return []market.StockEntry{}, nil
+	}
+	return a.searchSvc.Search(query, 20), nil
+}
+
+// SearchResearch performs NL semantic search over research reports, announcements,
+// and news via the iwencai (爱问财) API. Requires IWENCAI_API_KEY to be configured.
+// channel: "report", "announcement", or "news". size: max results (capped at 50).
+func (a *App) SearchResearch(query string, channel string, size int) ([]adapters.IwencaiArticle, error) {
+	if a.iwencaiAdpt == nil {
+		return nil, fmt.Errorf("iwencai adapter not initialized")
+	}
+	if !a.iwencaiAdpt.IsAvailable(context.Background()) {
+		return nil, fmt.Errorf("iwencai not available: IWENCAI_API_KEY not set or endpoint unreachable")
+	}
+	return a.iwencaiAdpt.Search(context.Background(), query, channel, size)
+}
+
+// GetCapitalData returns capital/fundamental data for a symbol: margin trading,
+// block trades, holder changes, and dividend history.
+func (a *App) GetCapitalData(symbol string) (map[string]interface{}, error) {
+	if a.capitalSvc == nil {
+		return nil, fmt.Errorf("capital service not initialized")
+	}
+	ctx := context.Background()
+	result := map[string]interface{}{}
+	if data, err := a.capitalSvc.GetMarginTrading(ctx, symbol, 30); err == nil {
+		result["margin_trading"] = data
+	}
+	if data, err := a.capitalSvc.GetBlockTrades(ctx, symbol, 20); err == nil {
+		result["block_trades"] = data
+	}
+	if data, err := a.capitalSvc.GetHolderChanges(ctx, symbol, 10); err == nil {
+		result["holder_changes"] = data
+	}
+	if data, err := a.capitalSvc.GetDividendHistory(ctx, symbol, 20); err == nil {
+		result["dividend_history"] = data
+	}
+	return result, nil
+}
+
+// GetAnnouncements returns company announcements for a symbol from 巨潮资讯.
+func (a *App) GetAnnouncements(symbol string, pageSize int) ([]adapters.Announcement, error) {
+	if a.announcementSvc == nil {
+		return nil, fmt.Errorf("announcement service not initialized")
+	}
+	if pageSize <= 0 {
+		pageSize = 30
+	}
+	return a.announcementSvc.GetAnnouncements(context.Background(), symbol, pageSize)
+}
+
+// GetDragonTiger returns dragon tiger board data for a symbol.
+func (a *App) GetDragonTiger(symbol string, endDate string, lookBack int) ([]adapters.DragonTigerRecord, error) {
+	if a.signalsAdpt == nil {
+		return nil, fmt.Errorf("signals adapter not initialized")
+	}
+	if lookBack <= 0 {
+		lookBack = 30
+	}
+	return a.signalsAdpt.FetchDragonTigerStock(context.Background(), symbol, endDate, lookBack)
+}
+
+// GetDailyDragonTiger returns market-wide dragon tiger board for a trading date.
+func (a *App) GetDailyDragonTiger(date string, minNetBuy float64) ([]adapters.DragonTigerStock, error) {
+	if a.signalsAdpt == nil {
+		return nil, fmt.Errorf("signals adapter not initialized")
+	}
+	return a.signalsAdpt.FetchDailyDragonTiger(context.Background(), date, minNetBuy)
+}
+
+// GetLockupExpiry returns lockup expiry data (解禁) for a symbol.
+func (a *App) GetLockupExpiry(symbol string) ([]adapters.LockupExpiry, error) {
+	if a.signalsAdpt == nil {
+		return nil, fmt.Errorf("signals adapter not initialized")
+	}
+	return a.signalsAdpt.FetchLockupExpiry(context.Background(), symbol)
+}
+
+// GetIndustryRanks returns industry ranking by change percent.
+// Returns empty slice on error (eastmoney push2 API is frequently unavailable).
+func (a *App) GetIndustryRanks(topN int) ([]adapters.IndustryRank, error) {
+	if a.signalsAdpt == nil {
+		return []adapters.IndustryRank{}, nil
+	}
+	if topN <= 0 {
+		topN = 20
+	}
+	ranks, err := a.signalsAdpt.FetchIndustryRanks(context.Background(), topN)
+	if err != nil {
+		slog.Warn("GetIndustryRanks failed, returning empty", "error", err)
+		return []adapters.IndustryRank{}, nil
+	}
+	return ranks, nil
+}
+
+// GetConceptBlocks returns the concept/industry/sector blocks a stock belongs to.
+func (a *App) GetConceptBlocks(symbol string) ([]adapters.ConceptBlock, error) {
+	if a.conceptAdpt == nil {
+		return nil, fmt.Errorf("concept adapter not initialized")
+	}
+	return a.conceptAdpt.FetchConceptBlocks(context.Background(), symbol)
+}
+
+// GetMarketSnapshot returns batch quotes for a list of symbols.
+func (a *App) GetMarketSnapshot(ctx context.Context, symbols []string) ([]map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	if reg == nil {
+		return nil, fmt.Errorf("market registry not initialized")
+	}
+	result := make([]map[string]interface{}, 0, len(symbols))
+	for _, sym := range symbols {
+		mkt := market.MarketForSymbol(sym)
+		snap, _, err := reg.FetchQuoteWithFallback(ctx, mkt, sym)
+		if err != nil {
+			continue
+		}
+		result = append(result, map[string]interface{}{
+			"symbol":     sym,
+			"price":      snap.Last,
+			"change":     snap.Change,
+			"change_pct": snap.ChangePct,
+			"volume":     snap.Volume,
+		})
+	}
+	return result, nil
+}
+
+// GetCorrelationMatrix computes the Pearson correlation matrix for a set of symbols.
+func (a *App) GetCorrelationMatrix(ctx context.Context, symbols []string, lookback int) (map[string]map[string]float64, error) {
+	reg := a.getMarketReg()
+	returns := make(map[string][]float64)
+	end := time.Now().Unix()
+	start := end - int64(lookback*86400)
+	for _, sym := range symbols {
+		mkt := market.MarketForSymbol(sym)
+		bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, sym, "1d", start, end)
+		if err != nil || len(bars) < 2 {
+			continue
+		}
+		rets := make([]float64, 0, len(bars)-1)
+		for i := 1; i < len(bars); i++ {
+			if bars[i-1].Close > 0 {
+				rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
+			}
+		}
+		returns[sym] = rets
+	}
+	return portfolio.CorrelationMatrix(returns), nil
+}
+
+// GetReturnDistribution computes a histogram of daily log returns for a symbol.
+func (a *App) GetReturnDistribution(ctx context.Context, symbol string, lookback int, bins int) (map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	mkt := market.MarketForSymbol(symbol)
+	end := time.Now().Unix()
+	start := end - int64(lookback*86400)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
+	if err != nil || len(bars) < 2 {
+		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
+	}
+	rets := make([]float64, 0, len(bars)-1)
+	for i := 1; i < len(bars); i++ {
+		if bars[i-1].Close > 0 {
+			rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
+		}
+	}
+	histBins, histCounts := portfolio.ReturnDistribution(rets, bins)
+	return map[string]interface{}{
+		"symbol": symbol,
+		"bins":   histBins,
+		"counts": histCounts,
+	}, nil
+}
+
+// GetVolatilitySurface computes historical volatility across multiple time windows.
+func (a *App) GetVolatilitySurface(ctx context.Context, symbol string) ([][]float64, error) {
+	reg := a.getMarketReg()
+	mkt := market.MarketForSymbol(symbol)
+	end := time.Now().Unix()
+	start := end - int64(365*86400)
+	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
+	if err != nil || len(bars) < 5 {
+		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
+	}
+	rets := make([]float64, 0, len(bars)-1)
+	for i := 1; i < len(bars); i++ {
+		if bars[i-1].Close > 0 {
+			rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
+		}
+	}
+	return portfolio.VolatilitySurface(rets, []int{5, 10, 20, 30, 60, 90, 120, 252}), nil
+}
+
+// NewsItem is a lightweight news article for the frontend news panel.
+type NewsItem struct {
+	Title  string `json:"title"`
+	Source string `json:"source"`
+	Time   string `json:"time"`
+	URL    string `json:"url,omitempty"`
+	Symbol string `json:"symbol,omitempty"`
+}
+
+// GetNews fetches recent news. When symbol is empty, fetches global market news.
+func (a *App) GetNews(symbol string, limit int) ([]NewsItem, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	ctx := context.Background()
+
+	if symbol == "" && a.globalNewsAdpt != nil {
+		articles, err := a.globalNewsAdpt.FetchGlobalNews(ctx, limit)
+		if err != nil {
+			return nil, fmt.Errorf("global news: %w", err)
+		}
+		items := make([]NewsItem, 0, len(articles))
+		for _, art := range articles {
+			items = append(items, NewsItem{Title: art.Title, Source: art.Source, Time: art.Time, URL: art.URL})
+		}
+		return items, nil
+	}
+
+	if a.newsAdpt == nil {
+		return nil, fmt.Errorf("news adapter not available")
+	}
+	articles, err := a.newsAdpt.FetchStockNews(ctx, symbol, limit)
+	if err != nil {
+		return nil, fmt.Errorf("stock news: %w", err)
+	}
+	items := make([]NewsItem, 0, len(articles))
+	for _, art := range articles {
+		items = append(items, NewsItem{Title: art.Title, Source: art.Source, Time: art.Time, URL: art.URL, Symbol: art.Symbol})
+	}
+	return items, nil
+}
+
 // ListScheduleTasks returns all scheduled tasks.
 func (a *App) ListScheduleTasks() ([]schedule.Task, error) {
 	if a.scheduleRepo == nil {
@@ -575,6 +794,11 @@ func (a *App) ToggleScheduleTask(id string, enabled bool) error {
 		}
 	}
 	return fmt.Errorf("task not found: %s", id)
+}
+
+// GetCommodityQuotes returns real-time commodity prices.
+func (a *App) GetCommodityQuotes() map[string]interface{} {
+	return queryCommodityQuotes(a.marketReg)
 }
 
 // ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,

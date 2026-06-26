@@ -47,7 +47,7 @@ func (n *CrossSignalNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *CrossSignalNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *CrossSignalNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *CrossSignalNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	fast, ok := toFloat64Slice(inputs["fast"])
 	if !ok {
 		return nil, fmt.Errorf("cross_signal: fast input must be []float64")

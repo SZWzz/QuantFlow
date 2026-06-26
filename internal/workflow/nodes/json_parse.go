@@ -42,7 +42,7 @@ func (n *JSONParseNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *JSONParseNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *JSONParseNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	jsonStr, ok := inputs["json_str"]
 	if !ok || jsonStr == nil {
 		return nil, fmt.Errorf("json_parse: json_str input is required")

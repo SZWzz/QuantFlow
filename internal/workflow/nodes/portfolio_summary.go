@@ -31,7 +31,7 @@ func (n *PortfolioSummaryNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *PortfolioSummaryNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *PortfolioSummaryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *PortfolioSummaryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	if tradingOMS == nil {
 		return map[string]any{"summary": map[string]any{"total_value": 0}}, nil
 	}

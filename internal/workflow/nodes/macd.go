@@ -36,7 +36,7 @@ func (n *MACDNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *MACDNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *MACDNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	prices := extractFloatSlice(inputs["prices"])
 	if prices == nil { return nil, fmt.Errorf("macd: prices input required") }
 

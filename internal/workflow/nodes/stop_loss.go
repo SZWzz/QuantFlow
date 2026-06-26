@@ -47,7 +47,7 @@ func (n *StopLossNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *StopLossNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *StopLossNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	price := extractFloat(inputs["price"])
 	entryPrice := extractFloat(inputs["entry_price"])
 	if price == nil || entryPrice == nil {

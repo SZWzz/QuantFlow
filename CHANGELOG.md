@@ -38,6 +38,14 @@
 - [行情] Polygon 适配器是完全的 stub（总是返回 "not implemented"）→ 从 US 回退链移除，US 链变为 `yahoo → sina → finnhub`
 - [前端] `OrderEntryPanel` 调用 `GetQuote` 时市场参数写死 `'CN'`，输入 AAPL 也走 CN 链 → 改为 `detectMarket(symbol)` 动态路由
 - [行情] `GetMinuteLine` 仅支持 CN（依赖 mootdx）→ 对非 CN 市场返回明确错误，提示前端切到 1d 间隔
+- [前端] `TickerTapePanel` 多市场：新增 CN/HK/US 选项卡切换，HK 预设 8 只港股、US 预设 8 只美股，调用 `detectMarket` 动态路由
+- [前端] `PositionDetail` mock 数据替换为真实 `GetPositions` API，按 symbol 过滤显示持仓，空状态显示"暂无持仓"
+- [前端] `CandlestickPanel` 非 A 股市场交易时段：HKEX 09:30-12:00/13:00-16:00、NYSE 13:30-21:00 UTC、加密全天候
+- [前端] `MarketOverviewPanel` + `HeatmapPanel` 多市场：CN/HK/US 选项卡切换，`GetMarketOverview` 传入 market 参数返回对应指数
+- [行情] `GetMarketOverview` 新增 `mkt` 参数：CN 返回 5 大 A 股指数，HK 返回恒生/国企/科技，US 返回 SPX/NASDAQ/DJI
+- [前端] `useMarketColors` 新增 composable：按 symbol 市场自动切换颜色方案（CN 红涨绿跌 / 其他绿涨红跌），覆盖 CandlestickPanel/TickerTapePanel/MarketDepthPanel 硬编码颜色
+- [前端] `SymbolSearch` 搜索结果增加市场标签筛选：顶部 All/沪/深/港/美/京 过滤 tabs，前端侧过滤
+- [前端] 全局市场选择器：TerminalMode header 新增 CN/HK/US 按钮，`session.ui.activeMarket` 持久化到 localStorage，面板可 watch 刷新
 
 ### 变更
 

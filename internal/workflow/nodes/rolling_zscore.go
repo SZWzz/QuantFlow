@@ -35,7 +35,7 @@ func (n *RollingZScoreNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *RollingZScoreNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RollingZScoreNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	values := extractFloatSlice(inputs["values"])
 	if values == nil {
 		return nil, fmt.Errorf("rolling_zscore: values input is required")

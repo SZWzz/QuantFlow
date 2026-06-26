@@ -35,7 +35,7 @@ func (n *CrossOverNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *CrossOverNode) ParamSchema() []workflow.ParamDef { return nil }
 
-func (n *CrossOverNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *CrossOverNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	fast := extractFloatSlice(inputs["fast"])
 	if fast == nil {
 		return nil, fmt.Errorf("cross_over: fast input required")

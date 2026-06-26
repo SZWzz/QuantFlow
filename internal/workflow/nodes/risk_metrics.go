@@ -40,7 +40,7 @@ func (n *RiskMetricsNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *RiskMetricsNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RiskMetricsNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	// TODO: Compute real risk metrics from portfolio returns (Sharpe, max drawdown,
 	// total exposure). Requires wiring to portfolio service + historical returns.
 	_ = inputs["equity_curve"]

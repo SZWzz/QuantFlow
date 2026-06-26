@@ -56,7 +56,7 @@ func (n *BacktestNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	marketName := getStringParam(params, "market", "CN")
 	startDate := getStringParam(params, "start_date", "2024-01-01")
 	endDate := getStringParam(params, "end_date", "2024-12-31")

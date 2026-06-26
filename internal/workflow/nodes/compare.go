@@ -35,7 +35,7 @@ func (n *CompareNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *CompareNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *CompareNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	a := extractFloatSlice(inputs["a"])
 	if a == nil {
 		return nil, fmt.Errorf("compare: input a is required")

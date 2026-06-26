@@ -58,7 +58,7 @@ func (n *RiskModelNode) Validate() error {
 	return nil
 }
 
-func (n *RiskModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RiskModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	_ = getStringParam(params, "model_type", "garch")
 	_ = inputs["returns_data"]
 

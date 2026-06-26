@@ -50,7 +50,7 @@ func (n *PredictionMarketNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	category := resolveStringParam(params, n.params, "category", "")
 	if v, ok := inputs["category"].(string); ok && v != "" {
 		category = v

@@ -43,7 +43,7 @@ func (n *EvaluateModelNode) ParamSchema() []workflow.ParamDef { return nil }
 
 func (n *EvaluateModelNode) Validate() error { return nil }
 
-func (n *EvaluateModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *EvaluateModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	predMap, ok := inputs["predictions"].(map[string][]float64)
 	if !ok {
 		return nil, fmt.Errorf("evaluate_model: predictions must be map[string][]float64")

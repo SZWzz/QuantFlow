@@ -46,7 +46,7 @@ func (n *SatelliteNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *SatelliteNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *SatelliteNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	region := resolveStringParam(params, n.params, "region", "")
 	if v, ok := inputs["region"].(string); ok && v != "" {
 		region = v

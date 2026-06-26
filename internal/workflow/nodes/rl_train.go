@@ -56,7 +56,7 @@ func (n *RLTrainNode) Validate() error {
 	return nil
 }
 
-func (n *RLTrainNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RLTrainNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	algorithm := getStringParam(params, "algorithm", "ppo")
 	totalEpisodes := getIntParam(params, "total_episodes", 100)
 

@@ -38,7 +38,7 @@ func (n *SignalCombineNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *SignalCombineNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *SignalCombineNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	method := getStringParam(params, "method", "majority")
 	raw := inputs["signals"]
 	if raw == nil {

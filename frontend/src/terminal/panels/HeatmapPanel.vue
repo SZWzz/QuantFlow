@@ -6,6 +6,9 @@ import type { SectorRanking } from '@/stores/data'
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const loading = ref(false)
+const activeMarket = ref<'CN' | 'HK' | 'US'>(
+  (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
+)
 
 interface HeatmapCell {
   name: string
@@ -34,10 +37,14 @@ function textColor(pct: number): string {
   return Math.abs(pct) > 1.5 ? '#fff' : '#e5e7eb'
 }
 
+function switchMarket(mkt: typeof activeMarket.value) {
+  activeMarket.value = mkt
+  refresh()
+}
 async function refresh() {
   loading.value = true
   try {
-    await dataStore.fetchMarketOverview()
+    await dataStore.fetchMarketOverview(activeMarket.value)
   } finally {
     loading.value = false
   }
@@ -52,6 +59,12 @@ onMounted(() => {
   <div class="heatmap-panel">
     <div class="panel-header">
       <h3>{{ $t('misc.heatmap') }}</h3>
+      <div class="market-tabs">
+        <button v-for="mkt in (['CN', 'HK', 'US'] as const)" :key="mkt"
+          :class="['mkt-tab', { active: activeMarket === mkt }]"
+          @click="switchMarket(mkt)"
+        >{{ mkt }}</button>
+      </div>
       <button class="refresh-btn" @click="refresh" :disabled="loading">
         {{ loading ? '...' : '⟳' }}
       </button>
@@ -104,6 +117,12 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.market-tabs { display: flex; gap: 4px; }
+.mkt-tab {
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
+}
+.mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;

@@ -4,14 +4,44 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
 	"strings"
 	"time"
 
 	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
-	"quantflow/internal/portfolio"
+	"quantflow/internal/python"
 )
+
+// registerMarketAdapters populates the adapter registry with every data source,
+// in the order the fallback chains expect (see market.FallbackChains). mootdx
+// alone needs the Python sidecar; it degrades to IsAvailable()==false when the
+// bridge is absent. Extracted from startup() so tests can exercise registration
+// without config/storage.
+func (a *App) registerMarketAdapters() {
+	var dataClient *python.DataClient
+	if a.bridge != nil {
+		dataClient = python.NewDataClient(a.bridge)
+	}
+	// CN chain: tencent(quickest)→eastmoney→mootdx(intraday)→...
+	// Tencent ~76ms HTTP, EastMoney ~350ms HTTPS, mootdx ~4s via Python sidecar.
+	a.marketReg.Register(adapters.NewMootdxAdapter(dataClient))
+	a.marketReg.Register(adapters.NewSinaAdapter())
+	a.marketReg.Register(adapters.NewTuShareAdapter())
+	a.marketReg.Register(adapters.NewEastMoneyAdapter())
+	a.marketReg.Register(adapters.NewTencentAdapter())
+	a.marketReg.Register(adapters.NewBaiduAdapter())
+	a.marketReg.Register(adapters.NewAKShareAdapter())
+	// US / HK / CRYPTO chains.
+	a.marketReg.Register(adapters.NewYahooAdapter())
+	finnhubAdpt := adapters.NewFinnhubAdapter()
+	finnhubAdpt.SetAPIKey(a.cfg.GetAPIKey("finnhub"))
+	a.marketReg.Register(finnhubAdpt)
+	a.marketReg.Register(adapters.NewPolygonAdapter())
+	a.marketReg.Register(adapters.NewGateIOAdapter()) // primary crypto (accessible from CN)
+	a.marketReg.Register(adapters.NewOKXAdapter())
+	a.marketReg.Register(adapters.NewBinanceAdapter())
+	a.marketReg.Register(adapters.NewCoinGeckoAdapter())
+}
 
 // GetQuote fetches a real-time quote for a symbol via the market's fallback
 // chain (e.g. "CN" → mootdx→sina→tushare→…). Returns the snapshot and the name
@@ -24,25 +54,36 @@ func (a *App) GetQuote(ctx context.Context, marketName, symbol string) (*market.
 }
 
 // GetMinuteLine returns today's intraday minute-by-minute ticks for a CN symbol.
+// If sinceTimestamp is 0, returns all ticks for today.
+// If sinceTimestamp > 0, returns only ticks after the given Unix timestamp.
+// Data is cached in SQLite + LRU; source data comes from mootdx when not cached.
 func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp int64) ([]market.MinuteTick, string, error) {
 	if a.minuteCache == nil {
 		return nil, "unavailable", fmt.Errorf("minute cache not initialized")
 	}
 
 	mkt := market.MarketForSymbol(symbol)
+
+	// Non-CN markets: minute data not available via free adapters,
+	// return daily OHLCV as fallback (frontend will display as daily bars).
 	if mkt != "CN" {
 		return nil, "unavailable", fmt.Errorf("minute data not available for market %s, use 1d interval instead", mkt)
 	}
 
+	// 1. Try cache first (SQLite + LRU).
 	ticks, err := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
 	if err != nil {
 		slog.Warn("minute_cache: get failed", "symbol", symbol, "err", err)
 	}
 
+	// 2. If cache has data and the request is incremental (since > 0),
+	//    return cached data. For initial load (since == 0), if cache
+	//    is empty, fall through to live fetch.
 	if len(ticks) > 0 || sinceTimestamp > 0 {
 		return ticks, "cache", nil
 	}
 
+	// 3. Live fetch via mootdx (CN only).
 	adpt := a.getMootdxAdapter()
 	if adpt == nil {
 		return nil, "unavailable", fmt.Errorf("mootdx adapter not available")
@@ -52,6 +93,7 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		return nil, "unavailable", err
 	}
 
+	// 4. Persist live data to cache.
 	if len(liveTicks) > 0 {
 		today := time.Now().Format("2006-01-02")
 		if err := a.minuteCache.SaveTicks(symbol, today, liveTicks); err != nil {
@@ -63,6 +105,9 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 }
 
 // FetchOHLCV fetches OHLCV bars for a symbol via the market's fallback chain.
+// interval is one of "1D", "1W", "1M", "1m", "5m", "15m", "30m", "1H"; start/end
+// are Unix timestamps in seconds. Returns the bars and the adapter name that
+// succeeded.
 func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval string, start, end int64) ([]market.OHLCVBar, string, error) {
 	if a.marketReg == nil {
 		return nil, "", fmt.Errorf("market registry not initialized")
@@ -70,7 +115,41 @@ func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval strin
 	return a.marketReg.FetchOHLCVWithFallback(ctx, marketName, symbol, interval, start, end)
 }
 
+// GetFundFlow returns capital flow data for a symbol.
+// flowType: "minute" (今日分钟级) or "daily" (120日日级).
+func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
+	if a.fundFlowSvc == nil {
+		return nil, fmt.Errorf("fund flow service not initialized")
+	}
+	ctx := context.Background()
+	switch flowType {
+	case "minute":
+		return a.fundFlowSvc.GetMinuteFlow(ctx, symbol)
+	case "daily":
+		return a.fundFlowSvc.GetDailyFlow(ctx, symbol)
+	default:
+		return nil, fmt.Errorf("invalid flowType: %s (use 'minute' or 'daily')", flowType)
+	}
+}
+
+// GetNorthboundFlow returns northbound capital flow data.
+func (a *App) GetNorthboundFlow() (map[string]interface{}, error) {
+	if a.northboundSvc == nil {
+		return nil, fmt.Errorf("northbound service not initialized")
+	}
+	ctx := context.Background()
+	result := map[string]interface{}{}
+	if data, err := a.northboundSvc.GetMinuteFlow(ctx); err == nil {
+		result["minute_flow"] = data
+	}
+	if data, err := a.northboundSvc.GetHistory(20); err == nil {
+		result["history"] = data
+	}
+	return result, nil
+}
+
 // getMootdxAdapter retrieves the mootdx adapter from the market registry.
+// Returns nil if the Python sidecar is not connected.
 func (a *App) getMootdxAdapter() *adapters.MootdxAdapter {
 	if a.marketReg == nil {
 		return nil
@@ -155,30 +234,6 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	}, nil
 }
 
-// GetMarketSnapshot returns batch quotes for a list of symbols.
-func (a *App) GetMarketSnapshot(ctx context.Context, symbols []string) ([]map[string]interface{}, error) {
-	reg := a.getMarketReg()
-	if reg == nil {
-		return nil, fmt.Errorf("market registry not initialized")
-	}
-	result := make([]map[string]interface{}, 0, len(symbols))
-	for _, sym := range symbols {
-		mkt := market.MarketForSymbol(sym)
-		snap, _, err := reg.FetchQuoteWithFallback(ctx, mkt, sym)
-		if err != nil {
-			continue
-		}
-		result = append(result, map[string]interface{}{
-			"symbol":     sym,
-			"price":      snap.Last,
-			"change":     snap.Change,
-			"change_pct": snap.ChangePct,
-			"volume":     snap.Volume,
-		})
-	}
-	return result, nil
-}
-
 // GetCryptoOverview returns quotes for major crypto pairs.
 func (a *App) GetCryptoOverview(ctx context.Context, symbols []string) (map[string]interface{}, error) {
 	if len(symbols) == 0 {
@@ -198,268 +253,4 @@ func (a *App) GetCryptoOverview(ctx context.Context, symbols []string) (map[stri
 		})
 	}
 	return map[string]interface{}{"cryptos": results}, nil
-}
-
-// GetCorrelationMatrix computes the Pearson correlation matrix for a set of symbols.
-func (a *App) GetCorrelationMatrix(ctx context.Context, symbols []string, lookback int) (map[string]map[string]float64, error) {
-	reg := a.getMarketReg()
-	returns := make(map[string][]float64)
-	end := time.Now().Unix()
-	start := end - int64(lookback*86400)
-	for _, sym := range symbols {
-		mkt := market.MarketForSymbol(sym)
-		bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, sym, "1d", start, end)
-		if err != nil || len(bars) < 2 {
-			continue
-		}
-		rets := make([]float64, 0, len(bars)-1)
-		for i := 1; i < len(bars); i++ {
-			if bars[i-1].Close > 0 {
-				rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
-			}
-		}
-		returns[sym] = rets
-	}
-	return portfolio.CorrelationMatrix(returns), nil
-}
-
-// GetReturnDistribution computes a histogram of daily log returns for a symbol.
-func (a *App) GetReturnDistribution(ctx context.Context, symbol string, lookback int, bins int) (map[string]interface{}, error) {
-	reg := a.getMarketReg()
-	mkt := market.MarketForSymbol(symbol)
-	end := time.Now().Unix()
-	start := end - int64(lookback*86400)
-	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
-	if err != nil || len(bars) < 2 {
-		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
-	}
-	rets := make([]float64, 0, len(bars)-1)
-	for i := 1; i < len(bars); i++ {
-		if bars[i-1].Close > 0 {
-			rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
-		}
-	}
-	histBins, histCounts := portfolio.ReturnDistribution(rets, bins)
-	return map[string]interface{}{
-		"symbol": symbol,
-		"bins":   histBins,
-		"counts": histCounts,
-	}, nil
-}
-
-// GetVolatilitySurface computes historical volatility across multiple time windows.
-func (a *App) GetVolatilitySurface(ctx context.Context, symbol string) ([][]float64, error) {
-	reg := a.getMarketReg()
-	mkt := market.MarketForSymbol(symbol)
-	end := time.Now().Unix()
-	start := end - int64(365*86400)
-	bars, _, err := reg.FetchOHLCVWithFallback(ctx, mkt, symbol, "1d", start, end)
-	if err != nil || len(bars) < 5 {
-		return nil, fmt.Errorf("insufficient data for %s: %w", symbol, err)
-	}
-	rets := make([]float64, 0, len(bars)-1)
-	for i := 1; i < len(bars); i++ {
-		if bars[i-1].Close > 0 {
-			rets = append(rets, math.Log(bars[i].Close/bars[i-1].Close))
-		}
-	}
-	return portfolio.VolatilitySurface(rets, []int{5, 10, 20, 30, 60, 90, 120, 252}), nil
-}
-
-// SearchSymbols searches A-share stocks by code, name, or pinyin abbreviation.
-func (a *App) SearchSymbols(query string) ([]market.StockEntry, error) {
-	if a.searchSvc == nil {
-		return []market.StockEntry{}, nil
-	}
-	return a.searchSvc.Search(query, 20), nil
-}
-
-// GetCapitalData returns capital/fundamental data for a symbol.
-func (a *App) GetCapitalData(symbol string) (map[string]interface{}, error) {
-	if a.capitalSvc == nil {
-		return nil, fmt.Errorf("capital service not initialized")
-	}
-	ctx := context.Background()
-	result := map[string]interface{}{}
-	if data, err := a.capitalSvc.GetMarginTrading(ctx, symbol, 30); err == nil {
-		result["margin_trading"] = data
-	}
-	if data, err := a.capitalSvc.GetBlockTrades(ctx, symbol, 20); err == nil {
-		result["block_trades"] = data
-	}
-	if data, err := a.capitalSvc.GetHolderChanges(ctx, symbol, 10); err == nil {
-		result["holder_changes"] = data
-	}
-	if data, err := a.capitalSvc.GetDividendHistory(ctx, symbol, 20); err == nil {
-		result["dividend_history"] = data
-	}
-	return result, nil
-}
-
-// GetFundFlow returns capital flow data for a symbol.
-func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
-	if a.fundFlowSvc == nil {
-		return nil, fmt.Errorf("fund flow service not initialized")
-	}
-	ctx := context.Background()
-	switch flowType {
-	case "minute":
-		return a.fundFlowSvc.GetMinuteFlow(ctx, symbol)
-	case "daily":
-		return a.fundFlowSvc.GetDailyFlow(ctx, symbol)
-	default:
-		return nil, fmt.Errorf("invalid flowType: %s (use 'minute' or 'daily')", flowType)
-	}
-}
-
-// GetNorthboundFlow returns northbound capital flow data.
-func (a *App) GetNorthboundFlow() (map[string]interface{}, error) {
-	if a.northboundSvc == nil {
-		return nil, fmt.Errorf("northbound service not initialized")
-	}
-	ctx := context.Background()
-	result := map[string]interface{}{}
-	if data, err := a.northboundSvc.GetMinuteFlow(ctx); err == nil {
-		result["minute_flow"] = data
-	}
-	if data, err := a.northboundSvc.GetHistory(20); err == nil {
-		result["history"] = data
-	}
-	return result, nil
-}
-
-// GetDragonTiger returns dragon tiger board data for a symbol.
-func (a *App) GetDragonTiger(symbol string, endDate string, lookBack int) ([]adapters.DragonTigerRecord, error) {
-	if a.signalsAdpt == nil {
-		return nil, fmt.Errorf("signals adapter not initialized")
-	}
-	if lookBack <= 0 {
-		lookBack = 30
-	}
-	return a.signalsAdpt.FetchDragonTigerStock(context.Background(), symbol, endDate, lookBack)
-}
-
-// GetDailyDragonTiger returns market-wide dragon tiger board for a trading date.
-func (a *App) GetDailyDragonTiger(date string, minNetBuy float64) ([]adapters.DragonTigerStock, error) {
-	if a.signalsAdpt == nil {
-		return nil, fmt.Errorf("signals adapter not initialized")
-	}
-	return a.signalsAdpt.FetchDailyDragonTiger(context.Background(), date, minNetBuy)
-}
-
-// GetLockupExpiry returns lockup expiry data (解禁) for a symbol.
-func (a *App) GetLockupExpiry(symbol string) ([]adapters.LockupExpiry, error) {
-	if a.signalsAdpt == nil {
-		return nil, fmt.Errorf("signals adapter not initialized")
-	}
-	return a.signalsAdpt.FetchLockupExpiry(context.Background(), symbol)
-}
-
-// GetIndustryRanks returns industry ranking by change percent.
-func (a *App) GetIndustryRanks(topN int) ([]adapters.IndustryRank, error) {
-	if a.signalsAdpt == nil {
-		return []adapters.IndustryRank{}, nil
-	}
-	if topN <= 0 {
-		topN = 20
-	}
-	ranks, err := a.signalsAdpt.FetchIndustryRanks(context.Background(), topN)
-	if err != nil {
-		slog.Warn("GetIndustryRanks failed, returning empty", "error", err)
-		return []adapters.IndustryRank{}, nil
-	}
-	return ranks, nil
-}
-
-// GetConceptBlocks returns the concept/industry/sector blocks a stock belongs to.
-func (a *App) GetConceptBlocks(symbol string) ([]adapters.ConceptBlock, error) {
-	if a.conceptAdpt == nil {
-		return nil, fmt.Errorf("concept adapter not initialized")
-	}
-	return a.conceptAdpt.FetchConceptBlocks(context.Background(), symbol)
-}
-
-// GetSatelliteSnapshots returns satellite energy data snapshots for all 5 regions.
-func (a *App) GetSatelliteSnapshots() (map[string]interface{}, error) {
-	if a.satelliteSvc == nil {
-		return nil, fmt.Errorf("satellite service not initialized")
-	}
-	snapshots, err := a.satelliteSvc.GetRegionSnapshots(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	return map[string]interface{}{"regions": snapshots, "count": len(snapshots)}, nil
-}
-
-// GetSatelliteDetail returns detailed satellite data for a single region.
-func (a *App) GetSatelliteDetail(regionID string) (map[string]interface{}, error) {
-	if a.satelliteSvc == nil {
-		return nil, fmt.Errorf("satellite service not initialized")
-	}
-	ctx := context.Background()
-	snapshot, _, err := a.satelliteSvc.GetRegionDetail(ctx, regionID)
-	if err != nil {
-		return nil, err
-	}
-	solarPts, windPts, err := a.satelliteSvc.GetRegionEnergyData(ctx, regionID)
-	if err != nil {
-		return nil, err
-	}
-	return map[string]interface{}{
-		"snapshot":    snapshot,
-		"solar_data":  solarPts,
-		"wind_data":   windPts,
-		"solar_chart": solarPts,
-		"wind_chart":  windPts,
-	}, nil
-}
-
-// GetCommodityQuotes returns real-time commodity prices.
-func (a *App) GetCommodityQuotes() map[string]interface{} {
-	return queryCommodityQuotes(a.marketReg)
-}
-
-// NewsItem is a lightweight news article for the frontend news panel.
-type NewsItem struct {
-	Title  string `json:"title"`
-	Source string `json:"source"`
-	Time   string `json:"time"`
-	URL    string `json:"url,omitempty"`
-	Symbol string `json:"symbol,omitempty"`
-}
-
-// GetNews fetches recent news. When symbol is empty, fetches global market news.
-func (a *App) GetNews(symbol string, limit int) ([]NewsItem, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 50 {
-		limit = 50
-	}
-	ctx := context.Background()
-
-	if symbol == "" && a.globalNewsAdpt != nil {
-		articles, err := a.globalNewsAdpt.FetchGlobalNews(ctx, limit)
-		if err != nil {
-			return nil, fmt.Errorf("global news: %w", err)
-		}
-		items := make([]NewsItem, 0, len(articles))
-		for _, art := range articles {
-			items = append(items, NewsItem{Title: art.Title, Source: art.Source, Time: art.Time, URL: art.URL})
-		}
-		return items, nil
-	}
-
-	if a.newsAdpt == nil {
-		return nil, fmt.Errorf("news adapter not available")
-	}
-	articles, err := a.newsAdpt.FetchStockNews(ctx, symbol, limit)
-	if err != nil {
-		return nil, fmt.Errorf("stock news: %w", err)
-	}
-	items := make([]NewsItem, 0, len(articles))
-	for _, art := range articles {
-		items = append(items, NewsItem{Title: art.Title, Source: art.Source, Time: art.Time, URL: art.URL, Symbol: art.Symbol})
-	}
-	return items, nil
 }

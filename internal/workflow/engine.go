@@ -37,15 +37,17 @@ type NodeResult struct {
 type Engine struct {
 	registry *NodeRegistry
 	cache    *NodeCache
+	nctx     *NodeContext
 }
 
-// NewEngine creates an Engine with the given node registry and cache capacity.
-func NewEngine(registry *NodeRegistry, cacheSize int) (*Engine, error) {
+// NewEngine creates an Engine with the given node registry, cache capacity, and shared
+// service context accessible to all executing nodes.
+func NewEngine(registry *NodeRegistry, cacheSize int, nctx *NodeContext) (*Engine, error) {
 	cache, err := NewNodeCache(cacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("create engine: %w", err)
 	}
-	return &Engine{registry: registry, cache: cache}, nil
+	return &Engine{registry: registry, cache: cache, nctx: nctx}, nil
 }
 
 // Execute runs the workflow DAG to completion or until the context is cancelled.
@@ -146,7 +148,7 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 		return nil
 	}
 
-	outputs, err := node.Execute(ctx, inputs, nodeInstance.Params)
+	outputs, err := node.Execute(ctx, inputs, nodeInstance.Params, e.nctx)
 	nr.Duration = time.Since(start)
 	if err != nil {
 		nr.Status = "failed"

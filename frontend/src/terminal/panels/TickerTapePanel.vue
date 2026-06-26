@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
 import { detectMarket } from '@/lib/wails'
+import { marketChangeColor } from '@/lib/composables/useMarketColors'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -18,13 +19,13 @@ const MARKET_SYMBOLS: Record<string, string[]> = {
   US: ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'META', 'SPY'],
 }
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
-  (params?.market as 'CN' | 'HK' | 'US') || 'CN'
+  (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
 const SYMBOLS = computed(() => MARKET_SYMBOLS[activeMarket.value])
 
 const { data: items, loading, execute } = useDataFetch<TickerItem[]>(async () => {
   const results: TickerItem[] = []
-  for (const sym of SYMBOLS) {
+  for (const sym of SYMBOLS.value) {
     try {
       const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
       const snapshot = Array.isArray(result) ? result[0] : result
@@ -48,7 +49,7 @@ onMounted(() => execute())
   <div class="ticker-tape-panel">
     <span class="tape-title">{{ $t('watchlist.ticker_tape') }}</span>
     <div class="market-tabs">
-      <button v-for="mkt in ['CN', 'HK', 'US']" :key="mkt"
+      <button v-for="mkt in (['CN', 'HK', 'US'] as const)" :key="mkt"
         :class="['mkt-tab', { active: activeMarket === mkt }]"
         @click="activeMarket = mkt; execute()"
       >{{ mkt }}</button>
@@ -61,7 +62,7 @@ onMounted(() => execute())
           <span class="tape-symbol">{{ item.symbol }}</span>
           <span class="tape-name">{{ item.name }}</span>
           <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-          <span class="tape-change" :style="{ color: item.changePct >= 0 ? '#ef4444' : '#22c55e' }">
+          <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
             {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
           </span>
         </span>
@@ -70,7 +71,7 @@ onMounted(() => execute())
           <span class="tape-symbol">{{ item.symbol }}</span>
           <span class="tape-name">{{ item.name }}</span>
           <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-          <span class="tape-change" :style="{ color: item.changePct >= 0 ? '#ef4444' : '#22c55e' }">
+          <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
             {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
           </span>
         </span>
@@ -97,8 +98,13 @@ onMounted(() => execute())
   color: var(--color-text-tertiary);
   white-space: nowrap;
   flex-shrink: 0;
-  margin-right: 4px;
 }
+.market-tabs { display: flex; gap: 2px; flex-shrink: 0; }
+.mkt-tab {
+  padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: 3px;
+  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; line-height: 1.2;
+}
+.mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.15); }
 .tape-loading {
   flex: 1;
   display: flex;

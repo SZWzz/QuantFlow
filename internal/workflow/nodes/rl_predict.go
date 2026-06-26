@@ -49,7 +49,7 @@ func (n *RLPredictNode) Validate() error {
 	return nil
 }
 
-func (n *RLPredictNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *RLPredictNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	_ = inputs["model_id"]
 	_ = inputs["observation"]
 

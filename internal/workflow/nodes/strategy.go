@@ -54,7 +54,7 @@ func (n *StrategyNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *StrategyNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *StrategyNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	signalType := getStringParam(params, "signal_type", "sma_cross")
 
 	strategyConfig := map[string]any{

@@ -33,7 +33,7 @@ func (n *ResampleNode) ParamSchema() []workflow.ParamDef {
 	}
 }
 
-func (n *ResampleNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *ResampleNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	rule := getStringParam(params, "rule", "1d")
 	series := extractFloatSlice(inputs["series"])
 	if series == nil {

@@ -55,7 +55,7 @@ func (n *AlphaMiningNode) ParamSchema() []workflow.ParamDef {
 
 func (n *AlphaMiningNode) Validate() error { return nil }
 
-func (n *AlphaMiningNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any) (map[string]any, error) {
+func (n *AlphaMiningNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	if bridge == nil {
 		return nil, fmt.Errorf("alpha_mining: PythonBridge not set")
 	}
