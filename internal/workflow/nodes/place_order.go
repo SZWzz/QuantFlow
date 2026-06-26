@@ -8,11 +8,6 @@ import (
 	"quantflow/internal/workflow"
 )
 
-var tradingOMS *trading.OMS
-
-// SetTradingOMS sets the trading OMS instance used by all trading nodes.
-func SetTradingOMS(oms *trading.OMS) { tradingOMS = oms }
-
 // PlaceOrderNode submits an order to the trading OMS.
 type PlaceOrderNode struct {
 	id     string
@@ -54,6 +49,11 @@ func (n *PlaceOrderNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *PlaceOrderNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var oms *trading.OMS
+	if nctx != nil {
+		oms, _ = nctx.OMS.(*trading.OMS)
+	}
+
 	symbol := getStringParam(params, "symbol", "")
 	if symbol == "" {
 		if v, ok := inputs["symbol"]; ok {
@@ -70,16 +70,16 @@ func (n *PlaceOrderNode) Execute(ctx context.Context, inputs map[string]any, par
 	price := getFloatParam(params, "price", 0)
 	stopPrice := getFloatParam(params, "stop_price", 0)
 
-	if tradingOMS == nil {
+	if oms == nil {
 		return map[string]any{"order_id": "sim-001", "status": "simulated"}, nil
 	}
 
 	var order *trading.Order
 	var err error
-	if tradingOMS.HasBroker() {
-		order, err = tradingOMS.PlaceOrderLive(ctx, symbol, side, ot, qty, price, stopPrice)
+	if oms.HasBroker() {
+		order, err = oms.PlaceOrderLive(ctx, symbol, side, ot, qty, price, stopPrice)
 	} else {
-		order, err = tradingOMS.PlaceOrder(symbol, side, ot, qty, price)
+		order, err = oms.PlaceOrder(symbol, side, ot, qty, price)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("place_order: %w", err)

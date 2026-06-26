@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"quantflow/internal/research"
 	"quantflow/internal/workflow"
 )
 
@@ -44,6 +45,10 @@ func (n *PeerCompareNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *PeerCompareNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var peerComparisonService *research.PeerComparisonService
+	if nctx != nil {
+		peerComparisonService, _ = nctx.PeerComparisonService.(*research.PeerComparisonService)
+	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("peer_compare: missing required input 'symbol'")

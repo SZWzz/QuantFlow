@@ -50,6 +50,10 @@ func (n *GeopoliticsNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *GeopoliticsNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var geopoliticsService *research.GeopoliticsService
+	if nctx != nil {
+		geopoliticsService, _ = nctx.GeopoliticsService.(*research.GeopoliticsService)
+	}
 	topic := resolveStringParam(params, n.params, "topic", "")
 	if v, ok := inputs["topic"].(string); ok && v != "" {
 		topic = v

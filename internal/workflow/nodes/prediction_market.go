@@ -51,6 +51,10 @@ func (n *PredictionMarketNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var predictionMarketService *research.PredictionMarketService
+	if nctx != nil {
+		predictionMarketService, _ = nctx.PredictionMarketService.(*research.PredictionMarketService)
+	}
 	category := resolveStringParam(params, n.params, "category", "")
 	if v, ok := inputs["category"].(string); ok && v != "" {
 		category = v

@@ -46,6 +46,10 @@ func (n *AnalystEstimatesNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *AnalystEstimatesNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var analystEstimatesService *research.AnalystEstimatesService
+	if nctx != nil {
+		analystEstimatesService, _ = nctx.AnalystEstimatesService.(*research.AnalystEstimatesService)
+	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("analyst_estimates: missing required input 'symbol'")

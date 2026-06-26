@@ -38,18 +38,23 @@ func (n *OrderQueryNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *OrderQueryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	if tradingOMS == nil {
+	var oms *trading.OMS
+	if nctx != nil {
+		oms, _ = nctx.OMS.(*trading.OMS)
+	}
+
+	if oms == nil {
 		return map[string]any{"orders": []*trading.Order{}, "trades": []*trading.Trade{}}, nil
 	}
 	status := getStringParam(params, "status", "")
-	orders := tradingOMS.GetOrders()
+	orders := oms.GetOrders()
 	var filtered []*trading.Order
 	for _, o := range orders {
 		if status == "" || string(o.Status) == status {
 			filtered = append(filtered, o)
 		}
 	}
-	return map[string]any{"orders": filtered, "trades": tradingOMS.GetTrades()}, nil
+	return map[string]any{"orders": filtered, "trades": oms.GetTrades()}, nil
 }
 
 func (n *OrderQueryNode) Validate() error { return nil }

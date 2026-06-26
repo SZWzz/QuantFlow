@@ -50,6 +50,19 @@ func (n *StockResearchNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *StockResearchNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var financialsService *research.FinancialsService
+	var sentimentEngine *research.SentimentEngine
+	var peerComparisonService *research.PeerComparisonService
+	var analystEstimatesService *research.AnalystEstimatesService
+	var insiderTradingService *research.InsiderTradingService
+	if nctx != nil {
+		financialsService, _ = nctx.FinancialsService.(*research.FinancialsService)
+		sentimentEngine, _ = nctx.SentimentEngine.(*research.SentimentEngine)
+		peerComparisonService, _ = nctx.PeerComparisonService.(*research.PeerComparisonService)
+		analystEstimatesService, _ = nctx.AnalystEstimatesService.(*research.AnalystEstimatesService)
+		insiderTradingService, _ = nctx.InsiderTradingService.(*research.InsiderTradingService)
+	}
+
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("stock_research: missing required input 'symbol'")

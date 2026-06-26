@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"quantflow/internal/research"
 	"quantflow/internal/workflow"
 )
 
@@ -44,6 +45,10 @@ func (n *FinancialsNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *FinancialsNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var financialsService *research.FinancialsService
+	if nctx != nil {
+		financialsService, _ = nctx.FinancialsService.(*research.FinancialsService)
+	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("financials: missing required input 'symbol'")

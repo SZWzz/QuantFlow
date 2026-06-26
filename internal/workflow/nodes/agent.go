@@ -16,20 +16,6 @@ type AgentNode struct {
 	params map[string]any
 }
 
-// SetAgentDependencies injects the shared agent infrastructure.
-var agentBridge *python.PythonBridge
-var agentReg *ai.CapabilityRegistry
-var agentEmitter *ai.EventEmitter
-var agentPM *ai.ProfileManager
-
-// SetAgentDependencies sets the global agent infrastructure for all AgentNodes.
-func SetAgentDependencies(bridge *python.PythonBridge, reg *ai.CapabilityRegistry, emitter *ai.EventEmitter, pm *ai.ProfileManager) {
-	agentBridge = bridge
-	agentReg = reg
-	agentEmitter = emitter
-	agentPM = pm
-}
-
 // NewAgentNode creates a new AgentNode.
 func NewAgentNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &AgentNode{id: id, params: params}, nil
@@ -69,6 +55,19 @@ func (n *AgentNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *AgentNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var agentBridge *python.PythonBridge
+	var agentReg *ai.CapabilityRegistry
+	var agentEmitter *ai.EventEmitter
+	var agentPM *ai.ProfileManager
+	if nctx != nil {
+		if nctx.Bridge != nil {
+			agentBridge, _ = nctx.Bridge.(*python.PythonBridge)
+		}
+		agentReg, _ = nctx.CapRegistry.(*ai.CapabilityRegistry)
+		agentEmitter, _ = nctx.Emitter.(*ai.EventEmitter)
+		agentPM, _ = nctx.ProfileMgr.(*ai.ProfileManager)
+	}
+
 	profileName := getStringParam(params, "profile", "general")
 	model := getStringParam(params, "model", "")
 	temperature := float32(getFloatParam(params, "temperature", 0.7))

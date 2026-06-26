@@ -42,18 +42,23 @@ func (n *PositionQueryNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *PositionQueryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	if tradingOMS == nil {
+	var oms *trading.OMS
+	if nctx != nil {
+		oms, _ = nctx.OMS.(*trading.OMS)
+	}
+
+	if oms == nil {
 		return map[string]any{"positions": []*trading.Position{}, "count": 0}, nil
 	}
 	symbol := getStringParam(params, "symbol", "")
 	if symbol != "" {
-		pos := tradingOMS.GetPosition(symbol)
+		pos := oms.GetPosition(symbol)
 		if pos != nil {
 			return map[string]any{"positions": []*trading.Position{pos}, "count": 1}, nil
 		}
 		return map[string]any{"positions": []*trading.Position{}, "count": 0}, nil
 	}
-	positions := tradingOMS.GetAllPositions()
+	positions := oms.GetAllPositions()
 	return map[string]any{"positions": positions, "count": len(positions)}, nil
 }
 

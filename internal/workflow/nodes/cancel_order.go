@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"quantflow/internal/trading"
 	"quantflow/internal/workflow"
 )
 
@@ -41,6 +42,11 @@ func (n *CancelOrderNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *CancelOrderNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var oms *trading.OMS
+	if nctx != nil {
+		oms, _ = nctx.OMS.(*trading.OMS)
+	}
+
 	orderID := getStringParam(params, "order_id", "")
 	if orderID == "" {
 		if v, ok := inputs["order_id"]; ok {
@@ -50,8 +56,8 @@ func (n *CancelOrderNode) Execute(ctx context.Context, inputs map[string]any, pa
 	if orderID == "" {
 		return nil, fmt.Errorf("cancel_order: order_id is required")
 	}
-	if tradingOMS != nil {
-		if err := tradingOMS.CancelOrder(orderID); err != nil {
+	if oms != nil {
+		if err := oms.CancelOrder(orderID); err != nil {
 			return map[string]any{"success": false, "error": err.Error()}, nil
 		}
 	}

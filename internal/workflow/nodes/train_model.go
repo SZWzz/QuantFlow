@@ -11,22 +11,6 @@ import (
 	"quantflow/internal/workflow"
 )
 
-// bridge is the package-level PythonBridge reference, set via SetPythonBridge.
-var bridge *python.PythonBridge
-
-// SetPythonBridge sets the Python bridge for ML nodes to use.
-func SetPythonBridge(b *python.PythonBridge) {
-	bridge = b
-}
-
-// modelRegistry is the package-level ModelRegistry reference, set via SetModelRegistry.
-var modelRegistry *ml.ModelRegistry
-
-// SetModelRegistry sets the ModelRegistry for ML nodes.
-func SetModelRegistry(r *ml.ModelRegistry) {
-	modelRegistry = r
-}
-
 // TrainModelNode trains an ML model via the Python sidecar.
 // It consumes feature_matrix and target series inputs, and produces
 // a model_id and train_metrics outputs.
@@ -86,6 +70,14 @@ func (n *TrainModelNode) Validate() error {
 }
 
 func (n *TrainModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var bridge *python.PythonBridge
+	var modelRegistry *ml.ModelRegistry
+	if nctx != nil {
+		if nctx.Bridge != nil {
+			bridge, _ = nctx.Bridge.(*python.PythonBridge)
+		}
+		modelRegistry, _ = nctx.ModelRegistry.(*ml.ModelRegistry)
+	}
 	if bridge == nil {
 		return nil, fmt.Errorf("train_model: PythonBridge not set — call SetPythonBridge() first")
 	}

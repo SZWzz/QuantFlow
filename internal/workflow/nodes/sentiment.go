@@ -49,6 +49,10 @@ func (n *SentimentNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *SentimentNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
+	var sentimentEngine *research.SentimentEngine
+	if nctx != nil {
+		sentimentEngine, _ = nctx.SentimentEngine.(*research.SentimentEngine)
+	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
 		return nil, fmt.Errorf("sentiment: missing required input 'symbol'")
