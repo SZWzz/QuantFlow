@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, reactive } from 'vue'
 import { useTerminalStore } from '@/stores/terminal'
 import DockContainer from './DockContainer.vue'
 import {
@@ -10,6 +10,10 @@ import {
 } from './types'
 
 const terminal = useTerminalStore()
+
+// 跨组件共享的分时数据缓存：key = "symbol:date"
+const minuteDataCache = reactive(new Map<string, any[]>())
+provide('minuteDataCache', minuteDataCache)
 
 // Track which leaf was last clicked — new panels open there, not always leftmost.
 const activeLeafId = ref<string>('')
