@@ -37,15 +37,18 @@ async function refreshQuote(sym: string) {
     const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
     const snapshot = Array.isArray(result) ? result[0] : result
     quotes.value[sym] = {
-      symbol: snapshot.symbol ?? sym,
-      name: snapshot.name || sym,
-      last: snapshot.last ?? 0,
-      change: snapshot.change ?? 0,
-      changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
+      symbol: snapshot?.symbol ?? sym,
+      name: snapshot?.name || quotes.value[sym]?.name || sym,
+      last: snapshot?.last ?? 0,
+      change: snapshot?.change ?? 0,
+      changePct: snapshot?.change_pct ?? snapshot?.changePct ?? 0,
     }
   } catch(e) {
     console.error('[Watchlist] fetch:', e)
-    quotes.value[sym] = null as any
+    // Keep existing name if quote fetch fails
+    if (!quotes.value[sym]) {
+      quotes.value[sym] = { symbol: sym, name: sym, last: 0, change: 0, changePct: 0 }
+    }
   } finally {
     loading.value[sym] = false
   }
@@ -86,7 +89,23 @@ function formatChange(c: number, pct: number): string {
   return `${sign}${c.toFixed(2)} (${sign}${pct.toFixed(2)}%)`
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Pre-populate names from symbol search cache (works even when market is closed)
+  try {
+    const app = (window as any).go?.main?.App
+    if (app?.SearchSymbols) {
+      for (const sym of symbols.value) {
+        const results = await app.SearchSymbols(sym, 1)
+        if (Array.isArray(results) && results.length > 0 && results[0].name) {
+          if (!quotes.value[sym]) {
+            quotes.value[sym] = { symbol: sym, name: results[0].name, last: 0, change: 0, changePct: 0 }
+          } else if (quotes.value[sym].name === sym) {
+            quotes.value[sym].name = results[0].name
+          }
+        }
+      }
+    }
+  } catch { /* best-effort */ }
   symbols.value.forEach(sym => refreshQuote(sym))
 })
 </script>
