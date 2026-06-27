@@ -99,9 +99,21 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		if err := a.minuteCache.SaveTicks(symbol, today, liveTicks); err != nil {
 			slog.Warn("minute_cache: save failed", "symbol", symbol, "err", err)
 		}
+		return liveTicks, "mootdx", nil
 	}
 
-	return liveTicks, "mootdx", nil
+	// 5. Live fetch returned empty (weekend/holiday/after-hours).
+	//    Fall back to the most recent trading day's cached data.
+	recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 5)
+	if err != nil {
+		slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)
+	}
+	if len(recentTicks) > 0 {
+		slog.Info("minute_cache: using recent data", "symbol", symbol, "date", recentDate)
+		return recentTicks, "cache", nil
+	}
+
+	return nil, "unavailable", fmt.Errorf("no minute data available for %s (market closed)", symbol)
 }
 
 // FetchOHLCV fetches OHLCV bars for a symbol via the market's fallback chain.

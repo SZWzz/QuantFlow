@@ -120,6 +120,44 @@ func (mc *MinuteCache) SaveTicks(symbol, date string, ticks []MinuteTick) error 
 	return mc.saveToDB(symbol, date, ticks)
 }
 
+// GetRecentTicks returns minute ticks from the most recent trading day found in
+// cache. Looks back up to lookbackDays (max 10). Returns nil if no cached data.
+func (mc *MinuteCache) GetRecentTicks(symbol string, lookbackDays int) ([]MinuteTick, string, error) {
+	if lookbackDays <= 0 {
+		lookbackDays = 5
+	}
+	if lookbackDays > 10 {
+		lookbackDays = 10
+	}
+
+	mc.mu.RLock()
+	defer mc.mu.RUnlock()
+
+	for i := 0; i < lookbackDays; i++ {
+		date := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		key := symbol + ":" + date
+
+		// Check LRU first
+		if cached, ok := mc.lru.Get(key); ok && len(cached) > 0 {
+			return cached, date, nil
+		}
+		// Check SQLite
+		ticks, err := mc.loadFromDB(symbol, date)
+		if err != nil {
+			continue
+		}
+		if len(ticks) > 0 {
+			mc.mu.RUnlock()
+			mc.mu.Lock()
+			mc.lru.Add(key, ticks)
+			mc.mu.Unlock()
+			mc.mu.RLock()
+			return ticks, date, nil
+		}
+	}
+	return nil, "", nil
+}
+
 // Close releases resources. The underlying sql.DB is not closed.
 func (mc *MinuteCache) Close() error {
 	mc.lru.Purge()
