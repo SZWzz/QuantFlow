@@ -77,6 +77,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       const app = (window as any).go?.main?.App
       if (!app) { error.value = 'Bridge unavailable'; return }
       positions.value = await app.GetPositions()
+      await resolveNames(positions.value)
     } catch (e) { error.value = String(e) }
   }
 
@@ -87,6 +88,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       if (!app) { error.value = 'Bridge unavailable'; return }
       if (app.GetOrders) {
         orders.value = await app.GetOrders()
+        await resolveNames(orders.value)
       } else {
         orders.value = []
       }
@@ -103,12 +105,35 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       if (!app) { error.value = 'Bridge unavailable'; return }
       if (app.GetTrades) {
         trades.value = await app.GetTrades()
+        await resolveNames(trades.value)
       } else {
         trades.value = []
       }
     } catch (e) {
       error.value = String(e)
       trades.value = []
+    }
+  }
+
+  // resolveNames batch-fetches stock names for items that have symbol/name fields.
+  async function resolveNames(items: { symbol?: string; Symbol?: string; name?: string; Name?: string }[]) {
+    if (!items || items.length === 0) return
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    const seen = new Set<string>()
+    for (const item of items) {
+      const sym = item.symbol || item.Symbol
+      if (!sym || seen.has(sym)) continue
+      if (item.name || item.Name) continue  // already has name
+      seen.add(sym)
+      try {
+        const result = await app.GetQuote('CN', sym)
+        const quote = Array.isArray(result) ? result[0] : result
+        if (quote?.name) {
+          if (item.name !== undefined) item.name = quote.name
+          if (item.Name !== undefined) item.Name = quote.name
+        }
+      } catch { /* best-effort */ }
     }
   }
 

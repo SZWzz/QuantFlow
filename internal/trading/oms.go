@@ -385,11 +385,39 @@ func (o *OMS) SetQuoteName(symbol, name string) {
 	o.quoteCache[symbol] = name
 }
 
-// getName returns the cached stock name for a symbol.
+// getName returns the cached stock name for a symbol. Returns empty if not cached.
 func (o *OMS) getName(symbol string) string {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 	return o.quoteCache[symbol]
+}
+
+// ResolveNames populates Name fields for positions that don't have it yet.
+// Call this after quote data is available (e.g., via GetQuote).
+func (o *OMS) ResolveNames() {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	for _, p := range o.positions {
+		if p.Name == "" {
+			if name, ok := o.quoteCache[p.Symbol]; ok && name != "" {
+				p.Name = name
+			}
+		}
+	}
+	for _, order := range o.orders {
+		if order.Name == "" {
+			if name, ok := o.quoteCache[order.Symbol]; ok && name != "" {
+				order.Name = name
+			}
+		}
+	}
+	for _, trade := range o.trades {
+		if trade.Name == "" {
+			if name, ok := o.quoteCache[trade.Symbol]; ok && name != "" {
+				trade.Name = name
+			}
+		}
+	}
 }
 
 // isSameDay returns true if both times fall on the same calendar day.
