@@ -45,6 +45,7 @@ class DQNTrainer:
         self.memory = deque(maxlen=10000)
         self.total_episodes = 0
         self.action_dim = action_dim
+        self.state_dim = state_dim
 
     def train_episode(self, env) -> dict:
         """Run one episode with epsilon-greedy, replay training. Returns metrics dict."""
@@ -91,6 +92,33 @@ class DQNTrainer:
             self.target.load_state_dict(self.network.state_dict())
 
         self.total_episodes += 1
-        sharpe = (np.mean([total_reward]) / (np.std([total_reward]) + 1e-8)) * np.sqrt(252)
+
+        # Zero-division protection: guard against near-zero std
+        reward_std = np.std([total_reward])
+        if abs(total_reward) < 1e-10 or reward_std < 1e-10:
+            sharpe = 0.0
+        else:
+            sharpe = (np.mean([total_reward]) / (reward_std + 1e-8)) * np.sqrt(252)
 
         return {"episode": self.total_episodes, "reward": total_reward, "sharpe": sharpe, "steps": steps}
+
+    def predict(self, obs, deterministic=True):
+        """Predict action from observation.
+
+        Args:
+            obs: numpy array of shape (batch, state_dim)
+            deterministic: if True, use argmax; otherwise sample from Q-values
+
+        Returns:
+            action: numpy array of shape (batch,)
+            q_values: unused (for interface compatibility)
+        """
+        self.network.eval()
+        with torch.no_grad():
+            q_values = self.network(torch.FloatTensor(obs))
+            if deterministic:
+                action = q_values.argmax(dim=1).cpu().numpy()
+            else:
+                action = torch.multinomial(torch.softmax(q_values, dim=-1), 1).squeeze(1).cpu().numpy()
+        self.network.train()
+        return action, None

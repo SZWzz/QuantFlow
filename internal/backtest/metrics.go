@@ -55,13 +55,19 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord) Metrics {
 	for _, r := range dailyReturns {
 		variance += (r - meanReturn) * (r - meanReturn)
 	}
-	stdDaily := math.Sqrt(variance / float64(nDays))
+	// Sample variance: use N-1 denominator for unbiased estimate
+	denom := float64(nDays)
+	if nDays > 1 {
+		denom = float64(nDays - 1)
+	}
+	stdDaily := math.Sqrt(variance / denom)
 	annualVol := stdDaily * math.Sqrt(252)
 
-	// Sharpe ratio (assuming 0 risk-free rate for simplicity)
+	// Sharpe ratio (arithmetic annualization - risk-free rate 2%)
+	const riskFreeRate = 0.02
 	sharpe := 0.0
 	if annualVol > 0 {
-		sharpe = cagr / annualVol
+		sharpe = (meanReturn*252 - riskFreeRate) / annualVol
 	}
 
 	// Sortino ratio (downside deviation)

@@ -13,6 +13,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { pearsonMatrix } from '@/lib/stats'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 use([HeatmapChart, TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, CanvasRenderer])
 
@@ -91,6 +92,7 @@ const chartOption = computed(() => {
     }
   }
 
+  const theme = useChartTheme()
   return {
     backgroundColor: 'transparent',
     tooltip: {
@@ -100,8 +102,8 @@ const chartOption = computed(() => {
         const col = syms[xj]
         return `${row} × ${col}<br/>Correlation: ${v.toFixed(4)}`
       },
-      backgroundColor: 'var(--color-bg-elevated)',
-      borderColor: 'var(--color-border-strong)',
+      backgroundColor: theme.bgColor,
+      borderColor: theme.splitColor,
       textStyle: { color: '#e5e7eb', fontSize: 12 },
     },
     grid: {
@@ -113,15 +115,15 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'category' as const,
       data: syms,
-      axisLabel: { color: 'var(--color-text-secondary)', fontSize: 10, rotate: 45 },
-      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+      axisLabel: { color: theme.axisColor, fontSize: 10, rotate: 45 },
+      axisLine: { lineStyle: { color: theme.splitColor } },
       position: 'top' as const,
     },
     yAxis: {
       type: 'category' as const,
       data: syms,
-      axisLabel: { color: 'var(--color-text-secondary)', fontSize: 10 },
-      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+      axisLabel: { color: theme.axisColor, fontSize: 10 },
+      axisLine: { lineStyle: { color: theme.splitColor } },
     },
     visualMap: {
       min: -1,
@@ -131,9 +133,9 @@ const chartOption = computed(() => {
       right: '0%',
       top: 'middle',
       inRange: {
-        color: ['#3b82f6', 'var(--color-bg-elevated)', '#ef4444'],
+        color: ['#3b82f6', theme.bgColor, '#ef4444'],
       },
-      textStyle: { color: 'var(--color-text-secondary)', fontSize: 10 },
+      textStyle: { color: theme.axisColor, fontSize: 10 },
     },
     series: [
       {

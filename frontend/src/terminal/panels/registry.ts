@@ -59,6 +59,14 @@ register('analyst-estimates', () => import('./AnalystEstimatesPanel.vue'), { lab
 register('insider-trading', () => import('./InsiderTradingPanel.vue'), { label: '内部交易', category: '研究分析', description: '高管/大股东交易' })
 register('congress-trading', () => import('./CongressTradingPanel.vue'), { label: '国会议员交易', category: '研究分析', description: '美国国会议员股票交易' })
 register('sentiment', () => import('./SentimentPanel.vue'), { label: '市场情绪', category: '研究分析', description: '新闻/社交媒体情绪' })
+register('options', () => import('./OptionsPanel.vue'), { label: '期权', category: '研究分析', description: 'BSM 期权定价与希腊值分析' })
+register('fundflow', () => import('./FundFlowPanel.vue'), { label: '资金流向', category: '研究分析', description: '龙虎榜、大宗交易、主力资金' })
+register('margin', () => import('./MarginPanel.vue'), { label: '融资融券', category: '研究分析', description: '两融余额与沪深港通' })
+register('funds', () => import('./FundsPanel.vue'), { label: '基金ETF', category: '研究分析', description: '公募基金、ETF 排名' })
+register('futures', () => import('./FuturesPanel.vue'), { label: '期货', category: '研究分析', description: '商品期货与股指期货' })
+register('macro', () => import('./GovDataPanel.vue'), { label: '宏观经济', category: '研究分析', description: '中国/美国/全球宏观经济指标（含看涨看跌信号）' })
+register('index', () => import('./IndexPanel.vue'), { label: '指数', category: '研究分析', description: '指数行情与成分股' })
+register('bonds', () => import('./BondsPanel.vue'), { label: '债券', category: '研究分析', description: '国债、企业债、可转债' })
 
 // ── 量化分析 ──
 register('backtest-result', () => import('./BacktestResultPanel.vue'), { label: '回测结果', category: '量化分析', description: '策略回测绩效' })
@@ -71,8 +79,11 @@ register('rl-monitor', () => import('./RLMonitorPanel.vue'), { label: 'RL 监控
 // ── 另类数据 ──
 register('prediction-market', () => import('./PredictionMarketPanel.vue'), { label: '预测市场', category: '另类数据', description: 'Polymarket 预测市场' })
 register('geopolitics', () => import('./GeopoliticsPanel.vue'), { label: '地缘政治', category: '另类数据', description: 'GDELT 地缘风险' })
-register('gov-data', () => import('./GovDataPanel.vue'), { label: '宏观数据', category: '另类数据', description: 'FRED 经济指标' })
 register('satellite', () => import('./SatellitePanel.vue'), { label: '卫星数据', category: '另类数据', description: 'NASA 能源/火灾监测' })
+
+// ── 美股 ──
+register('sec_financials', () => import('./SECFinancialsPanel.vue'), { label: 'SEC财报', category: '美股', description: '美股 XBRL 财务报表' })
+register('sec_13f', () => import('./SEC13FPanel.vue'), { label: '13F持仓', category: '美股', description: '机构 13F 持仓报告' })
 
 // ── 系统 ──
 register('ai-chat', () => import('./AIChatPanel.vue'), { label: 'AI 对话', category: '系统', description: 'AI 助手对话' })

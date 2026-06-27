@@ -85,7 +85,12 @@ func (e *Engine) Execute(ctx context.Context, wf *Workflow) (*ExecutionResult, e
 		for _, nodeID := range layer {
 			nodeID := nodeID
 			layerIdx := layerIdx
-			g.Go(func() error {
+			g.Go(func() (err error) {
+				defer func() {
+					if r := recover(); r != nil {
+						err = fmt.Errorf("node panic: %v", r)
+					}
+				}()
 				return e.executeNode(layerCtx, wf, nodeID, layerIdx, upstreamOutputs, nodeResultByID)
 			})
 		}

@@ -19,10 +19,9 @@ import (
 	pb "quantflow/internal/python/proto"
 )
 
-// ExpectedSidecarVersion must match the version string hardcoded in
-// python/src/server.py. When the running sidecar reports a different
-// version, StartSidecar kills it and launches a fresh process.
-const ExpectedSidecarVersion = "2026.6.26"
+// ExpectedSidecarVersion must match the version string in python/pyproject.toml.
+// The sidecar reads this at startup from importlib.metadata or falls back to this string.
+const ExpectedSidecarVersion = "0.2.2"
 
 // SidecarProcess wraps a running Python sidecar child process.
 type SidecarProcess struct {

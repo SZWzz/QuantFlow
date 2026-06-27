@@ -1,6 +1,6 @@
 [project]
 name = "quantflow-python"
-version = "2026.6.17"
+version = "0.2.2"
 description = "QuantFlow Python gRPC Sidecar"
 requires-python = ">=3.12"
 dependencies = [

@@ -2,10 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { computeDrawdowns, sharpeRatio } from '@/lib/stats'
 import VChart from 'vue-echarts'
-import { use } from 'echarts/core'
+import { use, graphic } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import {
   TitleComponent,
@@ -14,7 +15,6 @@ import {
   LegendComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import * as echarts from 'echarts'
 
 use([LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer])
 
@@ -24,7 +24,7 @@ const store = usePortfolioStore()
 
 const hasEcharts = computed(() => {
   try {
-    return !!(echarts && VChart)
+    return !!VChart
   } catch {
     return false
   }
@@ -95,21 +95,23 @@ const calmarRatio = computed(() => {
   return annRet / maxDd
 })
 
-const equityChartOption = computed(() => ({
+const equityChartOption = computed(() => {
+  const theme = useChartTheme()
+  return {
   backgroundColor: 'transparent',
   grid: { top: 10, right: 20, bottom: 30, left: 60 },
   xAxis: {
     type: 'category',
     data: dates.value,
-    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: string) => v.slice(5) },
+    axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: string) => v.slice(5) },
   },
   yAxis: {
     type: 'value',
-    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
-    splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+    axisLabel: { color: theme.axisColor, fontSize: 10 },
+    splitLine: { lineStyle: { color: theme.bgColor } },
   },
   tooltip: { trigger: 'axis' },
-  legend: { textStyle: { color: 'var(--color-text-secondary)', fontSize: 11 }, top: 0 },
+  legend: { textStyle: { color: theme.axisColor, fontSize: 11 }, top: 0 },
   series: [
     {
       name: 'NAV',
@@ -118,7 +120,7 @@ const equityChartOption = computed(() => ({
       smooth: true,
       lineStyle: { color: '#58a6ff', width: 2 },
       areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        color: new graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: 'rgba(88,166,255,0.25)' },
           { offset: 1, color: 'rgba(88,166,255,0.02)' },
         ]),
@@ -130,24 +132,27 @@ const equityChartOption = computed(() => ({
       type: 'line',
       data: benchmarkValues.value,
       smooth: true,
-      lineStyle: { color: 'var(--color-text-tertiary)', width: 1.5, type: 'dashed' },
+      lineStyle: { color: theme.axisColor, width: 1.5, type: 'dashed' },
       symbol: 'none',
     },
   ],
-}))
+}
+})
 
-const ddChartOption = computed(() => ({
+const ddChartOption = computed(() => {
+  const theme = useChartTheme()
+  return {
   backgroundColor: 'transparent',
   grid: { top: 10, right: 20, bottom: 30, left: 60 },
   xAxis: {
     type: 'category',
     data: dates.value,
-    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: string) => v.slice(5) },
+    axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: string) => v.slice(5) },
   },
   yAxis: {
     type: 'value',
-    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => (v * 100).toFixed(0) + '%' },
-    splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+    axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => (v * 100).toFixed(0) + '%' },
+    splitLine: { lineStyle: { color: theme.bgColor } },
   },
   tooltip: {
     trigger: 'axis',
@@ -169,7 +174,8 @@ const ddChartOption = computed(() => ({
       symbol: 'none',
     },
   ],
-}))
+}
+})
 
 const metricCards = computed(() => [
   { label: t('portfolio.total_pnl'), value: cumulativeReturn.value.toFixed(2) + '%', color: cumulativeReturn.value >= 0 ? '#22c55e' : '#ef4444' },

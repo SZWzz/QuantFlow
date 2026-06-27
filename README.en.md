@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="#-project-status"><img src="https://img.shields.io/badge/phase-9%20complete-success?style=flat-square" alt="Phase 9"></a>
-  <a href="#-project-status"><img src="https://img.shields.io/badge/nodes-54-blue?style=flat-square" alt="54 Nodes"></a>
-  <a href="#-project-status"><img src="https://img.shields.io/badge/panels-18-blue?style=flat-square" alt="18 Panels"></a>
+  <a href="#-project-status"><img src="https://img.shields.io/badge/phase-13%20complete-success?style=flat-square" alt="Phase 13"></a>
+  <a href="#-project-status"><img src="https://img.shields.io/badge/nodes-93-blue?style=flat-square" alt="93 Nodes"></a>
+  <a href="#-project-status"><img src="https://img.shields.io/badge/panels-64-blue?style=flat-square" alt="64 Panels"></a>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.22+-00ADD8?style=flat-square&logo=go" alt="Go"></a>
   <a href="https://vuejs.org"><img src="https://img.shields.io/badge/vue-3.x-4FC08D?style=flat-square&logo=vue.js" alt="Vue"></a>
   <a href="https://www.sqlite.org"><img src="https://img.shields.io/badge/sqlite-WAL-003B57?style=flat-square&logo=sqlite" alt="SQLite"></a>
@@ -32,14 +32,14 @@
 
 ## Project Status
 
-> **Phases 1–9 All Complete** — 54 workflow nodes · 18 frontend panels · 9 development phases
+> **Phases 1–13 All Complete** — 93 workflow nodes · 64 frontend panels · 37 data adapters · 832 tests
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Workflow Engine (DAG + goroutine parallel) | ✅ | 54 node types, Kahn topological sort, breakpoint recovery |
+| Workflow Engine (DAG + goroutine parallel) | ✅ | 93 node types, Kahn topological sort, breakpoint recovery |
 | Desktop Shell (Wails v3 + Vue 3 + TypeScript) | ✅ | Dual-mode UI: Terminal panels + Workflow canvas |
 | Trading Engine (OMS + Paper/Live) | ✅ | Order management, order matching, risk pipeline |
-| MarketDataHub (Go channel pub/sub) | ✅ | 14 data adapters, FallbackChain resilience |
+| MarketDataHub (Go channel pub/sub) | ✅ | 37 data adapters, MAC protocol, FallbackChain resilience |
 | Backtesting Engine (CN/US/HK/CRYPTO) | ✅ | T+1, price limits, stamp duty, market-specific rules |
 | Python gRPC Sidecar | ✅ | 25 Alpha factors, 15 AI skills, 4 LLM providers |
 | AI Agent System (ReAct loop) | ✅ | Streaming SSE events, 4 AgentProfiles, 10+ capabilities |
@@ -47,9 +47,9 @@
 | Portfolio & Risk Management | ✅ | VaR/CVaR/Sharpe/Sortino/MaxDD/Calmar |
 | Notifications & Scheduler | ✅ | Telegram/in-app + robfig/cron scheduler |
 | Theme System (dark/light + 3 densities) | ✅ | CSS Variables driven, localStorage persistence |
-| Internationalization (zh/en) | ✅ | vue-i18n, ~80 translation keys per language |
-| SQLite WAL Storage | ✅ | 9 migrations (001-009), single-file zero-config |
-| Frontend Panels | ✅ | 18 Bloomberg-style panels |
+| Internationalization (zh/en) | ✅ | vue-i18n, ~350 translation keys per language |
+| SQLite WAL Storage | ✅ | 12+ migrations, single-file zero-config |
+| Frontend Panels | ✅ | 64 Bloomberg-style panels |
 
 ---
 
@@ -85,12 +85,12 @@ QuantFlow merges the instant data access of a Bloomberg Terminal with the visual
 Frontend (Vue 3 + Wails v3)          Go Backend (Single Binary)
 ┌──────────────────────────────┐     ┌──────────────────────────────────┐
 │ vue-flow · ECharts           │     │ Workflow Engine (Kahn + goroutine)│
-│ Pinia (7 stores)             │     │ Trading Engine (OMS + Paper/Live)│
-│ Monaco Editor                │◄─IPC►│ MarketDataHub (14 adapters)      │
-│ Terminal Mode (18 panels)     │     │ AI Agent (ReAct + 4 LLM)         │
-│ Workflow Mode (54 node types) │     │ Portfolio · Risk · Notification  │
+│ Pinia (8 stores)             │     │ Trading Engine (OMS + Paper/Live)│
+│ ECharts · Monaco Editor      │◄─IPC►│ MarketDataHub (37 adapters)      │
+│ Terminal Mode (64 panels)    │     │ AI Agent (ReAct + 4 LLM)         │
+│ Workflow Mode (93 node types)│     │ Portfolio · Risk · Notification  │
 │ Dark/Light Theme + i18n      │     │ Scheduler (robfig/cron)           │
-└──────────────────────────────┘     │ SQLite WAL (9 migrations)         │
+└──────────────────────────────┘     │ SQLite WAL (12+ migrations)       │
                                      │ gRPC ──► Python Sidecar           │
                                      │   (25 Factors / 15 AI Skills)     │
                                      └──────────────────────────────────┘
@@ -100,16 +100,18 @@ Frontend (Vue 3 + Wails v3)          Go Backend (Single Binary)
 
 ## Core Features
 
-### Workflow Nodes (54 nodes, 14 categories)
+### Workflow Nodes (93 nodes, 18 categories)
 
 | Category | Nodes | Count |
 |----------|-------|-------|
 | **Data** | DataLoader, Merge, Filter, Resample | 4 |
-| **Indicator** | SMA, MACD, RSI, EMA, BollingerBands | 5 |
+| **Indicator** | SMA, MACD, RSI, EMA, Bollinger, OBV, MFI, PSY, Aroon, ASI, WR, CCI, ROC, BIAS, Chaikin, Keltner, Donchian, TRIX, MassIndex, Vortex | 20 |
+| **Chanlun** | ChanlunBi, ChanlunDuan, ChanlunZhongshu, ChanlunMaiDian, ChanlunLeixing | 5 |
 | **Alpha Factor** | pct_change, delta, std_dev, rank, scale, cross_over, compare, bool_combine, rolling_maxmin, rolling_zscore, arithmetic, if_else | 12 |
 | **Signal** | CrossSignal, ThresholdSignal, SignalCombine, rank_select, hold_signal, rebalance, entry_signal, exit_signal | 8 |
 | **Strategy** | StrategyNode (sma_cross, rsi_threshold, momentum, custom) | 1 |
 | **Backtest** | BacktestNode (CN/US/HK/CRYPTO markets) | 1 |
+| **Slippage** | FixedSlippage, PercentageSlippage, VolumeSlippage | 3 |
 | **Trading** | PlaceOrder, CancelOrder, PositionQuery, OrderQuery | 4 |
 | **Portfolio** | PortfolioSummary, RiskMetrics, Allocation | 3 |
 | **Risk** | StopLoss, PositionSizer | 2 |
@@ -117,35 +119,33 @@ Frontend (Vue 3 + Wails v3)          Go Backend (Single Binary)
 | **Schedule** | Schedule, Wait | 2 |
 | **Control** | Loop, if_condition, sub_workflow | 3 |
 | **AI** | FactorNode, AgentNode | 2 |
-| **Utility** | HTTPRequest, MathOperation, JSONParse, LogOutput, chart_data | 5 |
+| **Research** | Sentiment, StockResearch, Financials, Peers, Estimates, Insider | 6 |
+| **ML** | FeatureEngineer, TrainModel, PredictModel, EvaluateModel, RL×3 | 8 |
+| **Utility** | HTTPRequest, MathOperation, JSONParse, LogOutput, chart_data, fqfactor | 6 |
 
-### Frontend Panels (18 panels)
+### Frontend Panels (64 panels)
 
-| Panel | Category | Description |
-|-------|----------|-------------|
-| WatchlistPanel | Market | Watchlist with real-time quotes |
-| QuoteDetailPanel | Market | Security detail with depth data |
-| CandlestickPanel | Chart | Candlestick chart with ECharts |
-| PortfolioSummary | Portfolio | Holdings summary, P&L analysis |
-| PositionDetail | Portfolio | Position details, cost analysis |
-| RiskDashboard | Risk | VaR/CVaR/Sharpe ratio dashboard |
-| TradeHistory | Trading | Trade/order history, CSV export |
-| OrderEntryPanel | Trading | Order entry with broker selection |
-| BrokerConfig | Trading | Broker configuration, API key management |
-| BacktestResultPanel | Backtest | Equity curve, drawdown chart, metrics grid |
-| FactorAnalysisPanel | Research | 25-factor catalog with search and filter |
-| AIChatPanel | AI | SSE streaming chat, tool call visualization |
-| SchedulePanel | Schedule | Scheduled task management |
-| NotifyPanel | Notifications | Notification history, channel management |
-| SettingsPanel | Settings | 9 config sections: theme, language, data, display, etc. |
-| NewsPanel | News | News summaries |
-| PositionPanel | Positions | Position overview |
-| SystemMonitorPanel | System | System resource monitoring |
+| Category | Panels |
+|----------|--------|
+| **Market** (6) | Watchlist, QuoteDetail, Candlestick, MarketOverview, MarketDepth, Heatmap |
+| **Ticker** (1) | TickerTape |
+| **Trading** (8) | OrderEntry, OrderBlotter, Execution, BasketOrder, Position, PositionDetail, BrokerConfig, BrokerStatus |
+| **Portfolio** (3) | PortfolioSummary, Rebalance, RiskDashboard |
+| **Research** (8) | StockResearch, Financials, Sentiment, PeerComparison, AnalystEstimates, InsiderTrading, CongressTrading, FactorAnalysis |
+| **Chart** (5) | EquityCurve, Correlation, Distribution, MonteCarlo, SurfaceChart |
+| **AI/ML** (5) | AIChat, ModelRegistry, PredictionDashboard, AlphaMining, RLMonitor |
+| **Backtest** (1) | BacktestResult |
+| **Chanlun** (3) | ChanlunBi, ChanlunDuan, ChanlunZhongshu |
+| **Crypto** (1) | CryptoOverview |
+| **News** (1) | News |
+| **Tools** (3) | Drawing, ActionCenter, MACProtocol |
+| **System** (4) | Schedule, Notify, Settings, SystemMonitor |
 
 ### Broker Support
 
 | Broker | Market | Status | Details |
 |--------|--------|--------|---------|
+| Alpaca | US Stocks | ✅ Live | Paper/Live REST API, orders/positions/accounts |
 | Binance | Crypto | ✅ Live | REST API spot orders, account, positions |
 | Futu (富途) | CN/HK/US | 🔧 Stub | Interface defined, awaiting live integration |
 
@@ -159,13 +159,15 @@ Frontend (Vue 3 + Wails v3)          Go Backend (Single Binary)
 
 ### Market Data Hub
 
-14 data source adapters, automatic market detection, FallbackChain resilience:
+37 data source adapters, automatic market detection, MAC protocol direct TCP, FallbackChain resilience:
 
 | Market | Adapters | Fallback Chain |
 |--------|----------|----------------|
-| CN (A-Share) | Mootdx, TuShare, AKShare, EastMoney, Sina, Tencent, Baidu | 7 sources |
-| US | Yahoo, Polygon | 2 sources |
-| Crypto | Binance, OKX, CoinGecko | 3 sources |
+| CN (A-Share) | Mootdx, MAC Protocol, Sina, EastMoney, Tencent, Baidu, AKShare, TuShare, THS, cninfo, iwencai | 11 sources |
+| HK | Sina, AKShare/Tencent, Yahoo | 3 sources |
+| US | Yahoo(v8), Finnhub, Polygon, Alpaca | 4 sources |
+| Crypto | Gate.io, Binance, OKX, CoinGecko | 4 sources |
+| Specialized | EastMoney_news/global/capital/concept/fundflow/signals/report, Sina_financials, THS_hot/consensus/northbound, MAC golden/master/sector | 15 sources |
 
 ### 25 Alpha Factors
 
@@ -197,8 +199,8 @@ cd QuantFlow
 # Start dev server (hot reload)
 wails dev
 
-# Go backend tests
-go test ./internal/... -v -count=1
+# Go backend tests (383 tests)
+go test ./... -v -count=1
 
 # Frontend tests
 cd frontend && npx vitest run
@@ -207,9 +209,9 @@ cd frontend && npx vitest run
 cd python && python -m pytest tests/ -x -q
 
 # Full check before commit
-go vet ./... && go test ./...
-cd frontend && npx vue-tsc --noEmit && npx vitest run
-cd python && python -m pytest tests/ -x -q
+go vet ./... && go test ./...         # Go: 383 tests
+cd frontend && npx vue-tsc --noEmit && npx vitest run         # Frontend: 304 tests
+cd python && python -m pytest tests/ -x -q                    # Python: 145 tests
 ```
 
 ---
@@ -252,6 +254,10 @@ cd python && python -m pytest tests/ -x -q
 | Phase 7 | Theme system (dark/light + 3 densities) + i18n + settings panel | ✅ Complete |
 | Phase 8 | Node expansion (20 → 34) | ✅ Complete |
 | Phase 9 | Factor atoms + signal engineering (34 → 54) | ✅ Complete |
+| Phase 10 | ML engine + Alpha mining + RL + Risk modeling | ✅ Complete |
+| Phase 11 | Test coverage + Data source hardening + Panel expansion | ✅ Complete |
+| Phase 12 | easy-tdx deep integration + Frontend quality + P0 correctness | ✅ Complete |
+| Phase 13 | Chanlun/Indicator nodes + MAC protocol + Minute chart + Stock names | ✅ Complete |
 
 ---
 
@@ -264,11 +270,11 @@ quantflow/
 ├── go.mod / go.sum            # Go module definition
 ├── internal/
 │   ├── workflow/              # Workflow engine (node, dag, engine)
-│   │   └── nodes/             # 54 node implementations
+│   │   └── nodes/             # 93 node implementations
 │   ├── trading/               # Trading engine (OMS + matching)
 │   │   └── brokers/           # Binance/Futu broker adapters
 │   ├── market/                # Market data hub
-│   │   └── adapters/          # 14 data source adapters
+│   │   └── adapters/          # 37 data source adapters
 │   ├── backtest/              # Backtesting engine (CN/US/HK/CRYPTO)
 │   ├── ai/                    # AI Agent system
 │   │   └── capabilities/      # 10+ agent capabilities
@@ -276,14 +282,14 @@ quantflow/
 │   ├── notify/                # Notification engine (Telegram/in-app)
 │   ├── schedule/              # robfig/cron scheduler
 │   ├── storage/               # SQLite WAL + migration framework
-│   │   └── migrations/        # 9 migrations up to 009
+│   │   └── migrations/        # 12+ migrations up to 012
 │   ├── python/                # gRPC bridge to Python
 │   ├── config/                # YAML configuration
 │   └── logging/               # slog wrapper
 ├── frontend/                  # Vue 3 frontend
 │   └── src/
 │       ├── terminal/          # Terminal Mode components
-│       │   ├── panels/        # 18 Bloomberg-style panels
+│       │   ├── panels/        # 64 Bloomberg-style panels
 │       │   └── DockView/      # Docking panel system
 │       ├── workflow/          # Workflow Mode components
 │       │   └── canvas/        # vue-flow canvas
@@ -314,7 +320,7 @@ quantflow/
 
 | Market | Settlement | Key Rules | Data Sources | Brokers |
 |--------|-----------|-----------|-------------|---------|
-| CN (A-Share) | T+1 | Price limits ±10%/±20%, stamp duty 0.05% | EastMoney, AKShare, TuShare, Mootdx, Sina, Tencent, Baidu | Futu (stub) |
+| CN (A-Share) | T+1 | Price limits ±10%/±20%, stamp duty 0.05% | Mootdx, MAC Protocol, Sina, EastMoney, Tencent, Baidu, AKShare, TuShare | Futu (stub) |
 | HK | T+2 | Stock Connect, T+2 settlement | Futu, Sina | Futu (stub), IBKR |
 | US | T+2 | PDT rule, wash sale | Yahoo, Polygon, Alpaca | Alpaca, IBKR, Tradier |
 | Crypto | Instant | Perpetual funding rate, liquidation | Binance, OKX, CoinGecko | Binance (live), OKX, Bybit |

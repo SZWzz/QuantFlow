@@ -3,7 +3,6 @@ package trading
 import (
 	"strings"
 	"testing"
-	"time"
 )
 
 // TestFillOrder_SellOverPosition_ClipsBeforeBookUpdate 验证：当卖出量超过持仓时，
@@ -22,8 +21,8 @@ func TestFillOrder_SellOverPosition_ClipsBeforeBookUpdate(t *testing.T) {
 		t.Fatalf("FillOrder buy: %v", err)
 	}
 
-	// Simulate next day for T+1 lock (set buy date to yesterday)
-	oms.t1Lock["AAPL"] = time.Now().Add(-24 * time.Hour)
+	// Simulate next day for T+1 lock
+	oms.ClearT1Lock()
 
 	// 下卖单 200 股（超过持仓 100）
 	sellOrder, err := oms.PlaceOrder("AAPL", SideSell, TypeMarket, 200, 0)
@@ -102,7 +101,7 @@ func TestT1Lock_NextDaySellSucceeds(t *testing.T) {
 	}
 
 	// Simulate next day
-	oms.t1Lock["000001.SZ"] = time.Now().Add(-24 * time.Hour)
+	oms.ClearT1Lock()
 
 	// Sell should succeed
 	sell, err := oms.PlaceOrder("000001.SZ", SideSell, TypeMarket, 50, 0)
@@ -200,7 +199,7 @@ func TestTradingCosts_SellCommissionAndStampTax(t *testing.T) {
 	oms.FillOrder(buy.ID, 100, 150.0)
 
 	// Simulate next day for T+1
-	oms.t1Lock["AAPL"] = time.Now().Add(-24 * time.Hour)
+	oms.ClearT1Lock()
 
 	// Sell
 	sell, _ := oms.PlaceOrder("AAPL", SideSell, TypeMarket, 100, 0)
@@ -275,7 +274,7 @@ func TestCashLedger_SellIncreasesBalance(t *testing.T) {
 	// Cash after buy: 50000 - 15005 = 34995
 
 	// Simulate next day for T+1
-	oms.t1Lock["AAPL"] = time.Now().Add(-24 * time.Hour)
+	oms.ClearT1Lock()
 
 	// Sell
 	sell, _ := oms.PlaceOrder("AAPL", SideSell, TypeMarket, 100, 0)

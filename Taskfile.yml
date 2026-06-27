@@ -17,7 +17,12 @@ tasks:
     deps:
       - task: build:frontend
     cmds:
-      - go build -o build/quantflow .
+      # -a forces rebuilding all packages. Without this, Go's build cache may
+      # serve a stale //go:embed all:frontend/dist snapshot when only the dist
+      # contents changed (vite hashes file names, so the embed file set changes
+      # but Go's cache key can miss it). This is the #1 cause of "I rebuilt but
+      # the UI didn't change" bugs.
+      - go build -a -o build/quantflow .
       # Copy Python sidecar source to build/python/ so StartSidecar can
       # find it at runtime (it looks for python/ relative to the binary).
       # Exclude: venv (binaries), __pycache__, tests, and hidden dirs.

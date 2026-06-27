@@ -7,8 +7,7 @@ import "strings"
 //   - Main board (60xxxx, 00xxxx): ±10%
 //   - ChiNext / 创业板 (300xxx, 301xxx): ±20%
 //   - STAR / 科创板 (688xxx, 689xxx): ±20%
-//   - ST / *ST stocks: ±5% (needs Config.PriceLimitOverrides — ST status cannot
-//     be inferred from symbol code alone; deferred to Phase B)
+//   - ST / *ST stocks: ±5% (detected via symbol contains "ST")
 //   - BSE / 北交所 (8xxxxx, 4xxxxx): ±30% (enforced)
 //
 // 首日上市、增发等无前收盘价的情形不限制（返回 0 表示不限）。
@@ -21,10 +20,10 @@ type PriceLimitRule struct {
 func PriceLimitFor(symbol string) PriceLimitRule {
 	upper := strings.ToUpper(symbol)
 
-	// ST / *ST detection (name-based would be more accurate, but code-based
-	// fallback: we cannot know ST status from code alone, so default ST to 5%.
-	// Callers may override via Config.PriceLimitOverrides.)
+	// ST / *ST detection via symbol name containing "ST".
 	switch {
+	case strings.Contains(upper, "ST"): // ST / *ST stocks: ±5%
+		return PriceLimitRule{Ratio: 0.05}
 	case strings.HasPrefix(upper, "300"), strings.HasPrefix(upper, "301"): // ChiNext
 		return PriceLimitRule{Ratio: 0.20}
 	case strings.HasPrefix(upper, "688"), strings.HasPrefix(upper, "689"): // STAR

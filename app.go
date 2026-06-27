@@ -46,6 +46,9 @@ type App struct {
 	profileMgr  *ai.ProfileManager
 	minuteCache *market.MinuteCache
 
+	// Cache of last close prices for price-limit validation.
+	lastClose map[string]float64
+
 	// Shared DB connection (opened once at startup, reused across IPC calls).
 	db *sql.DB
 
@@ -500,13 +503,16 @@ func (a *App) MarkNotificationRead(id int64) error {
 }
 
 // SearchSymbols searches A-share stocks by code, name, or pinyin abbreviation.
-// Returns up to 20 matches sorted by relevance. Returns empty slice (not error)
-// when the search service is unavailable.
-func (a *App) SearchSymbols(query string) ([]market.StockEntry, error) {
+// Returns up to limit matches sorted by relevance. limit defaults to 20 if <= 0.
+// Returns empty slice (not error) when the search service is unavailable.
+func (a *App) SearchSymbols(query string, limit int) ([]market.StockEntry, error) {
 	if a.searchSvc == nil {
 		return []market.StockEntry{}, nil
 	}
-	return a.searchSvc.Search(query, 20), nil
+	if limit <= 0 {
+		limit = 20
+	}
+	return a.searchSvc.Search(query, limit), nil
 }
 
 // SearchResearch performs NL semantic search over research reports, announcements,

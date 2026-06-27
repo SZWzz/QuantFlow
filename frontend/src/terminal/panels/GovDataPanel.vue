@@ -1,10 +1,14 @@
 <!-- frontend/src/terminal/panels/GovDataPanel.vue -->
+<!-- Unified macro panel: FRED (US) + CN (akshare 中国宏观) + BIS (全球) + commodities.
+     Signal semantics (看涨/看跌/中性) computed server-side for CN and by
+     govdata_service for FRED; UI badge + summary counts shared across sources. -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VChart from 'vue-echarts'
 import { detectMarket } from '@/lib/wails'
 import 'echarts'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 const { t } = useI18n()
 
@@ -21,6 +25,10 @@ interface MacroSignal {
   unit: string
   category: string
   updated_at: number
+  // CN source: the summary payload embeds a short series per indicator so the
+  // detail chart can render instantly without a second round-trip.
+  series?: IndicatorPoint[]
+  latest_date?: string
 }
 
 interface IndicatorPoint {
@@ -43,46 +51,127 @@ interface CommodityQuote {
 
 const signals = ref<MacroSignal[]>([])
 const loading = ref(true)
+const loadError = ref('')
 const selectedSignal = ref<MacroSignal | null>(null)
 const indicatorData = ref<IndicatorPoint[]>([])
 const chartLoading = ref(false)
 
-const filterCategories = ['all', 'gdp', 'inflation', 'employment', 'rates', 'energy', 'housing'] as const
-const activeCategory = ref('all')
+// Three-source switch: FRED (US gov data) / CN (akshare 中国宏观) / BIS (global)
+const activeSource = ref<'fred' | 'cn' | 'bis'>('fred')
 
-const categoryLabels: Record<string, string> = {
-  all: '全部', gdp: 'GDP/增长', inflation: '通胀', employment: '就业',
-  rates: '利率', energy: '能源', housing: '房地产'
+const sources = [
+  { key: 'fred' as const, label: 'FRED 美国' },
+  { key: 'cn' as const, label: '中国宏观' },
+  { key: 'bis' as const, label: 'BIS 全球' },
+]
+
+const sourceCnLabels: Record<string, string> = {
+  fred: 'FRED 美联储经济数据',
+  cn: '中国宏观经济指标',
+  bis: 'BIS 国际清算银行',
 }
+
+const activeCategory = ref('all')
 
 async function loadSignals() {
   loading.value = true
+  loadError.value = ''
+  signals.value = []
+  selectedSignal.value = null
+  indicatorData.value = []
   try {
     const app = (window as any).go?.main?.App
-    if (app?.GetEconomicIndicators) {
-      const result = await app.GetEconomicIndicators()
-      signals.value = result.signals || []
-    }
-    // Load real-time commodity quotes, merge as MacroSignal into energy category
-    if (app?.GetCommodityQuotes) {
-      const result = await app.GetCommodityQuotes()
-      const commodities = (result.commodities || []) as CommodityQuote[]
-      for (const c of commodities) {
-        signals.value.push({
-          indicator_id: c.symbol,
-          name: c.name,
-          name_cn: c.name_cn,
-          latest_value: c.price,
-          change: c.change_pct,
-          direction: c.change_pct >= 0 ? 'up' : 'down',
-          signal: c.change_pct >= 0 ? 'bullish' : 'bearish',
-          unit: c.unit,
-          category: 'energy',
-          updated_at: Date.now() / 1000,
-        })
+
+    // ── FRED source: economic indicators + real-time commodity quotes ──
+    if (activeSource.value === 'fred') {
+      if (app?.GetEconomicIndicators) {
+        const result = await app.GetEconomicIndicators()
+        signals.value = result.signals || []
+      }
+      // Merge real-time commodity quotes (CL/NG) into the energy category
+      if (app?.GetCommodityQuotes) {
+        const result = await app.GetCommodityQuotes()
+        const commodities = (result.commodities || []) as CommodityQuote[]
+        for (const c of commodities) {
+          signals.value.push({
+            indicator_id: c.symbol,
+            name: c.name,
+            name_cn: c.name_cn,
+            latest_value: c.price,
+            change: c.change_pct,
+            direction: c.change_pct >= 0 ? 'up' : 'down',
+            signal: c.change_pct >= 0 ? 'bullish' : 'bearish',
+            unit: c.unit,
+            category: 'energy',
+            updated_at: Date.now() / 1000,
+          })
+        }
       }
     }
-  } catch(e) {
+
+    // ── CN source: akshare get_summary returns categories + values, where
+    //    each value carries {latest_value, latest_date, unit, name_cn, category,
+    //    change, direction, signal, polarity, series}. The series is cached on
+    //    the signal so the detail chart renders instantly. Signal semantics
+    //    (polarity: positive/negative/inverse) are computed server-side. ──
+    else if (activeSource.value === 'cn' && app?.FetchData) {
+      const result = await app.FetchData('akshare', 'macro_cn_summary', ['CN'], '', '', {})
+      if (result?.data) {
+        try {
+          const raw = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
+          const parsed = raw?.data || raw
+          if (parsed?.categories) {
+            const vals = parsed?.values || {}
+            const items: MacroSignal[] = []
+            for (const [cat, names] of Object.entries(parsed.categories)) {
+              for (const n of (names as string[])) {
+                const v = vals[n]
+                items.push({
+                  indicator_id: `cn_${n}`,
+                  name: n,
+                  name_cn: v?.name_cn || n,
+                  latest_value: v?.latest_value ?? 0,
+                  change: v?.change ?? 0,
+                  direction: v?.direction || 'flat',
+                  signal: v?.signal || 'neutral',
+                  unit: v?.unit || '',
+                  category: v?.category || cat,
+                  updated_at: 0,
+                  series: v?.series,
+                  latest_date: v?.latest_date,
+                })
+              }
+            }
+            signals.value = items
+          } else { loadError.value = 'No categories in response' }
+        } catch(e: any) { loadError.value = 'Parse error: ' + e.message }
+      } else if (result?.error) { loadError.value = result.error }
+    }
+
+    // ── BIS source: list available dataflows (catalog); values load on click ──
+    else if (activeSource.value === 'bis' && app?.FetchData) {
+      const result = await app.FetchData('macro', 'bis', [], '', '', {})
+      if (result?.data) {
+        try {
+          const raw = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
+          const flows = raw?.data?.data?.dataflows || raw?.dataflows || []
+          signals.value = flows.map((f: any) => ({
+            indicator_id: `bis_${f.id}`,
+            name: f.name || f.id,
+            name_cn: f.names?.en || f.name || f.id,
+            latest_value: 0,
+            change: 0,
+            direction: 'flat',
+            signal: 'neutral',
+            unit: '',
+            category: 'BIS',
+            updated_at: 0,
+          }))
+        } catch(e: any) { loadError.value = 'BIS parse error: ' + e.message }
+      } else if (result?.error) { loadError.value = result.error }
+    }
+  } catch(e: any) {
+    loadError.value = e?.message || String(e)
     console.error('[GovData] loadSignals:', e)
   }
   loading.value = false
@@ -91,46 +180,110 @@ async function loadSignals() {
 async function loadIndicatorDetail(signal: MacroSignal) {
   selectedSignal.value = signal
   chartLoading.value = true
-  // Commodities use OHLCV API instead of FRED history
-  if (signal.indicator_id.startsWith('hf_')) {
-    const tradingSymbol = signal.indicator_id === 'hf_CL' ? 'CL=F' : 'NG=F'
-    const end = Math.floor(Date.now() / 1000)
-    const start = end - 90 * 86400
-    try {
-      const app = (window as any).go?.main?.App
-      if (app?.FetchOHLCV) {
-        const result = await app.FetchOHLCV(detectMarket(tradingSymbol), tradingSymbol, '1D', start, end)
-        const bars = Array.isArray(result) ? result[0] : result
-        indicatorData.value = (bars || []).map((b: any) => ({
-          date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date || b.Date).toISOString().slice(0, 10),
-          value: b.close ?? b.Close ?? 0,
-        }))
-      }
-    } catch(e) { console.error('[GovData] commodity OHLCV:', e); indicatorData.value = [] }
-    chartLoading.value = false
-    return
-  }
   try {
     const app = (window as any).go?.main?.App
-    if (app?.GetIndicatorData) {
-      const result = await app.GetIndicatorData(signal.indicator_id, 12)
-      indicatorData.value = result.data || []
+
+    // ── FRED: commodity OHLCV or FRED indicator history ──
+    if (activeSource.value === 'fred') {
+      // Commodities use OHLCV API instead of FRED history
+      if (signal.indicator_id.startsWith('hf_')) {
+        const tradingSymbol = signal.indicator_id === 'hf_CL' ? 'CL=F' : 'NG=F'
+        const end = Math.floor(Date.now() / 1000)
+        const start = end - 90 * 86400
+        try {
+          if (app?.FetchOHLCV) {
+            const result = await app.FetchOHLCV(detectMarket(tradingSymbol), tradingSymbol, '1D', start, end)
+            const bars = Array.isArray(result) ? result[0] : result
+            indicatorData.value = (bars || []).map((b: any) => ({
+              date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date || b.Date).toISOString().slice(0, 10),
+              value: b.close ?? b.Close ?? 0,
+            }))
+          }
+        } catch(e) { console.error('[GovData] commodity OHLCV:', e); indicatorData.value = [] }
+        chartLoading.value = false
+        return
+      }
+      if (app?.GetIndicatorData) {
+        const result = await app.GetIndicatorData(signal.indicator_id, 12)
+        indicatorData.value = result.data || []
+      }
     }
-  } catch(e) {
-    console.error('[GovData] loadDetail:', e)
-  }
+
+    // ── CN: prefer the series cached on the signal from get_summary (instant).
+    //    For endpoints not in the FAST core set (no cached series), fall back to
+    //    a single macro_cn_indicator request which returns a normalized series. ──
+    else if (activeSource.value === 'cn' && app?.FetchData) {
+      if (Array.isArray(signal.series) && signal.series.length > 0) {
+        indicatorData.value = signal.series.map((p: any) => ({
+          date: p.date, value: p.value,
+        }))
+      } else {
+        const sid = signal.indicator_id.replace(/^cn_/, '')
+        const result = await app.FetchData('akshare', 'macro_cn_indicator', [sid], '', '', {})
+        if (result?.data) {
+          try {
+            const d = JSON.parse(result.data)
+            const series = d?.series || []
+            indicatorData.value = series.map((p: any) => ({
+              date: p.date, value: p.value,
+            }))
+          } catch(e: any) { console.error('[GovData] cn detail parse:', e) }
+        }
+      }
+    }
+
+    // ── BIS: fetch specific dataset time series ──
+    else if (app?.FetchData) {
+      const sid = signal.indicator_id.replace(/^bis_/, '')
+      const params: Record<string, string> = { cmd: 'get_data' }
+      params.dataset = sid
+      const result = await app.FetchData('macro', 'bis', [], '', '', params)
+      if (result?.data) {
+        const d = JSON.parse(result.data)
+        const values = d?.data?.values || d?.values || d?.data || []
+        if (Array.isArray(values)) {
+          indicatorData.value = values.map((v: any, i: number) => ({
+            date: v.date || v[0] || String(i),
+            value: typeof v.value === 'number' ? v.value : (typeof v[1] === 'number' ? v[1] : 0),
+          }))
+        }
+      }
+    }
+  } catch(e) { console.error('[GovData] loadDetail:', e) }
+  chartLoading.value = false
 }
 
 onMounted(() => {
   loadSignals()
 })
 
+// Dynamic categories: derived from loaded signals so each source's own
+// category taxonomy (FRED: gdp/inflation/..., CN: Core Indicators/Monetary,
+// BIS: BIS) drives the filter tabs. Falls back to FRED defaults while loading
+// so the tab framework is visible before data arrives.
+const categories = computed(() => {
+  const cats = new Set(signals.value.map(s => s.category).filter(Boolean))
+  if (cats.size === 0) {
+    return ['all', 'gdp', 'inflation', 'employment', 'rates', 'energy', 'housing']
+  }
+  return ['all', ...Array.from(cats)]
+})
+
+const categoryLabels: Record<string, string> = {
+  all: '全部', gdp: 'GDP/增长', inflation: '通胀', employment: '就业',
+  rates: '利率', energy: '能源', housing: '房地产',
+}
+
+function categoryLabel(cat: string): string {
+  return categoryLabels[cat] || cat
+}
+
 const filteredSignals = computed(() => {
   if (activeCategory.value === 'all') return signals.value
   return signals.value.filter(s => s.category === activeCategory.value)
 })
 
-// Count signals by type
+// Count signals by type for the header summary
 const signalCounts = computed(() => {
   let bullish = 0, bearish = 0, neutral = 0
   for (const s of signals.value) {
@@ -141,11 +294,12 @@ const signalCounts = computed(() => {
   return { bullish, bearish, neutral }
 })
 
-// Chart option for selected indicator's time series
+// Chart option for selected indicator's time series — colored by signal
 const chartOption = computed(() => {
   if (!selectedSignal.value || indicatorData.value.length === 0) return {}
   const dates = indicatorData.value.map(p => p.date)
   const values = indicatorData.value.map(p => p.value)
+  const theme = useChartTheme()
   return {
     tooltip: {
       trigger: 'axis' as const,
@@ -174,13 +328,13 @@ const chartOption = computed(() => {
       lineStyle: {
         color: selectedSignal.value?.signal === 'bullish'
           ? '#16a34a' : selectedSignal.value?.signal === 'bearish'
-          ? '#dc2626' : 'var(--color-text-secondary)',
+          ? '#dc2626' : theme.axisColor,
         width: 2
       },
       itemStyle: {
         color: selectedSignal.value?.signal === 'bullish'
           ? '#16a34a' : selectedSignal.value?.signal === 'bearish'
-          ? '#dc2626' : 'var(--color-text-secondary)'
+          ? '#dc2626' : theme.axisColor
       },
       markLine: {
         silent: true,
@@ -193,6 +347,7 @@ const chartOption = computed(() => {
 })
 
 function formatValue(v: number, unit: string): string {
+  if (v === 0) return '—'
   if (unit === '%') return v.toFixed(2) + '%'
   if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
   if (v >= 1_000) return (v / 1_000).toFixed(1) + 'K'
@@ -232,15 +387,15 @@ function changeClass(c: number): string {
   if (c < 0) return 'text-red'
   return 'text-muted'
 }
-
-
 </script>
 
 <template>
   <div class="govdata-panel" :data-panel-id="panelId">
-    <!-- Header -->
+    <!-- Header: source switch + signal summary -->
     <div class="panel-header">
-      <h3>{{ $t('macro.fred_source') }}</h3>
+      <div class="header-left">
+        <h3>{{ sourceCnLabels[activeSource] }}</h3>
+      </div>
       <div class="header-summary">
         <span class="summary-badge bullish" v-if="signalCounts.bullish > 0">🟢 {{ signalCounts.bullish }} 看涨</span>
         <span class="summary-badge bearish" v-if="signalCounts.bearish > 0">🔴 {{ signalCounts.bearish }} 看跌</span>
@@ -249,14 +404,23 @@ function changeClass(c: number): string {
       </div>
     </div>
 
-    <!-- Filter tabs -->
-    <div class="category-tabs">
+    <!-- Source switch tabs -->
+    <div class="source-tabs">
+      <button v-for="s in sources" :key="s.key"
+        :class="['source-tab', { active: activeSource === s.key }]"
+        @click="activeSource = s.key; activeCategory = 'all'; loadSignals()">
+        {{ s.label }}
+      </button>
+    </div>
+
+    <!-- Category filter tabs (dynamic per source) -->
+    <div class="category-tabs" v-if="categories.length > 2">
       <button
-        v-for="cat in filterCategories" :key="cat"
+        v-for="cat in categories" :key="cat"
         :class="['tab', { active: activeCategory === cat }]"
         @click="activeCategory = cat; selectedSignal = null"
       >
-        {{ categoryLabels[cat] }}
+        {{ categoryLabel(cat) }}
       </button>
     </div>
 
@@ -265,6 +429,7 @@ function changeClass(c: number): string {
       <!-- Indicator cards grid -->
       <div class="indicator-grid" :class="{ 'with-detail': selectedSignal }">
         <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
+        <div v-else-if="loadError" class="empty-state error">{{ loadError }}</div>
         <div v-else-if="filteredSignals.length === 0" class="empty-state">{{ $t('macro.no_data') }}</div>
         <div
           v-for="signal in filteredSignals"
@@ -279,7 +444,10 @@ function changeClass(c: number): string {
             </span>
           </div>
           <div class="card-value">
-            <span class="value">{{ formatValue(signal.latest_value, signal.unit) }}</span>
+            <template v-if="signal.latest_value !== 0">
+              <span class="value">{{ formatValue(signal.latest_value, signal.unit) }}</span>
+            </template>
+            <span v-else class="card-tap">点击查看数据</span>
           </div>
           <div class="card-change">
             <span :class="['direction-icon', changeClass(signal.change)]">
@@ -298,7 +466,7 @@ function changeClass(c: number): string {
         <div class="detail-header">
           <div>
             <h4>{{ selectedSignal.name_cn }}</h4>
-            <p class="detail-subtitle">{{ selectedSignal.name }}</p>
+            <p class="detail-subtitle" v-if="selectedSignal.latest_date">{{ selectedSignal.latest_date }}</p>
           </div>
           <button class="btn-close" @click="selectedSignal = null">&times;</button>
         </div>
@@ -378,6 +546,30 @@ function changeClass(c: number): string {
 .summary-badge.bullish { color: #16a34a; }
 .summary-badge.bearish { color: #dc2626; }
 .summary-badge.neutral { color: var(--color-text-secondary); }
+
+/* Source switch tabs */
+.source-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.source-tab {
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.source-tab.active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+.source-tab:hover:not(.active) { background: var(--color-bg-hover); }
 
 .btn-sm {
   padding: 2px 8px;
@@ -465,6 +657,10 @@ function changeClass(c: number): string {
   font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+.card-tap {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
 }
 
 .card-change {
@@ -568,4 +764,5 @@ function changeClass(c: number): string {
   grid-column: 1 / -1;
 }
 .empty-state.small { padding: 20px; font-size: 12px; }
+.empty-state.error { color: #dc2626; }
 </style>

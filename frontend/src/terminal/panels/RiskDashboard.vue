@@ -2,7 +2,8 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
-import * as echarts from 'echarts'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { graphic } from 'echarts/core'
 import VChart from 'vue-echarts'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -15,20 +16,23 @@ const metrics = ref({
 
 const fmt = (n: number, dec = 2) => n.toFixed(dec)
 
-const ddChartOption = computed(() => ({
+const ddChartOption = computed(() => {
+  const theme = useChartTheme()
+  return {
   backgroundColor: 'transparent',
   grid: { top: 10, right: 20, bottom: 30, left: 50 },
-  xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'], axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
-  yAxis: { type: 'value', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: '{value}%' } },
+  xAxis: { type: 'category', data: ['Jan','Feb','Mar','Apr','May','Jun'], axisLabel: { color: theme.axisColor, fontSize: 10 } },
+  yAxis: { type: 'value', axisLabel: { color: theme.axisColor, fontSize: 10, formatter: '{value}%' } },
   series: [{
     type: 'line', data: [0, -2.1, -8.7, -5.3, -2.0, 0],
     smooth: true, lineStyle: { color: '#f85149', width: 2 },
-    areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[
+    areaStyle: { color: new graphic.LinearGradient(0,0,0,1,[
       {offset:0, color:'rgba(248,81,73,0.3)'}, {offset:1, color:'rgba(248,81,73,0.02)'}
     ]) },
     symbol: 'none'
   }]
-}))
+}
+})
 
 // Phase 10.4: GARCH volatility section
 const garchModel = ref<'garch' | 'gjr_garch' | 'egarch'>('garch')
@@ -40,26 +44,29 @@ const garchVolatility = ref<number[]>([0.012, 0.015, 0.013, 0.011, 0.014, 0.018,
   0.017, 0.019, 0.018, 0.015, 0.014, 0.016, 0.02, 0.022, 0.019, 0.017,
   0.015, 0.013, 0.014, 0.016, 0.018, 0.021, 0.019, 0.017, 0.015, 0.014])
 
-const volChartOption = computed(() => ({
+const volChartOption = computed(() => {
+  const theme = useChartTheme()
+  return {
   backgroundColor: 'transparent',
-  title: { text: `GARCH(${garchP.value},${garchQ.value}) Volatility`, textStyle: { color: 'var(--color-text-primary)', fontSize: 12 }, left: 'center' },
+  title: { text: `GARCH(${garchP.value},${garchQ.value}) Volatility`, textStyle: { color: theme.textColor, fontSize: 12 }, left: 'center' },
   grid: { top: 35, right: 20, bottom: 25, left: 50 },
-  xAxis: { type: 'category', data: garchVolatility.value.map((_, i) => i + 1), axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 9 } },
-  yAxis: { type: 'value', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 9, formatter: '{value}%' } },
+  xAxis: { type: 'category', data: garchVolatility.value.map((_, i) => i + 1), axisLabel: { color: theme.axisColor, fontSize: 9 } },
+  yAxis: { type: 'value', axisLabel: { color: theme.axisColor, fontSize: 9, formatter: '{value}%' } },
   series: [{
     type: 'line',
     data: garchVolatility.value.map(v => +(v * 100).toFixed(2)),
     smooth: true,
     lineStyle: { color: '#f0883e', width: 2 },
     areaStyle: {
-      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      color: new graphic.LinearGradient(0, 0, 0, 1, [
         { offset: 0, color: 'rgba(240,136,62,0.25)' },
         { offset: 1, color: 'rgba(240,136,62,0.02)' },
       ]),
     },
     symbol: 'none',
   }],
-}))
+}
+})
 
 const garchModels = ['garch', 'gjr_garch', 'egarch'] as const
 

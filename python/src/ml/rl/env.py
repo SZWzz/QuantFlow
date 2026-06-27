@@ -49,7 +49,6 @@ class TradingEnv(gym.Env if HAS_GYM else object):
         return self._get_state(), {}
 
     def step(self, action):
-        # Map action to position delta
         if self.action_type == "discrete":
             action_val = action - 1  # 0->sell(-1), 1->hold(0), 2->buy(1)
         else:
@@ -62,11 +61,23 @@ class TradingEnv(gym.Env if HAS_GYM else object):
         prev_price = self.ohlcv[self.current_step - 1, 0] if self.current_step > 0 else price
         price_return = (price - prev_price) / prev_price if prev_price > 0 else 0.0
 
-        # Update portfolio
-        trade_cost = abs(self.position - prev_position) * self.portfolio_value * 0.001
-        self.cash -= trade_cost
-        self.portfolio_value = self.cash * (1 + self.position * price_return)
-        self.cash = self.portfolio_value * (1 - abs(self.position))
+        # Correct portfolio update:
+        # 1. Trade modifies cash based on position change
+        # 2. Portfolio value = cash + position_value * (1 + price_return)
+        portfolio_value_before = self.portfolio_value
+
+        if prev_position != self.position:
+            delta = self.position - prev_position
+            trade_value = delta * portfolio_value_before
+            trade_cost = abs(trade_value) * 0.001
+            self.cash -= trade_value + trade_cost
+
+        self.cash = max(self.cash, 0)
+
+        # Compute new portfolio value after price change
+        position_value = self.position * portfolio_value_before * (1 + price_return)
+        self.portfolio_value = self.cash + position_value
+        self.portfolio_value = max(self.portfolio_value, 0.0)
 
         reward = (self.portfolio_value - self.prev_value) / self.prev_value if self.prev_value > 0 else 0.0
         self.prev_value = self.portfolio_value

@@ -4,10 +4,14 @@
 package backtest
 
 import (
+	"errors"
 	"time"
 
 	"quantflow/internal/trading"
 )
+
+// errNoData is returned when no OHLCV data is provided for backtesting.
+var errNoData = errors.New("no OHLCV data provided")
 
 // Config holds the parameters for a backtest run.
 type Config struct {

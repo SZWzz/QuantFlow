@@ -4,7 +4,9 @@ import en from './en'
 
 type Locale = 'zh' | 'en'
 
-const saved = localStorage.getItem('locale')
+const LOCALE_KEY = 'qf-locale'
+
+const saved = localStorage.getItem(LOCALE_KEY)
 const locale: Locale = saved === 'en' ? 'en' : 'zh'
 
 export const i18n = createI18n({
@@ -16,5 +18,5 @@ export const i18n = createI18n({
 
 export function setLocale(lang: Locale) {
   i18n.global.locale.value = lang
-  localStorage.setItem('locale', lang)
+  localStorage.setItem(LOCALE_KEY, lang)
 }

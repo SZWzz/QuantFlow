@@ -51,8 +51,10 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
 
 	portfolio := NewPortfolio(r.config.InitialCash)
+	r.oms.GetCashLedger().Deposit(r.config.InitialCash)
 	var equityCurve []EquityPoint
 	var tradeRecords []TradeRecord
+	latestPrices := make(map[string]float64)
 
 	for _, bar := range bars {
 		select {
@@ -63,6 +65,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 
 		// Update market prices in OMS for current positions
 		r.oms.UpdateMarketPrice(bar.Symbol, bar.Close)
+		latestPrices[bar.Symbol] = bar.Close
 
 		// 1. Check stop-loss/take-profit on existing positions
 		if pos := r.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
@@ -70,14 +73,14 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 				// Close position at market
 				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
-					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
+					r.oms.FillOrder(order.ID, pos.Quantity, bar.Open)
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Close,
+						Quantity: pos.Quantity, Price: bar.Open,
 					})
 				}
 				// Update portfolio
-				portfolio.Cash += bar.Close * pos.Quantity * (1 - r.config.Commission)
+				portfolio.Cash = r.oms.GetCashBalance()
 				delete(portfolio.Positions, bar.Symbol)
 				delete(portfolio.AvgPrice, bar.Symbol)
 				goto recordEquity
@@ -85,14 +88,14 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 			if r.risk.CheckTakeProfit(pos, bar.Close) {
 				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
-					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
+					r.oms.FillOrder(order.ID, pos.Quantity, bar.Open)
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Close,
-						PnL:      (bar.Close - pos.AvgPrice) * pos.Quantity,
+						Quantity: pos.Quantity, Price: bar.Open,
+						PnL:      (bar.Open - pos.AvgPrice) * pos.Quantity,
 					})
 				}
-				portfolio.Cash += bar.Close * pos.Quantity * (1 - r.config.Commission)
+				portfolio.Cash = r.oms.GetCashBalance()
 				delete(portfolio.Positions, bar.Symbol)
 				delete(portfolio.AvgPrice, bar.Symbol)
 				goto recordEquity
@@ -113,11 +116,10 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 
 	recordEquity:
 		// 3. Record daily equity
-		prices := map[string]float64{bar.Symbol: bar.Close}
 		equityCurve = append(equityCurve, EquityPoint{
 			Date:   bar.Date,
-			Equity: portfolio.Equity(prices),
-			Cash:   portfolio.Cash,
+			Equity: portfolio.Equity(latestPrices),
+			Cash:   r.oms.GetCashBalance(),
 		})
 	}
 
@@ -137,7 +139,7 @@ func (r *Runner) processBuySignal(bar trading.OHLCVBar, signal *trading.Signal, 
 		qty = 100 // Default: 100 shares
 	}
 
-	effectivePrice := bar.Close * (1 + r.config.Slippage)
+	effectivePrice := bar.Open * (1 + r.config.Slippage)
 	cost := effectivePrice*qty + effectivePrice*qty*r.config.Commission
 
 	if cost > portfolio.Cash {
@@ -167,7 +169,7 @@ func (r *Runner) processBuySignal(bar trading.OHLCVBar, signal *trading.Signal, 
 		return
 	}
 
-	portfolio.Cash -= cost
+	portfolio.Cash = r.oms.GetCashBalance()
 	oldQty := portfolio.Positions[bar.Symbol]
 	oldAvg := portfolio.AvgPrice[bar.Symbol]
 	newQty := oldQty + qty
@@ -195,7 +197,7 @@ func (r *Runner) processSellSignal(bar trading.OHLCVBar, signal *trading.Signal,
 		return
 	}
 
-	effectivePrice := bar.Close * (1 - r.config.Slippage)
+	effectivePrice := bar.Open * (1 - r.config.Slippage)
 	revenue := effectivePrice*qty - effectivePrice*qty*r.config.Commission
 
 	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)
@@ -207,7 +209,7 @@ func (r *Runner) processSellSignal(bar trading.OHLCVBar, signal *trading.Signal,
 		return
 	}
 
-	portfolio.Cash += revenue
+	portfolio.Cash = r.oms.GetCashBalance()
 	oldQty := portfolio.Positions[bar.Symbol]
 	avgPrice := portfolio.AvgPrice[bar.Symbol]
 	newQty := oldQty - qty

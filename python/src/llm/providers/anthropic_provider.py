@@ -31,6 +31,12 @@ class AnthropicProvider(LLMProvider):
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
         self._client: httpx.AsyncClient | None = None
 
+    def update_api_key(self, new_key: str):
+        """Update the API key at runtime without restarting the sidecar."""
+        self.api_key = new_key
+        if self._client is not None:
+            self._client = None  # Force client recreation on next request
+
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=httpx.Timeout(120.0))
@@ -154,7 +160,15 @@ class AnthropicProvider(LLMProvider):
                         resp.completion_tokens = usage.get("output_tokens", 0)
                         # Only set finish_reason on message_delta
                         delta = event.get("delta", {})
-                        resp.finish_reason = delta.get("stop_reason", "stop")
+                        # Map Anthropic stop reasons → OpenAI-compatible values
+                        raw_reason = delta.get("stop_reason", "") or ""
+                        reason_map = {
+                            "end_turn": "stop",
+                            "max_tokens": "length",
+                            "stop_sequence": "stop",
+                            "tool_use": "tool_calls",
+                        }
+                        resp.finish_reason = reason_map.get(raw_reason, raw_reason or "stop")
 
                     elif event_type == "message_stop":
                         if not resp.finish_reason:

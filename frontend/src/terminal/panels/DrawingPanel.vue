@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { useCanvasTheme } from '@/lib/canvas-theme'
 
 const props = defineProps<{
   panelId: string
@@ -26,7 +27,7 @@ const drawings = ref<Drawing[]>([])
 const isDrawing = ref(false)
 const startPoint = ref<{ x: number; y: number } | null>(null)
 const currentPoint = ref<{ x: number; y: number } | null>(null)
-const active颜色 = ref('#58a6ff')
+const activeColor = ref('#58a6ff')
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const nextId = ref(1)
 
@@ -96,7 +97,7 @@ function onMouseUp(e: MouseEvent) {
       id: nextId.value++,
       type: 'text',
       points: [end],
-      color: active颜色.value,
+      color: activeColor.value,
       text: t,
     })
   } else if (tool === 'fibonacci') {
@@ -111,14 +112,14 @@ function onMouseUp(e: MouseEvent) {
       id: nextId.value++,
       type: 'fibonacci',
       points: [start, end],
-      color: active颜色.value,
+      color: activeColor.value,
     })
   } else {
     drawings.value.push({
       id: nextId.value++,
       type: tool as Drawing['type'],
       points: [start, end],
-      color: active颜色.value,
+      color: activeColor.value,
     })
   }
 
@@ -139,11 +140,12 @@ function renderCanvas() {
   canvas.height = canvas.clientHeight
 
   // Background
-  ctx.fillStyle = 'var(--color-bg-elevated)'
+  const scheme = useCanvasTheme()
+  ctx.fillStyle = scheme.bg
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   // Grid
-  ctx.strokeStyle = 'var(--color-border-strong)'
+  ctx.strokeStyle = scheme.grid
   ctx.lineWidth = 0.5
   const gridSize = 40
   for (let x = gridSize; x < canvas.width; x += gridSize) {
@@ -170,7 +172,7 @@ function renderCanvas() {
       id: -1,
       type: activeTool.value as Drawing['type'],
       points: [startPoint.value, currentPoint.value],
-      color: active颜色.value,
+      color: activeColor.value,
     }
     drawShape(ctx, preview)
   }
@@ -198,7 +200,7 @@ function drawShape(ctx: CanvasRenderingContext2D, d: Drawing) {
     ctx.lineTo(ctx.canvas.width, b.y)
     ctx.stroke()
     // Label
-    ctx.fill文字(b.y.toFixed(0), 6, b.y - 4)
+    ctx.fillText(b.y.toFixed(0), 6, b.y - 4)
   } else if (d.type === 'fibonacci') {
     const [a, b] = d.points
     if (!b) return
@@ -215,13 +217,13 @@ function drawShape(ctx: CanvasRenderingContext2D, d: Drawing) {
       ctx.moveTo(0, y)
       ctx.lineTo(ctx.canvas.width, y)
       ctx.stroke()
-      ctx.fill文字((ratios[i] * 100).toFixed(1) + '%', 6, y - 4)
+      ctx.fillText((ratios[i] * 100).toFixed(1) + '%', 6, y - 4)
     }
     ctx.setLineDash([])
   } else if (d.type === 'text') {
     const [p] = d.points
     if (!p) return
-    ctx.fill文字(d.text || '', p.x, p.y)
+    ctx.fillText(d.text || '', p.x, p.y)
   }
 }
 

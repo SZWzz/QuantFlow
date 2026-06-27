@@ -2,9 +2,10 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
-import * as echarts from 'echarts'
+import { graphic } from 'echarts/core'
 import VChart from 'vue-echarts'
 import { usePortfolioStore } from '@/stores/portfolio'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import type { PositionDetail } from '@/stores/portfolio'
 
 defineProps<{
@@ -110,14 +111,16 @@ function onPositionClick(pos: PositionDetail) {
 
 // --- Equity curve chart ---
 
-const equityChartOption = computed(() => ({
+const equityChartOption = computed(() => {
+  const theme = useChartTheme()
+  return {
   backgroundColor: 'transparent',
   grid: { top: 10, right: 12, bottom: 30, left: 55 },
   xAxis: {
     type: 'category' as const,
     data: equityData.value.map((p) => p.date),
     axisLine: { lineStyle: { color: 'var(--color-border)' } },
-    axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
+    axisLabel: { color: theme.axisColor, fontSize: 10 },
     axisTick: { show: false },
   },
   yAxis: {
@@ -125,7 +128,7 @@ const equityChartOption = computed(() => ({
     axisLine: { show: false },
     axisTick: { show: false },
     axisLabel: {
-      color: 'var(--color-text-tertiary)',
+      color: theme.axisColor,
       fontSize: 10,
       formatter: (v: number) => (v / 1000).toFixed(0) + 'k',
     },
@@ -138,7 +141,7 @@ const equityChartOption = computed(() => ({
     symbol: 'none',
     lineStyle: { color: '#58a6ff', width: 2 },
     areaStyle: {
-      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      color: new graphic.LinearGradient(0, 0, 0, 1, [
         { offset: 0, color: 'rgba(88, 166, 255, 0.28)' },
         { offset: 1, color: 'rgba(88, 166, 255, 0.02)' },
       ]),
@@ -148,23 +151,26 @@ const equityChartOption = computed(() => ({
     trigger: 'axis' as const,
     backgroundColor: 'var(--color-bg-subtle)',
     borderColor: 'var(--color-border)',
-    textStyle: { color: 'var(--color-text-primary)', fontSize: 12 },
+    textStyle: { color: theme.textColor, fontSize: 12 },
     formatter: (params: any) => {
       const p = params[0]
       return `${p.name}<br/>Equity: <b>$${(p.value as number).toLocaleString()}</b>`
     },
   },
-}))
+  }
+})
 
 // --- 配置分布 pie chart ---
 
-const pieChartOption = computed(() => ({
+const pieChartOption = computed(() => {
+  const theme = useChartTheme()
+  return {
   backgroundColor: 'transparent',
   tooltip: {
     trigger: 'item' as const,
     backgroundColor: 'var(--color-bg-subtle)',
     borderColor: 'var(--color-border)',
-    textStyle: { color: 'var(--color-text-primary)', fontSize: 12 },
+    textStyle: { color: theme.textColor, fontSize: 12 },
     formatter: (params: any) =>
       `<b>${params.name}</b><br/>${t('portfolio.allocation')}: ${params.value}%`,
   },
@@ -177,7 +183,7 @@ const pieChartOption = computed(() => ({
     label: {
       show: true,
       position: 'outside' as const,
-      color: 'var(--color-text-tertiary)',
+      color: theme.axisColor,
       fontSize: 10,
       formatter: '{b}\n{d}%',
     },
@@ -188,7 +194,8 @@ const pieChartOption = computed(() => ({
       itemStyle: { color: a.color },
     })),
   }],
-}))
+  }
+})
 
 // --- 持仓 table helpers ---
 

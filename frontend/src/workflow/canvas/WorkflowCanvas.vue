@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, markRaw } from 'vue'
+import { ref, watch, markRaw, onMounted, onUnmounted } from 'vue'
 import { VueFlow, useVueFlow, type Node, type Edge, type Connection } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -47,6 +47,16 @@ onPaneClick(() => {
 
 // Handle new connection
 onConnect((connection: Connection) => {
+  // 拒绝自环
+  if (connection.source === connection.target) {
+    return
+  }
+  // 拒绝重复边
+  const existing = edges.value.some(
+    e => e.source === connection.source && e.target === connection.target
+  )
+  if (existing) return
+
   const edge: Edge = {
     id: `e-${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}`,
     source: connection.source,
@@ -96,18 +106,27 @@ async function onDrop(event: DragEvent) {
 }
 
 // Keyboard shortcuts
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Delete' && workflow.selectedNodeId) {
+function handleKeyboardShortcut(e: KeyboardEvent) {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+  if (e.key === 'Delete' && workflow.selectedNodeId) {
     workflow.removeNode(workflow.selectedNodeId)
   }
-  if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
     // Select all — skip
   }
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyboardShortcut)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardShortcut)
+})
 </script>
 
 <template>
-  <div class="workflow-canvas" @dragover="onDragOver" @drop="onDrop" @keydown="onKeydown" tabindex="0">
+  <div class="workflow-canvas" @dragover="onDragOver" @drop="onDrop">
     <VueFlow
       v-model:nodes="nodes"
       v-model:edges="edges"

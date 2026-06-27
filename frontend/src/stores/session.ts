@@ -11,12 +11,15 @@ export interface SessionUI {
   activeMarket: MarketKey
 }
 
+const LOCALE_KEY = 'qf-locale' // 与 i18n module 保持一致
+
 export const useSessionStore = defineStore('session', () => {
   const stored = localStorage.getItem('quantflow-session')
+  const savedLocale = localStorage.getItem(LOCALE_KEY)
   const defaults: SessionUI = {
     theme: 'dark',
     density: 'default',
-    language: 'zh',
+    language: savedLocale === 'en' ? 'en' : 'zh',
     mode: 'terminal',
     activeMarket: 'CN',
   }
@@ -28,6 +31,7 @@ export const useSessionStore = defineStore('session', () => {
     ui,
     (val) => {
       localStorage.setItem('quantflow-session', JSON.stringify(val))
+      localStorage.setItem(LOCALE_KEY, val.language)
     },
     { deep: true }
   )

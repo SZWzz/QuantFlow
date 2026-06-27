@@ -139,6 +139,9 @@ func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, param
 	case "US":
 		engine := backtest.NewUSEngine(config)
 		result, err = engine.Run(ctx, strategy, tradingBars)
+	case "HK":
+		engine := backtest.NewHKEngine(config)
+		result, err = engine.Run(ctx, strategy, tradingBars)
 	default:
 		runner := backtest.NewRunner(config)
 		result, err = runner.Run(ctx, strategy, tradingBars)

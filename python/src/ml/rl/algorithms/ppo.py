@@ -110,3 +110,25 @@ class PPOTrainer:
         sharpe = (np.mean(rewards) / (np.std(rewards) + 1e-8)) * np.sqrt(252) if len(rewards) > 1 else 0
 
         return {"episode": self.total_episodes, "reward": total_reward, "sharpe": sharpe, "steps": len(rewards)}
+
+    def predict(self, obs, deterministic=True):
+        """Predict action from observation.
+
+        Args:
+            obs: numpy array of shape (batch, state_dim)
+            deterministic: if True, use argmax; otherwise sample from logits
+
+        Returns:
+            action: numpy array of shape (batch,)
+            None: unused (for interface compatibility)
+        """
+        self.network.eval()
+        with torch.no_grad():
+            logits, _ = self.network(torch.FloatTensor(obs))
+            if deterministic:
+                action = logits.argmax(dim=1).cpu().numpy()
+            else:
+                probs = torch.softmax(logits, dim=-1)
+                action = torch.multinomial(probs, 1).squeeze(1).cpu().numpy()
+        self.network.train()
+        return action, None

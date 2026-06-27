@@ -33,8 +33,8 @@ type OMS struct {
 	orderCbs   []func(*Order) // notified on order state changes
 	tradeCbs   []func(*Trade) // notified on new trades
 
-	// P0-1: T+1 lock for A-share (today's buys can't be sold same day)
-	t1Lock map[string]time.Time // symbol → buy date
+	// P0-10: T+1 lock for A-share (today's buys can't be sold same day)
+	t1Lock *T1Tracker
 
 	// P0-2: Price limits (涨跌停)
 	priceLimits map[string]PriceLimitConfig
@@ -54,7 +54,7 @@ func NewOMS() *OMS {
 	return &OMS{
 		orders:      make(map[string]*Order),
 		positions:   make(map[string]*Position),
-		t1Lock:      make(map[string]time.Time),
+		t1Lock:      NewT1Tracker(),
 		priceLimits: make(map[string]PriceLimitConfig),
 		costConfig: TradingCosts{
 			CommissionRate: 0.00025, // 万分之2.5
@@ -107,7 +107,7 @@ func (o *OMS) PlaceOrder(symbol string, side OrderSide, orderType OrderType, qty
 	defer o.mu.Unlock()
 
 	order := &Order{
-		ID:        uuid.New().String()[:8],
+		ID:        uuid.New().String()[:12],
 		Symbol:    symbol,
 		Side:      side,
 		OrderType: orderType,
@@ -171,9 +171,13 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 			return nil, fmt.Errorf("fill %s: no position to sell for %s", order.ID, order.Symbol)
 		}
 
-		// P0-1: T+1 lock — cannot sell shares bought today
-		if buyDate, locked := o.t1Lock[order.Symbol]; locked && isSameDay(buyDate, time.Now()) {
-			return nil, fmt.Errorf("T+1 lock: cannot sell %s bought today", order.Symbol)
+		// P0-10: T+1 lock — clip sell quantity to available (total - today's buys)
+		avail := o.t1Lock.Available(order.Symbol, pos.Quantity)
+		if avail <= 0 {
+			return nil, fmt.Errorf("T+1 lock: cannot sell %s, all shares locked", order.Symbol)
+		}
+		if fillQty > avail {
+			fillQty = avail
 		}
 	}
 	if !ok {
@@ -211,7 +215,7 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 	}
 
 	trade := &Trade{
-		ID:         uuid.New().String()[:8],
+		ID:         uuid.New().String()[:12],
 		OrderID:    orderID,
 		Symbol:     order.Symbol,
 		Side:       order.Side,
@@ -231,8 +235,8 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 		if pos.Quantity > 0 {
 			pos.AvgPrice = totalPosValue / pos.Quantity
 		}
-		// P0-1: Mark T+1 lock for today's buy
-		o.t1Lock[order.Symbol] = time.Now()
+		// P0-10: Lock T+1 shares from today's buy
+		o.t1Lock.Lock(order.Symbol, fillQty)
 	} else {
 		// Realize P&L for the sold portion, deducting trading costs.
 		realizedPnl := (fillPrice-pos.AvgPrice)*fillQty - commission - stampTax
@@ -386,9 +390,10 @@ func (o *OMS) SetQuoteName(symbol, name string) {
 }
 
 // getName returns the cached stock name for a symbol. Returns empty if not cached.
+// NOTE: Caller MUST hold o.mu (read or write lock). This method does NOT acquire
+// the lock itself — doing so would deadlock when called from PlaceOrder/FillOrder
+// which already hold the write lock (Go's sync.RWMutex is not reentrant).
 func (o *OMS) getName(symbol string) string {
-	o.mu.RLock()
-	defer o.mu.RUnlock()
 	return o.quoteCache[symbol]
 }
 
@@ -420,11 +425,14 @@ func (o *OMS) ResolveNames() {
 	}
 }
 
-// isSameDay returns true if both times fall on the same calendar day.
-func isSameDay(t1, t2 time.Time) bool {
-	y1, m1, d1 := t1.Date()
-	y2, m2, d2 := t2.Date()
-	return y1 == y2 && m1 == m2 && d1 == d2
+// ClearT1Lock clears all T+1 locks (called at end of trading day).
+func (o *OMS) ClearT1Lock() {
+	o.t1Lock.Clear()
+}
+
+// GetT1Available returns the number of shares available to sell (total - T+1 locked).
+func (o *OMS) GetT1Available(symbol string, totalQty float64) float64 {
+	return o.t1Lock.Available(symbol, totalQty)
 }
 
 // PlaceOrderLive places an order through the attached broker instead of paper.
@@ -439,7 +447,7 @@ func (o *OMS) PlaceOrderLive(ctx context.Context, symbol string, side OrderSide,
 	o.mu.Lock()
 	clientOrderID := uuid.New().String()
 	order := &Order{
-		ID:            clientOrderID[:8],
+		ID:            clientOrderID[:12],
 		ClientOrderID: clientOrderID,
 		Symbol:        symbol,
 		Side:          side,

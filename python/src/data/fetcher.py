@@ -361,7 +361,7 @@ def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
         })
 
     if not quotes:
-        raise ValueError(f"mootdx: no minute data for {symbols}")
+        return []  # no minute data (weekend/holiday), let fallback chain try next adapter
 
     return quotes
 
@@ -455,15 +455,23 @@ class DataService(data_pb2_grpc.DataServiceServicer):
         # params carries per-source options (e.g. mootdx K-line interval).
         params = dict(request.params) if request.params else {}
 
-        if not symbols:
+        if not symbols and source != "macro":
             return data_pb2.FetchDataResponse(error="no symbols provided")
 
         try:
             if source == "mootdx":
                 return await self._handle_mootdx(data_type, symbols, start_date, end_date, params)
+            elif source == "akshare":
+                return await self._handle_akshare(data_type, symbols, start_date, end_date, params)
+            elif source == "ccxt":
+                return await self._handle_ccxt(data_type, symbols, start_date, end_date, params)
+            elif source == "sec":
+                return await self._handle_sec(data_type, symbols, params)
+            elif source == "macro":
+                return await self._handle_macro(data_type, symbols, start_date, end_date, params)
             else:
                 return data_pb2.FetchDataResponse(
-                    error=f"DataService: source '{source}' not implemented. Supported: mootdx"
+                    error=f"DataService: source '{source}' not implemented. Supported: mootdx, akshare, ccxt, sec, macro"
                 )
         except Exception as exc:
             logger.exception("DataService.FetchData failed (source=%s, type=%s)", source, data_type)
@@ -499,3 +507,293 @@ class DataService(data_pb2_grpc.DataServiceServicer):
             data=json.dumps(bars, ensure_ascii=False).encode("utf-8"),
             source="mootdx",
         )
+
+    # -----------------------------------------------------------------------
+    # AKShare handler — routes to fincept CLI modules via subprocess
+    # -----------------------------------------------------------------------
+
+    # Mapping from gRPC data_type -> (fincept_module, [default_endpoint_args])
+    _AKSHARE_ROUTES = {
+        "financials": ("financials", "stock_financial_analysis_indicator_em"),
+        "company_info": ("company_info", "cn_basic"),
+        "fundflow": ("fundflow", "stock_individual_fund_flow"),
+        "margin": ("margin", "stock_margin_detail_szse"),
+        "bonds": ("bonds", "get_all_endpoints"),
+        "funds": ("funds", "get_all_endpoints"),
+        "derivatives": ("derivatives", "get_all_endpoints"),
+        "futures": ("derivatives", "get_all_endpoints"),
+        "index": ("index", "stock_board_index_cons_em"),
+        "macro_cn": ("macro_cn", "get_all_endpoints"),
+        # One-shot parallel summary: latest values + short series for all fast
+        # core endpoints. macro_cn.py:get_summary() handles concurrency
+        # internally and returns {categories, values:{endpoint:{latest_value,
+        # series, ...}}}, so no client-side enrichment is needed.
+        "macro_cn_summary": ("macro_cn", "get_summary"),
+        # Single standardized indicator series for the detail chart. The
+        # endpoint name travels in `symbols[0]` and is appended as the arg to
+        # `macro_cn get_normalized <endpoint>`, yielding a uniform
+        # {latest_value, series:[{date,value}]} payload.
+        "macro_cn_indicator": ("macro_cn", "get_normalized"),
+    }
+
+    async def _handle_akshare(self, data_type, symbols, start_date, end_date, params):
+        """Route AKShare data types to fincept CLI modules via subprocess."""
+        import subprocess
+        import sys as _sys
+        import json as _json
+        import os
+
+        route = self._AKSHARE_ROUTES.get(data_type)
+        if route is None:
+            return data_pb2.FetchDataResponse(
+                error=f"AKShare: unknown data_type '{data_type}'. "
+                      f"Supported: {list(self._AKSHARE_ROUTES.keys())}"
+            )
+
+        module_name, endpoint = route
+        # Allow params.cmd to override the default endpoint (e.g., "gdp" instead of "get_all_endpoints")
+        if params and params.get("cmd"):
+            endpoint = params["cmd"]
+        symbol = symbols[0] if symbols else ""
+        cmd = [_sys.executable, "-m", f"src.data.fincept.{module_name}", endpoint]
+        # Only append symbol as arg for stock-specific data types. Macro summary
+        # takes no symbol; macro_cn_indicator carries the target endpoint name
+        # in symbols[0] and DOES need it appended (as the get_normalized arg).
+        if symbol and data_type not in ("macro_cn", "macro_cn_summary", "index", "bonds", "funds"):
+            cmd.append(symbol)
+        if start_date and data_type == "fundflow":
+            cmd.append(start_date)
+
+        # macro_cn_summary fans out to ~9 akshare endpoints in parallel inside
+        # macro_cn.py:get_summary(); allow extra headroom on slow links.
+        # macro_cn_indicator fetches a single endpoint for the detail chart —
+        # SLOW akshare endpoints (cpi_yearly, ppi_yearly, m2_yearly, ...) can
+        # legitimately take 60-120s, so give the detail path more rope.
+        if data_type == "macro_cn_summary":
+            timeout = 90
+        elif data_type == "macro_cn_indicator":
+            timeout = 120
+        else:
+            timeout = 60
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd="/Volumes/etx/coding/rebuild/quantflow/python",
+                start_new_session=True,
+            )
+            if result.returncode != 0:
+                return data_pb2.FetchDataResponse(
+                    error=f"AKShare {data_type}: subprocess failed (rc={result.returncode}): {result.stderr[:2000]}"
+                )
+
+            data = _json.loads(result.stdout)
+            return data_pb2.FetchDataResponse(
+                data=_json.dumps(data, default=str, ensure_ascii=False).encode("utf-8")
+            )
+        except subprocess.TimeoutExpired:
+            return data_pb2.FetchDataResponse(error=f"AKShare {data_type}: timeout after 60s")
+        except Exception as e:
+            return data_pb2.FetchDataResponse(error=f"AKShare {data_type}: {str(e)}")
+
+    # -----------------------------------------------------------------------
+    # CCXT handler — direct ccxt library calls
+    # -----------------------------------------------------------------------
+
+    async def _handle_ccxt(self, data_type, symbols, start_date, end_date, params):
+        """Route CCXT cryptocurrency data via direct library calls."""
+        import json as _json
+
+        try:
+            from src.data.fincept.ccxt_client import make_exchange
+        except ImportError:
+            msg = "ccxt library not installed. Install with: pip install ccxt"
+            return data_pb2.FetchDataResponse(error=f"CCXT: {msg}")
+
+        exchange_id = (params or {}).get("exchange", "binance")
+        symbol = symbols[0] if symbols else "BTC/USDT"
+
+        try:
+            exchange = make_exchange(exchange_id)
+
+            if data_type == "ohlcv":
+                timeframe = (params or {}).get("timeframe", "1d")
+                limit = int((params or {}).get("limit", 100))
+                candles = exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+                result = {
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "candles": [
+                        {"timestamp": c[0], "open": c[1], "high": c[2],
+                         "low": c[3], "close": c[4], "volume": c[5]}
+                        for c in candles
+                    ],
+                    "count": len(candles),
+                }
+            elif data_type == "ticker":
+                ticker = exchange.fetch_ticker(symbol)
+                result = {
+                    "symbol": ticker.get("symbol", symbol),
+                    "last": ticker.get("last"),
+                    "bid": ticker.get("bid"),
+                    "ask": ticker.get("ask"),
+                    "high": ticker.get("high"),
+                    "low": ticker.get("low"),
+                    "volume": ticker.get("baseVolume"),
+                    "change_pct": ticker.get("percentage"),
+                }
+            elif data_type == "orderbook":
+                limit = int((params or {}).get("limit", 20))
+                ob = exchange.fetch_order_book(symbol, limit=limit)
+                result = {
+                    "symbol": symbol,
+                    "bids": ob.get("bids", [])[:limit],
+                    "asks": ob.get("asks", [])[:limit],
+                }
+            elif data_type == "funding_rate":
+                exchange.load_markets()
+                # Try perpetual swap symbol
+                perp = f"{symbol.split('/')[0]}/{symbol.split('/')[1]}:{symbol.split('/')[1]}"
+                for s in (perp, symbol):
+                    try:
+                        exchange.options["defaultType"] = "swap"
+                        rate = exchange.fetch_funding_rate(s)
+                        result = {
+                            "symbol": rate.get("symbol", s),
+                            "funding_rate": rate.get("fundingRate"),
+                            "funding_timestamp": rate.get("fundingTimestamp"),
+                            "mark_price": rate.get("markPrice"),
+                            "index_price": rate.get("indexPrice"),
+                        }
+                        break
+                    except Exception:
+                        continue
+                else:
+                    result = {"symbol": symbol, "funding_rate": None, "error": "funding rate not available"}
+            elif data_type == "open_interest":
+                exchange.load_markets()
+                perp = f"{symbol.split('/')[0]}/{symbol.split('/')[1]}:{symbol.split('/')[1]}"
+                for s in (perp, symbol):
+                    try:
+                        exchange.options["defaultType"] = "swap"
+                        oi = exchange.fetch_open_interest(s)
+                        result = {
+                            "symbol": s,
+                            "open_interest": oi.get("openInterestAmount"),
+                            "open_interest_value": oi.get("openInterestValue"),
+                        }
+                        break
+                    except Exception:
+                        continue
+                else:
+                    result = {"symbol": symbol, "open_interest": None, "error": "open interest not available"}
+            elif data_type == "markets":
+                exchange.load_markets()
+                markets = []
+                for sym, mkt in exchange.markets.items():
+                    markets.append({
+                        "symbol": sym,
+                        "type": mkt.get("type"),
+                        "base": mkt.get("base"),
+                        "quote": mkt.get("quote"),
+                    })
+                result = {"exchange": exchange_id, "markets": markets, "count": len(markets)}
+            else:
+                return data_pb2.FetchDataResponse(
+                    error=f"CCXT: unknown data_type '{data_type}'. "
+                          f"Supported: ohlcv, ticker, orderbook, funding_rate, open_interest, markets"
+                )
+
+            return data_pb2.FetchDataResponse(
+                data=_json.dumps(result, default=str).encode("utf-8")
+            )
+        except Exception as e:
+            return data_pb2.FetchDataResponse(error=f"CCXT {data_type}: {str(e)}")
+
+    # -----------------------------------------------------------------------
+    # SEC EDGAR handler — direct library calls
+    # -----------------------------------------------------------------------
+
+    async def _handle_sec(self, data_type, symbols, params):
+        """Route SEC EDGAR data via direct library calls."""
+        import json as _json
+
+        try:
+            if data_type == "financials":
+                from src.data.fincept import sec_financials
+                result = sec_financials.get_financials(symbols[0] if symbols else "AAPL")
+            elif data_type == "13f":
+                from src.data.fincept import sec_13f
+                result = sec_13f.get_13f_holdings(symbols[0] if symbols else "AAPL")
+            elif data_type == "insider":
+                from src.data.fincept import sec_insider
+                result = sec_insider.get_insider_transactions(symbols[0] if symbols else "AAPL")
+            else:
+                return data_pb2.FetchDataResponse(
+                    error=f"SEC: unknown data_type '{data_type}'. Supported: financials, 13f, insider"
+                )
+
+            return data_pb2.FetchDataResponse(
+                data=_json.dumps(result, default=str).encode("utf-8")
+            )
+        except Exception as e:
+            return data_pb2.FetchDataResponse(error=f"SEC {data_type}: {str(e)}")
+
+    # -----------------------------------------------------------------------
+    # Macro handler — routes to fincept macro modules via subprocess
+    # -----------------------------------------------------------------------
+
+    async def _handle_macro(self, data_type, symbols, start_date, end_date, params):
+        """Route macroeconomic data (BIS, WTO, EIA) via subprocess."""
+        import subprocess
+        import sys as _sys
+        import json as _json
+        import os
+
+        MACRO_ROUTES = {
+            "bis": "macro_bis",
+            "wto": "macro_wto",
+            "eia": "macro_eia",
+        }
+        MACRO_DEFAULT_CMDS = {
+            "bis": "get_available_datasets",
+            "wto": "get_all_endpoints",
+            "eia": "get_all_endpoints",
+        }
+
+        module = MACRO_ROUTES.get(data_type)
+        if module is None:
+            return data_pb2.FetchDataResponse(
+                error=f"Macro: unknown data_type '{data_type}'. Supported: {list(MACRO_ROUTES.keys())}"
+            )
+
+        # Use explicit command from params, or fall back to default for this source
+        cmd_name = (params or {}).get("cmd", MACRO_DEFAULT_CMDS.get(data_type, "get_all_endpoints"))
+        cmd = [_sys.executable, "-m", f"src.data.fincept.{module}", cmd_name]
+        # BIS: pass dataset ID as extra argument (e.g. get_data WS_CBPOL)
+        if data_type == "bis" and params and params.get("dataset"):
+            cmd.append(params["dataset"])
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd="/Volumes/etx/coding/rebuild/quantflow/python",
+                preexec_fn=os.setsid,  # detach from gRPC event loop
+            )
+            if result.returncode != 0:
+                return data_pb2.FetchDataResponse(
+                    error=f"Macro {data_type}: subprocess failed (rc={result.returncode}): {result.stderr[:500]}"
+                )
+
+            data = _json.loads(result.stdout)
+            return data_pb2.FetchDataResponse(
+                data=_json.dumps(data, default=str, ensure_ascii=False).encode("utf-8")
+            )
+        except subprocess.TimeoutExpired:
+            return data_pb2.FetchDataResponse(error=f"Macro {data_type}: timeout after 60s")
+        except Exception as e:
+            return data_pb2.FetchDataResponse(error=f"Macro {data_type}: {str(e)}")

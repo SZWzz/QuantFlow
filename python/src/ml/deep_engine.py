@@ -90,7 +90,7 @@ class DeepEngine:
         epochs = int(params.get("epochs", 10))
         batch_size = int(params.get("batch_size", 32))
         dataset = TensorDataset(X_t, y_t)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=float(params.get("learning_rate", 0.001)))
         loss_fn = nn.MSELoss()

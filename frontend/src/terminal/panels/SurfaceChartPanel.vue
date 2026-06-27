@@ -6,6 +6,7 @@ import { use } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, GridComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 use([LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer])
 
@@ -36,11 +37,12 @@ const chartOption = computed(() => {
   if (!surfaceData.value.length) return {}
   const windows = surfaceData.value.map(r => r[0].toFixed(0) + 'd')
   const vols = surfaceData.value.map(r => +(r[1] * 100).toFixed(1))
+  const theme = useChartTheme()
   return {
     backgroundColor: 'transparent',
     grid: { top: 20, right: 20, bottom: 30, left: 50 },
-    xAxis: { type: 'category', data: windows, name: '窗口 (天)', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
-    yAxis: { type: 'value', name: '波动率 (%)', axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 } },
+    xAxis: { type: 'category', data: windows, name: '窗口 (天)', axisLabel: { color: theme.axisColor, fontSize: 10 } },
+    yAxis: { type: 'value', name: '波动率 (%)', axisLabel: { color: theme.axisColor, fontSize: 10 } },
     series: [{ type: 'line', data: vols, smooth: true, lineStyle: { color: '#534ab7', width: 2 }, areaStyle: { color: 'rgba(83,74,183,0.15)' }, itemStyle: { color: '#534ab7' } }],
     tooltip: { trigger: 'axis' },
   }

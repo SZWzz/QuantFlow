@@ -10,3 +10,6 @@ mootdx>=0.9
 # NLP sentiment analysis
 nltk>=3.8
 snownlp>=0.12.3
+ccxt>=4.0
+akshare>=1.14.0
+edgartools>=0.5.0

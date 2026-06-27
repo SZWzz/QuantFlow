@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import VChart from 'vue-echarts'
 import 'echarts'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 

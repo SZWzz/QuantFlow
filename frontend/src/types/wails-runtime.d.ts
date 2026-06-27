@@ -62,3 +62,115 @@ declare module '@wailsio/runtime' {
 
   export { Call as default }
 }
+
+// Wails v2-style window.go shim types
+// These mirror the Go App methods exposed via main.go services.
+// Used by setupWailsBridge() to provide transparent v2→v3 compatibility.
+
+interface AppMethods {
+  // --- System ---
+  GetVersion(): Promise<string>
+  GetConfig(): Promise<Record<string, any>>
+  UpdateConfig(patch: Record<string, any>): Promise<void>
+
+  // --- Market Data ---
+  GetQuote(marketName: string, symbol: string): Promise<any>
+  GetMinuteLine(symbol: string, sinceTimestamp: number): Promise<any>
+  FetchOHLCV(marketName: string, symbol: string, interval: string, fqfactor: string, start: number, end: number): Promise<any>
+  GetFundFlow(symbol: string, flowType: string): Promise<any>
+  GetNorthboundFlow(): Promise<Record<string, any>>
+  GetMarketOverview(mkt: string): Promise<Record<string, any>>
+  GetCryptoOverview(symbols: string[]): Promise<Record<string, any>>
+  GetMarketSnapshot(symbols: string[]): Promise<Array<Record<string, any>>>
+
+  // --- Research ---
+  GetSentiment(symbol: string): Promise<any>
+  GetSentimentHistory(symbol: string, days: number): Promise<any[]>
+  GetStockResearch(symbol: string, tabs: string[]): Promise<any>
+  GetCongressTrades(): Promise<any[]>
+  GetPredictionMarkets(category: string, limit: number): Promise<Record<string, any>>
+  GetPredictionEventDetail(eventID: string): Promise<Record<string, any>>
+  GetPredictionSignals(category: string, minProbChange: number): Promise<Record<string, any>>
+  GetGeopoliticsRisks(): Promise<Record<string, any>>
+  GetEconomicIndicators(): Promise<Record<string, any>>
+  GetIndicatorData(seriesID: string, limit: number): Promise<Record<string, any>>
+  GetGeopoliticsDetail(topicID: string, timespan: string): Promise<Record<string, any>>
+  GetSatelliteSnapshots(): Promise<Record<string, any>>
+  GetSatelliteDetail(regionID: string): Promise<Record<string, any>>
+  GetChanlun(symbol: string): Promise<Record<string, any>>
+  ComputeIndicator(symbol: string, indicatorName: string, params: Record<string, any>): Promise<Record<string, any>>
+  ScanStocks(strategyName: string): Promise<Record<string, any>>
+  GetBlockRank(market: number, sortField: number, count: number): Promise<any[]>
+  GetMACCapitalFlow(symbol: string): Promise<any>
+  GetAuction(symbol: string): Promise<any[]>
+  GetAbnormalStocks(market: number): Promise<any[]>
+  GetMultiDayMinute(symbol: string, days: number): Promise<any>
+  GetCapitalData(symbol: string): Promise<Record<string, any>>
+  GetAnnouncements(symbol: string, pageSize: number): Promise<any[]>
+  GetDragonTiger(symbol: string, endDate: string, lookBack: number): Promise<any[]>
+  GetDailyDragonTiger(date: string, minNetBuy: number): Promise<any[]>
+  GetLockupExpiry(symbol: string): Promise<any[]>
+  GetIndustryRanks(topN: number): Promise<any[]>
+  GetConceptBlocks(symbol: string): Promise<any[]>
+  GetCorrelationMatrix(symbols: string[], lookback: number): Promise<Record<string, Record<string, number>>>
+  GetReturnDistribution(symbol: string, lookback: number, bins: number): Promise<Record<string, any>>
+  GetVolatilitySurface(symbol: string): Promise<number[][]>
+  GetNews(symbol: string, limit: number): Promise<any[]>
+
+  // --- Symbol Search ---
+  SearchSymbols(query: string): Promise<any[]>
+  SearchResearch(query: string, channel: string, size: number): Promise<any[]>
+
+  // --- AI ---
+  Chat(profileName: string, model: string, message: string): Promise<string>
+  ListProfiles(): Promise<any[]>
+  GetNotifications(limit: number, offset: number): Promise<any[]>
+  MarkNotificationRead(id: number): Promise<void>
+
+  // --- Trading ---
+  PlaceOrder(symbol: string, side: string, orderType: string, qty: number, price: number): Promise<any>
+  GetPositions(): Promise<any[]>
+  GetOrders(): Promise<any[]>
+  GetTrades(): Promise<any[]>
+  GetPortfolioSummary(): Promise<Record<string, any>>
+  GetPortfolioAllocation(): Promise<any>
+  GetRebalanceSuggestions(): Promise<Array<Record<string, any>>>
+  GetBrokerStatuses(): Promise<any[]>
+  RunBacktest(jsonDef: string): Promise<Record<string, any>>
+
+  // --- Workflow ---
+  ListNodes(): Promise<Array<{ node_type: string; category: string }>>
+  GetNodePorts(nodeType: string): Promise<{ inputs: Array<{ name: string; type: string }>; outputs: Array<{ name: string; type: string }> }>
+  ValidateWorkflow(jsonDef: string): Promise<string>
+  RunWorkflow(jsonDef: string): Promise<any>
+  LoadWorkflow(id: string): Promise<any>
+  SaveWorkflow(jsonDef: string): Promise<string>
+  ListWorkflows(): Promise<Array<{ id: string; name: string; description: string; updated_at: string }>>
+
+  // --- Commodities ---
+  GetCommodityQuotes(): Promise<Record<string, any>>
+
+  // --- Schedule ---
+  ListScheduleTasks(): Promise<any[]>
+  SaveScheduleTask(task: any): Promise<void>
+  DeleteScheduleTask(id: string): Promise<void>
+  ToggleScheduleTask(id: string, enabled: boolean): Promise<void>
+
+  // --- System Monitor ---
+  GetSystemStats(): Promise<Record<string, any>>
+
+  // Index signature for dynamic calls via proxy
+  [key: string]: (...args: any[]) => Promise<any>
+}
+
+declare global {
+  interface Window {
+    go?: {
+      main: {
+        App: AppMethods
+      }
+    }
+  }
+}
+
+export {}

@@ -13,6 +13,7 @@ import {
   MarkLineComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { histogramBins } from '@/lib/stats'
 
 use([
@@ -101,17 +102,19 @@ const chartOption = computed(() => {
   const mean = meanVal.value
   const std = stdVal.value
 
+  const theme = useChartTheme()
+
   return {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis' as const,
-      backgroundColor: 'var(--color-bg-elevated)',
-      borderColor: 'var(--color-border-strong)',
+      backgroundColor: theme.bgColor,
+      borderColor: theme.splitColor,
       textStyle: { color: '#e5e7eb', fontSize: 11 },
     },
     legend: {
       data: ['Returns', t('misc.normal_fit')],
-      textStyle: { color: 'var(--color-text-secondary)', fontSize: 10 },
+      textStyle: { color: theme.axisColor, fontSize: 10 },
       top: 0,
     },
     grid: {
@@ -123,18 +126,18 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'value' as const,
       axisLabel: {
-        color: 'var(--color-text-secondary)',
+        color: theme.axisColor,
         fontSize: 10,
         formatter: (v: number) => (v * 100).toFixed(1) + '%',
       },
-      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
-      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+      axisLine: { lineStyle: { color: theme.splitColor } },
+      splitLine: { lineStyle: { color: theme.bgColor } },
     },
     yAxis: {
       type: 'value' as const,
-      axisLabel: { color: 'var(--color-text-secondary)', fontSize: 10 },
-      axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
-      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+      axisLabel: { color: theme.axisColor, fontSize: 10 },
+      axisLine: { lineStyle: { color: theme.splitColor } },
+      splitLine: { lineStyle: { color: theme.bgColor } },
     },
     series: [
       {
@@ -151,9 +154,9 @@ const chartOption = computed(() => {
         markLine: {
           silent: true,
           symbol: 'none',
-          lineStyle: { type: 'dashed' as const, color: 'var(--color-text-secondary)', width: 1 },
+          lineStyle: { type: 'dashed' as const, color: theme.axisColor, width: 1 },
           label: {
-            color: 'var(--color-text-secondary)',
+            color: theme.axisColor,
             fontSize: 9,
             formatter: (p: { value: number }) =>
               ((p.value as number) * 100).toFixed(2) + '%',

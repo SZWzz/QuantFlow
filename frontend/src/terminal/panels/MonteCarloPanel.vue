@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { simulateGBM, histogramBins } from '@/lib/stats'
 import type { GBMInput, GBMOutput } from '@/lib/stats'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 const props = defineProps<{
   panelId: string
@@ -132,18 +133,20 @@ const pathsChartOption = computed(() => {
     stack: 'band',
   })
 
+  const theme = useChartTheme()
+
   return {
     backgroundColor: 'transparent',
     grid: { left: 60, right: 20, top: 10, bottom: 30 },
     xAxis: {
       type: 'category',
       data: xLabels,
-      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
+      axisLabel: { color: theme.axisColor, fontSize: 10 },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => formatCurrency(v) },
-      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+      axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => formatCurrency(v) },
+      splitLine: { lineStyle: { color: theme.bgColor } },
     },
     tooltip: { trigger: 'axis' as const },
     series,
@@ -156,19 +159,21 @@ const histogramOption = computed(() => {
   const bins = histogramBins(r.terminalValues, 50)
   const var5Idx = r.terminalValues.sort((a, b) => a - b)[Math.floor(r.terminalValues.length * 0.05)]
 
+  const theme = useChartTheme()
+
   return {
     backgroundColor: 'transparent',
     grid: { left: 60, right: 20, top: 10, bottom: 30 },
     xAxis: {
       type: 'category',
       data: bins.map(b => b.x.toFixed(0)),
-      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 9, rotate: 45 },
+      axisLabel: { color: theme.axisColor, fontSize: 9, rotate: 45 },
       interval: 9,
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
-      splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+      axisLabel: { color: theme.axisColor, fontSize: 10 },
+      splitLine: { lineStyle: { color: theme.bgColor } },
     },
     tooltip: { trigger: 'axis' as const },
     series: [

@@ -18,6 +18,8 @@ export type IconName =
   | 'ai' | 'welcome' | 'search' | 'close' | 'command' | 'workflow' | 'terminal' | 'pin' | 'unpin' | 'drag'
   | 'up' | 'down' | 'refresh' | 'filter' | 'export' | 'expand' | 'collapse' | 'info' | 'warning' | 'error' | 'success'
   | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'chevron-up' | 'dots' | 'plus' | 'minus' | 'edit' | 'delete' | 'save'
+  // New: Phase 4 panels
+  | 'fundflow' | 'margin' | 'bonds' | 'funds' | 'futures' | 'macro' | 'index' | 'sec' | '13f' | 'options'
 
 const ICONS: Record<IconName, string> = {
   // ── Market ──
@@ -119,6 +121,17 @@ const ICONS: Record<IconName, string> = {
   edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   delete: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
   save: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`,
+  // Phase 4 — New panel icons
+  fundflow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M12 2v20"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="10" r="2"/><circle cx="10" cy="16" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 8l8 4"/><path d="M10 14l6 2"/></svg>`,
+  margin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="M3 9h4"/><path d="M17 9h4"/><path d="M3 15h4"/><path d="M17 15h4"/><line x1="9" y1="7" x2="9" y2="11"/><line x1="15" y1="13" x2="15" y2="17"/></svg>`,
+  bonds: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><path d="M2 8h20"/><path d="M2 16h20"/></svg>`,
+  funds: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="8" r="3"/><circle cx="18" cy="16" r="3"/><path d="M9 10l3-2 3 4"/><path d="M12 22c4.418 0 8-3.582 8-8s-3.582-8-8-8"/></svg>`,
+  futures: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4l4 4-4 4"/><path d="M20 8H9a4 4 0 000 8h1"/><path d="M6 20l-4-4 4-4"/><path d="M4 16h11"/></svg>`,
+  options: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h4l3 8h4.5a1.5 1.5 0 010 3H15"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M3 4l1.5 3L6 4"/></svg>`,
+  macro: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10"/><path d="M12 2a15.3 15.3 0 00-4 10 15.3 15.3 0 004 10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>`,
+  index: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 5"/><line x1="21" y1="5" x2="21" y2="9"/><line x1="21" y1="5" x2="17" y2="5"/><circle cx="12" cy="12" r="10"/></svg>`,
+  sec: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/><circle cx="12" cy="12" r="1"/></svg>`,
+  '13f': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
 }
 
 export function getIcon(name: IconName): string {
@@ -198,4 +211,15 @@ export const PANEL_ICONS: Record<string, IconName> = {
   chanlun: 'chanlun',
   indicator: 'indicator',
   'stock-scanner': 'scanner',
+  // Phase 4 — New panels
+  fundflow: 'fundflow',
+  margin: 'margin',
+  bonds: 'bonds',
+  funds: 'funds',
+  futures: 'futures',
+  options: 'options',
+  macro: 'macro',
+  index: 'index',
+  'sec_financials': 'sec',
+  'sec_13f': '13f',
 }

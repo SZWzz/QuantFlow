@@ -27,6 +27,12 @@ class OpenAIProvider(LLMProvider):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY", "")
         self._client: httpx.AsyncClient | None = None
 
+    def update_api_key(self, new_key: str):
+        """Update the API key at runtime without restarting the sidecar."""
+        self.api_key = new_key
+        if self._client is not None:
+            self._client = None  # Force client recreation on next request
+
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=httpx.Timeout(120.0))

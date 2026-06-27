@@ -4,6 +4,7 @@ import { usePortfolioStore } from '@/stores/portfolio'
 import type { PositionDetail } from '@/stores/portfolio'
 
 import VChart from 'vue-echarts'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 defineProps<{
   panelId: string
@@ -127,12 +128,13 @@ const donutOption = computed(() => {
     value: a.pct,
     itemStyle: { color: a.color },
   }))
+  const theme = useChartTheme()
   return {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item' as const,
-      backgroundColor: 'var(--color-bg-elevated)',
-      borderColor: 'var(--color-border-strong)',
+      backgroundColor: theme.bgColor,
+      borderColor: theme.splitColor,
       textStyle: { color: '#e5e7eb', fontSize: 11 },
       formatter: '{b}: {c}%',
     },
@@ -142,8 +144,8 @@ const donutOption = computed(() => {
       center: ['50%', '50%'],
       avoidLabelOverlap: false,
       itemStyle: { borderRadius: 2, borderColor: 'var(--color-bg-panel)', borderWidth: 2 },
-      label: { show: true, position: 'outside' as const, color: 'var(--color-text-secondary)', fontSize: 9, formatter: '{b}\n{d}%' },
-      labelLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+      label: { show: true, position: 'outside' as const, color: theme.axisColor, fontSize: 9, formatter: '{b}\n{d}%' },
+      labelLine: { lineStyle: { color: theme.splitColor } },
       data,
     }],
   }

@@ -4,6 +4,38 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.6.28] - 2026-06-28
+
+### 新增
+
+- [行情] MAC 协议适配器：通达信 TCP 二进制协议直连，5 数据通道（金钻 VIP 快照、主力大单、板块成分、通用行情、Level-2 十档），零中间件零依赖
+- [行情] StockSymbolCache：SQLite 持久化股票名称列表（7 天 TTL），启动跳过 API 加载，闭市时从缓存预填自选股名称
+- [前端] 64 面板股票名称展示：Trade/Order/Position 新增 `Name` 字段，quoteCache 自动回填，21 个面板代码旁显示中文名称
+- [前端] `useDataFetch` composable：loading/error/data 三态标准模式，覆盖 SystemMonitorPanel 及后续所有面板
+- [前端] 分时图增量渲染：MinuteCache SQLite 持久化 + LRU，跨面板共享缓存，增量加载禁动画，filterSince 时区 bug 修复
+- [前端] 3 个新面板：FQFactor（因子分析面板）、ChanlunBi/ChanlunDuan/ChanlunZhongshu（缠论可视化面板）、MACProtocol（MAC 数据面板）
+- [前端] 周末假日分时图回退：mootdx 周末返回空 → 回退到最近交易日分时数据
+- [工作流] 20 个技术指标节点：OBV, MFI, PSY, Aroon, ASI, WR, CCI, ROC, BIAS, Chaikin, Keltner, Donchian, TRIX, MassIndex, Vortex + 原有 5 个
+- [工作流] 5 个缠论节点：ChanlunBi（笔）、ChanlunDuan（段）、ChanlunZhongshu（中枢）、ChanlunMaiDian（买卖点）、ChanlunLeixing（走势类型）
+- [工作流] 3 个滑点模型节点：FixedSlippage、PercentageSlippage、VolumeSlippage
+- [工作流] fqfactor 节点：易量化因子集成
+- [引擎] P0 金融正确性：T+1 锁仓、涨跌停价格限制、交易成本扣除、CashLedger 现金流账簿
+- [引擎] app.go 按领域拆分：app_market.go、app_trading.go、app_research.go、app_system.go
+
+### 修复
+
+- [前端] 全面消除静默 catch：22 个面板 `catch (_) {}` → 统一 error 处理 + 用户可见提示（Tasks 3-5）
+- [前端] 加载状态 & 空态修复：10+ 面板 loading skeleton / empty state（Tasks 6-8）
+- [前端] Store 错误状态 + IPC 一致性：5 个 store 错误传播修复（Tasks 9-10）
+- [前端] 分时图 `notMerge: false` 强制全量重建 bug → 禁用全量重建防止闪烁
+- [前端] 分时图 `filterSince` 时区 bug：时间戳比较未考虑 UTC+8 偏移 → 增量加载断裂
+- [后端] NodeContext 集成修复：所有节点构造函数签名对齐 `node.NewBaseNode(id, nodeType)`
+- [行情] Mootdx 分钟线周末空数据：判断 `len == 0` 不再 panic，回退最近交易日
+
+- [Docs] 新增 5 篇规范文档：easy-tdx 集成、分时图实时渲染、前端质量重塑、股票名称展示、前端质量实施计划
+
+---
+
 ## [2026.6.26] - 2026-06-26
 
 ### 新增

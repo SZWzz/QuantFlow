@@ -61,6 +61,11 @@ class AlphaMiningEngine:
         if len(y) < 100:
             raise ValueError(f"not enough valid samples: {len(y)}")
 
+        # Time-series train/test split (no shuffle)
+        split_idx = int(len(X) * 0.7)
+        X_train, X_test = X[:split_idx], X[split_idx:]
+        y_train, y_test = y[:split_idx], y[split_idx:]
+
         # Build custom function set from factor names
         function_set = ['add', 'sub', 'mul', 'div', 'sqrt', 'log', 'abs', 'neg', 'inv',
                         'sin', 'cos', 'tan']
@@ -86,7 +91,7 @@ class AlphaMiningEngine:
             random_state=42,
             n_jobs=1,
         )
-        gp.fit(X, y)
+        gp.fit(X_train, y_train)
 
         # Extract discovered formulas (from the Pareto front / best programs)
         results = []
@@ -106,29 +111,29 @@ class AlphaMiningEngine:
                 continue
             seen.add(formula_str)
 
-            y_pred = program.execute(X)
+            y_pred = program.execute(X_test)
             if np.any(np.isnan(y_pred)):
                 continue
 
-            # Compute IC (Pearson correlation)
-            ic = float(np.corrcoef(y_pred, y)[0, 1]) if np.std(y_pred) > 0 else 0.0
+            # Compute IC (Pearson correlation) on test set
+            ic = float(np.corrcoef(y_pred, y_test)[0, 1]) if np.std(y_pred) > 0 else 0.0
             if np.isnan(ic):
                 ic = 0.0
 
-            # Compute IR (IC / std of rolling IC)
-            n_rolling = min(20, len(y) // 5)
+            # Compute IR (IC / std of rolling IC) on test set
+            n_rolling = min(20, len(y_test) // 5)
             rolling_ics = []
-            for start in range(0, len(y) - n_rolling, n_rolling):
+            for start in range(0, len(y_test) - n_rolling, n_rolling):
                 end = start + n_rolling
                 if np.std(y_pred[start:end]) > 0:
-                    ric = np.corrcoef(y_pred[start:end], y[start:end])[0, 1]
+                    ric = np.corrcoef(y_pred[start:end], y_test[start:end])[0, 1]
                     if not np.isnan(ric):
                         rolling_ics.append(ric)
             ic_std = np.std(rolling_ics) if len(rolling_ics) > 1 else 1.0
             ir = float(abs(ic) / ic_std) if ic_std > 0 else 0.0
 
-            # Compute Sharpe via quantile backtest
-            sharpe = self._quantile_sharpe(y_pred, y)
+            # Compute Sharpe via quantile backtest on test set
+            sharpe = self._quantile_sharpe(y_pred, y_test)
 
             results.append({
                 "formula": formula_str,

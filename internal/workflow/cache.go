@@ -2,9 +2,8 @@ package workflow
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
@@ -30,25 +29,16 @@ func NewNodeCache(size int) (*NodeCache, error) {
 	return &NodeCache{cache: c}, nil
 }
 
-// CacheKey produces a deterministic cache key from a node ID and its inputs.
-// Map keys are sorted before hashing to ensure the same logical inputs
-// always produce the same key, regardless of iteration order.
+// CacheKey produces a deterministic cache key from a node ID and its inputs
+// via JSON serialization (which sorts map keys) followed by SHA-256 hashing.
 func CacheKey(nodeID string, inputs map[string]any) string {
-	keys := make([]string, 0, len(inputs))
-	for k := range inputs {
-		keys = append(keys, k)
+	b, err := json.Marshal(inputs)
+	if err != nil {
+		// Fallback to fmt for un-serializable types.
+		b = []byte(fmt.Sprintf("%+v", inputs))
 	}
-	sort.Strings(keys)
-	var b strings.Builder
-	b.WriteString(nodeID)
-	for _, k := range keys {
-		b.WriteByte('|')
-		b.WriteString(k)
-		b.WriteByte(':')
-		fmt.Fprint(&b, inputs[k])
-	}
-	hash := sha256.Sum256([]byte(b.String()))
-	return fmt.Sprintf("%x", hash[:16])
+	hash := sha256.Sum256(b)
+	return fmt.Sprintf("%s:%x", nodeID, hash[:16])
 }
 
 // Get retrieves cached outputs for the given key. The boolean return

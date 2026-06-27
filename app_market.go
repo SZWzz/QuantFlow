@@ -10,6 +10,7 @@ import (
 	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/python"
+	pb "quantflow/internal/python/proto"
 )
 
 // registerMarketAdapters populates the adapter registry with every data source,
@@ -133,6 +134,36 @@ func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval, fqfa
 		return nil, "", fmt.Errorf("market registry not initialized")
 	}
 	return a.marketReg.FetchOHLCVWithFallback(ctx, marketName, symbol, interval, fqfactor, start, end)
+}
+
+// FetchData proxies a data request to the Python sidecar's DataService gRPC endpoint.
+// Supported sources: mootdx, akshare, ccxt, sec, macro.
+// dataType varies per source (e.g. "financials", "fundflow", "ticker", "financials").
+func (a *App) FetchData(source, dataType string, symbols []string, startDate, endDate string, params map[string]string) (map[string]interface{}, error) {
+	if a.bridge == nil {
+		return nil, fmt.Errorf("Python sidecar not available")
+	}
+	ctx := context.Background()
+	req := &pb.FetchDataRequest{
+		Source:    source,
+		DataType:  dataType,
+		Symbols:   symbols,
+		StartDate: startDate,
+		EndDate:   endDate,
+		Params:    params,
+	}
+	resp, err := a.bridge.DataClient.FetchData(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("FetchData(%s/%s): %w", source, dataType, err)
+	}
+	if resp.Error != "" {
+		return nil, fmt.Errorf("FetchData(%s/%s): %s", source, dataType, resp.Error)
+	}
+	return map[string]interface{}{
+		"data":         string(resp.Data),
+		"source":       resp.Source,
+		"fetch_time_ms": resp.FetchTimeMs,
+	}, nil
 }
 
 // GetFundFlow returns capital flow data for a symbol.

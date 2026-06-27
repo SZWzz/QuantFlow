@@ -101,7 +101,7 @@ class FactorService(factor_pb2_grpc.FactorServiceServicer):
         else:
             df = pd.DataFrame()
 
-        async def compute_one(factor_name):
+        def compute_one(factor_name):
             """Compute a single factor using the pre-decoded DataFrame."""
             from src.factor.registry import _compute_funcs, is_cross_sectional
             if factor_name not in _compute_funcs:
@@ -146,8 +146,8 @@ class FactorService(factor_pb2_grpc.FactorServiceServicer):
                 results=results,
             )
 
-        # Fan out: compute all factors concurrently.
-        tasks = [compute_one(name) for name in request.factor_names]
+        # Fan out: compute all factors concurrently via thread pool.
+        tasks = [asyncio.to_thread(compute_one, name) for name in request.factor_names]
         responses = await asyncio.gather(*tasks)
 
         elapsed_ms = int((time.time() - t0) * 1000)

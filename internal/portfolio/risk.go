@@ -66,7 +66,12 @@ func ComputeMetrics(dailyPnL []*DailyPnL, totalValue float64, riskFreeRate float
 	for _, r := range returns {
 		variance += (r - mean) * (r - mean)
 	}
-	dailyVol := math.Sqrt(variance / float64(len(returns)))
+	// Sample variance: use N-1 denominator for unbiased estimate
+	nSamples := float64(len(returns))
+	if len(returns) > 1 {
+		nSamples = float64(len(returns) - 1)
+	}
+	dailyVol := math.Sqrt(variance / nSamples)
 	annualVol := dailyVol * math.Sqrt(252)
 
 	sharpe := 0.0
@@ -91,13 +96,20 @@ func ComputeMetrics(dailyPnL []*DailyPnL, totalValue float64, riskFreeRate float
 
 	maxDD, ddStart, ddEnd := computeMaxDrawdown(dailyPnL)
 
+	// Compute CAGR for Calmar ratio
+	nYears := float64(len(returns)) / 252.0
+	cagr := 0.0
+	if nYears > 0 && dailyPnL[0].TotalValue > 0 && dailyPnL[len(dailyPnL)-1].TotalValue > 0 {
+		cagr = math.Pow(dailyPnL[0].TotalValue/dailyPnL[len(dailyPnL)-1].TotalValue, 1.0/nYears) - 1.0
+	}
+
 	calmar := 0.0
 	if maxDD > 0 {
-		calmar = (mean * 252) / maxDD
+		calmar = cagr / maxDD
 	}
 
 	return &RiskMetrics{
-		Var95: var95 * totalValue, CVaR95: cvar95 * totalValue,
+		Var95: math.Abs(var95) * totalValue, CVaR95: cvar95 * totalValue,
 		MaxDrawdown: maxDD, MaxDDStart: ddStart, MaxDDEnd: ddEnd,
 		SharpeRatio: sharpe, SortinoRatio: sortino, CalmarRatio: calmar,
 		TotalExposure: totalValue, Leverage: 1.0,

@@ -70,14 +70,33 @@ var tencentIntervalMap = map[string]string{
 	"1M": "month",
 }
 
-func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, fqfactor string, start, end int64) ([]market.OHLCVBar, error) {
 	period, ok := tencentIntervalMap[strings.ToUpper(interval)]
 	if !ok {
 		return nil, fmt.Errorf("tencent: unsupported interval %s (supported: 1D, 1W, 1M)", interval)
 	}
 
+	// Map fqfactor to Tencent API param:
+	//   qfq → 前复权 (forward-adjusted)
+	//   hfq → 后复权 (backward-adjusted)
+	//   ""  → 不复权 (no adjustment)
+	fqParam := ""
+	fqPrefix := ""
+	switch strings.ToLower(fqfactor) {
+	case "hfq":
+		fqParam = "hfq"
+		fqPrefix = "hfq"
+	case "qfq":
+		fqParam = "qfq"
+		fqPrefix = "qfq"
+	default:
+		// No adjustment factor — fetch raw prices
+		fqParam = ""
+		fqPrefix = ""
+	}
+
 	code := toTencentCode(symbol)
-	params := fmt.Sprintf("param=%s,%s,,,2000,qfq", code, period)
+	params := fmt.Sprintf("param=%s,%s,,,2000,%s", code, period, fqParam)
 	req, _ := http.NewRequestWithContext(ctx, "GET", tencentKlineURL+"?"+params, nil)
 	req.Header.Set("Referer", "https://gu.qq.com/")
 	req.Header.Set("Accept", "*/*")
@@ -102,11 +121,14 @@ func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 		return nil, fmt.Errorf("tencent kline: API error code=%d", result.Code)
 	}
 
-	// Navigate: data → code → qfqday/qfqweek/qfqmonth → [[time,open,close,high,low,volume],...]
+	// Navigate: data → code → hfqday/hfqweek/hfqmonth (or qfqday/...) or period → [...]
 	stockData := result.Data[code]
-	ql := stockData["qfq"+period]
+	var ql interface{}
+	if fqPrefix != "" {
+		ql = stockData[fqPrefix+period]
+	}
 	if ql == nil {
-		// Try without adj prefix
+		// Try without adj prefix (raw prices)
 		ql = stockData[period]
 	}
 	if ql == nil {

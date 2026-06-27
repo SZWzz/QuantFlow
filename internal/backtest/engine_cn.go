@@ -2,6 +2,7 @@ package backtest
 
 import (
 	"context"
+	"log"
 	"sort"
 
 	"quantflow/internal/trading"
@@ -52,18 +53,9 @@ func (s *SquareRootSlippage) Apply(order trading.Order, bar trading.OHLCVBar) fl
 //   - Commission: 0.03% (万三) default
 type CNEngine struct {
 	*Runner
-	t1Lock        *t1Tracker         // tracks T+1 locked shares
 	prevClose     map[string]float64 // symbol → previous trading day close (for price limit)
 	slippageModel SlippageModel      // execution slippage model
-}
-
-// t1Tracker tracks shares locked by T+1 settlement.
-type t1Tracker struct {
-	locked map[string]float64 // symbol → locked quantity from today's buys
-}
-
-func newT1Tracker() *t1Tracker {
-	return &t1Tracker{locked: make(map[string]float64)}
+	stampDutyRate float64             // 印花税率，默认 0.0005 (万分之5，卖出)
 }
 
 // NewCNEngine creates an A-share backtesting engine with default A-share config.
@@ -77,15 +69,15 @@ func NewCNEngine(config Config) *CNEngine {
 	}
 	return &CNEngine{
 		Runner:        NewRunner(config),
-		t1Lock:        newT1Tracker(),
 		prevClose:     make(map[string]float64),
 		slippageModel: &FixedSlippage{Bps: 0.001},
+		stampDutyRate: 0.0005,
 	}
 }
 
-// stampDuty returns the stamp duty for a sell trade (0.05% since 2024).
-func stampDuty(tradeValue float64) float64 {
-	return tradeValue * 0.0005
+// stampDuty returns the stamp duty for a sell trade.
+func (e *CNEngine) stampDuty(tradeValue float64) float64 {
+	return tradeValue * e.stampDutyRate
 }
 
 // Run executes the backtest with A-share market rules.
@@ -97,8 +89,11 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
 
 	portfolio := NewPortfolio(e.config.InitialCash)
+	e.oms.GetCashLedger().Deposit(e.config.InitialCash)
 	var equityCurve []EquityPoint
 	var tradeRecords []TradeRecord
+	latestPrices := make(map[string]float64)
+	var lastDate string
 
 	for _, bar := range bars {
 		select {
@@ -108,11 +103,11 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		}
 
 		e.oms.UpdateMarketPrice(bar.Symbol, bar.Close)
+		latestPrices[bar.Symbol] = bar.Close
 
 		// Available sellable quantity = held - T+1 locked
 		heldQty := portfolio.Positions[bar.Symbol]
-		lockedQty := e.t1Lock.locked[bar.Symbol]
-		availableQty := heldQty - lockedQty
+		availableQty := e.oms.GetT1Available(bar.Symbol, heldQty)
 
 		// 1. Check stop-loss/take-profit (only on available shares)
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && availableQty > 0 {
@@ -125,10 +120,10 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 				}
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, availableQty, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, availableQty, bar.Close)
-					revenue := bar.Close*availableQty - stampDuty(bar.Close*availableQty) - bar.Close*availableQty*e.config.Commission
+					e.oms.FillOrder(order.ID, availableQty, bar.Open)
+					portfolio.Cash = e.oms.GetCashBalance()
+					revenue := bar.Open*availableQty - e.stampDuty(bar.Open*availableQty) - bar.Open*availableQty*e.config.Commission
 					pnl := revenue - pos.AvgPrice*availableQty
-					portfolio.Cash += revenue
 
 					newQty := heldQty - availableQty
 					if newQty <= 0 {
@@ -139,7 +134,7 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 					}
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: availableQty, Price: bar.Close, PnL: pnl,
+						Quantity: availableQty, Price: bar.Open, PnL: pnl,
 					})
 				}
 				goto recordEquityCN
@@ -164,18 +159,17 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		}
 
 	recordEquityCN:
-		// Update prevClose for next day's price limit check
 		e.prevClose[bar.Symbol] = bar.Close
 
-		// Clear T+1 lock (shares bought yesterday are now sellable)
-		e.t1Lock.locked = make(map[string]float64)
+		if lastDate != "" && bar.Date != lastDate {
+			e.oms.ClearT1Lock()
+		}
+		lastDate = bar.Date
 
-		// Record equity
-		prices := map[string]float64{bar.Symbol: bar.Close}
 		equityCurve = append(equityCurve, EquityPoint{
 			Date:   bar.Date,
-			Equity: portfolio.Equity(prices),
-			Cash:   portfolio.Cash,
+			Equity: portfolio.Equity(latestPrices),
+			Cash:   e.oms.GetCashBalance(),
 		})
 	}
 
@@ -210,15 +204,17 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		mockOrder := trading.Order{Symbol: bar.Symbol, Side: trading.SideBuy, Quantity: qty}
 		slippage = e.slippageModel.Apply(mockOrder, bar) / bar.Close
 	}
-	effectivePrice := bar.Close * (1 + slippage)
+	effectivePrice := bar.Open * (1 + slippage)
 	cost := effectivePrice*qty + effectivePrice*qty*e.config.Commission
 
 	if cost > portfolio.Cash {
+		log.Printf("backtest: %s buy signal skipped: insufficient cash (need %.2f, have %.2f)", bar.Symbol, cost, portfolio.Cash)
 		return
 	}
 
 	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
 	if err != nil {
+		log.Printf("backtest: %s buy signal order failed: %v", bar.Symbol, err)
 		return
 	}
 
@@ -231,15 +227,17 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 	}
 	order.Price = effectivePrice
 	if err := e.risk.CheckOrder(order, pos, portfolioValue); err != nil {
+		log.Printf("backtest: %s buy signal risk rejected: %v", bar.Symbol, err)
 		e.oms.CancelOrder(order.ID)
 		return
 	}
 
 	if _, err := e.oms.FillOrder(order.ID, qty, effectivePrice); err != nil {
+		log.Printf("backtest: %s buy signal fill failed: %v", bar.Symbol, err)
 		return
 	}
 
-	portfolio.Cash -= cost
+	portfolio.Cash = e.oms.GetCashBalance()
 	oldQty := portfolio.Positions[bar.Symbol]
 	oldAvg := portfolio.AvgPrice[bar.Symbol]
 	newQty := oldQty + qty
@@ -247,9 +245,6 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 	if newQty > 0 {
 		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + qty*effectivePrice) / newQty
 	}
-
-	// T+1 lock: shares bought today cannot be sold today
-	e.t1Lock.locked[bar.Symbol] += qty
 
 	*trades = append(*trades, TradeRecord{
 		Date: bar.Date, Symbol: bar.Symbol, Side: "buy",
@@ -275,19 +270,21 @@ func (e *CNEngine) processCNSellSignal(bar trading.OHLCVBar, signal *trading.Sig
 		mockOrder := trading.Order{Symbol: bar.Symbol, Side: trading.SideSell, Quantity: qty}
 		slippage = e.slippageModel.Apply(mockOrder, bar) / bar.Close
 	}
-	effectivePrice := bar.Close * (1 - slippage)
-	revenue := effectivePrice*qty - stampDuty(effectivePrice*qty) - effectivePrice*qty*e.config.Commission
+	effectivePrice := bar.Open * (1 - slippage)
+	revenue := effectivePrice*qty - e.stampDuty(effectivePrice*qty) - effectivePrice*qty*e.config.Commission
 
 	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)
 	if err != nil {
+		log.Printf("backtest: %s sell signal order failed: %v", bar.Symbol, err)
 		return
 	}
 
 	if _, err := e.oms.FillOrder(order.ID, qty, effectivePrice); err != nil {
+		log.Printf("backtest: %s sell signal fill failed: %v", bar.Symbol, err)
 		return
 	}
 
-	portfolio.Cash += revenue
+	portfolio.Cash = e.oms.GetCashBalance()
 	avgPrice := portfolio.AvgPrice[bar.Symbol]
 	pnl := revenue - avgPrice*qty
 

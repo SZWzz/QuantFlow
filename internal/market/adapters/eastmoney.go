@@ -109,7 +109,7 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 	}, nil
 }
 
-func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, fqfactor string, start, end int64) ([]market.OHLCVBar, error) {
 	secid := toEastMoneySecID(symbol)
 
 	// Map interval to EastMoney klt code
@@ -121,12 +121,21 @@ func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interv
 		klt = "103" // 月K
 	}
 
-	// fqt=2: 后复权 (backward-adjusted). Unlike 前复权 (fqt=1), which embeds
-	// future split/dividend info into historical prices (look-ahead risk for
-	// backtesting), 后复权 adjusts past prices to be consistent with the most
-	// recent price — preserving the relative returns without leaking future info.
-	url := fmt.Sprintf("%s?secid=%s&klt=%s&fqt=2&beg=%s&end=%s&fields=f51,f52,f53,f54,f55,f56,f57",
-		eastmoneyKlineURL, secid, klt,
+	// Map fqfactor to EastMoney fqt parameter:
+	//   hfq → fqt=2 (后复权, backward-adjusted)
+	//   qfq → fqt=1 (前复权, forward-adjusted)
+	//   ""  → fqt=0 (不复权, raw prices)
+	// Default to hfq for backtesting to avoid look-ahead bias.
+	fqt := 2 // default: hfq
+	switch strings.ToLower(fqfactor) {
+	case "qfq":
+		fqt = 1
+	case "":
+		fqt = 0
+	}
+
+	url := fmt.Sprintf("%s?secid=%s&klt=%s&fqt=%d&beg=%s&end=%s&fields=f51,f52,f53,f54,f55,f56,f57",
+		eastmoneyKlineURL, secid, klt, fqt,
 		time.Unix(start, 0).Format("20060102"),
 		time.Unix(end, 0).Format("20060102"))
 

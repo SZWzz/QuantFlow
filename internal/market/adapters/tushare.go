@@ -109,6 +109,50 @@ func (a *TuShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 	return bars, nil
 }
 
+// StockBasicInfo holds stock listing metadata for backtest survivorship handling.
+type StockBasicInfo struct {
+	TsCode     string `json:"ts_code"`
+	Symbol     string `json:"symbol"`
+	Name       string `json:"name"`
+	Area       string `json:"area"`
+	Industry   string `json:"industry"`
+	Market     string `json:"market"`
+	ListDate   string `json:"list_date"`
+	DelistDate string `json:"delist_date"`
+	ListStatus string `json:"list_status"` // L=listed, D=delisted, P=paused
+}
+
+// FetchStockList returns all stocks (listed + delisted) for backtest universe construction.
+// Uses list_status='L+D' to eliminate survivorship bias.
+func (a *TuShareAdapter) FetchStockList(ctx context.Context) ([]StockBasicInfo, error) {
+	if a.token == "" {
+		return nil, fmt.Errorf("tushare: TUSHARE_TOKEN not set")
+	}
+
+	result, err := a.callAPI(ctx, "stock_basic", map[string]any{
+		"list_status": "L,D",
+	}, []string{"ts_code", "symbol", "name", "area", "industry", "market", "list_date", "delist_date", "list_status"})
+	if err != nil {
+		return nil, err
+	}
+
+	stocks := make([]StockBasicInfo, 0, len(result.Items))
+	for _, row := range result.Items {
+		stocks = append(stocks, StockBasicInfo{
+			TsCode:     rowString(row, "ts_code"),
+			Symbol:     rowString(row, "symbol"),
+			Name:       rowString(row, "name"),
+			Area:       rowString(row, "area"),
+			Industry:   rowString(row, "industry"),
+			Market:     rowString(row, "market"),
+			ListDate:   rowString(row, "list_date"),
+			DelistDate: rowString(row, "delist_date"),
+			ListStatus: rowString(row, "list_status"),
+		})
+	}
+	return stocks, nil
+}
+
 func (a *TuShareAdapter) HealthCheck(ctx context.Context) error {
 	if a.token == "" {
 		return fmt.Errorf("tushare: TUSHARE_TOKEN not set")

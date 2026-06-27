@@ -9,12 +9,12 @@
 </p>
 
 <p align="center">
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/版本-2026.6.19-3b82f6?style=flat-square" alt="Version"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/阶段-11-success?style=flat-square" alt="Phase"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/节点-54+-3b82f6?style=flat-square" alt="Nodes"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/面板-46-8b5cf6?style=flat-square" alt="Panels"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/适配器-25+-f59e0b?style=flat-square" alt="Adapters"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/测试-476-brightgreen?style=flat-square" alt="Tests"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/版本-2026.6.28-3b82f6?style=flat-square" alt="Version"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/阶段-12-success?style=flat-square" alt="Phase"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/节点-93-3b82f6?style=flat-square" alt="Nodes"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/面板-64-8b5cf6?style=flat-square" alt="Panels"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/适配器-37-f59e0b?style=flat-square" alt="Adapters"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/测试-832-brightgreen?style=flat-square" alt="Tests"></a>
   <br>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go" alt="Go"></a>
   <a href="https://vuejs.org"><img src="https://img.shields.io/badge/Vue-3.x-4FC08D?style=flat-square&logo=vue.js" alt="Vue"></a>
@@ -27,14 +27,14 @@
 
 ## 📊 项目状态
 
-> **Phase 1–11 完成** — 54+ 工作流节点 · 46 前端面板 · 25+ 数据适配器 · 476 测试 (前端 164 + Go 192 + Python 120)
+> **Phase 1–12 完成** — 93 工作流节点 · 64 前端面板 · 37 数据适配器 · 832 测试 (前端 304 + Go 383 + Python 145)
 
 | 组件 | 状态 | 说明 |
 |------|:----:|------|
-| 工作流引擎 | ✅ | DAG + goroutine 并行 + Kahn 拓扑排序 |
-| 桌面壳 (Wails v3 + Vue 3) | ✅ | Terminal/Workflow 双模式一键切换 |
+| 工作流引擎 | ✅ | DAG + goroutine 并行 + Kahn 拓扑排序, 93 节点 |
+| 桌面壳 (Wails v3 + Vue 3) | ✅ | Terminal/Workflow 双模式一键切换, 64 面板 |
 | 交易引擎 (OMS) | ✅ | Paper/Live 双模式，Alpaca/Binance 实盘 |
-| 行情数据中心 | ✅ | 25+ 适配器，4 市场全覆盖，Fallback 容灾 |
+| 行情数据中心 | ✅ | 37 适配器，4 市场全覆盖，MAC协议直连 + Fallback 容灾 |
 | 回测引擎 | ✅ | CN/US/HK/CRYPTO 市场规则 |
 | Python gRPC Sidecar | ✅ | 因子/ML/LLM/NLP 独立进程 |
 | AI Agent 系统 | ✅ | ReAct 循环 + 4 LLM + 4 AgentProfile |
@@ -74,10 +74,10 @@
 ┌─────────────────────────┐       ┌──────────────────────────────┐
 │ vue-flow · ECharts       │       │ 工作流引擎 (Kahn + goroutine) │
 │ Pinia (8 stores)         │       │ 交易引擎 (OMS + Paper/Live)  │
-│ Terminal Mode (46 面板)   │◄─IPC─►│ 行情中心 (25 适配器)          │
-│ Workflow Mode (54 节点)   │       │ AI Agent (ReAct + 4 LLM)    │
+│ Terminal Mode (64 面板)   │◄─IPC─►│ 行情中心 (37 适配器)          │
+│ Workflow Mode (93 节点)   │       │ AI Agent (ReAct + 4 LLM)    │
 │ 暗色/亮色主题 + i18n      │       │ 组合 · 风控 · 通知 · 调度    │
-└─────────────────────────┘       │ SQLite WAL (10+ 迁移)          │
+└─────────────────────────┘       │ SQLite WAL (12+ 迁移)          │
                                   │ gRPC ──► Python Sidecar      │
                                   │   (因子/ML/NLP/LLM)          │
                                   └──────────────────────────────┘
@@ -87,16 +87,18 @@
 
 ## 📦 核心功能
 
-### 工作流节点 (54+, 16 类别)
+### 工作流节点 (93, 18 类别)
 
 | 类别 | 数量 | 代表节点 |
 |------|:----:|---------|
 | 数据加载 | 4 | DataLoader, Merge, Filter, Resample |
-| 技术指标 | 5 | SMA, MACD, RSI, EMA, BollingerBands |
+| 技术指标 | 20 | SMA, MACD, RSI, EMA, Bollinger, OBV, MFI, PSY, Aroon, ASI, WR, CCI, ROC, BIAS, Chaikin, Keltner, Donchian, TRIX, MassIndex, Vortex |
+| 缠论 | 5 | ChanlunBi, ChanlunDuan, ChanlunZhongshu, ChanlunMaiDian, ChanlunLeixing |
 | Alpha 因子 | 12 | pct_change, rank, zscore, cross_over, if_else |
 | 信号工程 | 8 | CrossSignal, Threshold, hold_signal, entry/exit |
 | 策略构建 | 1 | StrategyNode (sma_cross/rsi/momentum/custom) |
 | 回测执行 | 1 | BacktestNode (CN/US/HK/CRYPTO) |
+| 滑点模型 | 3 | FixedSlippage, PercentageSlippage, VolumeSlippage |
 | 交易执行 | 4 | PlaceOrder, CancelOrder, Position/OrderQuery |
 | 组合管理 | 3 | PortfolioSummary, RiskMetrics, Allocation |
 | 风控 | 2 | StopLoss, PositionSizer |
@@ -106,9 +108,9 @@
 | 控制流 | 3 | Loop, if_condition, sub_workflow |
 | 调度 | 2 | Schedule, Wait |
 | 研究分析 | 6 | Sentiment, StockResearch, Financials, Peers, Estimates, Insider |
-| 工具 | 2 | HTTPRequest, MathOperation, JSONParse, chart_data |
+| 工具 | 5 | HTTPRequest, MathOperation, JSONParse, chart_data, fqfactor |
 
-### 前端面板 (46 个)
+### 前端面板 (64 个)
 
 | 类别 | 面板 |
 |------|------|
@@ -116,25 +118,38 @@
 | **滚动** (1) | TickerTape |
 | **交易** (8) | OrderEntry, OrderBlotter, Execution, BasketOrder, Position, PositionDetail, BrokerConfig, BrokerStatus |
 | **组合** (3) | PortfolioSummary, Rebalance, RiskDashboard |
-| **研究** (7) | StockResearch, Financials, Sentiment, PeerComparison, AnalystEstimates, InsiderTrading, CongressTrading |
+| **研究** (8) | StockResearch, Financials, Sentiment, PeerComparison, AnalystEstimates, InsiderTrading, CongressTrading, FactorAnalysis |
 | **图表** (5) | EquityCurve, Correlation, Distribution, MonteCarlo, SurfaceChart |
 | **AI/ML** (5) | AIChat, ModelRegistry, PredictionDashboard, AlphaMining, RLMonitor |
 | **回测** (1) | BacktestResult |
-| **因子** (1) | FactorAnalysis |
+| **因子** (1) | FQFactor |
 | **加密** (1) | CryptoOverview |
+| **缠论** (3) | ChanlunBi, ChanlunDuan, ChanlunZhongshu |
 | **资讯** (1) | News |
-| **工具** (2) | Drawing, ActionCenter |
+| **工具** (3) | Drawing, ActionCenter, MACProtocol |
 | **系统** (4) | Schedule, Notify, Settings, SystemMonitor |
 
-### 数据适配器 (25+, 4 市场全覆盖)
+### 数据适配器 (37, 4 市场全覆盖)
 
 | 市场 | 适配器 | 可用性 |
 |------|--------|:------:|
-| **A股** | mootdx(通达信) · sina · eastmoney · tencent · baidu · akshare · tushare · ths · cninfo · iwencai | 10 源容灾 |
+| **A股** | mootdx(通达信) · MAC协议(TCP直连) · sina · eastmoney · tencent · baidu · akshare · tushare · ths · cninfo · iwencai | 11 源容灾 |
 | **港股** | sina · akshare/tencent · yahoo | 3 源 |
 | **美股** | yahoo(v8) · finnhub · polygon · alpaca | 4 源 |
 | **加密** | gateio · binance · okx · coingecko | 4 源 |
-| **专项** | eastmoney_news/global_news/capital/concept/fundflow/signals/report · sina_financials · ths_hot/consensus/northbound | 11 专项 |
+| **专项** | eastmoney_news/global_news/capital/concept/fundflow/signals/report · sina_financials · ths_hot/consensus/northbound · MAC金钻/主力/板块 | 15 专项 |
+
+### 缠论 (Chanlun)
+
+- **5 种缠论节点**：Bi（笔）、Duan（段）、Zhongshu（中枢）、MaiDian（买卖点）、Leixing（走势类型）
+- **3 个缠论面板**：Bi/Duan/Zhongshu 可视化展示
+- 基于 MAC 协议 TCP 直连通达信，实时计算
+
+### MAC 协议适配器
+
+- **TCP 二进制协议**直连通达信行情服务器，零中间件
+- **5 数据通道**：金钻（VIP 实时快照）、主力（大单资金流）、板块（板块指数成分）、通用（行情/ K 线）、Level-2（十档）
+- **3 面板**：MACProtocol、主力资金、板块监测
 
 ### 券商支持
 
@@ -172,9 +187,9 @@ cd QuantFlow
 wails dev
 
 # 完整检查
-go vet ./... && go test ./...                                  # Go: 192 tests
-cd frontend && npx vue-tsc --noEmit && npx vitest run          # 前端: 164 tests
-cd python && python -m pytest tests/ -x -q                      # Python: 120 tests
+go vet ./... && go test ./...                                  # Go: 383 tests
+cd frontend && npx vue-tsc --noEmit && npx vitest run          # 前端: 304 tests
+cd python && python -m pytest tests/ -x -q                      # Python: 145 tests
 ```
 
 ---
@@ -219,7 +234,9 @@ cd python && python -m pytest tests/ -x -q                      # Python: 120 te
 | Phase 9 | 因子原子 + 信号工程 34→54 | ✅ |
 | Phase 10 | ML 引擎 + Alpha 挖掘 + RL + 风险建模 | ✅ |
 | Phase 11 | 测试覆盖 + 数据源补强 + 面板扩展 | ✅ |
-| **Phase 12** | **多市场数据源完善 + 更多券商 + 面板补齐** | 🔜 |
+| **Phase 12** | **easy-tdx 深度集成 + 前端质量重塑 + P0 金融正确性** | ✅ |
+| **Phase 13** | **缠论/指标节点 + MAC协议 + 分时图重放 + 股票名称展示** | ✅ |
+| **Phase 14** | **多市场数据源完善 + 更多券商 + 面板补齐** | 🔜 |
 
 ---
 
@@ -230,10 +247,10 @@ quantflow/
 ├── main.go                       # Wails 入口
 ├── app.go                        # Go 导出函数(前端绑定)
 ├── internal/
-│   ├── workflow/                 # 工作流引擎 + 54 节点
+│   ├── workflow/                 # 工作流引擎 + 93 节点
 │   ├── trading/                  # OMS + 券商适配器
 │   │   └── brokers/              # Alpaca / Binance / Futu
-│   ├── market/                   # 行情中心 + 25 适配器
+│   ├── market/                   # 行情中心 + 37 适配器
 │   │   └── adapters/             # 全部数据源实现
 │   ├── research/                 # 研究分析服务 (9 Service)
 │   ├── ai/                       # AI Agent 系统
@@ -244,7 +261,7 @@ quantflow/
 │   └── python/                   # gRPC 桥接
 ├── frontend/                     # Vue 3 前端
 │   └── src/
-│       ├── terminal/panels/      # 46 面板
+│       ├── terminal/panels/      # 64 面板
 │       ├── workflow/             # vue-flow 画布
 │       ├── stores/               # 8 Pinia 商店
 │       └── lib/                  # i18n · 主题 · stats
@@ -262,7 +279,7 @@ quantflow/
 
 | 市场 | 结算 | 关键规则 | 主要数据源 | 券商 |
 |------|------|----------|-----------|------|
-| A 股 | T+1 | 涨跌停 ±10%/±20%, 印花税 0.05% | mootdx/东财/新浪/腾讯/百度/同花顺 | — |
+| A 股 | T+1 | 涨跌停 ±10%/±20%, 印花税 0.05% | mootdx/MAC协议/东财/新浪/腾讯/百度/同花顺 | — |
 | 港股 | T+2 | 港股通, T+2 交收 | 新浪/腾讯/AkShare/Yahoo | 富途(存根) |
 | 美股 | T+2 | PDT 规则, wash sale | Yahoo/Finnhub/Polygon | Alpaca(实盘) |
 | 加密 | 即时 | 永续资金费率, 强平 | Gate.io/Binance/OKX | Binance(实盘) |

@@ -3,6 +3,7 @@
 import { ref, onMounted, computed } from 'vue'
 import VChart from 'vue-echarts'
 import 'echarts'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -123,6 +124,7 @@ const toneChartOption = computed(() => {
     })
   }
 
+  const theme = useChartTheme()
   return {
     tooltip: {
       trigger: 'axis' as const,
@@ -137,7 +139,7 @@ const toneChartOption = computed(() => {
     legend: {
       data: ['Tone', ...(volumes.length > 0 ? ['Volume'] : [])],
       top: 0,
-      textStyle: { fontSize: 10, color: 'var(--color-text-secondary)' },
+      textStyle: { fontSize: 10, color: theme.axisColor },
     },
     grid: { left: 10, right: 15, top: 30, bottom: 10 },
     xAxis: {

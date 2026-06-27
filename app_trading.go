@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"quantflow/internal/portfolio"
 	"quantflow/internal/trading"
@@ -13,6 +14,18 @@ func (a *App) PlaceOrder(symbol, side, orderType string, qty, price float64) (*t
 	if a.oms == nil {
 		return nil, fmt.Errorf("OMS not initialized")
 	}
+
+	// Configure daily price limit from cached last close.
+	if a.lastClose != nil {
+		if prevClose, ok := a.lastClose[symbol]; ok && prevClose > 0 {
+			ratio := 0.10
+			if strings.HasPrefix(symbol, "300") || strings.HasPrefix(symbol, "301") || strings.HasPrefix(symbol, "688") {
+				ratio = 0.20
+			}
+			a.oms.SetPriceLimit(symbol, prevClose, ratio)
+		}
+	}
+
 	return a.oms.PlaceOrder(symbol, trading.OrderSide(side), trading.OrderType(orderType), qty, price)
 }
 

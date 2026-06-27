@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VChart from 'vue-echarts'
 import 'echarts'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 const { t } = useI18n()
 
@@ -93,6 +94,7 @@ const chartOption = computed(() => {
   const solarName = `${t('satellite.solar_radiation')} (${t('satellite.energy_kwh')})`
   const windName = `风速 (${t('satellite.wind_speed')})`
 
+  const theme = useChartTheme()
   return {
     tooltip: {
       trigger: 'axis' as const,
@@ -101,7 +103,7 @@ const chartOption = computed(() => {
     legend: {
       data: [solarName, windName],
       top: 0,
-      textStyle: { fontSize: 11, color: 'var(--color-text-secondary)' },
+      textStyle: { fontSize: 11, color: theme.axisColor },
     },
     grid: { left: 50, right: 50, top: 40, bottom: 40 },
     xAxis: {

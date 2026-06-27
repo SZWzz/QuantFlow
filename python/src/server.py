@@ -10,6 +10,11 @@ The Go backend connects via gRPC on localhost:<port>.
 Communication is unauthenticated (localhost-only).
 """
 
+import os
+# Enable gRPC fork support to suppress "skipping fork() handlers" warnings
+# when subprocess is spawned from within a gRPC server process.
+os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "1"
+
 import asyncio
 import logging
 import time
@@ -50,9 +55,14 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
 
     async def Ping(self, request, context):
         uptime = int(time.time() - self.start_time)
+        try:
+            from importlib.metadata import version as _pkg_version
+            _ver = _pkg_version("quantflow-python")
+        except Exception:
+            _ver = "0.2.2"
         return health_pb2.PingResponse(
             healthy=True,
-            version="2026.6.26",
+            version=_ver,
             uptime_seconds=uptime,
         )
 

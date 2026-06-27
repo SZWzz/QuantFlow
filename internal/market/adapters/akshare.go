@@ -71,7 +71,7 @@ func (a *AKShareAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 	return parseTencentQuote(symbol, string(body))
 }
 
-func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
+func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, fqfactor string, start, end int64) ([]market.OHLCVBar, error) {
 	code := toTencentCode(symbol)
 	// Determine period: day/week/month
 	period := "day"
@@ -81,8 +81,22 @@ func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 	case "1mo", "1M", "month":
 		period = "month"
 	}
+
+	// Map fqfactor to Tencent adjustment param:
+	//   qfq → 前复权 (forward-adjusted)
+	//   hfq → 后复权 (backward-adjusted)
+	//   ""  → 不复权 (raw prices)
+	// Default to hfq for backtesting to avoid look-ahead bias.
+	adjust := "hfq"
+	switch strings.ToLower(fqfactor) {
+	case "qfq":
+		adjust = "qfq"
+	case "":
+		adjust = ""
+	}
+
 	// Tencent K-line API via proxy.finance.qq.com (works for both CN and HK from China).
-	url := fmt.Sprintf("https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newkline/newkline?param=%s,%s,,,320", code, period)
+	url := fmt.Sprintf("https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newkline/newkline?param=%s,%s,,,320,%s", code, period, adjust)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

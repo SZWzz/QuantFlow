@@ -5,11 +5,11 @@ import { use } from 'echarts/core'
 import { CandlestickChart, BarChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import * as echarts from 'echarts'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { marketUpColor, marketDownColor, marketChangeColor } from '@/lib/composables/useMarketColors'
 import { useStockName } from '@/lib/composables/useStockName'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
 
@@ -20,7 +20,7 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 // Shared minute data cache from parent DockView
 const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new Map())
 
-const hasEcharts = computed(() => !!(echarts && VChart))
+const hasEcharts = computed(() => !!VChart)
 
 // Color scheme: per-market (CN 红涨绿跌, others 绿涨红跌)
 function upColor() { return marketUpColor(symbol.value) }
@@ -298,6 +298,7 @@ const option = computed(() => {
     return { value: d[5], itemStyle: { color: close >= open ? upColor() : downColor() } }
   })
 
+  const theme = useChartTheme()
   return {
     backgroundColor: 'transparent',
     grid: [
@@ -305,12 +306,12 @@ const option = computed(() => {
       { left: 60, right: 10, top: '78%', height: '15%' },
     ],
     xAxis: [
-      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: 'var(--color-border-strong)' } } },
-      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: 'var(--color-border-strong)' } } },
+      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } } },
+      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } } },
     ],
     yAxis: [
-      { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
-      { type: 'value', gridIndex: 1, axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 }, splitLine: { show: false } },
+      { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+      { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } },
     ],
     series: [
       {
@@ -337,6 +338,7 @@ const minuteChartOption = computed(() => {
   const volumes = minuteTicks.value.map(t => t.volume)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose.value
   const lineColor = isUp ? upColor() : downColor()
+  const theme = useChartTheme()
 
   return {
     animation: false,
@@ -352,26 +354,26 @@ const minuteChartOption = computed(() => {
       {
         type: 'category', data: times, gridIndex: 0,
         axisLabel: { show: false },
-        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+        axisLine: { lineStyle: { color: theme.splitColor } },
         axisTick: { show: false },
       },
       {
         type: 'category', data: times, gridIndex: 1,
-        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, interval: 30 },
-        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+        axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 },
+        axisLine: { lineStyle: { color: theme.splitColor } },
       },
     ],
     yAxis: [
       {
         type: 'value', gridIndex: 0, position: 'left',
-        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+        axisLabel: { color: theme.axisColor, fontSize: 10 },
+        splitLine: { lineStyle: { color: theme.bgColor } },
         min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
         max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
       },
       {
         type: 'value', gridIndex: 1, position: 'left',
-        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
+        axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
         splitLine: { show: false },
       },
     ],
@@ -392,8 +394,8 @@ const minuteChartOption = computed(() => {
         },
         markLine: prevClose.value > 0 ? {
           silent: true, symbol: 'none',
-          lineStyle: { color: 'var(--color-text-tertiary)', type: 'dashed', width: 1 },
-          data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: 'var(--color-text-tertiary)', fontSize: 10 } }],
+          lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 },
+          data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }],
         } : undefined,
       },
       {
@@ -405,7 +407,7 @@ const minuteChartOption = computed(() => {
       {
         type: 'bar', name: '成交量', data: volumes,
         xAxisIndex: 1, yAxisIndex: 1,
-        itemStyle: { color: 'var(--color-border-strong)' },
+        itemStyle: { color: theme.splitColor },
         barWidth: 1,
       },
     ],
@@ -422,6 +424,7 @@ const multiDayChartOption = computed(() => {
   const volumes = ticks.map(t => t.volume)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= day.prevClose
   const lineColor = isUp ? upColor() : downColor()
+  const theme = useChartTheme()
 
   return {
     animation: false,
@@ -436,20 +439,20 @@ const multiDayChartOption = computed(() => {
       {
         type: 'category', data: times, gridIndex: 0,
         axisLabel: { show: false },
-        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+        axisLine: { lineStyle: { color: theme.splitColor } },
         axisTick: { show: false },
       },
       {
         type: 'category', data: times, gridIndex: 1,
-        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, interval: 30 },
-        axisLine: { lineStyle: { color: 'var(--color-border-strong)' } },
+        axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 },
+        axisLine: { lineStyle: { color: theme.splitColor } },
       },
     ],
     yAxis: [
       {
         type: 'value', gridIndex: 0, position: 'left',
-        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'var(--color-bg-elevated)' } },
+        axisLabel: { color: theme.axisColor, fontSize: 10 },
+        splitLine: { lineStyle: { color: theme.bgColor } },
         min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
         max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
       },
@@ -476,8 +479,8 @@ const multiDayChartOption = computed(() => {
         },
         markLine: day.prevClose > 0 ? {
           silent: true, symbol: 'none',
-          lineStyle: { color: 'var(--color-text-tertiary)', type: 'dashed', width: 1 },
-          data: [{ yAxis: day.prevClose, label: { formatter: `昨收 ${day.prevClose.toFixed(2)}`, color: 'var(--color-text-tertiary)', fontSize: 10 } }],
+          lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 },
+          data: [{ yAxis: day.prevClose, label: { formatter: `昨收 ${day.prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }],
         } : undefined,
       },
       {
@@ -489,7 +492,7 @@ const multiDayChartOption = computed(() => {
       {
         type: 'bar', name: '成交量', data: volumes,
         xAxisIndex: 1, yAxisIndex: 1,
-        itemStyle: { color: 'var(--color-border-strong)' },
+        itemStyle: { color: theme.splitColor },
         barWidth: 1,
       },
     ],
