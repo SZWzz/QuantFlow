@@ -283,10 +283,7 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
 
         all_ticks.extend(ticks_for_symbol)
 
-    if not all_ticks:
-        raise ValueError(f"mootdx: no minute data for {symbols}")
-
-    return all_ticks
+    return all_ticks  # empty on weekends/non-trading days — normal
 
 
 def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
