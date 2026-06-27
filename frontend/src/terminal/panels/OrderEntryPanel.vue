@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useStockName } from '@/lib/composables/useStockName'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const symbol = ref('AAPL')
+const { name } = useStockName(symbol)
 const side = ref<'buy' | 'sell'>('buy')
 const orderType = ref<'market' | 'limit' | 'stop'>('limit')
 const quantity = ref(100)
@@ -63,7 +65,9 @@ function placeOrder() {
   <div class="order-panel">
     <div class="order-form">
       <div class="form-group">
-        <label>{{ $t('quote.symbol') }}</label>
+        <label>{{ $t('quote.symbol') }}
+          <span v-if="name" class="quote-status">{{ name }}</span>
+        </label>
         <input v-model="symbol" type="text" class="form-input" />
       </div>
 

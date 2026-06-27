@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useResearchStore } from '@/stores/research'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { useStockName } from '@/lib/composables/useStockName'
 
 const { t } = useI18n()
 
@@ -23,6 +24,7 @@ const store = useResearchStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
 const activeTab = ref('overview')
 
 const tabs = [
@@ -54,7 +56,7 @@ function refresh() {
 <template>
   <div class="research-panel">
     <div class="panel-header">
-      <h3>{{ $t('research.title') }}</h3>
+      <h3>{{ $t('research.title') }} &mdash; {{ symbol }} {{ name }}</h3>
       <div class="header-controls">
         <input
           class="symbol-input"

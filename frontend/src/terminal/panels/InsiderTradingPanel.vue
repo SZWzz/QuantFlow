@@ -2,12 +2,14 @@
 import { ref, watch, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useResearchStore } from '@/stores/research'
+import { useStockName } from '@/lib/composables/useStockName'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
 
 const trades = computed(() => store.research?.insider ?? [])
 
@@ -52,7 +54,7 @@ function handleSymbolSubmit(e: Event) {
 <template>
   <div class="panel">
     <div class="panel-header">
-      <h3>{{ $t('research.insider') }} &mdash; {{ symbol.toUpperCase() }}</h3>
+      <h3>{{ $t('research.insider') }} &mdash; {{ symbol.toUpperCase() }} {{ name }}</h3>
       <div class="header-controls">
         <input
           class="symbol-input"

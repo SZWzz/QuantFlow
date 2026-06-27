@@ -82,6 +82,7 @@ const tradeList = computed(() => {
 
   const trades: Array<{
     symbol: string
+    name: string
     market: string
     currentWeight: number
     targetWeight: number
@@ -106,6 +107,7 @@ const tradeList = computed(() => {
 
     trades.push({
       symbol: rep ? rep.symbol : t.name,
+      name: rep ? (rep.name || '') : '',
       market: t.name,
       currentWeight: Math.round(currentWeight * 10) / 10,
       targetWeight: Math.round(t.targetWeight * 10) / 10,
@@ -311,7 +313,7 @@ onMounted(async () => {
           </thead>
           <tbody>
             <tr v-for="(trade, i) in tradeList" :key="i">
-              <td class="trade-symbol">{{ trade.symbol }}</td>
+              <td class="trade-symbol">{{ trade.symbol }} - {{ trade.name }}</td>
               <td>
                 <span class="market-badge" :style="{ color: marketColors[trade.market] }">
                   {{ trade.market }}

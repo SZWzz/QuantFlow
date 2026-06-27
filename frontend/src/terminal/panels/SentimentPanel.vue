@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { useResearchStore } from '@/stores/research'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { useStockName } from '@/lib/composables/useStockName'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
@@ -9,6 +10,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
 
 const scoreColor = computed(() => {
   const s = store.sentiment?.score ?? 0
@@ -41,7 +43,7 @@ function handleSymbolSubmit(e: Event) {
 <template>
   <div class="sentiment-panel">
     <div class="panel-header">
-      <h3>{{ $t('research.sentiment') }}</h3>
+      <h3>{{ $t('research.sentiment') }} &mdash; {{ symbol.toUpperCase() }} {{ name }}</h3>
       <div class="header-controls">
         <input
           class="symbol-input"

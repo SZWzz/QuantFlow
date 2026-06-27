@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
+import { useStockName } from '@/lib/composables/useStockName'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -9,6 +10,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
 const market = ref('')
 const currency = ref('')
 const loading = ref(false)
@@ -67,7 +69,7 @@ onMounted(fetchPosition)
     <div v-if="loading" class="loading-text">{{ $t('common.loading') }}</div>
     <template v-else-if="position">
       <div class="header">
-        <span class="symbol-name">{{ symbol }}</span>
+        <span class="symbol-name">{{ symbol }} {{ name }}</span>
         <span class="market-badge">{{ market }}</span>
         <span class="currency">{{ currency }}</span>
       </div>

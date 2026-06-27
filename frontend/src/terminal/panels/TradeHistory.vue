@@ -9,23 +9,23 @@ const store = usePortfolioStore()
 
 // -- Raw Go types (from Wails IPC) --
 interface GoTrade {
-  ID: string; Symbol: string; Side: string; Quantity: number
+  ID: string; Symbol: string; Name?: string; Side: string; Quantity: number
   Price: number; Timestamp: string; PnL: number
 }
 
 interface GoOrder {
-  ID: string; Symbol: string; Side: string; Quantity: number
+  ID: string; Symbol: string; Name?: string; Side: string; Quantity: number
   Price: number; Status: string; PlacedAt: string
 }
 
 // -- Display types (panel-native) --
 interface Trade {
-  date: string; symbol: string; side: 'buy' | 'sell'
+  date: string; symbol: string; name?: string; side: 'buy' | 'sell'
   qty: number; price: number; total: number; orderId: string
 }
 
 interface Order {
-  placed: string; symbol: string; side: 'buy' | 'sell'
+  placed: string; symbol: string; name?: string; side: 'buy' | 'sell'
   type: string; qty: number; filled: number
   price: number; status: 'filled' | 'pending' | 'cancelled' | 'rejected'
 }
@@ -38,6 +38,7 @@ function adaptTrade(t: GoTrade): Trade {
   return {
     date: t.Timestamp || '--',
     symbol: t.Symbol || '--',
+    name: t.Name || '',
     side,
     qty: t.Quantity ?? 0,
     price: t.Price ?? 0,
@@ -54,6 +55,7 @@ function adaptOrder(o: GoOrder): Order {
   return {
     placed: o.PlacedAt || '--',
     symbol: o.Symbol || '--',
+    name: o.Name || '',
     side,
     type: '--',
     qty: o.Quantity ?? 0,
@@ -186,7 +188,7 @@ function exportData() {
         <tbody>
           <tr v-for="t in filtered成交" :key="t.orderId">
             <td class="muted">{{ t.date }}</td>
-            <td class="symbol">{{ t.symbol }}</td>
+            <td class="symbol">{{ t.symbol }} - {{ t.name || '' }}</td>
             <td :class="t.side === 'buy' ? 'up' : 'down'">{{ t.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}</td>
             <td class="num">{{ t.qty.toLocaleString() }}</td>
             <td class="num">{{ fmt(t.price) }}</td>
@@ -217,7 +219,7 @@ function exportData() {
         <tbody>
           <tr v-for="o in filtered委托" :key="`${o.symbol}-${o.placed}`">
             <td class="muted">{{ o.placed }}</td>
-            <td class="symbol">{{ o.symbol }}</td>
+            <td class="symbol">{{ o.symbol }} - {{ o.name || '' }}</td>
             <td :class="o.side === 'buy' ? 'up' : 'down'">{{ o.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}</td>
             <td>{{ o.type }}</td>
             <td class="num">{{ o.qty }}<span class="muted">/{{ o.filled }}</span></td>

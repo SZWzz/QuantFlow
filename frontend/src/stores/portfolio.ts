@@ -9,13 +9,14 @@ export interface Allocation {
   by_market: Record<string, number>; by_sector: Record<string, number>; by_currency: Record<string, number>
 }
 export interface PositionDetail {
-  symbol: string; quantity: number; avg_price: number; market_price: number
+  symbol: string; name?: string; quantity: number; avg_price: number; market_price: number
   pnl: number; pnl_pct: number; market: string; currency: string; cost_basis: number; alloc_pct: number
 }
 
 export interface Order {
   order_id: string
   symbol: string
+  name?: string
   side: 'buy' | 'sell'
   type: 'market' | 'limit' | 'stop'
   quantity: number
@@ -30,6 +31,7 @@ export interface Trade {
   trade_id: string
   order_id: string
   symbol: string
+  name?: string
   side: 'buy' | 'sell'
   price: number
   quantity: number

@@ -2,12 +2,14 @@
 import { ref, watch, computed } from 'vue'
 import { useResearchStore } from '@/stores/research'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { useStockName } from '@/lib/composables/useStockName'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
 
 // Subscribe to symbol context via link group
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
@@ -45,7 +47,7 @@ function formatPct(v: number | undefined | null): string {
 <template>
   <div class="panel">
     <div class="panel-header">
-      <h3>{{ $t('research.financials') }} &mdash; {{ symbol.toUpperCase() }}</h3>
+      <h3>{{ $t('research.financials') }} &mdash; {{ symbol.toUpperCase() }} {{ name }}</h3>
       <div class="header-controls">
         <input class="symbol-input" v-model="symbol" :placeholder="$t('research.hint_enter_symbol')" @keyup.enter="refresh" />
         <button class="refresh-btn" @click="refresh" :disabled="store.loading">{{ store.loading ? '...' : '⟳' }}</button>

@@ -3,6 +3,7 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSessionStore } from '@/stores/session'
 import { getAllPanelMeta, type PanelMeta } from '@/terminal/panels/registry'
+import { getIcon, PANEL_ICONS } from '@/lib/icons'
 
 const props = defineProps<{
   modelValue: boolean
@@ -26,21 +27,22 @@ interface CommandItem {
   label: string
   description: string
   category: string
+  icon: string
   action: () => void
 }
 
 // Dynamic panel list from registry
 const allPanels = getAllPanelMeta().filter(p => p.id !== 'welcome')
 
-const commands: { id: string; label: string; description: string; shortcut?: string }[] = [
-  { id: 'toggle-mode', label: 'Toggle Workflow/Terminal', description: '切换工作流/终端模式', shortcut: 'Ctrl+W' },
-  { id: 'toggle-focus', label: 'Toggle Focus Mode', description: '专注模式', shortcut: 'Ctrl+Shift+F' },
-  { id: 'clear-history', label: 'Clear Command History', description: '清除命令历史' },
+const commands: { id: string; label: string; description: string; shortcut?: string; icon: string }[] = [
+  { id: 'toggle-mode', label: 'Toggle Workflow/Terminal', description: '切换工作流/终端模式', shortcut: 'Ctrl+W', icon: getIcon('workflow') },
+  { id: 'toggle-focus', label: 'Toggle Focus Mode', description: '专注模式', shortcut: 'Ctrl+Shift+F', icon: getIcon('terminal') },
+  { id: 'clear-history', label: 'Clear Command History', description: '清除命令历史', icon: getIcon('delete') },
 ]
 
-const navigations: { id: string; label: string; description: string; path: string }[] = [
-  { id: 'nav-workflow', label: '/workflow', description: '切换到 Workflow Mode', path: '/workflow' },
-  { id: 'nav-terminal', label: '/terminal', description: '切换到 Terminal Mode', path: '/' },
+const navigations: { id: string; label: string; description: string; path: string; icon: string }[] = [
+  { id: 'nav-workflow', label: '/workflow', description: '切换到 Workflow Mode', path: '/workflow', icon: getIcon('workflow') },
+  { id: 'nav-terminal', label: '/terminal', description: '切换到 Terminal Mode', path: '/', icon: getIcon('terminal') },
 ]
 
 const results = computed<CommandItem[]>(() => {
@@ -51,6 +53,7 @@ const results = computed<CommandItem[]>(() => {
       label: cmd,
       description: 'Recent',
       category: 'Recent',
+      icon: getIcon('terminal'),
       action: () => {
         query.value = cmd
         selectedIndex.value = 0
@@ -63,11 +66,13 @@ const results = computed<CommandItem[]>(() => {
   // Match panels from registry
   for (const p of allPanels) {
     if (p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.id.includes(q)) {
+      const iconName = PANEL_ICONS[p.id]
       items.push({
         id: `panel-${p.id}`,
         label: p.label,
         description: p.description,
         category: p.category,
+        icon: iconName ? getIcon(iconName) : getIcon('terminal'),
         action: () => {
           emit('open-panel', p.id)
           close()
@@ -84,6 +89,7 @@ const results = computed<CommandItem[]>(() => {
         label: c.label,
         description: c.shortcut ? `${c.description} (${c.shortcut})` : c.description,
         category: 'Commands',
+        icon: c.icon,
         action: () => executeCommand(c.id),
       })
     }
@@ -97,6 +103,7 @@ const results = computed<CommandItem[]>(() => {
         label: n.label,
         description: n.description,
         category: 'Navigation',
+        icon: n.icon,
         action: () => {
           emit('navigate', n.path)
           close()
@@ -112,6 +119,7 @@ const results = computed<CommandItem[]>(() => {
       label: q.toUpperCase(),
       description: '快速查看行情',
       category: 'Quick',
+      icon: getIcon('quote'),
       action: () => {
         emit('open-panel', 'quote-detail', { symbol: q.toUpperCase() })
         close()
@@ -194,7 +202,7 @@ onUnmounted(() => {
     <div v-if="modelValue" class="command-bar-overlay" @click.self="close">
       <div class="command-bar" @keydown="onKeydown">
         <div class="search-input-wrapper">
-          <span class="search-icon">></span>
+          <span class="search-icon" v-html="getIcon('search')" />
           <input
             ref="inputRef"
             v-model="query"
@@ -203,7 +211,7 @@ onUnmounted(() => {
             :placeholder="$t('common.search') + '...'"
             autocomplete="off"
           />
-          <span class="shortcut-hint">Esc {{ $t('common.close') }}</span>
+          <kbd class="shortcut-hint">Esc</kbd>
         </div>
         <div v-if="results.length > 0" class="results-list">
           <template v-for="(item, idx) in results" :key="item.id">
@@ -219,13 +227,21 @@ onUnmounted(() => {
               @click="item.action()"
               @mouseenter="selectedIndex = idx"
             >
+              <span class="item-icon" v-html="item.icon" />
               <span class="item-label">{{ item.label }}</span>
               <span class="item-desc">{{ item.description }}</span>
             </div>
           </template>
         </div>
         <div v-else-if="query" class="no-results">
+          <span class="no-results-icon" v-html="getIcon('search')" />
           {{ $t('common.no_data') }}
+        </div>
+        <div class="command-footer">
+          <div class="footer-hints">
+            <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+            <span class="hint"><kbd>Enter</kbd> Select</span>
+          </div>
         </div>
       </div>
     </div>
@@ -236,39 +252,60 @@ onUnmounted(() => {
 .command-bar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  padding-top: 15vh;
+  padding-top: 12vh;
   z-index: 9999;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeInOverlay 0.2s ease;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .command-bar {
-  width: 560px;
-  max-height: 480px;
-  background: #1c2333;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  width: 600px;
+  max-height: 520px;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .search-input-wrapper {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--color-border);
-  gap: 10px;
+  gap: 12px;
 }
 
 .search-icon {
-  color: #e94560;
-  font-weight: bold;
-  font-size: 16px;
-  font-family: monospace;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.search-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
 }
 
 .search-input {
@@ -276,9 +313,10 @@ onUnmounted(() => {
   background: transparent;
   border: none;
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
   font-family: inherit;
+  padding: 0;
 }
 
 .search-input::placeholder { color: var(--color-text-tertiary); }
@@ -286,39 +324,126 @@ onUnmounted(() => {
 .shortcut-hint {
   color: var(--color-text-tertiary);
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 6px;
+  font-family: inherit;
+  background: var(--color-bg-subtle);
+  flex-shrink: 0;
 }
 
-.results-list { overflow-y: auto; flex: 1; }
+.results-list { overflow-y: auto; flex: 1; padding: 6px; }
 
 .category-header {
-  padding: 6px 16px 2px;
+  padding: 8px 12px 4px;
   font-size: 10px;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 600;
 }
 
 .result-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  gap: 10px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-md);
+  margin: 1px 0;
 }
 
-.result-item.selected { background: rgba(88, 166, 255, 0.15); }
+.result-item.selected {
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-border-glow);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
 
-.item-label { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
-.item-desc { font-size: 11px; color: var(--color-text-tertiary); }
+.result-item:hover:not(.selected) {
+  background: var(--color-bg-hover);
+}
+
+.item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.item-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.result-item.selected .item-icon {
+  color: var(--color-accent);
+}
+
+.item-label { font-size: 13px; font-weight: 500; color: var(--color-text-primary); flex-shrink: 0; }
+.item-desc { font-size: 12px; color: var(--color-text-tertiary); margin-left: auto; }
+
+.result-item.selected .item-label { color: var(--color-accent); }
 
 .no-results {
-  padding: 24px 16px;
-  text-align: center;
+  padding: 32px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   color: var(--color-text-tertiary);
   font-size: 13px;
+  flex-direction: column;
+}
+
+.no-results-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  opacity: 0.3;
+}
+
+.no-results-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.command-footer {
+  border-top: 1px solid var(--color-border);
+  padding: 10px 16px;
+  background: var(--color-bg-subtle);
+}
+
+.footer-hints {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: inherit;
+  min-width: 20px;
+  text-align: center;
 }
 </style>

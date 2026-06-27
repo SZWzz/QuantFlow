@@ -8,6 +8,7 @@ import DockView from './DockView/DockView.vue'
 import PushPinBar from './PushPinBar.vue'
 import StatusBar from './StatusBar.vue'
 import SymbolBar from './SymbolBar.vue'
+import { getIcon } from '@/lib/icons'
 
 const session = useSessionStore()
 const terminal = useTerminalStore()
@@ -32,26 +33,33 @@ function onSwitchToWorkflow() {
   <div class="terminal-mode">
     <header class="terminal-header">
       <div class="header-left">
-        <span class="logo">QF</span>
-        <span class="title">{{ $t('misc.welcome') }}</span>
+        <div class="logo">
+          <span class="logo-icon" v-html="getIcon('terminal')" />
+        </div>
+        <span class="title">QuantFlow</span>
       </div>
       <div class="header-center">
-        <span class="breadcrumb">{{ $t('misc.terminal_mode') }}</span>
-        <div class="header-market">
-          <button v-for="m in (['CN', 'HK', 'US'] as const)" :key="m"
+        <div class="market-tabs">
+          <button
+            v-for="m in (['CN', 'HK', 'US'] as const)"
+            :key="m"
             :class="['mkt-btn', { active: session.ui.activeMarket === m }]"
             @click="session.setActiveMarket(m)"
-          >{{ m }}</button>
+          >
+            {{ m }}
+          </button>
         </div>
       </div>
       <div class="header-actions">
-        <button class="header-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
-          ⌘
+        <button class="header-btn action-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
+          <span class="btn-icon" v-html="getIcon('command')" />
+          <span class="btn-key">K</span>
         </button>
         <button class="header-btn" @click="terminal.openPanel('settings')" :title="$t('settings.title')">
-          ⚙️
+          <span class="btn-icon" v-html="getIcon('settings')" />
         </button>
         <button class="mode-switch" @click="onSwitchToWorkflow">
+          <span class="mode-icon" v-html="getIcon('workflow')" />
           Workflow
         </button>
       </div>
@@ -88,11 +96,24 @@ function onSwitchToWorkflow() {
   justify-content: space-between;
   align-items: center;
   padding: 0 var(--space-lg);
-  background: var(--color-bg-panel);
+  background: var(--gradient-header);
   border-bottom: 1px solid var(--color-border);
-  min-height: 40px;
+  min-height: 42px;
   -webkit-app-region: drag;
   user-select: none;
+  position: relative;
+  z-index: 10;
+}
+
+.terminal-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
+  opacity: 0.3;
 }
 
 .header-left {
@@ -105,54 +126,79 @@ function onSwitchToWorkflow() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: var(--color-brand);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  font-weight: 800;
-  font-size: var(--font-sm);
-  letter-spacing: -0.5px;
+  width: 26px;
+  height: 26px;
+  background: var(--gradient-accent);
+  border: 1px solid var(--color-border-glow);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--color-accent);
+}
+
+.logo-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
 }
 
 .title {
-  font-weight: 600;
+  font-weight: 700;
   font-size: var(--font-base);
   color: var(--color-text-primary);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
 }
 
 .header-center {
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  flex: 1;
+  justify-content: center;
 }
 
-.breadcrumb {
-  font-size: var(--font-xs);
-  color: var(--color-text-tertiary);
-}
-
-.header-market {
+.market-tabs {
   display: flex;
   gap: 2px;
   align-items: center;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px;
 }
+
 .mkt-btn {
-  padding: 2px 8px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 3px;
+  padding: 3px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
   font-size: 11px;
+  font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
+  transition: all var(--transition-fast);
+  letter-spacing: 0.5px;
 }
+
+.mkt-btn:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+}
+
 .mkt-btn.active {
-  color: #60a5fa;
-  border-color: #3b82f6;
-  background: rgba(59,130,246,0.1);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  box-shadow: 0 0 8px var(--color-accent-glow);
 }
+
 .header-actions {
   display: flex;
   gap: var(--space-sm);
@@ -164,38 +210,88 @@ function onSwitchToWorkflow() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  gap: 4px;
+  padding: 5px;
   border: 1px solid var(--color-border);
-  background: transparent;
+  background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 14px;
-  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-family: inherit;
   transition: all var(--transition-fast);
+  min-width: 30px;
+  height: 30px;
 }
 
 .header-btn:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--color-accent-soft);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.btn-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.btn-key {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  padding: 1px 4px;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .mode-switch {
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
   border: 1px solid var(--color-brand);
-  background: transparent;
+  background: var(--color-brand-soft);
   color: var(--color-brand);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--font-xs);
-  font-weight: 500;
+  font-weight: 600;
   transition: all var(--transition-fast);
+  height: 30px;
 }
 
 .mode-switch:hover {
-  background: var(--color-brand-soft);
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 10px var(--color-brand-glow);
+}
+
+.mode-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+}
+
+.mode-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.mode-switch:hover .mode-icon {
+  color: currentColor;
 }
 
 /* ── Content ─────────────────────────────────────────────────── */

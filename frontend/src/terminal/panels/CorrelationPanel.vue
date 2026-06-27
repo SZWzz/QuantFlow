@@ -12,6 +12,7 @@ import {
 import { CanvasRenderer } from 'echarts/renderers'
 import { pearsonMatrix } from '@/lib/stats'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { useStockName } from '@/lib/composables/useStockName'
 
 use([HeatmapChart, TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, CanvasRenderer])
 
@@ -31,6 +32,9 @@ const lookback = ref(props.params?.lookback ?? 60)
 const matrix = ref<number[][] | null>(null)
 const symbols = ref<string[]>([])
 const hasECharts = ref(false)
+
+const firstSymbol = computed(() => symbols.value.length > 0 ? symbols.value[0] : undefined)
+const { name } = useStockName(firstSymbol)
 
 const lookbackOptions = [30, 60, 90, 252]
 
@@ -178,7 +182,7 @@ onMounted(() => {
 <template>
   <div class="correlation-panel">
     <div class="panel-header">
-      <h3>{{ $t('misc.correlation') }}</h3>
+      <h3>{{ $t('misc.correlation') }}{{ name ? ` — ${firstSymbol} ${name}` : '' }}</h3>
     </div>
 
     <div class="controls-row">

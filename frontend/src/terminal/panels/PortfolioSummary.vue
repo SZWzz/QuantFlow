@@ -257,6 +257,7 @@ function positionAllocPct(pos: PositionDetail): string {
           <thead>
             <tr>
               <th>{{ t('portfolio.symbol') }}</th>
+              <th>{{ t('common.name') }}</th>
               <th>{{ t('portfolio.market') }}</th>
               <th class="num">{{ t('portfolio.quantity') }}</th>
               <th class="num">{{ t('portfolio.avg_price') }}</th>
@@ -274,6 +275,7 @@ function positionAllocPct(pos: PositionDetail): string {
               @click="onPositionClick(pos)"
             >
               <td class="pos-symbol">{{ pos.symbol }}</td>
+              <td class="pos-name">{{ pos.name || '' }}</td>
               <td><span :class="marketClass(pos.market)">{{ pos.market }}</span></td>
               <td class="num">{{ pos.quantity }}</td>
               <td class="num">{{ pos.avg_price.toFixed(2) }}</td>
@@ -287,7 +289,7 @@ function positionAllocPct(pos: PositionDetail): string {
               <td class="num">{{ positionAllocPct(pos) }}%</td>
             </tr>
             <tr v-if="positions.length === 0">
-              <td colspan="8" class="empty-state-cell">--</td>
+              <td colspan="9" class="empty-state-cell">--</td>
             </tr>
           </tbody>
         </table>
@@ -452,6 +454,11 @@ function positionAllocPct(pos: PositionDetail): string {
   font-weight: 600;
   font-size: var(--font-sm);
   color: var(--text);
+}
+
+.pos-name {
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .empty-state-cell {

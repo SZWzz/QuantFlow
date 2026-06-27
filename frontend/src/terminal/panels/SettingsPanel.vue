@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useThemeStore } from '@/lib/theme'
 import { useSettingsStore } from '@/stores/settings'
 import { setLocale } from '@/lib/i18n'
+import { getIcon } from '@/lib/icons'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -16,19 +17,20 @@ const activeSection = ref('appearance')
 interface Section {
   id: string
   label: string
+  icon: string
 }
 
 const sections: Section[] = [
-  { id: 'appearance', label: 'appearance' },
-  { id: 'language', label: 'language' },
-  { id: 'notifications', label: 'notifications' },
-  { id: 'data', label: 'data' },
-  { id: 'api', label: 'api' },
-  { id: 'trading', label: 'trading' },
-  { id: 'display', label: 'display' },
-  { id: 'shortcuts', label: 'shortcuts' },
-  { id: 'storage', label: 'storage' },
-  { id: 'about', label: 'about' },
+  { id: 'appearance', label: 'appearance', icon: getIcon('config') },
+  { id: 'language', label: 'language', icon: getIcon('terminal') },
+  { id: 'notifications', label: 'notifications', icon: getIcon('notify') },
+  { id: 'data', label: 'data', icon: getIcon('quote') },
+  { id: 'api', label: 'api', icon: getIcon('broker') },
+  { id: 'trading', label: 'trading', icon: getIcon('order') },
+  { id: 'display', label: 'display', icon: getIcon('market') },
+  { id: 'shortcuts', label: 'shortcuts', icon: getIcon('command') },
+  { id: 'storage', label: 'storage', icon: getIcon('portfolio') },
+  { id: 'about', label: 'about', icon: getIcon('info') },
 ]
 
 const dataSources = ['auto', 'yahoo', 'eastmoney', 'binance']
@@ -67,14 +69,18 @@ function onExportData() {
         :class="['nav-btn', { active: activeSection === sec.id }]"
         @click="activeSection = sec.id"
       >
-        {{ t(`settings.${sec.label}`) }}
+        <span class="nav-icon" v-html="sec.icon" />
+        <span class="nav-label">{{ t(`settings.${sec.label}`) }}</span>
       </button>
     </nav>
 
     <div class="settings-content">
       <!-- Appearance -->
       <section v-if="activeSection === 'appearance'" class="section">
-        <h3 class="section-title">{{ t('settings.appearance') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('config')" />
+          {{ t('settings.appearance') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.theme') }}</label>
@@ -83,12 +89,14 @@ function onExportData() {
               :class="['option-btn', { active: themeStore.theme === 'dark' }]"
               @click="themeStore.setTheme('dark')"
             >
+              <span class="opt-icon" v-html="getIcon('terminal')" />
               {{ t('settings.dark') }}
             </button>
             <button
               :class="['option-btn', { active: themeStore.theme === 'light' }]"
               @click="themeStore.setTheme('light')"
             >
+              <span class="opt-icon" v-html="getIcon('market')" />
               {{ t('settings.light') }}
             </button>
           </div>
@@ -121,7 +129,10 @@ function onExportData() {
 
       <!-- Language -->
       <section v-if="activeSection === 'language'" class="section">
-        <h3 class="section-title">{{ t('settings.language') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('terminal')" />
+          {{ t('settings.language') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.language') }}</label>
@@ -138,7 +149,10 @@ function onExportData() {
 
       <!-- Notifications -->
       <section v-if="activeSection === 'notifications'" class="section">
-        <h3 class="section-title">{{ t('settings.notifications') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('notify')" />
+          {{ t('settings.notifications') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.telegram_token') }}</label>
@@ -165,7 +179,10 @@ function onExportData() {
 
       <!-- Data -->
       <section v-if="activeSection === 'data'" class="section">
-        <h3 class="section-title">{{ t('settings.data') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('quote')" />
+          {{ t('settings.data') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.data_source') }}</label>
@@ -193,7 +210,10 @@ function onExportData() {
 
       <!-- API Keys -->
       <section v-if="activeSection === 'api'" class="section">
-        <h3 class="section-title">{{ t('settings.api_keys') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('broker')" />
+          {{ t('settings.api_keys') }}
+        </h3>
         <p class="form-hint" style="margin-bottom: 14px">配置第三方数据源 API 密钥，保存后写入 config.yaml 并在下次启动生效。</p>
 
         <div class="form-group">
@@ -222,6 +242,7 @@ function onExportData() {
 
         <div class="form-group">
           <button class="action-btn" @click="onSaveApiKeys">
+            <span class="btn-icon" v-html="getIcon('save')" />
             保存到 config.yaml
           </button>
           <span v-if="saveMsg" class="save-msg">{{ saveMsg }}</span>
@@ -230,7 +251,10 @@ function onExportData() {
 
       <!-- Trading -->
       <section v-if="activeSection === 'trading'" class="section">
-        <h3 class="section-title">{{ t('settings.trading') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('order')" />
+          {{ t('settings.trading') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.default_broker') }}</label>
@@ -281,7 +305,10 @@ function onExportData() {
 
       <!-- Display -->
       <section v-if="activeSection === 'display'" class="section">
-        <h3 class="section-title">{{ t('settings.display') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('market')" />
+          {{ t('settings.display') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.currency') }}</label>
@@ -319,7 +346,10 @@ function onExportData() {
 
       <!-- Shortcuts -->
       <section v-if="activeSection === 'shortcuts'" class="section">
-        <h3 class="section-title">{{ t('settings.shortcuts') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('command')" />
+          {{ t('settings.shortcuts') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.toggle_mode') }}</label>
@@ -332,7 +362,10 @@ function onExportData() {
 
       <!-- Storage -->
       <section v-if="activeSection === 'storage'" class="section">
-        <h3 class="section-title">{{ t('settings.storage') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('portfolio')" />
+          {{ t('settings.storage') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.db_path') }}</label>
@@ -341,6 +374,7 @@ function onExportData() {
 
         <div class="form-group">
           <button class="action-btn" @click="onExportData">
+            <span class="btn-icon" v-html="getIcon('export')" />
             {{ t('settings.export_data') }}
           </button>
         </div>
@@ -348,7 +382,10 @@ function onExportData() {
 
       <!-- About -->
       <section v-if="activeSection === 'about'" class="section">
-        <h3 class="section-title">{{ t('settings.about') }}</h3>
+        <h3 class="section-title">
+          <span class="section-icon" v-html="getIcon('info')" />
+          {{ t('settings.about') }}
+        </h3>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.version') }}</label>
@@ -364,6 +401,7 @@ function onExportData() {
           <label class="form-label">GitHub</label>
           <div class="link-list">
             <a href="https://github.com/quantflow/quantflow" target="_blank" rel="noopener" class="ext-link">
+              <span class="link-icon" v-html="getIcon('terminal')" />
               quantflow/quantflow
             </a>
           </div>
@@ -382,17 +420,22 @@ function onExportData() {
 
 /* Left nav */
 .settings-nav {
-  width: 140px;
+  width: 160px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
-  border-right: 1px solid var(--color-bg-input);
+  padding: 8px 6px;
+  border-right: 1px solid var(--color-border);
   overflow-y: auto;
+  background: var(--color-bg-subtle);
+  background-image: var(--gradient-card);
 }
 
 .nav-btn {
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
   background: none;
   border: none;
   border-left: 3px solid transparent;
@@ -400,67 +443,125 @@ function onExportData() {
   font-size: 12px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: all var(--transition-fast);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  position: relative;
 }
 
 .nav-btn:hover {
-  background: var(--color-bg-subtle);
-  color: #c0c8d8;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
 .nav-btn.active {
-  background: var(--color-bg-subtle);
-  color: #58a6ff;
-  border-left-color: #58a6ff;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-left-color: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.nav-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.nav-btn.active .nav-icon {
+  opacity: 1;
+}
+
+.nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Right content */
 .settings-content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 20px 24px;
 }
 
 .section {
-  max-width: 480px;
+  max-width: 520px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .section-title {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0 0 16px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-bg-input);
+  margin: 0 0 18px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent);
+}
+
+.section-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
 }
 
 /* Form elements */
 .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .form-label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-tertiary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .form-input {
   width: 100%;
-  padding: 7px 10px;
+  padding: 8px 12px;
   background: var(--color-bg-input);
-  border: 1px solid var(--color-accent-soft);
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 12px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: all var(--transition-fast);
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 .form-input:focus {
-  border-color: #58a6ff;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.form-input::placeholder {
+  color: var(--color-text-tertiary);
 }
 
 .form-input[readonly] {
@@ -469,85 +570,129 @@ function onExportData() {
 }
 
 .form-input-sm {
-  width: 80px;
+  width: 100px;
 }
 
 .form-select {
   width: 100%;
-  padding: 7px 10px;
+  padding: 8px 12px;
   background: var(--color-bg-input);
-  border: 1px solid var(--color-accent-soft);
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 12px;
   outline: none;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: all var(--transition-fast);
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 .form-select:focus {
-  border-color: #58a6ff;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
 .form-range {
   width: 100%;
-  accent-color: #58a6ff;
+  accent-color: var(--color-accent);
   margin-top: 4px;
 }
 
 .form-value {
   font-size: 13px;
   color: var(--color-text-primary);
+  font-weight: 500;
 }
 
 .form-hint {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-text-tertiary);
   margin-top: 6px;
+  line-height: 1.5;
 }
 
 /* Button groups */
 .btn-group {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .option-btn {
-  padding: 5px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
   background: var(--color-bg-input);
-  border: 1px solid var(--color-accent-soft);
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-tertiary);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: all var(--transition-fast);
+  font-family: inherit;
 }
 
 .option-btn:hover {
-  background: var(--color-bg-subtle);
-  color: #c0c8d8;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-strong);
 }
 
 .option-btn.active {
   background: var(--color-accent-soft);
-  color: #58a6ff;
-  border-color: #58a6ff;
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+  font-weight: 500;
+}
+
+.opt-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+}
+
+.opt-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
 }
 
 .action-btn {
-  padding: 7px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
   background: var(--color-accent-soft);
-  border: 1px solid #2a5a8c;
-  border-radius: 4px;
-  color: #58a6ff;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  color: var(--color-accent);
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  font-weight: 500;
 }
 
 .action-btn:hover {
-  background: #2a5a8c;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 12px var(--color-accent-glow);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+}
+
+.btn-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
 }
 
 /* Shortcut key */
@@ -557,14 +702,17 @@ function onExportData() {
 }
 
 .shortcut-key kbd {
-  display: inline-block;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
   background: var(--color-bg-input);
-  border: 1px solid var(--color-accent-soft);
-  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   font-family: inherit;
   font-size: 12px;
-  color: #58a6ff;
+  color: var(--color-text-secondary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 /* Links */
@@ -575,15 +723,34 @@ function onExportData() {
 }
 
 .ext-link {
-  font-size: 12px;
-  color: #58a6ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-accent);
   text-decoration: none;
+  transition: all var(--transition-fast);
+  padding: 4px 0;
 }
 
 .ext-link:hover {
   text-decoration: underline;
+  color: var(--color-accent-hover);
+}
+
+.link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+}
+
+.link-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
 }
 
 .api-source { color: var(--color-text-tertiary); font-size: 10px; font-weight: normal; }
-.save-msg { color: #22c55e; font-size: 12px; margin-left: 10px; }
+.save-msg { color: var(--color-success); font-size: 12px; margin-left: 10px; font-weight: 500; }
 </style>

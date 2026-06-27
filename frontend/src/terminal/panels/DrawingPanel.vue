@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { useStockName } from '@/lib/composables/useStockName'
 
 const props = defineProps<{
   panelId: string
@@ -19,6 +20,7 @@ interface Drawing {
 }
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
+const { name } = useStockName(symbol)
 const activeTool = ref('cursor')
 const drawings = ref<Drawing[]>([])
 const isDrawing = ref(false)
@@ -251,7 +253,7 @@ onMounted(() => {
   <div class="drawing-panel">
     <div class="panel-header">
       <h3>{{ $t('workflow.drawing_tools') }}</h3>
-      <span class="symbol-badge">{{ symbol }}</span>
+      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
     </div>
     <div class="panel-body">
       <div class="toolbar">

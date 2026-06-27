@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -10,6 +10,22 @@ interface NewsItem { title: string; source: string; time: string; url?: string; 
 
 const items = ref<NewsItem[]>([])
 const loading = ref(false)
+const nameCache = ref<Record<string, string>>({})
+
+async function resolveName(sym: string) {
+  if (!sym || nameCache.value[sym] !== undefined) return
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    const result = await app.GetQuote('CN', sym)
+    const quote = Array.isArray(result) ? result[0] : result
+    nameCache.value[sym] = quote?.name || ''
+  } catch { nameCache.value[sym] = '' }
+}
+
+function getName(sym: string): string {
+  return nameCache.value[sym] || ''
+}
 
 async function loadNews() {
   loading.value = true
@@ -22,6 +38,13 @@ async function loadNews() {
 }
 
 onMounted(loadNews)
+
+// Resolve names for symbols in news items
+watch(() => items.value, (newItems) => {
+  for (const item of newItems) {
+    if (item.symbol) resolveName(item.symbol)
+  }
+}, { deep: true })
 </script>
 
 <template>
@@ -31,7 +54,7 @@ onMounted(loadNews)
     <div v-else v-for="(item, i) in items" :key="i" class="news-item">
       <div class="news-title">{{ item.title }}</div>
       <div class="news-meta">
-        <span v-if="item.symbol" class="news-symbol">{{ item.symbol }}</span>
+        <span v-if="item.symbol" class="news-symbol" :title="getName(item.symbol) || item.symbol">{{ item.symbol }}</span>
         <span class="news-source">{{ item.source }}</span>
         <span class="news-time">{{ item.time }}</span>
       </div>

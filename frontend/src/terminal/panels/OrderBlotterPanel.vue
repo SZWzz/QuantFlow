@@ -110,7 +110,7 @@ function fmtMoney(n: number): string {
           <tr v-for="o in filteredOrders" :key="o.order_id">
             <td class="muted">{{ formatTime(o.created_at) }}</td>
             <td class="muted">{{ o.order_id }}</td>
-            <td class="symbol">{{ o.symbol }}</td>
+            <td class="symbol">{{ o.symbol }} - {{ o.name || '' }}</td>
             <td :class="o.side === 'buy' ? 'up' : 'down'">
               {{ o.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}
             </td>

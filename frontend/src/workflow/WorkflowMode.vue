@@ -9,6 +9,7 @@ import WorkflowCanvas from './canvas/WorkflowCanvas.vue'
 import NodePalette from './NodePalette.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import ExecutionLog from './ExecutionLog.vue'
+import { getIcon } from '@/lib/icons'
 
 const session = useSessionStore()
 const workflow = useWorkflowStore()
@@ -124,17 +125,31 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div class="workflow-mode" @keydown="onKeydown" tabindex="0">
     <header class="wf-header">
-      <span class="wf-logo">QuantFlow — Workflow Mode</span>
+      <div class="wf-left">
+        <div class="logo">
+          <span class="logo-icon" v-html="getIcon('workflow')" />
+        </div>
+        <span class="wf-title">Workflow Mode</span>
+      </div>
       <div class="wf-actions">
-        <button class="wf-btn" @click="onRun" :disabled="workflow.executionStatus === 'running'">
-          ▶ Run (F5)
+        <button class="wf-btn btn-run" @click="onRun" :disabled="workflow.executionStatus === 'running'">
+          <span class="btn-icon" v-html="getIcon('execution')" />
+          Run <kbd class="key-hint">F5</kbd>
         </button>
-        <button class="wf-btn secondary" @click="onSave">{{ $t('common.save') }}</button>
-        <button class="wf-btn secondary" @click="onLoad">{{ $t('workflow.load_workflow') }}</button>
-        <button class="wf-btn secondary" @click="showLog = !showLog">
+        <button class="wf-btn btn-secondary" @click="onSave">
+          <span class="btn-icon" v-html="getIcon('save')" />
+          {{ $t('common.save') }}
+        </button>
+        <button class="wf-btn btn-secondary" @click="onLoad">
+          <span class="btn-icon" v-html="getIcon('refresh')" />
+          {{ $t('workflow.load_workflow') }}
+        </button>
+        <button class="wf-btn btn-secondary" @click="showLog = !showLog">
+          <span class="btn-icon" v-html="getIcon('terminal')" />
           {{ showLog ? $t('workflow.hide_log') : $t('workflow.show_log') }}
         </button>
         <button class="wf-btn mode-switch" @click="router.push('/')">
+          <span class="mode-icon" v-html="getIcon('terminal')" />
           Terminal
         </button>
       </div>
@@ -166,38 +181,91 @@ function onKeydown(event: KeyboardEvent) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
-  background: var(--color-bg-panel);
+  padding: 0 var(--space-lg);
+  background: var(--gradient-header);
   border-bottom: 1px solid var(--color-border);
-  min-height: 40px;
+  min-height: 42px;
+  position: relative;
+  z-index: 10;
 }
 
-.wf-logo {
-  font-weight: bold;
-  font-size: var(--font-base);
+.wf-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
+  opacity: 0.3;
+}
+
+.wf-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--gradient-accent);
+  border: 1px solid var(--color-border-glow);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
   color: var(--color-accent);
+}
+
+.logo-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.wf-title {
+  font-weight: 700;
+  font-size: var(--font-base);
+  color: var(--color-text-primary);
   letter-spacing: 0.5px;
 }
 
 .wf-actions {
   display: flex;
   gap: 6px;
+  align-items: center;
 }
 
 .wf-btn {
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
   border: 1px solid var(--color-border);
   background: var(--color-bg-subtle);
   color: var(--color-text-primary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--font-xs);
+  font-family: inherit;
   transition: all var(--transition-fast);
+  height: 30px;
 }
 
 .wf-btn:hover:not(:disabled) {
   border-color: var(--color-accent);
   color: var(--color-accent);
+  background: var(--color-accent-soft);
+  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .wf-btn:disabled {
@@ -205,19 +273,83 @@ function onKeydown(event: KeyboardEvent) {
   cursor: not-allowed;
 }
 
-.wf-btn.secondary {
+.btn-secondary {
   background: transparent;
   color: var(--color-text-secondary);
 }
 
-.wf-btn.mode-switch {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-  background: transparent;
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  box-shadow: none;
 }
 
-.wf-btn.mode-switch:hover {
+.btn-run {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.btn-run:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 12px var(--color-accent-glow);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+}
+
+.btn-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.key-hint {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  padding: 1px 5px;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-left: 2px;
+}
+
+.mode-switch {
+  border-color: var(--color-brand);
   background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
+.mode-switch:hover {
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 10px var(--color-brand-glow);
+}
+
+.mode-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+}
+
+.mode-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.mode-switch:hover .mode-icon {
+  color: currentColor;
 }
 
 .wf-main {

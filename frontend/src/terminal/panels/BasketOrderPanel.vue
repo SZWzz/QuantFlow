@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -7,24 +7,48 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
 interface 篮子Row {
   id: number
   symbol: string
+  name: string
   weight: number
   quantity: number
   price: number
 }
 
+// -- Name resolution --
+const nameCache = ref<Record<string, string>>({})
+
+async function resolveName(sym: string) {
+  if (!sym || nameCache.value[sym] !== undefined) return
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    const result = await app.GetQuote('CN', sym)
+    const quote = Array.isArray(result) ? result[0] : result
+    nameCache.value[sym] = quote?.name || ''
+  } catch { nameCache.value[sym] = '' }
+}
+
+function getName(sym: string): string {
+  return nameCache.value[sym] || ''
+}
+
 let nextId = 1
 const rows = ref<篮子Row[]>([
-  { id: nextId++, symbol: 'AAPL', weight: 30, quantity: 50, price: 195.3 },
-  { id: nextId++, symbol: '600519', weight: 40, quantity: 100, price: 1780.0 },
-  { id: nextId++, symbol: 'TSLA', weight: 30, quantity: 80, price: 248.5 },
+  { id: nextId++, symbol: 'AAPL', name: '', weight: 30, quantity: 50, price: 195.3 },
+  { id: nextId++, symbol: '600519', name: '', weight: 40, quantity: 100, price: 1780.0 },
+  { id: nextId++, symbol: 'TSLA', name: '', weight: 30, quantity: 80, price: 248.5 },
 ])
+
+// Watch symbols to resolve names
+watch(() => rows.value.map(r => r.symbol), (symbols) => {
+  for (const sym of symbols) resolveName(sym)
+}, { immediate: true, deep: true })
 
 // -- 导入 CSV --
 const csvText = ref('')
 const showCsvImport = ref(false)
 
 function addRow() {
-  rows.value.push({ id: nextId++, symbol: '', weight: 0, quantity: 0, price: 0 })
+  rows.value.push({ id: nextId++, symbol: '', name: '', weight: 0, quantity: 0, price: 0 })
 }
 
 function removeRow(id: number) {
@@ -40,6 +64,7 @@ function importCSV() {
       rows.value.push({
         id: nextId++,
         symbol: parts[0].trim(),
+        name: '',
         weight: parts[1] ? parseFloat(parts[1]) || 0 : 0,
         quantity: parts[2] ? parseInt(parts[2]) || 0 : 0,
         price: parts[3] ? parseFloat(parts[3]) || 0 : 0,
@@ -125,6 +150,7 @@ function statusDotClass(s: string): string {
         <div class="row-list">
           <div v-for="row in rows" :key="row.id" class="basket-row">
             <input v-model="row.symbol" type="text" :placeholder="$t('quote.symbol')" class="cell-input cell-symbol" />
+            <span v-if="getName(row.symbol)" class="cell-name">{{ getName(row.symbol) }}</span>
             <input v-model.number="row.weight" type="number" min="0" max="100" placeholder="Wt%" class="cell-input cell-num" />
             <input v-model.number="row.quantity" type="number" min="0" :placeholder="$t('trade.quantity')" class="cell-input cell-num" />
             <input v-model.number="row.price" type="number" step="0.01" :placeholder="$t('common.price')" class="cell-input cell-num" />
@@ -252,6 +278,10 @@ function statusDotClass(s: string): string {
 .cell-input:focus { border-color: var(--accent); }
 
 .cell-symbol { flex: 2; }
+.cell-name {
+  font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 80px; line-height: 28px;
+}
 .cell-num { flex: 1; }
 
 .row-btn {

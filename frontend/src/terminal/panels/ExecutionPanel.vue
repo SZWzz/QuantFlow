@@ -66,7 +66,7 @@ function fmt(n: number, dec = 2): string {
         <tbody>
           <tr v-for="t in visibleTrades" :key="t.trade_id">
             <td class="muted">{{ formatTime(t.executed_at) }}</td>
-            <td class="symbol">{{ t.symbol }}</td>
+            <td class="symbol">{{ t.symbol }} - {{ t.name || '' }}</td>
             <td :class="t.side === 'buy' ? 'up' : 'down'">
               {{ t.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}
             </td>

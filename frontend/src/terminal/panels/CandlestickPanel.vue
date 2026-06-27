@@ -9,6 +9,7 @@ import * as echarts from 'echarts'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { marketUpColor, marketDownColor, marketChangeColor } from '@/lib/composables/useMarketColors'
+import { useStockName } from '@/lib/composables/useStockName'
 
 use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
 
@@ -52,6 +53,7 @@ function isTradingHours(): boolean {
 }
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
+const { name } = useStockName(symbol)
 const interval = ref(props.params?.interval || '1d')
 const ohlcvData = ref<(string | number)[][]>([])
 const loading = ref(false)
@@ -518,7 +520,7 @@ onUnmounted(() => {
   <div class="candlestick-panel">
     <div class="chart-header">
       <div class="header-left">
-        <span class="symbol-display">{{ symbol }}</span>
+        <span class="symbol-display">{{ symbol }} {{ name }}</span>
         <div class="tab-btns">
           <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">{{ $t('kline.kline') }}</button>
           <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">{{ $t('kline.minute') }}</button>

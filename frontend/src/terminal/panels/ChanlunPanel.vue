@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useStockName } from '@/lib/composables/useStockName'
 
 defineProps<{
   panelId: string
@@ -38,6 +39,7 @@ interface ZSBlock {
 
 const searchSymbol = ref('')
 const selectedSymbol = ref('')
+const { name } = useStockName(selectedSymbol)
 const loading = ref(false)
 
 const fractals = ref<Fractal[]>([])
@@ -99,6 +101,7 @@ function formatPct(v: number): string {
       <div class="header-left">
         <h3>Chanlun Analysis</h3>
         <span class="subtitle">缠论分析</span>
+        <span v-if="selectedSymbol" class="symbol-info">{{ selectedSymbol }} {{ name }}</span>
       </div>
       <div class="symbol-input">
         <input
@@ -282,6 +285,12 @@ function formatPct(v: number): string {
   font-size: 11px;
   color: var(--term-fg-dim);
   margin-left: 6px;
+}
+.symbol-info {
+  font-size: 11px;
+  color: var(--term-accent);
+  margin-left: 8px;
+  font-weight: 600;
 }
 .symbol-input {
   display: flex;

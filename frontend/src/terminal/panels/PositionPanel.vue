@@ -5,7 +5,7 @@ import { usePortfolioStore } from '@/stores/portfolio'
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 interface Position {
-  Symbol: string; Quantity: number; AvgPrice: number; MarketPrice: number
+  Symbol: string; Name?: string; Quantity: number; AvgPrice: number; MarketPrice: number
   PnL: number; PnLPct: number
 }
 
@@ -52,7 +52,7 @@ onMounted(loadPositions)
     <div v-else class="position-list">
       <div v-for="pos in positions" :key="pos.Symbol" class="position-row">
         <div class="pos-main">
-          <span class="pos-symbol">{{ pos.Symbol }}</span>
+          <span class="pos-symbol">{{ pos.Symbol }} - {{ pos.Name || '' }}</span>
           <span class="pos-qty">{{ pos.Quantity }} 手</span>
         </div>
         <div class="pos-prices">

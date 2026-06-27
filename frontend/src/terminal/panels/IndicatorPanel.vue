@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useStockName } from '@/lib/composables/useStockName'
 
 defineProps<{
   panelId: string
@@ -69,6 +70,7 @@ const categories = computed(() => {
 const selectedCategory = ref<string | null>(null)
 const selectedIndicator = ref<IndicatorDef | null>(null)
 const symbol = ref('')
+const { name } = useStockName(symbol)
 const loading = ref(false)
 const results = ref<ResultRow[]>([])
 const paramValues = ref<Record<string, string>>({})
@@ -129,6 +131,7 @@ function goBack() {
       <div class="header-left">
         <h3>Indicator Panel</h3>
         <span class="subtitle">技术指标</span>
+        <span v-if="symbol" class="symbol-info">{{ symbol }} {{ name }}</span>
       </div>
       <div v-if="selectedIndicator" class="symbol-input">
         <input
@@ -235,6 +238,12 @@ function goBack() {
   font-size: 11px;
   color: var(--term-fg-dim);
   margin-left: 6px;
+}
+.symbol-info {
+  font-size: 11px;
+  color: var(--term-accent);
+  margin-left: 8px;
+  font-weight: 600;
 }
 .symbol-input {
   display: flex;
