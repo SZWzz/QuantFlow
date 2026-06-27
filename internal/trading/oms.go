@@ -44,6 +44,9 @@ type OMS struct {
 
 	// P0-4: Cash ledger
 	cashLedger *CashLedger
+
+	// quoteCache maps symbol → stock name, populated by adapter quotes.
+	quoteCache map[string]string
 }
 
 // NewOMS creates a new Order Management System.
@@ -113,6 +116,7 @@ func (o *OMS) PlaceOrder(symbol string, side OrderSide, orderType OrderType, qty
 		Status:    StatusPending,
 		PlacedAt:  time.Now(),
 	}
+	order.Name = o.getName(symbol)
 	o.orders[order.ID] = order
 	return order, nil
 }
@@ -217,6 +221,7 @@ func (o *OMS) FillOrder(orderID string, fillQty, fillPrice float64) (*Trade, err
 		StampTax:   stampTax,
 		Timestamp:  time.Now(),
 	}
+	trade.Name = o.getName(order.Symbol)
 	o.trades = append(o.trades, trade)
 
 	// Update position (fillQty already clipped for sells above)
@@ -263,7 +268,11 @@ func (o *OMS) GetOrder(orderID string) (*Order, bool) {
 func (o *OMS) GetPosition(symbol string) *Position {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
-	return o.positions[symbol]
+	pos := o.positions[symbol]
+	if pos != nil {
+		pos.Name = o.getName(pos.Symbol)
+	}
+	return pos
 }
 
 // GetAllPositions returns all current positions.
@@ -272,6 +281,7 @@ func (o *OMS) GetAllPositions() []*Position {
 	defer o.mu.RUnlock()
 	result := make([]*Position, 0, len(o.positions))
 	for _, p := range o.positions {
+		p.Name = o.getName(p.Symbol)
 		result = append(result, p)
 	}
 	return result
@@ -363,6 +373,23 @@ func (o *OMS) GetCashBalance() float64 {
 // GetCashLedger returns the underlying CashLedger for external access.
 func (o *OMS) GetCashLedger() *CashLedger {
 	return o.cashLedger
+}
+
+// SetQuoteName stores the stock name for a symbol.
+func (o *OMS) SetQuoteName(symbol, name string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if o.quoteCache == nil {
+		o.quoteCache = make(map[string]string)
+	}
+	o.quoteCache[symbol] = name
+}
+
+// getName returns the cached stock name for a symbol.
+func (o *OMS) getName(symbol string) string {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.quoteCache[symbol]
 }
 
 // isSameDay returns true if both times fall on the same calendar day.

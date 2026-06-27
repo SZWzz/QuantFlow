@@ -50,7 +50,14 @@ func (a *App) GetQuote(ctx context.Context, marketName, symbol string) (*market.
 	if a.marketReg == nil {
 		return nil, "", fmt.Errorf("market registry not initialized")
 	}
-	return a.marketReg.FetchQuoteWithFallback(ctx, marketName, symbol)
+	quote, adapter, err := a.marketReg.FetchQuoteWithFallback(ctx, marketName, symbol)
+	if err != nil {
+		return nil, adapter, err
+	}
+	if a.oms != nil && quote != nil && quote.Name != "" {
+		a.oms.SetQuoteName(symbol, quote.Name)
+	}
+	return quote, adapter, nil
 }
 
 // GetMinuteLine returns today's intraday minute-by-minute ticks for a CN symbol.

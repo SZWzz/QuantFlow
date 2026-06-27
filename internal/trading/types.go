@@ -57,6 +57,7 @@ type Order struct {
 	Status         OrderStatus `json:"status"`
 	PlacedAt       time.Time   `json:"placed_at"`
 	FilledAt       *time.Time  `json:"filled_at,omitempty"`
+	Name           string      `json:"name"`
 }
 
 // Trade is a filled execution record.
@@ -70,6 +71,7 @@ type Trade struct {
 	Commission float64   `json:"commission"`  // 佣金
 	StampTax   float64   `json:"stamp_tax"`   // 印花税 (仅卖出)
 	Timestamp  time.Time `json:"timestamp"`
+	Name       string    `json:"name"` // 股票名称
 }
 
 // Position represents a current holding.
@@ -81,6 +83,7 @@ type Position struct {
 	PnL         float64 `json:"pnl"`          // Total P&L = RealizedPnl + unrealized
 	PnLPct      float64 `json:"pnl_pct"`
 	RealizedPnl float64 `json:"realized_pnl"` // Accumulated realized gains from closes
+	Name        string  `json:"name"`
 }
 
 // OHLCVBar is a price bar used for order matching.
