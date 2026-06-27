@@ -291,7 +291,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	slog.Info("research services initialized")
 
 	// Symbol search service (in-memory A-share index)
-	searchSvc, err := market.NewSymbolSearchService(context.Background())
+	searchSvc, err := market.NewSymbolSearchService(context.Background(), a.db)
 	if err != nil {
 		slog.Warn("symbol search service init failed", "error", err)
 	} else {

@@ -2,6 +2,7 @@ package market
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -22,19 +23,72 @@ type StockEntry struct {
 }
 
 // SymbolSearchService provides fast code/name/pinyin search over CN A-shares
-// (~5500), HK stocks (~2500), and US stocks (~13500). The index is built once
-// at startup and held in memory.
+// (~5500), HK stocks (~2500), and US stocks (~13500). The index is loaded from
+// SQLite on startup (fast); API fetch only on first run or when stale (>7 days).
 type SymbolSearchService struct {
 	mu      sync.RWMutex
 	entries []StockEntry
+	db      *sql.DB
 }
 
-// NewSymbolSearchService creates the search service and populates the index
-// from EastMoney's stock list API for CN, HK, and US markets. Call once at startup.
-func NewSymbolSearchService(ctx context.Context) (*SymbolSearchService, error) {
+// NewSymbolSearchService creates the search service.
+// Tries SQLite cache first; falls back to API fetch + save to DB on first run.
+func NewSymbolSearchService(ctx context.Context, db *sql.DB) (*SymbolSearchService, error) {
+	svc := &SymbolSearchService{db: db}
+
+	if db != nil {
+		if err := svc.ensureTable(); err != nil {
+			slog.Warn("symbol_search: ensure table failed, falling back to API", "error", err)
+		}
+	}
+
+	// Try loading from SQLite cache
+	if db != nil {
+		entries, lastRefresh, err := svc.loadFromDB()
+		if err == nil && len(entries) > 0 {
+			age := time.Since(lastRefresh)
+			if age < 7*24*time.Hour {
+				slog.Info("symbol_search: loaded from cache",
+					"entries", len(entries), "age", age.Round(time.Hour))
+				svc.entries = entries
+				return svc, nil
+			}
+			slog.Info("symbol_search: cache stale, refreshing", "age", age.Round(time.Hour))
+		}
+	}
+
+	// Fetch from API
+	entries, err := svc.fetchAll(ctx)
+	if err != nil {
+		// Try loading stale cache as fallback
+		if db != nil {
+			cached, _, _ := svc.loadFromDB()
+			if len(cached) > 0 {
+				slog.Warn("symbol_search: API fetch failed, using stale cache",
+					"entries", len(cached), "error", err)
+				svc.entries = cached
+				return svc, nil
+			}
+		}
+		return nil, err
+	}
+
+	svc.entries = entries
+
+	// Save to SQLite
+	if db != nil {
+		if err := svc.saveToDB(entries); err != nil {
+			slog.Warn("symbol_search: save to DB failed", "error", err)
+		}
+	}
+
+	return svc, nil
+}
+
+// fetchAll fetches stock lists from all markets via API.
+func (s *SymbolSearchService) fetchAll(ctx context.Context) ([]StockEntry, error) {
 	var all []StockEntry
 
-	// CN A-shares: try API first, fall back to embedded list.
 	cn, err := fetchCNStockList(ctx)
 	if err != nil {
 		slog.Warn("symbol_search: CN stock list API fetch failed, using embedded list", "error", err)
@@ -72,7 +126,70 @@ func NewSymbolSearchService(ctx context.Context) (*SymbolSearchService, error) {
 
 	slog.Info("symbol_search: index built",
 		"cn", len(cn), "hk", len(hk), "us", len(us), "total", len(all))
-	return &SymbolSearchService{entries: all}, nil
+	return all, nil
+}
+
+// ── SQLite persistence ───────────────────────────────────────────────────
+
+const stockListDDL = `CREATE TABLE IF NOT EXISTS stock_list_cache (
+    code    TEXT NOT NULL,
+    name    TEXT NOT NULL,
+    market  TEXT NOT NULL,
+    pinyin  TEXT NOT NULL DEFAULT '',
+    refreshed_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (code, market)
+) WITHOUT ROWID`
+
+func (s *SymbolSearchService) ensureTable() error {
+	_, err := s.db.Exec(stockListDDL)
+	return err
+}
+
+func (s *SymbolSearchService) loadFromDB() ([]StockEntry, time.Time, error) {
+	rows, err := s.db.Query("SELECT code, name, market, pinyin, refreshed_at FROM stock_list_cache ORDER BY code")
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	defer rows.Close()
+
+	var entries []StockEntry
+	var lastRefresh time.Time
+	for rows.Next() {
+		var e StockEntry
+		var t string
+		if err := rows.Scan(&e.Code, &e.Name, &e.Market, &e.Pinyin, &t); err != nil {
+			return nil, time.Time{}, err
+		}
+		entries = append(entries, e)
+		lastRefresh, _ = time.Parse("2006-01-02 15:04:05", t)
+	}
+	return entries, lastRefresh, rows.Err()
+}
+
+func (s *SymbolSearchService) saveToDB(entries []StockEntry) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Clear old data
+	if _, err := tx.Exec("DELETE FROM stock_list_cache"); err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("INSERT OR REPLACE INTO stock_list_cache (code, name, market, pinyin, refreshed_at) VALUES (?, ?, ?, ?, datetime('now'))")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, e := range entries {
+		if _, err := stmt.Exec(e.Code, e.Name, e.Market, e.Pinyin); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // Search finds stocks matching the query by code, name, or pinyin.
