@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useDataStore } from '@/stores/data'
-import type { SectorRanking } from '@/stores/data'
+import type { SectorRanking, MarketOverview } from '@/stores/data'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -9,6 +9,7 @@ const loading = ref(false)
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
+const cacheKey = computed(() => `market:overview:${activeMarket.value}`)
 
 interface HeatmapCell {
   name: string
@@ -39,19 +40,30 @@ function textColor(pct: number): string {
 
 function switchMarket(mkt: typeof activeMarket.value) {
   activeMarket.value = mkt
+  const cached = dataStore.getCached<MarketOverview>(cacheKey.value)
+  if (cached) {
+    dataStore.marketOverview = cached
+    return
+  }
   refresh()
 }
 async function refresh() {
   loading.value = true
   try {
     await dataStore.fetchMarketOverview(activeMarket.value)
+    dataStore.setCached(cacheKey.value, dataStore.marketOverview, 30_000)
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  if (!dataStore.marketOverview) refresh()
+  const cached = dataStore.getCached<MarketOverview>(cacheKey.value)
+  if (cached) {
+    dataStore.marketOverview = cached
+    return
+  }
+  refresh()
 })
 </script>
 

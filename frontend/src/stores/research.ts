@@ -53,10 +53,10 @@ export const useResearchStore = defineStore('research', () => {
       const app = (window as any).go?.main?.App
       if (!app) { isBridgeAvailable.value = false; return }
       if (app.GetVersion) {
-        // Try a lightweight call to verify the bridge
         await app.GetVersion()
-        isBridgeAvailable.value = true
       }
+      // App exists and relevant methods should be exposed — mark as available
+      isBridgeAvailable.value = true
     } catch {
       isBridgeAvailable.value = false
     }

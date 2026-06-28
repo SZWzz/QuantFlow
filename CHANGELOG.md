@@ -34,6 +34,39 @@
 
 - [Docs] 新增 5 篇规范文档：easy-tdx 集成、分时图实时渲染、前端质量重塑、股票名称展示、前端质量实施计划
 
+### 优化
+
+- [前端] Pinia `dataStore` 通用 TTL 缓存层：`setCached`/`getCached`/`clearCached`，带自动过期
+- [前端] HeatmapPanel 改用 TTL 缓存（30s），切换面板免重复加载；切换市场/手动刷新立即回源
+- [前端] GovDataPanel 信号列表缓存 5min、详情数据缓存 10min，切换面板/切换数据源回源
+
+### 修复
+
+- [Python] BIS 子进程 `rc=64`：`_handle_macro` 改用 `sys.executable` 避免 build 目录下 venv 路径解析歧义；显式传入 `PYTHONPATH` 确保模块可寻址
+
+### 新增
+
+- [Python] BIS `get_summary` 命令：并行拉取所有 BIS 数据流的最新值（`lastNObservations=1`）+ 日期（`reportingEnd`），一次性返回用于面板卡片展示
+- [前端] GovDataPanel BIS 标签页改用 `get_summary`：卡片直接显示最新数值和日期，替代原来全部显示"点击查看数据"
+
+### 修复
+
+- [Python] 个股资金流向 `get_stock_individual_fund_flow`：增加 A 股代码校验（6位数字），美股/港股直接返回友好错误提示而非 `NoneType` 崩溃
+- [Python] `get_fund_report_stock_cninfo` 错误传递 `symbol` 参数至底层 akshare 函数（该函数仅接受 `date`），改为先拉全量再按股票代码过滤
+- [前端] OptionsPanel: 路由从 `get_all_endpoints`（端点列表）改为 `option_current_day_sse`（实时 SSE 期权数据），去除 `symbol` 多余传参
+- [前端] IndexPanel: 路由从不存在的 `stock_board_index_cons_em` 改为 `index_stock_cons`（指数成分股），移除 `"index"` 符号排除限制
+- [前端] FundsPanel: 路由从 `get_all_endpoints` 改为 `get_fund_report_stock_cninfo`（基金持仓覆盖数据），移除 `"funds"` 符号排除限制
+- [前端] BondsPanel: 路由从 `get_all_endpoints` 改为 `get_bond_zh_cov_spot`（可转债实时行情）
+- [前端] SentimentPanel: `isBridgeAvailable` 因 `app.GetVersion` 不存在而永远为 `null`，改为直接标记桥接可用
+
+### 新增
+
+- [前端] BondsPanel: 搜索过滤 + 可转债行情表（代码/名称/最新价/涨跌幅/成交量/成交额/正股代码/时间）
+- [前端] OptionsPanel: 期权链表格（合约代码/名称/标的/认购认沽/行权价/到期日），替代裸 JSON
+- [前端] IndexPanel: 指数成分股表格（代码/名称/纳入日期），输入框可切换指数代码
+- [前端] FundsPanel: 基金覆盖信息卡片（报告期/基金覆盖家数/持股总数/持股总市值），替代裸 JSON
+- [前端] MarketOverviewPanel: 指数卡片点击联动，通过 SymbolContext 设置当前指数代码，IndexPanel 自动加载对应成分股
+
 ---
 
 ## [2026.6.26] - 2026-06-26

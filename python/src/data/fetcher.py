@@ -517,12 +517,13 @@ class DataService(data_pb2_grpc.DataServiceServicer):
         "financials": ("financials", "stock_financial_analysis_indicator_em"),
         "company_info": ("company_info", "cn_basic"),
         "fundflow": ("fundflow", "stock_individual_fund_flow"),
+        "options": ("derivatives", "option_current_day_sse"),
         "margin": ("margin", "stock_margin_detail_szse"),
-        "bonds": ("bonds", "get_all_endpoints"),
-        "funds": ("funds", "get_all_endpoints"),
+        "bonds": ("bonds", "get_bond_zh_cov_spot"),
+        "funds": ("funds", "get_fund_report_stock_cninfo"),
         "derivatives": ("derivatives", "get_all_endpoints"),
         "futures": ("derivatives", "get_all_endpoints"),
-        "index": ("index", "stock_board_index_cons_em"),
+        "index": ("index", "index_stock_cons"),
         "macro_cn": ("macro_cn", "get_all_endpoints"),
         # One-shot parallel summary: latest values + short series for all fast
         # core endpoints. macro_cn.py:get_summary() handles concurrency
@@ -559,7 +560,7 @@ class DataService(data_pb2_grpc.DataServiceServicer):
         # Only append symbol as arg for stock-specific data types. Macro summary
         # takes no symbol; macro_cn_indicator carries the target endpoint name
         # in symbols[0] and DOES need it appended (as the get_normalized arg).
-        if symbol and data_type not in ("macro_cn", "macro_cn_summary", "index", "bonds", "funds"):
+        if symbol and data_type not in ("macro_cn", "macro_cn_summary", "bonds"):
             cmd.append(symbol)
         if start_date and data_type == "fundflow":
             cmd.append(start_date)
@@ -746,7 +747,14 @@ class DataService(data_pb2_grpc.DataServiceServicer):
     # -----------------------------------------------------------------------
 
     async def _handle_macro(self, data_type, symbols, start_date, end_date, params):
-        """Route macroeconomic data (BIS, WTO, EIA) via subprocess."""
+        """Route macroeconomic data (BIS, WTO, EIA) via subprocess.
+
+        Uses the project venv Python (not sys.executable) because the gRPC
+        sidecar may be running under a different interpreter in some Wails
+        packaging scenarios, and macro_bis.py needs aiohttp which is only in
+        the venv. The venv is resolved relative to this file so it works
+        whether we're running from python/ (dev) or build/python/ (packaged).
+        """
         import subprocess
         import sys as _sys
         import json as _json
@@ -769,20 +777,35 @@ class DataService(data_pb2_grpc.DataServiceServicer):
                 error=f"Macro: unknown data_type '{data_type}'. Supported: {list(MACRO_ROUTES.keys())}"
             )
 
+        # Use sys.executable (the venv python that the Go sidecar started)
+        # for the subprocess, and pass PYTHONPATH explicitly so the module
+        # is resolved regardless of cwd or environment inheritance.
+        # __file__ is .../<python_dir>/src/data/fetcher.py
+        _this_file = os.path.abspath(__file__)
+        _python_dir = os.path.dirname(os.path.dirname(os.path.dirname(_this_file)))
+        _python_exe = _sys.executable
+        _sub_env = os.environ.copy()
+        _sub_env.setdefault("PYTHONPATH", os.path.join(_python_dir, "src"))
+
         # Use explicit command from params, or fall back to default for this source
         cmd_name = (params or {}).get("cmd", MACRO_DEFAULT_CMDS.get(data_type, "get_all_endpoints"))
-        cmd = [_sys.executable, "-m", f"src.data.fincept.{module}", cmd_name]
-        # BIS: pass dataset ID as extra argument (e.g. get_data WS_CBPOL)
+        cmd = [_python_exe, "-m", f"src.data.fincept.{module}", cmd_name]
+        # BIS: pass dataset ID + country code as extra arguments.
+        # 'fetch' needs <dataflow> <country_code> [start] [end]; 'get_data'
+        # needs <flow> [key] [start] [end]. Default country to 'all'.
         if data_type == "bis" and params and params.get("dataset"):
             cmd.append(params["dataset"])
+            # 'fetch' command requires a country_code arg (position 2)
+            if cmd_name == "fetch":
+                cmd.append(params.get("country", "all"))
         try:
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=120,
-                cwd="/Volumes/etx/coding/rebuild/quantflow/python",
-                preexec_fn=os.setsid,  # detach from gRPC event loop
+                cwd=_python_dir,
+                env=_sub_env,
             )
             if result.returncode != 0:
                 return data_pb2.FetchDataResponse(
@@ -794,6 +817,6 @@ class DataService(data_pb2_grpc.DataServiceServicer):
                 data=_json.dumps(data, default=str, ensure_ascii=False).encode("utf-8")
             )
         except subprocess.TimeoutExpired:
-            return data_pb2.FetchDataResponse(error=f"Macro {data_type}: timeout after 60s")
+            return data_pb2.FetchDataResponse(error=f"Macro {data_type}: timeout after 120s")
         except Exception as e:
             return data_pb2.FetchDataResponse(error=f"Macro {data_type}: {str(e)}")

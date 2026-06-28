@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useDataStore } from '@/stores/data'
+import { useSymbolContext } from '@/stores/symbolContext'
 import type { IndexSnapshot, SectorRanking } from '@/stores/data'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
+const ctx = useSymbolContext()
+const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
@@ -107,6 +110,12 @@ function formatVolume(v: number): string {
   if (v >= 1e4) return (v / 1e4).toFixed(1) + '万'
   return String(v)
 }
+function onIndexClick(idx: { symbol: string; name: string }) {
+  // Strip .SH / .SZ suffix for upstream index API (expects bare code like 000300)
+  const code = idx.symbol.replace(/\.(SH|SZ|SS|CSI)$/i, '')
+  ctx.setGroupSymbol(pg.groupId, code)
+}
+
 function formatAmount(a: number): string {
   if (a >= 1e8) return (a / 1e8).toFixed(2) + '亿'
   if (a >= 1e4) return (a / 1e4).toFixed(1) + '万'
@@ -154,7 +163,7 @@ onUnmounted(() => {
 
     <!-- Section A: Index Cards -->
     <div class="indices-row">
-      <div v-for="idx in indices" :key="idx.symbol" class="index-card">
+      <div v-for="idx in indices" :key="idx.symbol" class="index-card" @click="onIndexClick(idx)">
         <div class="index-name">{{ idx.name }}</div>
         <div class="index-price">{{ idx.last.toLocaleString() }}</div>
         <div class="index-change" :style="{ color: changeColor(idx.changePct) }">
@@ -277,7 +286,9 @@ onUnmounted(() => {
   flex: 0 0 auto; min-width: 130px;
   padding: 10px 12px; border-radius: 6px;
   background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong);
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
 }
+.index-card:hover { background: var(--color-bg-hover); border-color: var(--color-primary); }
 .index-name { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
 .index-price { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
 .index-change { font-size: 12px; font-weight: 500; margin-bottom: 4px; }

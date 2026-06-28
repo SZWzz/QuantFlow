@@ -9,8 +9,10 @@ import VChart from 'vue-echarts'
 import { detectMarket } from '@/lib/wails'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { useDataStore } from '@/stores/data'
 
 const { t } = useI18n()
+const dataStore = useDataStore()
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -56,6 +58,8 @@ const selectedSignal = ref<MacroSignal | null>(null)
 const indicatorData = ref<IndicatorPoint[]>([])
 const chartLoading = ref(false)
 
+const signalsCacheKey = computed(() => `gov:signals:${activeSource.value}`)
+
 // Three-source switch: FRED (US gov data) / CN (akshare 中国宏观) / BIS (global)
 const activeSource = ref<'fred' | 'cn' | 'bis'>('fred')
 
@@ -74,6 +78,12 @@ const sourceCnLabels: Record<string, string> = {
 const activeCategory = ref('all')
 
 async function loadSignals() {
+  const cached = dataStore.getCached<MacroSignal[]>(signalsCacheKey.value)
+  if (cached) {
+    signals.value = cached
+    loading.value = false
+    return
+  }
   loading.value = true
   loadError.value = ''
   signals.value = []
@@ -120,53 +130,59 @@ async function loadSignals() {
         try {
           const raw = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
           const parsed = raw?.data || raw
-          if (parsed?.categories) {
-            const vals = parsed?.values || {}
+          // Only render cards for endpoints that actually returned data
+          // (in parsed.values). Previously this iterated parsed.categories
+          // which lists all 85 akshare endpoints — most had no value, so
+          // the panel was full of empty "点击查看数据" cards.
+          const vals = parsed?.values || {}
+          if (Object.keys(vals).length > 0) {
             const items: MacroSignal[] = []
-            for (const [cat, names] of Object.entries(parsed.categories)) {
-              for (const n of (names as string[])) {
-                const v = vals[n]
-                items.push({
-                  indicator_id: `cn_${n}`,
-                  name: n,
-                  name_cn: v?.name_cn || n,
-                  latest_value: v?.latest_value ?? 0,
-                  change: v?.change ?? 0,
-                  direction: v?.direction || 'flat',
-                  signal: v?.signal || 'neutral',
-                  unit: v?.unit || '',
-                  category: v?.category || cat,
-                  updated_at: 0,
-                  series: v?.series,
-                  latest_date: v?.latest_date,
-                })
-              }
+            for (const [ep, v] of Object.entries(vals)) {
+              const vv = v as any
+              items.push({
+                indicator_id: `cn_${ep}`,
+                name: ep,
+                name_cn: vv?.name_cn || ep,
+                latest_value: vv?.latest_value ?? 0,
+                change: vv?.change ?? 0,
+                direction: vv?.direction || 'flat',
+                signal: vv?.signal || 'neutral',
+                unit: vv?.unit || '',
+                category: vv?.category || 'Core Indicators',
+                updated_at: 0,
+                series: vv?.series,
+                latest_date: vv?.latest_date,
+              })
             }
             signals.value = items
-          } else { loadError.value = 'No categories in response' }
+          } else { loadError.value = '中国宏观数据加载失败（无可用端点）' }
         } catch(e: any) { loadError.value = 'Parse error: ' + e.message }
       } else if (result?.error) { loadError.value = result.error }
     }
 
-    // ── BIS source: list available dataflows (catalog); values load on click ──
+    // ── BIS source: uses get_summary to fetch catalog + latest values in one
+    // parallel call, so cards show the latest data point immediately.
     else if (activeSource.value === 'bis' && app?.FetchData) {
-      const result = await app.FetchData('macro', 'bis', [], '', '', {})
+      const result = await app.FetchData('macro', 'bis', [], '', '', { cmd: 'get_summary' })
       if (result?.data) {
         try {
           const raw = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
-          const flows = raw?.data?.data?.dataflows || raw?.dataflows || []
-          signals.value = flows.map((f: any) => ({
-            indicator_id: `bis_${f.id}`,
-            name: f.name || f.id,
-            name_cn: f.names?.en || f.name || f.id,
-            latest_value: 0,
-            change: 0,
-            direction: 'flat',
-            signal: 'neutral',
-            unit: '',
-            category: 'BIS',
-            updated_at: 0,
-          }))
+          const           flows = raw?.dataflows || raw?.data?.dataflows || []
+          signals.value = flows
+            .filter((f: any) => f.id) // skip entries without an id
+            .map((f: any) => ({
+              indicator_id: `bis_${f.id}`,
+              name: f.name || f.id,
+              name_cn: f.names?.en || f.name || f.id,
+              latest_value: f.latest_value,
+              change: 0,
+              direction: 'flat',
+              signal: 'neutral',
+              unit: f.unit || '',
+              category: 'BIS 全球',
+              updated_at: 0,
+              latest_date: f.latest_date || '',
+            }))
         } catch(e: any) { loadError.value = 'BIS parse error: ' + e.message }
       } else if (result?.error) { loadError.value = result.error }
     }
@@ -174,11 +190,21 @@ async function loadSignals() {
     loadError.value = e?.message || String(e)
     console.error('[GovData] loadSignals:', e)
   }
+  if (!loadError.value && signals.value.length > 0) {
+    dataStore.setCached(signalsCacheKey.value, signals.value, 300_000)
+  }
   loading.value = false
 }
 
 async function loadIndicatorDetail(signal: MacroSignal) {
   selectedSignal.value = signal
+  const detailKey = `gov:detail:${signal.indicator_id}`
+  const cached = dataStore.getCached<IndicatorPoint[]>(detailKey)
+  if (cached) {
+    indicatorData.value = cached
+    chartLoading.value = false
+    return
+  }
   chartLoading.value = true
   try {
     const app = (window as any).go?.main?.App
@@ -200,6 +226,9 @@ async function loadIndicatorDetail(signal: MacroSignal) {
             }))
           }
         } catch(e) { console.error('[GovData] commodity OHLCV:', e); indicatorData.value = [] }
+        if (indicatorData.value.length > 0) {
+          dataStore.setCached(detailKey, indicatorData.value, 600_000)
+        }
         chartLoading.value = false
         return
       }
@@ -232,24 +261,33 @@ async function loadIndicatorDetail(signal: MacroSignal) {
       }
     }
 
-    // ── BIS: fetch specific dataset time series ──
+    // ── BIS: fetch specific dataset time series via 'fetch' command ──
+    // macro_bis.py's 'fetch' command flattens SDMX-JSON into [{date, value}]
+    // for charting. 'get_data' returns raw SDMX which is harder to parse.
     else if (app?.FetchData) {
       const sid = signal.indicator_id.replace(/^bis_/, '')
-      const params: Record<string, string> = { cmd: 'get_data' }
+      const params: Record<string, string> = { cmd: 'fetch' }
       params.dataset = sid
-      const result = await app.FetchData('macro', 'bis', [], '', '', params)
+      // Pass country 'all' as second positional arg (macro_bis fetch uses it)
+      const result = await app.FetchData('macro', 'bis', [sid, 'all'], '', '', params)
       if (result?.data) {
-        const d = JSON.parse(result.data)
-        const values = d?.data?.values || d?.values || d?.data || []
-        if (Array.isArray(values)) {
-          indicatorData.value = values.map((v: any, i: number) => ({
-            date: v.date || v[0] || String(i),
-            value: typeof v.value === 'number' ? v.value : (typeof v[1] === 'number' ? v[1] : 0),
-          }))
-        }
+        try {
+          const d = JSON.parse(result.data)
+          // fetch command returns {success, data: [{date, value}], metadata}
+          const values = d?.data || []
+          if (Array.isArray(values)) {
+            indicatorData.value = values.map((v: any) => ({
+              date: String(v.date || ''),
+              value: typeof v.value === 'number' ? v.value : 0,
+            }))
+          }
+        } catch(e: any) { console.error('[GovData] bis detail parse:', e) }
       }
     }
   } catch(e) { console.error('[GovData] loadDetail:', e) }
+  if (indicatorData.value.length > 0) {
+    dataStore.setCached(detailKey, indicatorData.value, 600_000)
+  }
   chartLoading.value = false
 }
 
@@ -346,8 +384,8 @@ const chartOption = computed(() => {
   }
 })
 
-function formatValue(v: number, unit: string): string {
-  if (v === 0) return '—'
+function formatValue(v: number | null | undefined, unit: string): string {
+  if (v == null) return 'N/A'
   if (unit === '%') return v.toFixed(2) + '%'
   if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
   if (v >= 1_000) return (v / 1_000).toFixed(1) + 'K'
@@ -444,7 +482,7 @@ function changeClass(c: number): string {
             </span>
           </div>
           <div class="card-value">
-            <template v-if="signal.latest_value !== 0">
+            <template v-if="signal.latest_value != null && signal.latest_value !== 0 || signal.latest_date">
               <span class="value">{{ formatValue(signal.latest_value, signal.unit) }}</span>
             </template>
             <span v-else class="card-tap">点击查看数据</span>

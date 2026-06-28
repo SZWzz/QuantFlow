@@ -53,6 +53,12 @@ export interface MarketOverview {
   updatedAt: number
 }
 
+interface CacheEntry<T = any> {
+  data: T
+  timestamp: number
+  ttl: number
+}
+
 export const useDataStore = defineStore('data', () => {
   const quotes = ref<Map<string, QuoteSnapshot>>(new Map())
   const ohlcvCache = ref<Map<string, OHLCVBar[]>>(new Map())
@@ -61,6 +67,7 @@ export const useDataStore = defineStore('data', () => {
   const marketOverview = ref<MarketOverview | null>(null)
   const marketLoading = ref(false)
   const error = ref<string | null>(null)
+  const cache = ref<Map<string, CacheEntry>>(new Map())
 
   function updateQuote(symbol: string, quote: QuoteSnapshot) {
     quotes.value.set(symbol, quote)
@@ -80,6 +87,25 @@ export const useDataStore = defineStore('data', () => {
 
   function toggleOffline() {
     isOffline.value = !isOffline.value
+  }
+
+  function setCached<T>(key: string, data: T, ttlMs: number): void {
+    cache.value.set(key, { data, timestamp: Date.now(), ttl: ttlMs })
+  }
+
+  function getCached<T>(key: string): T | null {
+    const entry = cache.value.get(key)
+    if (!entry) return null
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      cache.value.delete(key)
+      return null
+    }
+    return entry.data as T
+  }
+
+  function clearCached(key?: string): void {
+    if (key) cache.value.delete(key)
+    else cache.value = new Map()
   }
 
   async function fetchMarketOverview(market = 'CN') {
@@ -144,11 +170,15 @@ export const useDataStore = defineStore('data', () => {
     marketOverview,
     marketLoading,
     error,
+    cache,
     updateQuote,
     getQuote,
     setOHLCV,
     getOHLCV,
     toggleOffline,
+    setCached,
+    getCached,
+    clearCached,
     fetchMarketOverview,
   }
 })
