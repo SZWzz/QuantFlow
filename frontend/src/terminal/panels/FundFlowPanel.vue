@@ -79,6 +79,9 @@ function isPositive(v: number): boolean {
 }
 
 watch(symbol, loadData)
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (newSym && newSym !== symbol.value) { symbol.value = newSym; loadData() }
+})
 onMounted(loadData)
 </script>
 

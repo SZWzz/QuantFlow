@@ -104,3 +104,12 @@ func (a *App) RunBacktest(jsonDef string) (map[string]interface{}, error) {
 	_ = jsonDef
 	return nil, fmt.Errorf("backtest engine available but RunBacktest not yet wired — see internal/backtest/runner.go")
 }
+
+// CheckWashSale detects wash sale events for a symbol using trade history.
+func (a *App) CheckWashSale(symbol string) ([]trading.WashSaleEvent, error) {
+	if a.oms == nil {
+		return nil, fmt.Errorf("OMS not initialized")
+	}
+	checker := trading.NewWashSaleChecker()
+	return checker.CheckSymbol(context.Background(), symbol, a.oms)
+}

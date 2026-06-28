@@ -287,9 +287,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Info("sentiment engine initialized in mock mode (no Python bridge)")
 	}
 	nctx.FinancialsService = research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
-	nctx.PeerComparisonService = research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt)
+	nctx.PeerComparisonService = research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt, a.eastmoneyAdpt)
 	nctx.AnalystEstimatesService = research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt)
-	nctx.InsiderTradingService = research.NewInsiderTradingService()
+	nctx.InsiderTradingService = research.NewInsiderTradingService(a.bridge)
 	nctx.CongressTradingService = research.NewCongressTradingService(a.congressAdpt)
 	slog.Info("research services initialized")
 
@@ -391,6 +391,30 @@ func (a *App) RunWorkflow(ctx context.Context, jsonDef string) (*workflow.Execut
 		return nil, fmt.Errorf("parse json: %w", err)
 	}
 	return a.engine.Execute(ctx, &wf)
+}
+
+// RunBacktestWorkflow executes a walk-forward backtest from a workflow JSON definition.
+func (a *App) RunBacktestWorkflow(ctx context.Context, jsonDef string, cfg workflow.BacktestConfig) (*workflow.BacktestResult, error) {
+	if a.engine == nil {
+		return nil, fmt.Errorf("engine not initialized")
+	}
+	var wf workflow.Workflow
+	if err := json.Unmarshal([]byte(jsonDef), &wf); err != nil {
+		return nil, fmt.Errorf("parse json: %w", err)
+	}
+	return a.engine.ExecuteBacktest(ctx, &wf, cfg)
+}
+
+// OptimizeWorkflow runs parameter optimization on a workflow and returns top results.
+func (a *App) OptimizeWorkflow(ctx context.Context, jsonDef string, cfg workflow.OptimizeConfig) (*workflow.OptimizeResult, error) {
+	if a.engine == nil {
+		return nil, fmt.Errorf("engine not initialized")
+	}
+	var wf workflow.Workflow
+	if err := json.Unmarshal([]byte(jsonDef), &wf); err != nil {
+		return nil, fmt.Errorf("parse json: %w", err)
+	}
+	return a.engine.OptimizeParams(ctx, &wf, cfg)
 }
 
 // ExecuteWorkflowByID loads a saved workflow by ID and executes it.

@@ -283,12 +283,12 @@ function formatPct(v: number): string {
 }
 .subtitle {
   font-size: 11px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   margin-left: 6px;
 }
 .symbol-info {
   font-size: 11px;
-  color: var(--term-accent);
+  color: var(--color-accent, #534ab7);
   margin-left: 8px;
   font-weight: 600;
 }
@@ -299,14 +299,14 @@ function formatPct(v: number): string {
 .symbol-field {
   width: 140px;
   padding: 4px 8px;
-  border: 1px solid var(--term-border);
-  background: var(--term-bg);
-  color: var(--term-fg);
+  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, #e5e7eb);
   font-size: 13px;
 }
 .query-btn {
   padding: 4px 12px;
-  background: var(--term-accent);
+  background: var(--color-accent, #534ab7);
   color: #fff;
   border: none;
   cursor: pointer;
@@ -328,16 +328,16 @@ function formatPct(v: number): string {
 }
 .tabs button {
   padding: 4px 12px;
-  border: 1px solid var(--term-border);
-  background: var(--term-bg);
-  color: var(--term-fg-dim);
+  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text-tertiary, #6b7280);
   cursor: pointer;
   font-size: 12px;
 }
 .tabs button.active {
-  background: var(--term-accent);
+  background: var(--color-accent, #534ab7);
   color: #fff;
-  border-color: var(--term-accent);
+  border-color: var(--color-accent, #534ab7);
 }
 .tab-content {
   flex: 1;
@@ -348,7 +348,7 @@ function formatPct(v: number): string {
   gap: 16px;
   padding: 6px 0;
   font-size: 12px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
 }
 .data-table {
   width: 100%;
@@ -357,11 +357,11 @@ function formatPct(v: number): string {
 }
 .data-table th, .data-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid var(--term-border);
+  border-bottom: 1px solid var(--color-border, #2a2a3e);
   text-align: left;
 }
 .data-table th {
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   font-weight: 600;
 }
 .mono { font-family: monospace; }
@@ -374,7 +374,7 @@ function formatPct(v: number): string {
 .stat.up { color: #4ade80; }
 .stat.down { color: #f87171; }
 .empty-hint {
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   font-style: italic;
   padding: 20px 0;
   text-align: center;
@@ -385,7 +385,7 @@ function formatPct(v: number): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   gap: 4px;
 }
 .empty-state p { font-size: 14px; margin: 0; }

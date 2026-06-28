@@ -9,21 +9,31 @@ import (
 )
 
 // PeerComparisonService provides peer company comparison analysis.
-// When conceptAdapter is set, fetches real industry/sector data; otherwise returns mock.
+// Uses concept blocks to identify peer stocks, then fills financial metrics
+// from EastMoney stock info.
 type PeerComparisonService struct {
-	conceptAdapter *adapters.EastMoneyConceptAdapter
-	signalsAdapter *adapters.EastMoneySignalsAdapter
+	conceptAdapter   *adapters.EastMoneyConceptAdapter
+	signalsAdapter   *adapters.EastMoneySignalsAdapter
+	eastmoneyAdapter *adapters.EastMoneyAdapter
 }
 
 // NewPeerComparisonService creates a new PeerComparisonService.
-// Adapters may be nil for mock mode.
-func NewPeerComparisonService(concept *adapters.EastMoneyConceptAdapter, signals *adapters.EastMoneySignalsAdapter) *PeerComparisonService {
-	return &PeerComparisonService{conceptAdapter: concept, signalsAdapter: signals}
+// Adapters may be nil (results will have zero-filled metrics).
+func NewPeerComparisonService(
+	concept *adapters.EastMoneyConceptAdapter,
+	signals *adapters.EastMoneySignalsAdapter,
+	eastmoney *adapters.EastMoneyAdapter,
+) *PeerComparisonService {
+	return &PeerComparisonService{
+		conceptAdapter:   concept,
+		signalsAdapter:   signals,
+		eastmoneyAdapter: eastmoney,
+	}
 }
 
 // GetPeers returns peer comparison data for a symbol.
-// Uses concept blocks to identify peer stocks in the same industry sectors.
-// Deduplicates lead stocks from overlapping concept blocks.
+// Uses concept blocks to identify peer stocks in the same industry sectors,
+// then fetches MarketCap from EastMoney for each peer.
 func (s *PeerComparisonService) GetPeers(ctx context.Context, symbol string) ([]PeerComparisonData, error) {
 	if s.conceptAdapter == nil {
 		return nil, nil
@@ -31,12 +41,10 @@ func (s *PeerComparisonService) GetPeers(ctx context.Context, symbol string) ([]
 
 	blocks, err := s.conceptAdapter.FetchConceptBlocks(ctx, symbol)
 	if err != nil {
-		slog.Warn("peer comparison: concept blocks failed", "symbol", symbol, "error", err)
+		slog.Warn("peer_comparison: concept blocks failed", "symbol", symbol, "error", err)
 		return nil, nil
 	}
 
-	// Collect unique lead stocks from all blocks, deduplicating by stock code.
-	// A single stock often leads multiple concept/industry blocks.
 	seen := make(map[string]bool)
 	peers := make([]PeerComparisonData, 0)
 	for _, b := range blocks {
@@ -48,18 +56,22 @@ func (s *PeerComparisonService) GetPeers(ctx context.Context, symbol string) ([]
 		}
 		seen[b.LeadStockCode] = true
 
-		peers = append(peers, PeerComparisonData{
-			Symbol:        b.LeadStockCode,
-			Name:          b.LeadStock,
-			MarketCap:     0, // Block-level data, per-stock MarketCap requires additional API calls.
-			PE:            0, // Future: batch StockInfo calls for unique lead stocks.
-			RevenueGrowth: 0, // Revenue growth not available from concept blocks.
-			NetMargin:     0,
-			ROE:           0,
-		})
+		p := PeerComparisonData{
+			Symbol: b.LeadStockCode,
+			Name:   b.LeadStock,
+		}
+
+		// Fill MarketCap from EastMoney stock info if adapter available.
+		if s.eastmoneyAdapter != nil {
+			if info, err := s.eastmoneyAdapter.FetchStockInfo(ctx, b.LeadStockCode); err == nil && info != nil {
+				p.MarketCap = info.MarketCap
+			}
+		}
+
+		peers = append(peers, p)
 	}
 
-	slog.Debug("peer comparison: built peers from concept blocks",
+	slog.Debug("peer_comparison: built peers",
 		"symbol", symbol, "blocks", len(blocks), "unique_peers", len(peers))
 	return peers, nil
 }

@@ -26,6 +26,29 @@ type Workflow struct {
 	Edges       []Edge         `json:"edges"`
 }
 
+// Clone returns a deep copy of the workflow suitable for independent execution.
+func (wf *Workflow) Clone() *Workflow {
+	nodes := make([]NodeInstance, len(wf.Nodes))
+	for i, n := range wf.Nodes {
+		nodes[i] = NodeInstance{ID: n.ID, NodeType: n.NodeType}
+		if n.Params != nil {
+			nodes[i].Params = make(map[string]any, len(n.Params))
+			for k, v := range n.Params {
+				nodes[i].Params[k] = v
+			}
+		}
+	}
+	edges := make([]Edge, len(wf.Edges))
+	copy(edges, wf.Edges)
+	return &Workflow{
+		ID:          wf.ID + "-clone",
+		Name:        wf.Name,
+		Description: wf.Description,
+		Nodes:       nodes,
+		Edges:       edges,
+	}
+}
+
 // TopoLayer is a single level in the topological ordering — all nodes in a layer
 // have no dependencies on each other and can execute in parallel.
 type TopoLayer []string

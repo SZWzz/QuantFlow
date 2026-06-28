@@ -82,12 +82,31 @@ interface AppMethods {
   GetMarketOverview(mkt: string): Promise<Record<string, any>>
   GetCryptoOverview(symbols: string[]): Promise<Record<string, any>>
   GetMarketSnapshot(symbols: string[]): Promise<Array<Record<string, any>>>
+  GetCryptoFundingRates(symbols: string[]): Promise<Array<Record<string, any>>>
+  GetCryptoLiquidations(symbol: string, limit: number): Promise<Array<Record<string, any>>>
+  GetShortInterest(symbol: string): Promise<Array<Record<string, any>>>
+  GetUSOptionChain(symbol: string): Promise<Array<Record<string, any>>>
+  GetSECFilings(symbol: string): Promise<Array<Record<string, any>>>
+  CheckWashSale(symbol: string): Promise<Array<Record<string, any>>>
+  GetEarningsCalendar(from: string, to: string): Promise<Array<Record<string, any>>>
+  GetCryptoDepth(exchange: string, symbol: string, limit: number): Promise<Record<string, any>>
+  GetDeFiTVL(): Promise<Record<string, any>>
+  GetWhaleTransactions(address: string): Promise<Record<string, any>>
+  GetGasFees(): Promise<Record<string, any>>
 
   // --- Research ---
   GetSentiment(symbol: string): Promise<any>
   GetSentimentHistory(symbol: string, days: number): Promise<any[]>
   GetStockResearch(symbol: string, tabs: string[]): Promise<any>
   GetCongressTrades(): Promise<any[]>
+  ListMLModels(): Promise<any[]>
+  GetPredictions(modelID: string, symbol: string): Promise<any[]>
+  RunAlphaMining(params: any): Promise<any[]>
+  AssessRisk(symbols: string[], modelType: string): Promise<Record<string, any> | null>
+  GetFinancialAnalysis(symbol: string): Promise<Record<string, any>>
+  GetValuation(symbol: string): Promise<Record<string, any>>
+  GetAuditFindings(symbol: string): Promise<Record<string, any>>
+  GetForecast(symbol: string): Promise<Record<string, any>>
   GetPredictionMarkets(category: string, limit: number): Promise<Record<string, any>>
   GetPredictionEventDetail(eventID: string): Promise<Record<string, any>>
   GetPredictionSignals(category: string, minProbChange: number): Promise<Record<string, any>>
@@ -116,6 +135,13 @@ interface AppMethods {
   GetReturnDistribution(symbol: string, lookback: number, bins: number): Promise<Record<string, any>>
   GetVolatilitySurface(symbol: string): Promise<number[][]>
   GetNews(symbol: string, limit: number): Promise<any[]>
+  GetIPOCalendar(startDate: string, endDate: string): Promise<any[]>
+  GetExDividendCalendar(startDate: string, endDate: string): Promise<any[]>
+  GetCBArbitrageData(): Promise<Record<string, any>>
+  GetHKIPOCalendar(year: number): Promise<Record<string, any>>
+  GetHKDerivatives(): Promise<Record<string, any>>
+  GetHKTradingCalendar(year: number): Promise<Record<string, any>>
+  GetHKSettlementInfo(): Promise<Record<string, any>>
 
   // --- Symbol Search ---
   SearchSymbols(query: string): Promise<any[]>

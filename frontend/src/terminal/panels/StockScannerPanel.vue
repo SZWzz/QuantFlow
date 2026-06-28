@@ -71,10 +71,8 @@ const sortedResults = computed(() => {
   list.sort((a, b) => {
     const va = a[sortField.value]
     const vb = b[sortField.value]
-    if (typeof va === 'string') return va.localeCompare(vb as string)
-    return (va as number) - (vb as number)
+    return (vb - va) * (sortDir.value === 'desc' ? 1 : -1)
   })
-  if (sortDir.value === 'desc') list.reverse()
   return list
 })
 
@@ -275,18 +273,18 @@ function formatVol(v: number): string {
   gap: 8px;
 }
 .header-left h3 { margin: 0; font-size: 15px; }
-.subtitle { font-size: 11px; color: var(--term-fg-dim); margin-left: 6px; }
+.subtitle { font-size: 11px; color: var(--color-text-tertiary, #6b7280); margin-left: 6px; }
 .header-controls { display: flex; gap: 6px; align-items: center; }
 .market-select {
   padding: 4px 8px;
-  background: var(--term-bg);
-  border: 1px solid var(--term-border);
-  color: var(--term-fg);
+  background: var(--color-bg-panel, #1a1a2e);
+  border: 1px solid var(--color-border, #2a2a3e);
+  color: var(--color-text, #e5e7eb);
   font-size: 12px;
 }
 .scan-btn {
   padding: 4px 16px;
-  background: var(--term-accent);
+  background: var(--color-accent, #534ab7);
   color: #fff;
   border: none;
   cursor: pointer;
@@ -296,9 +294,9 @@ function formatVol(v: number): string {
 .scan-btn:disabled { opacity: 0.5; cursor: default; }
 .back-btn {
   padding: 4px 8px;
-  background: var(--term-bg);
-  color: var(--term-fg-dim);
-  border: 1px solid var(--term-border);
+  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text-tertiary, #6b7280);
+  border: 1px solid var(--color-border, #2a2a3e);
   cursor: pointer;
   font-size: 12px;
 }
@@ -317,22 +315,22 @@ function formatVol(v: number): string {
   align-items: flex-start;
   gap: 3px;
   padding: 10px 12px;
-  background: var(--term-bg);
-  border: 1px solid var(--term-border);
+  background: var(--color-bg-panel, #1a1a2e);
+  border: 1px solid var(--color-border, #2a2a3e);
   cursor: pointer;
   text-align: left;
 }
 .strategy-card:hover {
-  border-color: var(--term-accent);
+  border-color: var(--color-accent, #534ab7);
   background: var(--term-accent-dim);
 }
 .card-category {
   font-size: 10px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   text-transform: uppercase;
 }
 .card-name { font-size: 14px; font-weight: 600; }
-.card-desc { font-size: 11px; color: var(--term-fg-dim); }
+.card-desc { font-size: 11px; color: var(--color-text-tertiary, #6b7280); }
 .strategy-detail {
   flex: 1;
   display: flex;
@@ -345,17 +343,17 @@ function formatVol(v: number): string {
   gap: 10px;
   align-items: baseline;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--term-border);
+  border-bottom: 1px solid var(--color-border, #2a2a3e);
 }
 .strat-name { font-size: 15px; font-weight: 700; }
-.strat-category { font-size: 11px; color: var(--term-fg-dim); }
-.strat-desc { font-size: 11px; color: var(--term-accent); }
+.strat-category { font-size: 11px; color: var(--color-text-tertiary, #6b7280); }
+.strat-desc { font-size: 11px; color: var(--color-accent, #534ab7); }
 .params-bar {
   display: flex;
   gap: 12px;
   padding: 6px 8px;
   background: var(--term-bg-dim);
-  border: 1px solid var(--term-border);
+  border: 1px solid var(--color-border, #2a2a3e);
   flex-wrap: wrap;
 }
 .param-item {
@@ -366,22 +364,22 @@ function formatVol(v: number): string {
 }
 .param-item label {
   font-weight: 600;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   min-width: 40px;
 }
 .param-input {
   width: 60px;
   padding: 2px 6px;
-  border: 1px solid var(--term-border);
-  background: var(--term-bg);
-  color: var(--term-fg);
+  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, #e5e7eb);
   font-size: 12px;
 }
 .result-summary {
   display: flex;
   gap: 16px;
   font-size: 12px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
 }
 .summary-stat.positive { color: #4ade80; }
 .results-table {
@@ -395,19 +393,19 @@ function formatVol(v: number): string {
 }
 .data-table th, .data-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid var(--term-border);
+  border-bottom: 1px solid var(--color-border, #2a2a3e);
   text-align: left;
 }
-.data-table th { color: var(--term-fg-dim); font-weight: 600; }
+.data-table th { color: var(--color-text-tertiary, #6b7280); font-weight: 600; }
 .sortable { cursor: pointer; user-select: none; }
-.sortable:hover { color: var(--term-accent); }
+.sortable:hover { color: var(--color-accent, #534ab7); }
 .mono { font-family: monospace; }
-.score { color: var(--term-accent); font-weight: 600; }
+.score { color: var(--color-accent, #534ab7); font-weight: 600; }
 .positive { color: #4ade80; }
 .negative { color: #f87171; }
 .tag-buy { color: #4ade80; font-weight: 600; }
 .tag-sell { color: #f87171; font-weight: 600; }
-.tag-hold { color: var(--term-fg-dim); }
+.tag-hold { color: var(--color-text-tertiary, #6b7280); }
 .conditions-cell {
   display: flex;
   gap: 3px;
@@ -418,10 +416,10 @@ function formatVol(v: number): string {
   font-size: 10px;
   padding: 1px 4px;
   background: var(--term-bg-dim);
-  border: 1px solid var(--term-border);
+  border: 1px solid var(--color-border, #2a2a3e);
 }
 .empty-hint, .scanning-hint {
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   font-style: italic;
   text-align: center;
   padding: 30px 0;

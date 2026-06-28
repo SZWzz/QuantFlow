@@ -23,6 +23,20 @@ export const useTerminalStore = defineStore('terminal', () => {
   const commandHistory = ref<string[]>([])
   const pushPins = ref<PushPin[]>([])
   const focusMode = ref(false)
+  const recentPanels = ref<string[]>(loadRecentPanels())
+
+  function loadRecentPanels(): string[] {
+    try {
+      const saved = localStorage.getItem('quantflow-recent-panels')
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  }
+
+  function persistRecentPanels() {
+    try {
+      localStorage.setItem('quantflow-recent-panels', JSON.stringify(recentPanels.value))
+    } catch {}
+  }
 
   const layout = reactive<DockLayoutTree>(loadLayout())
 
@@ -61,6 +75,9 @@ export const useTerminalStore = defineStore('terminal', () => {
       params,
     }
     activePanels.value.push(panel)
+    // Track recent panels (dedupe, max 20)
+    recentPanels.value = [panelId, ...recentPanels.value.filter(p => p !== panelId)].slice(0, 20)
+    persistRecentPanels()
     return instanceId
   }
 
@@ -158,7 +175,7 @@ export const useTerminalStore = defineStore('terminal', () => {
   }
 
   return {
-    activePanels, commandHistory, pushPins, focusMode, layout,
+    activePanels, commandHistory, pushPins, focusMode, layout, recentPanels,
     openPanel, closePanel, addCommand, toggleFocusMode,
     selectTab, closeTab, moveTab, updateSplitRatios, applyLayout, persistLayout,
   }

@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSessionStore } from '@/stores/session'
-import { getPanelsByCategory, type PanelMeta } from './registry'
+import { useDataStore } from '@/stores/data'
+import { getPanelsByCategory, getPanelMeta, type PanelMeta } from './registry'
 import { PANEL_ICONS, getIcon } from '@/lib/icons'
 
 const { t } = useI18n()
+const terminal = useTerminalStore()
+const session = useSessionStore()
+const dataStore = useDataStore()
+
+const recentPanels = computed(() => terminal.recentPanels.slice(-8).reverse())
+const shIndex = computed(() => dataStore.marketOverview?.indices?.find(i => i.symbol === '000001'))
+const hkIndex = computed(() => dataStore.marketOverview?.indices?.find(i => i.symbol === 'HSI'))
 
 const CATEGORY_KEYS: Record<string, string> = {
   '市场行情': 'misc.cat_market', '交易执行': 'misc.cat_trading',
@@ -17,8 +25,6 @@ const CATEGORY_KEYS: Record<string, string> = {
 function catLabel(cn: string): string { return CATEGORY_KEYS[cn] ? t(CATEGORY_KEYS[cn]) : cn }
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
-const terminal = useTerminalStore()
-const session = useSessionStore()
 
 const categoryColors: Record<string, { bg: string; border: string; accent: string }> = {
   '市场行情': { bg: 'rgba(59, 130, 246, 0.08)', border: 'rgba(59, 130, 246, 0.2)', accent: '#3b82f6' },
@@ -28,6 +34,9 @@ const categoryColors: Record<string, { bg: string; border: string; accent: strin
   '研究分析': { bg: 'rgba(245, 158, 11, 0.08)', border: 'rgba(245, 158, 11, 0.2)', accent: '#f59e0b' },
   '量化分析': { bg: 'rgba(34, 197, 94, 0.08)', border: 'rgba(34, 197, 94, 0.2)', accent: '#22c55e' },
   '另类数据': { bg: 'rgba(236, 72, 153, 0.08)', border: 'rgba(236, 72, 153, 0.2)', accent: '#ec4899' },
+  '港股': { bg: 'rgba(255, 107, 53, 0.08)', border: 'rgba(255, 107, 53, 0.2)', accent: '#ff6b35' },
+  '美股': { bg: 'rgba(30, 144, 255, 0.08)', border: 'rgba(30, 144, 255, 0.2)', accent: '#1e90ff' },
+  '加密货币': { bg: 'rgba(247, 147, 26, 0.08)', border: 'rgba(247, 147, 26, 0.2)', accent: '#f7931a' },
   '系统': { bg: 'rgba(148, 163, 184, 0.08)', border: 'rgba(148, 163, 184, 0.2)', accent: '#94a3b8' },
 }
 
@@ -44,13 +53,13 @@ function getIconSvg(panelId: string): string {
 // Dynamic categories from registry
 const panelCategories = computed(() => {
   const groups = getPanelsByCategory()
-  // Move welcome to the end
-  delete groups['系统']
   const result: { title: string; items: PanelMeta[]; color: ReturnType<typeof getCategoryColor> }[] = []
   for (const [cat, panels] of Object.entries(groups)) {
+    const filtered = panels.filter(p => p.id !== 'welcome')
+    if (filtered.length === 0) continue
     result.push({
       title: cat,
-      items: panels.filter(p => p.id !== 'welcome'),
+      items: filtered,
       color: getCategoryColor(cat),
     })
   }
@@ -60,6 +69,13 @@ const panelCategories = computed(() => {
 function openPanel(id: string) {
   terminal.openPanel(id, { source: 'welcome' })
 }
+
+let marketTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  dataStore.fetchMarketOverview(session.ui.activeMarket)
+  marketTimer = setInterval(() => dataStore.fetchMarketOverview(session.ui.activeMarket), 60000)
+})
+onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 </script>
 
 <template>
@@ -79,6 +95,46 @@ function openPanel(id: string) {
           <span class="btn-icon" v-html="getIcon('settings')" />
           {{ $t('settings.title') }}
         </button>
+      </div>
+    </div>
+
+    <div v-if="recentPanels.length > 0" class="dashboard-section">
+      <div class="section-title">
+        <span class="section-dot" style="background:#3b82f6" />
+        {{ $t('misc.recent_panels') }}
+      </div>
+      <div class="recent-row">
+        <button
+          v-for="p in recentPanels"
+          :key="p"
+          class="recent-chip"
+          @click="openPanel(p)"
+        >
+          {{ getPanelMeta(p)?.label || p }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="shIndex || hkIndex" class="dashboard-section">
+      <div class="section-title">
+        <span class="section-dot" style="background:#22c55e" />
+        {{ $t('misc.market_snapshot') }}
+      </div>
+      <div class="snapshot-row">
+        <div v-if="shIndex" class="snapshot-item">
+          <span class="snap-name">{{ shIndex.name }}</span>
+          <span class="snap-price">{{ (shIndex.last || 0).toFixed(0) }}</span>
+          <span class="snap-pct" :class="(shIndex.changePct || 0) >= 0 ? 'up' : 'down'">
+            {{ (shIndex.changePct || 0) >= 0 ? '+' : '' }}{{ (shIndex.changePct || 0).toFixed(2) }}%
+          </span>
+        </div>
+        <div v-if="hkIndex" class="snapshot-item">
+          <span class="snap-name">{{ hkIndex.name }}</span>
+          <span class="snap-price">{{ (hkIndex.last || 0).toFixed(0) }}</span>
+          <span class="snap-pct" :class="(hkIndex.changePct || 0) >= 0 ? 'up' : 'down'">
+            {{ (hkIndex.changePct || 0) >= 0 ? '+' : '' }}{{ (hkIndex.changePct || 0).toFixed(2) }}%
+          </span>
+        </div>
       </div>
     </div>
 
@@ -400,4 +456,77 @@ function openPanel(id: string) {
   transform: translateX(0);
   color: var(--color-accent);
 }
+
+/* Dashboard sections */
+.dashboard-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 10px;
+}
+.section-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.recent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.recent-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.recent-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(59,130,246,0.1);
+}
+.snapshot-row {
+  display: flex;
+  gap: 16px;
+}
+.snapshot-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+}
+.snap-name {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.snap-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.snap-pct {
+  font-size: 12px;
+  font-weight: 500;
+}
+.snap-pct.up { color: #dc2626; }
+.snap-pct.down { color: #16a34a; }
 </style>

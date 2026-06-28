@@ -29,6 +29,9 @@ async function loadData() {
 }
 
 watch(symbol, loadData)
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (newSym && newSym !== symbol.value) { symbol.value = newSym; loadData() }
+})
 onMounted(loadData)
 
 function fmtShares(v: number | undefined): string {

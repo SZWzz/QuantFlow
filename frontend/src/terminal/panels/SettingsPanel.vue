@@ -5,6 +5,7 @@ import { useThemeStore } from '@/lib/theme'
 import { useSettingsStore } from '@/stores/settings'
 import { setLocale } from '@/lib/i18n'
 import { getIcon } from '@/lib/icons'
+import { APP_VERSION } from '@/version'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -389,7 +390,7 @@ function onExportData() {
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.version') }}</label>
-          <span class="form-value">2026.6.17</span>
+          <span class="form-value">{{ APP_VERSION }}</span>
         </div>
 
         <div class="form-group">

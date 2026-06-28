@@ -23,4 +23,5 @@ var (
 	_ market.Adapter = (*OKXAdapter)(nil)
 	_ market.Adapter = (*CoinGeckoAdapter)(nil)
 	_ market.Adapter = (*PolygonAdapter)(nil)
+	_ market.Adapter = (*BinanceFuturesAdapter)(nil)
 )

@@ -236,12 +236,12 @@ function goBack() {
 }
 .subtitle {
   font-size: 11px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   margin-left: 6px;
 }
 .symbol-info {
   font-size: 11px;
-  color: var(--term-accent);
+  color: var(--color-accent, #534ab7);
   margin-left: 8px;
   font-weight: 600;
 }
@@ -252,14 +252,14 @@ function goBack() {
 .symbol-field {
   width: 120px;
   padding: 4px 8px;
-  border: 1px solid var(--term-border);
-  background: var(--term-bg);
-  color: var(--term-fg);
+  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, #e5e7eb);
   font-size: 13px;
 }
 .query-btn {
   padding: 4px 12px;
-  background: var(--term-accent);
+  background: var(--color-accent, #534ab7);
   color: #fff;
   border: none;
   cursor: pointer;
@@ -268,9 +268,9 @@ function goBack() {
 .query-btn:disabled { opacity: 0.5; cursor: default; }
 .back-btn {
   padding: 4px 8px;
-  background: var(--term-bg);
-  color: var(--term-fg-dim);
-  border: 1px solid var(--term-border);
+  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text-tertiary, #6b7280);
+  border: 1px solid var(--color-border, #2a2a3e);
   cursor: pointer;
   font-size: 12px;
 }
@@ -289,10 +289,10 @@ function goBack() {
 .cat-title {
   margin: 0;
   font-size: 12px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   text-transform: uppercase;
   padding-bottom: 2px;
-  border-bottom: 1px solid var(--term-border);
+  border-bottom: 1px solid var(--color-border, #2a2a3e);
 }
 .indicator-list {
   display: flex;
@@ -304,24 +304,24 @@ function goBack() {
   flex-direction: column;
   align-items: flex-start;
   padding: 6px 10px;
-  background: var(--term-bg);
-  border: 1px solid var(--term-border);
+  background: var(--color-bg-panel, #1a1a2e);
+  border: 1px solid var(--color-border, #2a2a3e);
   cursor: pointer;
   font-size: 12px;
   text-align: left;
   min-width: 100px;
 }
 .indicator-chip:hover {
-  border-color: var(--term-accent);
+  border-color: var(--color-accent, #534ab7);
   background: var(--term-accent-dim);
 }
 .chip-name {
   font-weight: 600;
-  color: var(--term-fg);
+  color: var(--color-text, #e5e7eb);
 }
 .chip-outputs {
   font-size: 10px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   margin-top: 2px;
 }
 .indicator-detail {
@@ -335,18 +335,18 @@ function goBack() {
   gap: 12px;
   align-items: baseline;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--term-border);
+  border-bottom: 1px solid var(--color-border, #2a2a3e);
 }
 .ind-name { font-size: 16px; font-weight: 700; }
-.ind-category { font-size: 11px; color: var(--term-fg-dim); }
-.ind-outputs { font-size: 11px; color: var(--term-accent); }
+.ind-category { font-size: 11px; color: var(--color-text-tertiary, #6b7280); }
+.ind-outputs { font-size: 11px; color: var(--color-accent, #534ab7); }
 .params-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 8px;
   background: var(--term-bg-dim);
-  border: 1px solid var(--term-border);
+  border: 1px solid var(--color-border, #2a2a3e);
 }
 .param-row {
   display: flex;
@@ -357,19 +357,19 @@ function goBack() {
 .param-row label {
   width: 50px;
   font-weight: 600;
-  color: var(--term-fg);
+  color: var(--color-text, #e5e7eb);
 }
 .param-field {
   width: 80px;
   padding: 3px 6px;
-  border: 1px solid var(--term-border);
-  background: var(--term-bg);
-  color: var(--term-fg);
+  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, #e5e7eb);
   font-size: 12px;
 }
 .param-desc {
   font-size: 11px;
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
 }
 .results-table {
   flex: 1;
@@ -382,18 +382,18 @@ function goBack() {
 }
 .data-table th, .data-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid var(--term-border);
+  border-bottom: 1px solid var(--color-border, #2a2a3e);
   text-align: right;
 }
 .data-table th:first-child, .data-table td:first-child { text-align: left; }
 .data-table th {
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   font-weight: 600;
   text-align: right;
 }
 .mono { font-family: monospace; }
 .empty-hint {
-  color: var(--term-fg-dim);
+  color: var(--color-text-tertiary, #6b7280);
   font-style: italic;
   text-align: center;
   padding: 30px 0;

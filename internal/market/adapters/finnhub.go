@@ -188,3 +188,263 @@ func (a *FinnhubAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "AAPL")
 	return err
 }
+
+// ShortInterestData represents Finnhub short interest snapshot for a US stock.
+type ShortInterestData struct {
+	Symbol         string  `json:"symbol"`
+	Date           string  `json:"date"`
+	ShortInterest  float64 `json:"short_interest"`
+	AvgDailyVolume float64 `json:"avg_daily_volume"`
+	DaysToCover    float64 `json:"days_to_cover"`
+	ShortPercent   float64 `json:"short_pct"`
+}
+
+// FetchShortInterest returns short interest data for a US stock symbol.
+// Calls GET /stock/short-interest?symbol=X.
+// Free tier returns the most recent 12 monthly snapshots.
+func (a *FinnhubAdapter) FetchShortInterest(ctx context.Context, symbol string) ([]ShortInterestData, error) {
+	if a.apiKey == "" {
+		return nil, fmt.Errorf("finnhub: API key not configured")
+	}
+	url := fmt.Sprintf("%s/stock/short-interest?symbol=%s&token=%s", finnhubBaseURL, symbol, a.apiKey)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub short_interest: %w", err)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub short_interest: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("finnhub short_interest: HTTP %d", resp.StatusCode)
+	}
+	var result struct {
+		Data []struct {
+			Symbol         string  `json:"symbol"`
+			Date           string  `json:"date"`
+			ShortInterest  float64 `json:"shortInterest"`
+			AvgDailyVolume float64 `json:"avgDailyVolume"`
+			DaysToCover    float64 `json:"daysToCover"`
+			ShortPercent   float64 `json:"shortPercent"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("finnhub short_interest parse: %w", err)
+	}
+	out := make([]ShortInterestData, 0, len(result.Data))
+	for _, d := range result.Data {
+		out = append(out, ShortInterestData{
+			Symbol:         d.Symbol,
+			Date:           d.Date,
+			ShortInterest:  d.ShortInterest,
+			AvgDailyVolume: d.AvgDailyVolume,
+			DaysToCover:    d.DaysToCover,
+			ShortPercent:   d.ShortPercent,
+		})
+	}
+	return out, nil
+}
+
+// ── Option Chain ─────────────────────────────────────────────────────
+
+// OptionChainItem holds a single option chain contract.
+type OptionChainItem struct {
+	Expiry       string  `json:"expiry"`
+	Strike       float64 `json:"strike"`
+	Type         string  `json:"type"`
+	Bid          float64 `json:"bid"`
+	Ask          float64 `json:"ask"`
+	Last         float64 `json:"last"`
+	Volume       int     `json:"volume"`
+	OpenInterest int     `json:"open_interest"`
+	ImpliedVol   float64 `json:"implied_vol"`
+	Delta        float64 `json:"delta"`
+	Gamma        float64 `json:"gamma"`
+	Theta        float64 `json:"theta"`
+	Vega         float64 `json:"vega"`
+}
+
+func (a *FinnhubAdapter) FetchOptionChain(ctx context.Context, symbol string) ([]OptionChainItem, error) {
+	if a.apiKey == "" {
+		return nil, fmt.Errorf("finnhub: API key not configured")
+	}
+	url := fmt.Sprintf("%s/stock/option-chain?symbol=%s&token=%s", finnhubBaseURL, symbol, a.apiKey)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub option: %w", err)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub option: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("finnhub option: HTTP %d", resp.StatusCode)
+	}
+	var result struct {
+		Data []struct {
+			Expiry       string  `json:"expirationDate"`
+			Strike       float64 `json:"strike"`
+			Type         string  `json:"optionType"`
+			Bid          float64 `json:"bid"`
+			Ask          float64 `json:"ask"`
+			Last         float64 `json:"lastPrice"`
+			Volume       int     `json:"volume"`
+			OpenInterest int     `json:"openInterest"`
+			ImpliedVol   float64 `json:"impliedVolatility"`
+			Delta        float64 `json:"delta"`
+			Gamma        float64 `json:"gamma"`
+			Theta        float64 `json:"theta"`
+			Vega         float64 `json:"vega"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("finnhub option parse: %w", err)
+	}
+	out := make([]OptionChainItem, 0, len(result.Data))
+	for _, o := range result.Data {
+		out = append(out, OptionChainItem{
+			Expiry:       o.Expiry,
+			Strike:       o.Strike,
+			Type:         o.Type,
+			Bid:          o.Bid,
+			Ask:          o.Ask,
+			Last:         o.Last,
+			Volume:       o.Volume,
+			OpenInterest: o.OpenInterest,
+			ImpliedVol:   o.ImpliedVol,
+			Delta:        o.Delta,
+			Gamma:        o.Gamma,
+			Theta:        o.Theta,
+			Vega:         o.Vega,
+		})
+	}
+	return out, nil
+}
+
+// ── SEC Filings ──────────────────────────────────────────────────────
+
+// FinnhubSECFiling holds a single SEC filing record from Finnhub.
+type FinnhubSECFiling struct {
+	Symbol      string `json:"symbol"`
+	Form        string `json:"form"`
+	Date        string `json:"date"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	Filer       string `json:"filer"`
+}
+
+func (a *FinnhubAdapter) FetchSECFilings(ctx context.Context, symbol string) ([]FinnhubSECFiling, error) {
+	if a.apiKey == "" {
+		return nil, fmt.Errorf("finnhub: API key not configured")
+	}
+	url := fmt.Sprintf("%s/stock/filings?symbol=%s&token=%s", finnhubBaseURL, symbol, a.apiKey)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub filings: %w", err)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub filings: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("finnhub filings: HTTP %d", resp.StatusCode)
+	}
+	var result []struct {
+		Symbol      string `json:"symbol"`
+		Form        string `json:"form"`
+		Date        string `json:"filedDate"`
+		Description string `json:"description"`
+		URL         string `json:"reportUrl"`
+		Filer       string `json:"filingOwner"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("finnhub filings parse: %w", err)
+	}
+	out := make([]FinnhubSECFiling, 0, len(result))
+	for _, f := range result {
+		out = append(out, FinnhubSECFiling{
+			Symbol:      f.Symbol,
+			Form:        f.Form,
+			Date:        f.Date,
+			Description: f.Description,
+			URL:         f.URL,
+			Filer:       f.Filer,
+		})
+	}
+	return out, nil
+}
+
+// ── Earnings Calendar ────────────────────────────────────────────────
+
+type EarningsEvent struct {
+	Symbol          string  `json:"symbol"`
+	Date            string  `json:"date"`
+	Hour            string  `json:"hour"`  // bmo=before market open, amc=after close
+	Quarter         int     `json:"quarter"`
+	Year            int     `json:"year"`
+	EPSActual       float64 `json:"eps_actual"`
+	EPSEstimate     float64 `json:"eps_estimate"`
+	RevenueActual   float64 `json:"revenue_actual"`
+	RevenueEstimate float64 `json:"revenue_estimate"`
+}
+
+// FetchEarningsCalendar returns upcoming earnings events (max ~3-6 months on free tier).
+// Calls GET /calendar/earnings with optional from/to dates (YYYY-MM-DD).
+func (a *FinnhubAdapter) FetchEarningsCalendar(ctx context.Context, from, to string) ([]EarningsEvent, error) {
+	if a.apiKey == "" {
+		return nil, fmt.Errorf("finnhub: API key not configured")
+	}
+	url := fmt.Sprintf("%s/calendar/earnings?token=%s", finnhubBaseURL, a.apiKey)
+	if from != "" {
+		url += "&from=" + from
+	}
+	if to != "" {
+		url += "&to=" + to
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub earnings: %w", err)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub earnings: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("finnhub earnings: HTTP %d", resp.StatusCode)
+	}
+	var result struct {
+		EarningsCalendar []struct {
+			Symbol          string  `json:"symbol"`
+			Date            string  `json:"date"`
+			Hour            string  `json:"hour"`
+			Quarter         int     `json:"quarter"`
+			Year            int     `json:"year"`
+			EPSActual       float64 `json:"epsActual"`
+			EPSEstimate     float64 `json:"epsEstimate"`
+			RevenueActual   float64 `json:"revenueActual"`
+			RevenueEstimate float64 `json:"revenueEstimate"`
+		} `json:"earningsCalendar"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("finnhub earnings parse: %w", err)
+	}
+	out := make([]EarningsEvent, 0, len(result.EarningsCalendar))
+	for _, e := range result.EarningsCalendar {
+		out = append(out, EarningsEvent{
+			Symbol:          e.Symbol,
+			Date:            e.Date,
+			Hour:            e.Hour,
+			Quarter:         e.Quarter,
+			Year:            e.Year,
+			EPSActual:       e.EPSActual,
+			EPSEstimate:     e.EPSEstimate,
+			RevenueActual:   e.RevenueActual,
+			RevenueEstimate: e.RevenueEstimate,
+		})
+	}
+	return out, nil
+}

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useTerminalStore } from '@/stores/terminal'
 
+const { t } = useI18n()
 const workflow = useWorkflowStore()
 const terminal = useTerminalStore()
 
@@ -57,24 +59,24 @@ function pinToTerminal() {
 <template>
   <div class="property-panel">
     <div class="panel-header">
-      <h3>Properties</h3>
+      <h3>{{ t('workflow.properties') }}</h3>
     </div>
 
     <div v-if="selectedNode" class="panel-content">
       <div class="prop-section">
         <div class="prop-row">
-          <span class="prop-label">ID</span>
+          <span class="prop-label">{{ t('workflow.id') }}</span>
           <span class="prop-value mono">{{ selectedNode.id }}</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Type</span>
+          <span class="prop-label">{{ t('workflow.type') }}</span>
           <span class="prop-value type-badge">{{ selectedNode.data.nodeType }}</span>
         </div>
-        <button class="pin-btn" @click="pinToTerminal">📌 Pin to Terminal</button>
+        <button class="pin-btn" @click="pinToTerminal">{{ t('workflow.pin_terminal') }}</button>
       </div>
 
       <div v-if="selectedNode.data.params && Object.keys(selectedNode.data.params).length > 0" class="prop-section">
-        <h4 class="section-title">Parameters</h4>
+        <h4 class="section-title">{{ t('workflow.parameters') }}</h4>
         <div v-for="(value, key) in selectedNode.data.params" :key="key" class="param-row">
           <label class="param-label">{{ key }}</label>
           <input
@@ -87,21 +89,21 @@ function pinToTerminal() {
       </div>
 
       <div v-if="selectedNode.data.inputs" class="prop-section">
-        <h4 class="section-title">Input Ports</h4>
+        <h4 class="section-title">{{ t('workflow.input_ports') }}</h4>
         <div v-for="port in selectedNode.data.inputs" :key="port" class="port-item">
           <span class="port-dir">◀</span> {{ port }}
         </div>
       </div>
 
       <div v-if="selectedNode.data.outputs" class="prop-section">
-        <h4 class="section-title">Output Ports</h4>
+        <h4 class="section-title">{{ t('workflow.output_ports') }}</h4>
         <div v-for="port in selectedNode.data.outputs" :key="port" class="port-item">
           <span class="port-dir">▶</span> {{ port }}
         </div>
       </div>
 
       <div v-if="selectedNode.data.status && selectedNode.data.status !== 'idle'" class="prop-section">
-        <h4 class="section-title">Status</h4>
+        <h4 class="section-title">{{ t('workflow.status') }}</h4>
         <div class="status-badge" :class="selectedNode.data.status">
           {{ selectedNode.data.status }}
         </div>
@@ -110,7 +112,7 @@ function pinToTerminal() {
     </div>
 
     <div v-else class="no-selection">
-      <p>Select a node to view its properties</p>
+      <p>{{ t('workflow.select_node') }}</p>
     </div>
   </div>
 </template>

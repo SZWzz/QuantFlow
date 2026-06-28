@@ -38,4 +38,8 @@ type NodeContext struct {
 	GeopoliticsService      interface{} // *research.GeopoliticsService
 	GovDataService          interface{} // *research.GovDataService
 	SatelliteService        interface{} // *research.SatelliteService
+
+	// Backtest window — set by ExecuteBacktest before each window
+	BacktestStart string
+	BacktestEnd   string
 }

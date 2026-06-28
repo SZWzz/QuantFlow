@@ -69,17 +69,63 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
-  function addNode(type: string, position: { x: number; y: number }, params?: Record<string, any>, portOverrides?: { inputs: string[]; outputs: string[] }) {
+  // Node metadata cache — populated by fetchNodeMeta()
+  interface PortInfo { name: string; type: string }
+  interface NodeMetaInfo { category: string; inputs: PortInfo[]; outputs: PortInfo[]; params: any[] }
+  const nodeMetaCache = ref<Map<string, NodeMetaInfo>>(new Map())
+
+  async function fetchNodeMeta() {
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app?.ListNodes) return
+      const list = await app.ListNodes()
+      if (!Array.isArray(list)) return
+      const m = new Map<string, NodeMetaInfo>()
+      for (const n of list) {
+        m.set(n.node_type, {
+          category: n.category || 'utility',
+          inputs: (n.input_ports || []).map((p: any) => ({ name: p.name, type: p.type || 'any' })),
+          outputs: (n.output_ports || []).map((p: any) => ({ name: p.name, type: p.type || 'any' })),
+          params: n.params || [],
+        })
+      }
+      nodeMetaCache.value = m
+    } catch { /* graceful */ }
+  }
+
+  function getNodePorts(type: string): { category: string; inputs: string[]; outputs: string[] } {
+    const meta = nodeMetaCache.value.get(type)
+    if (meta) return {
+      category: meta.category,
+      inputs: meta.inputs.map(p => p.name),
+      outputs: meta.outputs.map(p => p.name),
+    }
+    return { category: 'utility', inputs: ['input'], outputs: ['output'] }
+  }
+
+  // Port compatibility check: returns true if output can connect to input
+  function canConnectPorts(outputType: string, inputType: string): boolean {
+    if (!outputType || !inputType) return true // unknown types allowed
+    if (outputType === inputType) return true
+    if (outputType === 'any' || inputType === 'any') return true
+    // ohlcv is compatible with series
+    if (outputType === 'ohlcv' && inputType === 'series') return true
+    // signal is compatible with number
+    if (outputType === 'signal' && inputType === 'number') return true
+    return false
+  }
+
+  function getPortType(nodeType: string, portName: string, direction: 'input' | 'output'): string | null {
+    const meta = nodeMetaCache.value.get(nodeType)
+    if (!meta) return null
+    const ports = direction === 'input' ? meta.inputs : meta.outputs
+    return ports.find(p => p.name === portName)?.type || null
+  }
+
+  function addNode(type: string, position: { x: number; y: number }, params?: Record<string, any>) {
     pushHistory()
     const id = `${type}-${Date.now()}`
-    const pmap: Record<string, { inputs: string[]; outputs: string[] }> = {
-      data_loader: { inputs: [], outputs: ['ohlcv'] },
-      sma: { inputs: ['input'], outputs: ['output'] },
-      cross_signal: { inputs: ['fast', 'slow'], outputs: ['signal'] },
-      log_output: { inputs: ['input'], outputs: ['output'] },
-      loop: { inputs: ['items'], outputs: ['batched'] },
-    }
-    const ports = portOverrides || pmap[type] || { inputs: ['input'], outputs: ['output'] }
+    const ports = getNodePorts(type)
 
     nodes.value = [...nodes.value as VFNode[], {
       id,
@@ -87,6 +133,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
       position,
       data: {
         nodeType: type,
+        category: ports.category,
         label: type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
         params: params || {},
         inputs: ports.inputs,
@@ -166,20 +213,14 @@ export const useWorkflowStore = defineStore('workflow', () => {
     for (const n of wf.nodes) {
       const newId = `${n.node_type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
       nodeIdMap.set(n.id, newId)
-      const portMap: Record<string, { inputs: string[]; outputs: string[] }> = {
-        data_loader: { inputs: [], outputs: ['ohlcv'] },
-        sma: { inputs: ['input'], outputs: ['output'] },
-        cross_signal: { inputs: ['fast', 'slow'], outputs: ['signal'] },
-        log_output: { inputs: ['input'], outputs: ['output'] },
-        loop: { inputs: ['items'], outputs: ['batched'] },
-      }
-      const ports = portMap[n.node_type] || { inputs: ['input'], outputs: ['output'] }
+      const ports = getNodePorts(n.node_type)
       ;(nodes.value as VFNode[]).push({
         id: newId,
         type: 'custom',
         position: { x: 100 + Math.random() * 300, y: 100 + Math.random() * 200 },
         data: {
           nodeType: n.node_type,
+          category: ports.category,
           label: n.node_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
           params: n.params || {},
           inputs: ports.inputs,
@@ -207,6 +248,68 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
+  // ── Multi-workflow management ──────────────────────────────────
+
+  const WF_STORAGE_KEY = 'quantflow-workflows'
+
+  interface SavedWorkflow {
+    id: string
+    name: string
+    createdAt: string
+    updatedAt: string
+    nodeCount: number
+    json: WorkflowJSON
+  }
+
+  const workflowList = ref<SavedWorkflow[]>(loadWorkflowList())
+
+  function loadWorkflowList(): SavedWorkflow[] {
+    try {
+      const raw = localStorage.getItem(WF_STORAGE_KEY)
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+  }
+
+  function persistWorkflowList() {
+    try { localStorage.setItem(WF_STORAGE_KEY, JSON.stringify(workflowList.value)) } catch {}
+  }
+
+  function saveWorkflow(name: string) {
+    const wf = toWorkflowJSON(name)
+    const now = new Date().toISOString()
+    const existing = workflowList.value.find(w => w.name === name)
+    if (existing) {
+      existing.json = wf
+      existing.updatedAt = now
+      existing.nodeCount = wf.nodes.length
+    } else {
+      workflowList.value.push({
+        id: `wf-${Date.now()}`,
+        name,
+        createdAt: now,
+        updatedAt: now,
+        nodeCount: wf.nodes.length,
+        json: wf,
+      })
+    }
+    persistWorkflowList()
+  }
+
+  function loadWorkflow(id: string) {
+    const saved = workflowList.value.find(w => w.id === id)
+    if (saved) fromWorkflowJSON(saved.json)
+  }
+
+  function deleteWorkflow(id: string) {
+    workflowList.value = workflowList.value.filter(w => w.id !== id)
+    persistWorkflowList()
+  }
+
+  function renameWorkflow(id: string, newName: string) {
+    const wf = workflowList.value.find(w => w.id === id)
+    if (wf) { wf.name = newName; wf.updatedAt = new Date().toISOString(); persistWorkflowList() }
+  }
+
   return {
     nodes,
     edges,
@@ -217,6 +320,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     selectedNodeId,
     history,
     historyIndex,
+    nodeMetaCache, fetchNodeMeta, getNodePorts, getPortType, canConnectPorts,
     addNode,
     removeNode,
     addEdge,
@@ -225,6 +329,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     resetExecution,
     toWorkflowJSON,
     fromWorkflowJSON,
+    workflowList, saveWorkflow, loadWorkflow, deleteWorkflow, renameWorkflow,
     undo,
     redo,
   }

@@ -2,6 +2,7 @@
 import { computed, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
+import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { getIcon } from '@/lib/icons'
@@ -90,13 +91,14 @@ function closeTab(tabId: string) {
         <span class="empty-icon" v-html="getIcon('plus')" />
         Drop panels here
       </div>
-      <component
-        v-else-if="activeComponent"
-        :is="activeComponent"
-        :panel-id="activePanel?.panelId"
-        :params="activeParams"
-        class="panel-instance"
-      />
+      <ErrorBoundary v-else-if="activeComponent" :panel-id="activePanel?.panelId || ''">
+        <component
+          :is="activeComponent"
+          :panel-id="activePanel?.panelId"
+          :params="activeParams"
+          class="panel-instance"
+        />
+      </ErrorBoundary>
       <div v-else class="empty-content">
         Panel "{{ activePanel?.panelId }}" not registered
       </div>

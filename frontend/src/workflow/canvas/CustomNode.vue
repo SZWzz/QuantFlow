@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Handle, Position } from '@vue-flow/core'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   id: string
@@ -42,36 +45,25 @@ const NODE_LABELS: Record<string, string> = {
   insider_trades: '内部交易',
   prediction_market: '预测市场', geopolitics: '地缘政治', gov_data: '宏观数据', satellite: '卫星数据',
 }
-const PORT_LABELS: Record<string, string> = {
-  input: '输入', output: '输出', symbol: '代码', price: '价格', volume: '成交量',
-  signal: '信号', data: '数据', result: '结果', error: '错误',
-  open: '开盘', high: '最高', low: '最低', close: '收盘',
-  buy: '买入', sell: '卖出', quantity: '数量', order: '订单',
-}
 function nodeLabel(type: string): string { return NODE_LABELS[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }
-function portLabel(name: string): string { return PORT_LABELS[name] || name }
+function portLabel(name: string): string { return t(`workflow.port_${name}`) !== `workflow.port_${name}` ? t(`workflow.port_${name}`) : name }
 
-const category = computed(() => {
-  const cat = props.data.nodeType
-  if (cat.includes('data')) return 'data'
-  if (cat.includes('sma') || cat.includes('indicator')) return 'indicator'
-  if (cat.includes('signal') || cat.includes('cross')) return 'signal'
-  if (cat.includes('log') || cat.includes('output')) return 'output'
-  if (cat.includes('loop')) return 'control'
-  return 'default'
-})
-
-const categoryColor = computed(() => {
-  const colors: Record<string, string> = {
-    data: 'var(--color-accent)',
-    indicator: '#3fb950',
-    signal: '#f0883e',
-    output: '#a371f7',
-    control: '#e94560',
-    default: 'var(--color-text-tertiary)',
-  }
-  return colors[category.value] || colors.default
-})
+const CAT_ICONS: Record<string, string> = {
+  data: '📊', indicator: '📈', signal: '⚡', trading: '💰', risk: '🛡️',
+  portfolio: '📦', strategy: '🧠', ml: '🤖', ai: '🤖', output: '📝', control: '🔀',
+  utility: '🔧', research: '🔍', alternative_data: '🛰️', notify: '🔔', schedule: '⏰',
+  backtest: '📉', alpha: '⭐',
+}
+const CAT_COLORS: Record<string, string> = {
+  data: '#58a6ff', indicator: '#3fb950', signal: '#f0883e', trading: '#e94560',
+  risk: '#ef4444', portfolio: '#14b8a6', strategy: '#06b6d4', ml: '#a855f7',
+  ai: '#ec4899', output: '#a371f7', control: '#6366f1', utility: '#64748b',
+  research: '#0ea5e9', alternative_data: '#84cc16', notify: '#f97316', schedule: '#6366f1',
+  backtest: '#8b5cf6', alpha: '#f59e0b',
+}
+const category = computed(() => (props.data as any).category || 'utility')
+const catIcon = computed(() => CAT_ICONS[category.value] || '🔹')
+const categoryColor = computed(() => CAT_COLORS[category.value] || CAT_COLORS.utility)
 
 const statusClass = computed(() => `status-${props.data.status || 'idle'}`)
 
@@ -86,7 +78,7 @@ const paramSummary = computed(() => {
 <template>
   <div class="custom-node" :class="[statusClass, { selected }]">
     <div class="node-header" :style="{ background: categoryColor }">
-      <span class="node-type">{{ nodeLabel(data.nodeType) }}</span>
+      <span class="cat-icon">{{ catIcon }}</span><span class="node-type">{{ nodeLabel(data.nodeType) }}</span>
     </div>
 
     <div class="node-body">

@@ -111,3 +111,110 @@ func (b *BinanceFuturesAdapter) HealthCheck(ctx context.Context) error {
 	_, err := b.FetchQuote(ctx, "BTCUSDT")
 	return err
 }
+
+// FundingRateData represents Binance USDⓈ-M perpetual funding rate snapshot.
+type FundingRateData struct {
+	Symbol          string  `json:"symbol"`
+	MarkPrice       float64 `json:"mark_price"`
+	IndexPrice      float64 `json:"index_price"`
+	FundingRate     float64 `json:"funding_rate"`
+	NextFundingTime int64   `json:"next_funding_time"`
+}
+
+// FetchFundingRates returns funding rates for the given perpetual symbols.
+// Calls GET /fapi/v1/premiumIndex for each symbol.
+func (b *BinanceFuturesAdapter) FetchFundingRates(ctx context.Context, symbols []string) ([]FundingRateData, error) {
+	if len(symbols) == 0 {
+		symbols = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "DOTUSDT", "AVAXUSDT", "LINKUSDT"}
+	}
+	results := make([]FundingRateData, 0, len(symbols))
+	for _, sym := range symbols {
+		url := fmt.Sprintf("%s/premiumIndex?symbol=%s", binanceFuturesAPI, sym)
+		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+		resp, err := b.client.Do(req)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			continue
+		}
+		var raw struct {
+			Symbol          string `json:"symbol"`
+			MarkPrice       string `json:"markPrice"`
+			IndexPrice      string `json:"indexPrice"`
+			LastFundingRate string `json:"lastFundingRate"`
+			NextFundingTime int64  `json:"nextFundingTime"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+			resp.Body.Close()
+			continue
+		}
+		resp.Body.Close()
+		results = append(results, FundingRateData{
+			Symbol:          raw.Symbol,
+			MarkPrice:       parseFloatSafe(raw.MarkPrice),
+			IndexPrice:      parseFloatSafe(raw.IndexPrice),
+			FundingRate:     parseFloatSafe(raw.LastFundingRate),
+			NextFundingTime: raw.NextFundingTime,
+		})
+	}
+	return results, nil
+}
+
+// LiquidationData represents a single forced liquidation order.
+type LiquidationData struct {
+	Symbol    string  `json:"symbol"`
+	Side      string  `json:"side"`
+	Price     float64 `json:"price"`
+	Qty       float64 `json:"qty"`
+	Amount    float64 `json:"amount"`
+	Time      int64   `json:"time"`
+	OrderSide string  `json:"order_side"`
+}
+
+// FetchLiquidations returns historical liquidation orders for a symbol.
+// Calls GET /fapi/v1/allForceOrders with optional symbol and limit.
+func (b *BinanceFuturesAdapter) FetchLiquidations(ctx context.Context, symbol string, limit int) ([]LiquidationData, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 100
+	}
+	url := fmt.Sprintf("%s/allForceOrders?limit=%d", binanceFuturesAPI, limit)
+	if symbol != "" {
+		url += "&symbol=" + symbol
+	}
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	resp, err := b.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("binance_futures FetchLiquidations: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("binance_futures: HTTP %d", resp.StatusCode)
+	}
+	var raw []struct {
+		Symbol    string `json:"symbol"`
+		Side      string `json:"side"`
+		Price     string `json:"price"`
+		Qty       string `json:"qty"`
+		Amount    string `json:"amount"`
+		Time      int64  `json:"time"`
+		OrderSide string `json:"orderSide"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("binance_futures decode: %w", err)
+	}
+	results := make([]LiquidationData, 0, len(raw))
+	for _, r := range raw {
+		results = append(results, LiquidationData{
+			Symbol:    r.Symbol,
+			Side:      r.Side,
+			Price:     parseFloatSafe(r.Price),
+			Qty:       parseFloatSafe(r.Qty),
+			Amount:    parseFloatSafe(r.Amount),
+			Time:      r.Time,
+			OrderSide: r.OrderSide,
+		})
+	}
+	return results, nil
+}

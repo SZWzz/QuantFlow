@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useTerminalStore } from '@/stores/terminal'
@@ -16,9 +16,31 @@ const router = useRouter()
 
 const showCommandBar = ref(false)
 
+const SHORTCUT_MAP: Record<string, string> = {
+  D: 'dragon-tiger',
+  L: 'limit-up-down',
+  H: 'hk-connect',
+  F: 'funding-rate',
+  Q: 'sector-rotation',
+  E: 'economic-calendar',
+  W: 'watchlist',
+}
+
+function onGlobalKeydown(e: KeyboardEvent) {
+  if (!e.ctrlKey || !e.shiftKey) return
+  const panelId = SHORTCUT_MAP[e.key.toUpperCase()]
+  if (panelId && session.ui.mode === 'terminal') {
+    e.preventDefault()
+    terminal.openPanel(panelId)
+  }
+}
+
 function onOpenPanel(panelId: string, params?: Record<string, any>) {
   terminal.openPanel(panelId, params)
 }
+
+onMounted(() => window.addEventListener('keydown', onGlobalKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown))
 
 function onNavigate(path: string) {
   router.push(path)

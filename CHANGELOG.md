@@ -6,7 +6,146 @@
 
 ## [2026.6.28] - 2026-06-28
 
+### 新增 — 财务深度分析面板（Financial Analyzer 集成）
+- [Python] **analyzer.py** — 4 个纯计算分析函数（`report_analysis`/`valuation`/`audit`/`forecast`），输入财报 JSON → 输出结构化分析结果
+- [Python] **fetcher.py 扩展** — 新增 `analyzer` source 直接 import 调用（避免 gRPC fork 冲突）
+- [行情] **财务报表面板重写** — FinancialsPanel 裸 JSON → 三年对比表 + 财务健康评分(0-100) + 异常标记（商誉/负债率/应收）
+- [终端] **DCF 估值面板** — ValuationPanel 三情景 DCF + 自由现金流 + 买卖建议
+- [终端] **财务审计面板** — AuditPanel 按风险等级分组审计发现（应收/商誉/现金流/负债）
+- [终端] **财务预测面板** — ForecastPanel 线性回归两年三情景预测表
+- [行情] **Sina 字段映射** — 20+ 字段名从新浪长名称 → 标准化短名称（`归属于母公司所有者的净利润` → `归母净利润`）
+- [行情] **股本查询** — `fetchQuoteJSON` 集成 EastMoney `FetchStockInfo` 获取总股本/市值
+
+### 修复 — 面板质量与数据管道
+- [前端] **MarginPanel/SECFinancialsPanel/SEC13FPanel** — 裸 JSON → 结构化表格
+- [前端] **RiskDashboard** — 移除占位横幅 + 接入 portfolio store 真实持仓/净值计算 6 项风险指标
+- [前端] **BasketOrderPanel** — 移除硬编码 mock 行 + `setTimeout` 模拟，改为 Go `PlaceOrder` 真实下单
+- [前端] **TradingJournalPanel** — 移除 `buildMockData()` 假数据 fallback
+- [前端] **3 个 JSON 面板 UI 错误修复** — ChanlunPanel/IndicatorPanel/StockScannerPanel CSS 使用不存在的 `--term-*` 变量 → 替换为标准 `--color-*` 变量
+- [前端] **SectorRotationPanel** — 数据源从 `GetMarketOverview`（无 sectors 字段）改为 `GetIndustryRanks`
+- [前端] **WelcomePanel** — 修复 `delete groups['系统']` 导致系统分类 6 面板消失；新增港股/美股/加密货币配色
+- [前端] **CandlestickPanel** — VChart key 缺失 indicator state 导致 MA/BB/副图合并渲染残缺；yAxis `scale` 裁剪 BB 轨线；dataZoom 默认只显示 50% 数据
+- [前端] **useStockName debounce** — 400ms 防抖 + 最小符号长度校验，终止逐字输入时的 API 风暴
+
+### 新增 — 工作流模式增强（P1-P3）
+- [工作流] **Go ListNodes 扩展** — `NodeMeta` 新增 `InputPorts`/`OutputPorts`/`Params` 字段，`ListAll` 创建临时节点实例读取真实端口
+- [工作流] **前端端口映射** — 删除 `pmap` 硬编码，改用 Go `ListNodes` 真实端口；连线时类型校验阻止不兼容连接
+- [工作流] **7 个预置量化模板** — 金叉选股/MACD底背离/多因子打分/布林带突破/RSI超卖/配对交易/MACD+RSI共振
+- [工作流] **节点视觉差异化** — 按类别显示颜色边框 + emoji 图标
+- [工作流] **多工作流管理** — localStorage 多文件存储 + WorkflowList 侧边抽屉（新建/加载/重命名/删除）
+- [工作流] **Walk-Forward 回测** — `ExecuteBacktest` 滚动窗口训练/测试分离
+- [工作流] **参数优化** — `OptimizeParams` 网格搜索 + 按 Sharpe/Return 排序
+- [工作流] **Workflow.Clone()** — 深拷贝用于独立窗口执行
+
+### 修复 — Go 后端
+- [研究] **InsiderTradingService** — 3 条硬编码 mock → Python SEC EDGAR Form 4 真实数据
+- [研究] **PeerComparisonService** — 真实同行名但 MarketCap=0 → EastMoney 填充市值
+- [机器学习] **ML 服务层** — `ListMLModels` 文件系统扫描 + `GetPredictions`/`RunAlphaMining`/`AssessRisk` Python gRPC 代理
+- [Python] **bridge.go** — 新增 `PythonDir()` getter
+
+### i18n 完善
+- [前端] **工作流面板全 i18n** — PropertyPanel/CustomNode/WorkflowMode/NodePalette/WorkflowList 所有硬编码英文 → `$t('workflow.*')`
+- [前端] **25 个 P1 面板 SVG 图标** — WelcomePanel 卡片不再缺失图标
+- [前端] **SettingsPanel 版本号** — 硬编码 `2026.6.17` → `src/version.ts` 统一管理
+
 ### 新增
+
+#### P1 — 终端面板增强（7 个新面板）
+- [终端] **龙虎榜面板** (`DragonTigerPanel.vue`) — 日榜单+个股历史，买卖 TOP5 营业部展开，symbol 点击联动
+- [终端] **涨跌停监控面板** (`LimitUpDownPanel.vue`) — 从 `GetAbnormalStocks` 过滤涨停/跌停，统计计数，30s 自动刷新
+- [终端] **港股通面板** (`HKConnectPanel.vue`) — 北向资金实时流入分时图+历史表格+额度概览，复用 `GetNorthboundFlow`
+- [终端] **资金费率面板** (`FundingRatePanel.vue`) — 加密永续合约资金费率+标记价+指数价+下期结算，30s 自动刷新
+- [终端] **爆仓追踪面板** (`LiquidationPanel.vue`) — 24h 爆仓统计+历史列表，多/空方向标识
+- [终端] **板块轮动面板** (`SectorRotationPanel.vue`) — RRG 散点图 4 象限+板块强度表，CN/HK/US 市场切换
+- [终端] **经济日历面板** (`EconomicCalendarPanel.vue`) — 全球宏观事件时间线，前值/预期/实际三级展示，CN/US 过滤
+
+#### P2 — 用户体验增强
+- [终端] **SkeletonPanel 骨架屏组件** — table/card/chart 三种类型，统一加载态
+- [终端] **ErrorBoundary 面板级错误边界** — 捕获渲染异常，显示重试 UI
+- [终端] **全局快捷键** — `Ctrl+Shift+D`龙虎榜 `Ctrl+Shift+L`涨跌停 `Ctrl+Shift+H`港股通 `Ctrl+Shift+F`资金费率 `Ctrl+Shift+Q`板块轮动 `Ctrl+Shift+E`经济日历
+- [终端] **WelcomePanel 动态化** — 最近面板列表+市场快照（上证/恒指实时行情）
+- [终端] **recentPanels 面板历史追踪** — 最近 20 个面板记录，localStorage 持久化
+
+#### 后端
+- [行情] **BinanceFuturesAdapter 扩展** — 新增 `FetchFundingRates` (费率) 和 `FetchLiquidations` (爆仓) 方法，注册到 adapter 注册表
+- [行情] **新 App 方法** — `GetCryptoFundingRates` / `GetCryptoLiquidations` 暴露给前端
+- [行情] **Finnhub 适配器扩展** — 新增 `FetchShortInterest`（做空数据）和 `FetchEarningsCalendar`（财报日历）
+- [行情] **新 App 方法** — `GetShortInterest` / `GetEarningsCalendar` 暴露给前端
+
+### 新增 — 加密补齐 (深度对比 + DeFi TVL + 巨鲸追踪 + Gas)
+- [终端] **多交易所深度对比面板** (`DepthComparisonPanel.vue`) — 跨 Binance/OKX/Gate.io 买卖盘深度并排对比
+- [终端] **DeFi TVL 排行面板** (`DefiTVLPanel.vue`) — DeFi Llama 协议锁仓量排行榜
+- [终端] **巨鲸追踪面板** (`WhaleTrackingPanel.vue`) — Etherscan 大额链上转账监控
+- [终端] **Gas 追踪面板** (`GasFeePanel.vue`) — Etherscan Gas Tracker 实时 Gas 价格三档显示
+- [Python] **新增 `crypto_extras.py`** — DeFi Llama/Etherscan 数据源封装模块
+- [Python] **`fetcher.py` 扩展** — 新增 `crypto_extras` 路由
+- [行情] **新 App 方法** — `GetCryptoDepth` / `GetDeFiTVL` / `GetWhaleTransactions` / `GetGasFees`
+
+### 新增 — 美股补缺 (期权链 + Wash Sale + 机构交易)
+- [终端] **期权链面板** (`USOptionsPanel.vue`) — 看涨/看跌矩阵，行权价×到期日，Finnhub option-chain API
+- [终端] **Wash Sale 面板** (`WashSalePanel.vue`) — IRS 1091 洗售亏损检测，纯 Go 逻辑
+- [终端] **机构交易面板** (`DarkPoolPanel.vue`) — SEC 13F/4 文件中的机构/内部人交易活动
+- [行情] **Finnhub 扩展** — `FetchOptionChain` + `FetchSECFilings` 方法
+- [交易] **Wash Sale 引擎** — `internal/trading/wash_sale.go` 扫描交易历史识别洗售模式
+- [行情] **新 App 方法** — `GetUSOptionChain` / `GetSECFilings` / `CheckWashSale`
+
+### 新增 — Panel Cache Layer (已实现, 验收通过)
+- [终端] **dataStore 缓存层** — `CacheEntry` 类型 + `setCached`/`getCached`/`clearCached` TTL 方法
+- [终端] **HeatmapPanel** — 30s TTL 缓存, 市场切换先读缓存再回退到 fetch
+- [终端] **GovDataPanel** — 信号列表 5min 缓存, 指标详情 10min 缓存, 切换源重新获取
+
+### 新增 — 港股补缺 (香港IPO + 牛熊证/涡轮 + 交收规则)
+- [终端] **香港IPO日历面板** (`HKIPOPanel.vue`) — 新股认购/即将上市/近期表现，通过 Python AKShare
+- [终端] **牛熊证/涡轮面板** (`HKDerivativesPanel.vue`) — 牛熊证+认股证数据，代码点击跳转
+- [终端] **港股交收面板** (`HKSettlementPanel.vue`) — T+2 时间线+费用计算器+交易日历
+- [行情] **Python HK 模块** — `fincept/hk.py` 封装 `stock_hk_ipo_subscription/record`, `stock_hk_cbbc`, `stock_hk_warrants`, `tool_trade_date_hist`
+- [行情] **Go 后端扩展** — `GetHKIPOCalendar`, `GetHKDerivatives`, `GetHKTradingCalendar`, `GetHKSettlementInfo`
+
+### 新增 — A股残局 (IPO 日历 + 分红除权 + 可转债套利)
+- [终端] **新股日历面板** (`IPOCalendarPanel.vue`) — 新股发行/申购/上市日历，今日申购/即将上市/近期上市三 tab
+- [终端] **分红除权面板** (`ExDividendPanel.vue`) — A 股全市场除权除息日历，今日/本周/本月切换，自动计算股息率
+- [终端] **可转债套利面板** (`CBArbitragePanel.vue`) — 集思录溢价率排序+强赎预警+回售机会，负溢价绿色高亮
+- [行情] **Go 后端扩展** — `FetchIPOCalendar` (eastmoney_signals)、`FetchExDividendCalendar` (eastmoney_capital 日期范围版)、`GetCBArbitrageData` (app_market 聚合)
+- [行情] **Python 扩展** — fetcher.py 新增 `cb_arbitrage` / `cb_redeem` 路由到 bonds.py 集思录端点
+- [行情] **新 App 方法** — `GetIPOCalendar` / `GetExDividendCalendar` / `GetCBArbitrageData` 暴露给前端
+
+### 新增 — 第 2 批 P1 面板
+- [终端] **交易日志面板** (`TradingJournalPanel.vue`) — 逐日 P&L 归因+盈亏统计+品种归因
+- [终端] **做空数据面板** (`ShortInterestPanel.vue`) — 美股做空比例/覆盖天数/趋势判断
+- [终端] **跨资产相关性面板** (`CrossAssetCorrelationPanel.vue`) — 6 组预设+热力图矩阵（股票/债券/商品/加密）
+- [终端] **财报日历面板** (`EarningsCalendarPanel.vue`) — 美股财报预期/实际/超预期，周/月/季切换
+- [终端] **情景分析面板** (`ScenarioAnalysisPanel.vue`) — 5 种压力场景+组合影响模拟
+
+### 修复
+- [前端] **SectorRotationPanel 数据源修正** — 板块轮动面板从 `GetMarketOverview`（仅返回指数行情）切换为 `GetIndustryRanks`（返回行业涨跌幅排行），修复 RRG 散点图始终为空的问题
+- [前端] **WelcomePanel 分类修复** — 修复 `delete groups['系统']` 导致整个系统分类（6 个面板）不显示的 bug，改为只过滤 welcome 面板；新增 港股/美股/加密货币 分类专属配色
+
+### 审计 — 全面板质量审查 (90 面板)
+
+#### 真实数据 (28 面板)
+交易：PositionPanel, OrderBlotterPanel, ExecutionPanel, TradeHistory, PositionDetail, OrderEntryPanel, ActionCenterPanel（均通过 portfolio store → Go backend）
+行情：AbnormalStocks, Candlestick, CryptoOverview, DragonTiger, HKConnect, LimitUpDown, FundingRate, Liquidation, MarketDepth, MarketOverview, QuoteDetail, ShortInterest, TickerTape, Watchlist, FuturesPanel
+研究：CongressTrading（telep.io 国会交易 API）
+系统：AIChat, News, SystemMonitor, Settings
+图表：EquityCurvePanel
+
+#### 部分真实 (Go 层 mock fallback) (10 面板)
+StockResearch, AnalystEstimates（API 失败 → 5 条硬编码）, PeerComparison（真实同行名但 PE=0）, Sentiment（需 Python sidecar）, InsiderTrading（Go 层纯 stub 3 条假数据）, FinancialsPanel, FundFlowPanel（需 Python mootdx）, OptionsPanel（BSM 前端计算）, SectorRotation（刚修复数据源）, TradingJournal（mock fallback）
+
+#### 纯 Mock/空壳 (7 面板)
+RiskDashboard（显式占位横幅）, BasketOrderPanel（setTimeout 模拟执行）, AlphaMiningWorkspace（ML store stub）, ModelRegistry（ML store stub）, PredictionDashboard（ML store stub）, RLMonitor（占位面板）, BacktestResultPanel（仅 empty state）
+
+#### UI 异常 (3 面板)
+MarginPanel, SECFinancialsPanel, SEC13FPanel — 使用 `<pre>{{ JSON.stringify(data) }}</pre>` 裸 JSON 输出，无结构化表格/图表
+
+### 修复 — Go 后端 stub 服务真实数据接入
+- [后端] **InsiderTradingService 真实化** — 从 3 条硬编码 mock → Python sidecar SEC EDGAR Form 4 真实数据（edgartools 库），构造器新增 `*PythonBridge` 参数
+- [后端] **PeerComparisonService MarketCap 填充** — 从概念块取同行后，通过 EastMoney `FetchStockInfo` 批量获取每只股市值，构造器新增 `*EastMoneyAdapter` 参数
+- [后端] **ML 服务层实现** — 新增 `app_ml.go`，实现 `ListMLModels`（文件系统扫描 models/ 目录）、`GetPredictions`/`RunAlphaMining`/`AssessRisk`（Python gRPC 代理），前端 ml store 3 个 stub 方法全部接入真实后端
+- [前端] **SECFinancialsPanel UI 重构** — 裸 JSON → SEC 财务报表分区展示（BS/IS/CF），数字格式化（B/M/K），负值红色高亮
+- [前端] **SEC13FPanel UI 重构** — 裸 JSON → 可排序列表格（13F 持仓），自适应列宽，支持 100+ 行分页
+- [前端] **RiskDashboard 真实数据接入** — 移除占位横幅和所有硬编码 mock 值，接入 portfolio store 真实净值曲线+持仓，计算 VaR/CVaR/最大回撤/Sharpe/Sortino/年化波动，回撤图表使用真实 NAV
+- [前端] **BasketOrderPanel 真实下单** — 移除 setTimeout 模拟执行和硬编码 mock 行，改为调用 Go PlaceOrder 逐笔下单，支持失败状态显示
 
 - [行情] MAC 协议适配器：通达信 TCP 二进制协议直连，5 数据通道（金钻 VIP 快照、主力大单、板块成分、通用行情、Level-2 十档），零中间件零依赖
 - [行情] StockSymbolCache：SQLite 持久化股票名称列表（7 天 TTL），启动跳过 API 加载，闭市时从缓存预填自选股名称

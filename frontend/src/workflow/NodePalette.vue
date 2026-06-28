@@ -1,8 +1,36 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ListNodes } from '@/lib/wails'
+import { useWorkflowStore } from '@/stores/workflow'
+import { TEMPLATES } from './templates'
 
 interface NodeMeta { node_type: string; category: string }
+
+const workflow = useWorkflowStore()
+const showTemplates = ref(false)
+
+function insertTemplate(tpl: typeof TEMPLATES[0]) {
+  tpl.nodes.forEach((n, i) => {
+    const id = workflow.addNode(n.node_type, { x: n.x, y: n.y + 100 }, n.params)
+    // Store ID mapping
+    ;(n as any)._id = id
+  })
+  tpl.edges.forEach(e => {
+    const srcNode = tpl.nodes[e.from] as any
+    const tgtNode = tpl.nodes[e.to] as any
+    if (srcNode._id && tgtNode._id) {
+      workflow.addEdge({
+        id: `e-${srcNode._id}-${tgtNode._id}`,
+        source: srcNode._id,
+        target: tgtNode._id,
+        sourceHandle: e.from_port,
+        targetHandle: e.to_port,
+        type: 'smoothstep',
+        style: { stroke: '#30363d', strokeWidth: 2 },
+      } as any)
+    }
+  })
+}
 
 const searchQuery = ref('')
 const nodes = ref<NodeMeta[]>([])
@@ -92,6 +120,28 @@ function onDragStart(event: DragEvent, nodeType: string) {
       <div v-if="Object.keys(categories).length === 0" class="no-results">
         {{ $t('common.no_data') }}
       </div>
+
+      <!-- Templates -->
+      <div class="templates-section">
+        <div class="templates-toggle" @click="showTemplates = !showTemplates">
+          <span>📋 {{ $t('workflow.templates') }}</span>
+          <span class="toggle-arrow">{{ showTemplates ? '▾' : '▸' }}</span>
+        </div>
+        <div v-if="showTemplates" class="templates-list">
+          <div
+            v-for="tpl in TEMPLATES"
+            :key="tpl.id"
+            class="template-item"
+            @click="insertTemplate(tpl)"
+          >
+            <span class="tpl-icon">{{ tpl.icon }}</span>
+            <div class="tpl-body">
+              <span class="tpl-name">{{ tpl.name }}</span>
+              <span class="tpl-desc">{{ tpl.description }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -153,4 +203,16 @@ function onDragStart(event: DragEvent, nodeType: string) {
 .node-name { font-size: 11px; color: var(--color-text-primary); }
 
 .no-results { padding: 16px; text-align: center; color: var(--color-text-tertiary); font-size: 12px; }
+
+.templates-section { margin-top: 8px; border-top: 1px solid var(--color-border); padding-top: 6px; }
+.templates-toggle { display: flex; justify-content: space-between; align-items: center; padding: 6px; cursor: pointer; font-size: 11px; color: var(--color-text-secondary); }
+.templates-toggle:hover { color: var(--color-accent); }
+.toggle-arrow { font-size: 10px; }
+.templates-list { padding: 0 4px; }
+.template-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 4px; cursor: pointer; transition: background 0.1s; }
+.template-item:hover { background: rgba(88,166,255,0.08); }
+.tpl-icon { font-size: 14px; flex-shrink: 0; }
+.tpl-body { display: flex; flex-direction: column; min-width: 0; }
+.tpl-name { font-size: 11px; color: var(--color-text-primary); }
+.tpl-desc { font-size: 9px; color: var(--color-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

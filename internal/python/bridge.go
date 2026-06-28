@@ -4,8 +4,13 @@
 package python
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -44,6 +49,7 @@ type PythonBridge struct {
 	DataClient      pb.DataServiceClient
 	SentimentClient pb.SentimentServiceClient
 	opts            BridgeOptions
+	pythonDir       string
 }
 
 // NewPythonBridge dials the Python sidecar and returns a bridge.
@@ -60,7 +66,7 @@ func NewPythonBridge(opts BridgeOptions) (*PythonBridge, error) {
 		return nil, fmt.Errorf("python bridge: dial %s: %w", opts.Address, err)
 	}
 
-	return &PythonBridge{
+	b := &PythonBridge{
 		conn:         conn,
 		FactorClient: pb.NewFactorServiceClient(conn),
 		LLMClient:    pb.NewLLMServiceClient(conn),
@@ -68,7 +74,13 @@ func NewPythonBridge(opts BridgeOptions) (*PythonBridge, error) {
 		DataClient:      pb.NewDataServiceClient(conn),
 		SentimentClient: pb.NewSentimentServiceClient(conn),
 		opts:            opts,
-	}, nil
+	}
+
+	// Detect pythonDir from executable path (same logic as app.go).
+	if execPath, err := os.Executable(); err == nil {
+		b.pythonDir = filepath.Join(filepath.Dir(execPath), "python")
+	}
+	return b, nil
 }
 
 // Ping checks whether the Python sidecar is responsive.
@@ -91,37 +103,87 @@ func (b *PythonBridge) IsHealthy(ctx context.Context) bool {
 	return b.Ping(ctx) == nil
 }
 
-// GetStatus returns detailed status information from the Python sidecar.
+// GetStatus returns detailed status from the Python sidecar.
 func (b *PythonBridge) GetStatus(ctx context.Context) (*pb.StatusResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, b.opts.RequestTimeout)
 	defer cancel()
 	return b.HealthClient.GetStatus(ctx, &pb.GetStatusRequest{})
 }
 
-// Close closes the gRPC connection. Call when shutting down.
+// PythonDir returns the path to the Python sidecar directory.
+func (b *PythonBridge) PythonDir() string { return b.pythonDir }
+
+// Close closes the gRPC connection to the Python sidecar.
 func (b *PythonBridge) Close() error {
-	return b.conn.Close()
+	if b.conn != nil {
+		return b.conn.Close()
+	}
+	return nil
 }
 
-// RequestTimeout returns the configured request timeout.
-func (b *PythonBridge) RequestTimeout() time.Duration { return b.opts.RequestTimeout }
+// runPython executes a Python module as a subprocess and unmarshals its JSON stdout.
+func (b *PythonBridge) runPython(module string, args ...string) (map[string]any, error) {
+	pythonDir := b.pythonDir
+	if pythonDir == "" {
+		return nil, fmt.Errorf("python directory unknown")
+	}
 
-// MaxRetries returns the configured max retry count.
-func (b *PythonBridge) MaxRetries() int { return b.opts.MaxRetries }
+	pythonBin := filepath.Join(pythonDir, ".venv", "bin", "python3")
+	if _, err := os.Stat(pythonBin); err != nil {
+		pythonBin = "python3"
+	}
 
-// isTransient returns true if the gRPC error is likely transient (worth retrying).
-func isTransient(err error) bool {
-	// Use the canonical gRPC status code first.
-	if code := status.Code(err); code != codes.Unknown {
-		switch code {
-		case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted, codes.Aborted:
-			return true
-		default:
-			return false
+	cmdArgs := append([]string{"-m", module}, args...)
+	cmd := exec.Command(pythonBin, cmdArgs...)
+	cmd.Dir = pythonDir
+	cmd.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(pythonDir, "src"))
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("python subprocess start %s: %w", module, err)
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+
+	select {
+	case <-ctx.Done():
+		cmd.Process.Kill()
+		return nil, fmt.Errorf("python subprocess %s timed out", module)
+	case err := <-done:
+		if err != nil {
+			return nil, fmt.Errorf("python subprocess %s failed: %w\nstderr: %s", module, err, stderr.String())
 		}
 	}
-	// Fall back to substring matching for non-gRPC transport errors.
-	s := err.Error()
+
+	var result map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		return nil, fmt.Errorf("python subprocess %s: json decode: %w\nstdout: %s", module, err, stdout.String())
+	}
+	return result, nil
+}
+
+// RequestTimeout returns the configured request timeout duration.
+func (b *PythonBridge) RequestTimeout() time.Duration { return b.opts.RequestTimeout }
+
+// MaxRetries returns the configured maximum retry count.
+func (b *PythonBridge) MaxRetries() int { return b.opts.MaxRetries }
+
+// isTransient returns true if the gRPC error is likely transient (e.g., connection reset).
+func isTransient(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := status.Convert(err).Message()
+	if status.Code(err) == codes.Unavailable {
+		return true
+	}
 	for _, marker := range []string{"connection refused", "connection reset", "EOF"} {
 		if strings.Contains(s, marker) {
 			return true
@@ -131,34 +193,65 @@ func isTransient(err error) bool {
 }
 
 // AnalyzeChanlun calls the Python sidecar to perform 缠论 (Chanlun) analysis on a symbol.
-// Returns fractals, bi segments (笔), and zhongshu blocks (中枢).
-// TODO: Add gRPC service endpoints in proto and Python sidecar.
 func (b *PythonBridge) AnalyzeChanlun(symbol string) (map[string]any, error) {
-	// Stub: Python sidecar does not yet expose a chanlun service.
-	// When the chanlun API is added to proto/ and python/src/, replace this
-	// with a real gRPC call via a ChanlunClient.
-	return map[string]any{
-		"fractals":  []any{},
-		"bi_list":   []any{},
-		"zs_list":   []any{},
-		"symbol":    symbol,
-		"available": false,
-	}, nil
+	if b.pythonDir == "" {
+		return map[string]any{
+			"fractals": []any{}, "bi_list": []any{}, "zs_list": []any{},
+			"symbol": symbol, "available": false,
+		}, nil
+	}
+	result, err := b.runPython("src.data.fincept.chanlun", symbol)
+	if err != nil {
+		return map[string]any{
+			"fractals": []any{}, "bi_list": []any{}, "zs_list": []any{},
+			"symbol": symbol, "available": false, "error": err.Error(),
+		}, nil
+	}
+	return result, nil
 }
 
 // ComputeIndicator calculates a technical indicator via the Python sidecar.
-// indicatorName is an ID like "kdj", "dmi", "atr", etc.
-// params carries indicator-specific parameters (e.g. {"n": 9, "m1": 3}).
-// TODO: Add gRPC service endpoints in proto and Python sidecar.
 func (b *PythonBridge) ComputeIndicator(symbol string, indicatorName string, params map[string]any) (map[string]any, error) {
-	// Stub: Python sidecar does not yet expose an indicator service.
-	// When the indicator API is added to proto/ and python/src/, replace this
-	// with a real gRPC call via a TechIndicatorClient.
-	return map[string]any{
-		"symbol":     symbol,
-		"indicator":  indicatorName,
-		"params":     params,
-		"data":       []any{},
-		"available":  false,
-	}, nil
+	if b.pythonDir == "" {
+		return map[string]any{
+			"symbol": symbol, "indicator": indicatorName, "params": params,
+			"data": []any{}, "available": false,
+		}, nil
+	}
+
+	paramsJSON := "{}"
+	if params != nil {
+		if p, err := json.Marshal(params); err == nil {
+			paramsJSON = string(p)
+		}
+	}
+
+	result, err := b.runPython("src.data.fincept.indicators", symbol, indicatorName, paramsJSON)
+	if err != nil {
+		return map[string]any{
+			"symbol": symbol, "indicator": indicatorName, "params": params,
+			"data": []any{}, "available": false, "error": err.Error(),
+		}, nil
+	}
+	return result, nil
+}
+
+// ScanStocks runs a stock scanning strategy and returns ranked results.
+func (b *PythonBridge) ScanStocks(strategyName string, topN int) (map[string]any, error) {
+	if b.pythonDir == "" {
+		return map[string]any{
+			"strategy": strategyName, "results": []any{}, "scanned": 0,
+		}, nil
+	}
+	topNStr := fmt.Sprintf("%d", topN)
+	if topN <= 0 {
+		topNStr = "50"
+	}
+	result, err := b.runPython("src.data.fincept.scanner", strategyName, topNStr)
+	if err != nil {
+		return map[string]any{
+			"strategy": strategyName, "results": []any{}, "scanned": 0, "error": err.Error(),
+		}, nil
+	}
+	return result, nil
 }

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
-import { CandlestickChart, BarChart } from 'echarts/charts'
+import { CandlestickChart, BarChart, LineChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useSymbolContext } from '@/stores/symbolContext'
@@ -10,8 +10,9 @@ import { detectMarket } from '@/lib/wails'
 import { marketUpColor, marketDownColor, marketChangeColor } from '@/lib/composables/useMarketColors'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { sma, ema, bb, macd, kdj, rsi, wr } from '@/lib/composables/useIndicators'
 
-use([CandlestickChart, BarChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
+use([CandlestickChart, BarChart, LineChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -21,6 +22,8 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new Map())
 
 const hasEcharts = computed(() => !!VChart)
+const topOverlay = ref<'none' | 'ma' | 'bb'>('none')
+const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr'>('volume')
 
 // Color scheme: per-market (CN 红涨绿跌, others 绿涨红跌)
 function upColor() { return marketUpColor(symbol.value) }
@@ -291,19 +294,97 @@ watch(interval, (iv) => {
 const option = computed(() => {
   if (ohlcvData.value.length === 0) return {}
   const dates = ohlcvData.value.map((d: any) => d[0])
-  const kdata = ohlcvData.value.map((d: any) => [d[1], d[2], d[3], d[4]]) // [open, close, low, high]
+  const kdata = ohlcvData.value.map((d: any) => [d[1], d[2], d[3], d[4]])
+  const close = ohlcvData.value.map((d: any) => d[2] as number)
+  const high = ohlcvData.value.map((d: any) => d[4] as number)
+  const low = ohlcvData.value.map((d: any) => d[3] as number)
   const vdata = ohlcvData.value.map((d: any, i: number) => {
     const open = d[1] as number
-    const close = d[2] as number
-    return { value: d[5], itemStyle: { color: close >= open ? upColor() : downColor() } }
+    const cl = d[2] as number
+    return { value: d[5], itemStyle: { color: cl >= open ? upColor() : downColor() } }
   })
 
   const theme = useChartTheme()
+  const gridH = '52%'
+  const bottomTop = '68%'
+  const bottomH = '26%'
+
+  const series: any[] = [
+    {
+      type: 'candlestick', name: 'K线',
+      data: kdata, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
+      itemStyle: { color: upColor(), color0: downColor(), borderColor: upColor(), borderColor0: downColor() },
+    },
+  ]
+
+  if (topOverlay.value === 'ma') {
+    ;[5, 10, 20, 60].forEach(p => {
+      series.push({
+        type: 'line', name: `MA${p}`, data: sma(close, p),
+        gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
+        symbol: 'none', lineStyle: { width: 1 },
+      })
+    })
+  } else if (topOverlay.value === 'bb') {
+    const b = bb(close)
+    series.push({ type: 'line', name: 'BB上轨', data: b.upper, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
+    series.push({ type: 'line', name: 'BB中轨', data: b.middle, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } })
+    series.push({ type: 'line', name: 'BB下轨', data: b.lower, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
+  }
+
+  if (bottomMode.value === 'volume') {
+    series.push({ type: 'bar', name: 'Volume', data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 })
+  } else if (bottomMode.value === 'macd') {
+    const m = macd(close)
+    series.push(
+      { type: 'line', name: 'DIF', data: m.dif, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
+      { type: 'line', name: 'DEA', data: m.dea, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
+      { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => {
+        if (v === null) return null
+        return { value: v, itemStyle: { color: v >= 0 ? '#ef5350' : '#66bb6a' } }
+      }), gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 },
+    )
+  } else if (bottomMode.value === 'kdj') {
+    const kd = kdj(close, high, low)
+    series.push(
+      { type: 'line', name: 'K', data: kd.k, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
+      { type: 'line', name: 'D', data: kd.d, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
+      { type: 'line', name: 'J', data: kd.j, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ab47bc' } },
+    )
+  } else if (bottomMode.value === 'rsi') {
+    const r = rsi(close)
+    series.push({
+      type: 'line', name: 'RSI', data: r, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
+      symbol: 'none', lineStyle: { width: 1, color: '#ec407a' },
+      markLine: { silent: true, symbol: 'none', data: [
+        { yAxis: 70, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
+        { yAxis: 30, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
+      ]},
+    })
+  } else if (bottomMode.value === 'wr') {
+    const w = wr(close, high, low)
+    series.push({
+      type: 'line', name: 'WR', data: w, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
+      symbol: 'none', lineStyle: { width: 1, color: '#42a5f5' },
+      markLine: { silent: true, symbol: 'none', data: [
+        { yAxis: -20, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
+        { yAxis: -80, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
+      ]},
+    })
+  }
+
+  let bottomYAxis: any = { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } }
+  if (bottomMode.value === 'kdj' || bottomMode.value === 'rsi') {
+    bottomYAxis = { ...bottomYAxis, min: 0, max: 100 }
+  } else if (bottomMode.value === 'wr') {
+    bottomYAxis = { ...bottomYAxis, min: -100, max: 0 }
+  }
+
   return {
     backgroundColor: 'transparent',
     grid: [
-      { left: 60, right: 10, top: 10, height: '62%' },
-      { left: 60, right: 10, top: '78%', height: '15%' },
+      { left: 60, right: 10, top: 10, height: gridH },
+      { left: 60, right: 10, top: bottomTop, height: bottomH },
     ],
     xAxis: [
       { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } } },
@@ -311,22 +392,13 @@ const option = computed(() => {
     ],
     yAxis: [
       { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
-      { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } },
+      { ...bottomYAxis, scale: true },
     ],
-    series: [
-      {
-        type: 'candlestick', name: 'K线',
-        data: kdata, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
-        itemStyle: { color: upColor(), color0: downColor(), borderColor: upColor(), borderColor0: downColor() },
-      },
-      {
-        type: 'bar', name: 'Volume',
-        data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
-      },
-    ],
+    series,
     tooltip: { trigger: 'axis' as const },
     dataZoom: [
-      { type: 'inside', xAxisIndex: [0, 1], start: 50, end: 100 },
+      { type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100 },
+      { type: 'slider', xAxisIndex: [0, 1], bottom: 0, height: 20 },
     ],
   }
 })
@@ -536,6 +608,22 @@ onUnmounted(() => {
           @click="interval = i">{{ i }}</button>
       </div>
     </div>
+    <div v-if="activeTab === 'kline'" class="indicator-bar">
+      <div class="indicator-group">
+        <span class="indicator-label">{{ $t('kline.overlay') }}</span>
+        <button :class="{ active: topOverlay === 'none' }" class="indicator-btn" @click="topOverlay = 'none'">无</button>
+        <button :class="{ active: topOverlay === 'ma' }" class="indicator-btn" @click="topOverlay = 'ma'">MA</button>
+        <button :class="{ active: topOverlay === 'bb' }" class="indicator-btn" @click="topOverlay = 'bb'">{{ $t('kline.bb') }}</button>
+      </div>
+      <div class="indicator-group">
+        <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
+        <button :class="{ active: bottomMode === 'volume' }" class="indicator-btn" @click="bottomMode = 'volume'">{{ $t('kline.volume') }}</button>
+        <button :class="{ active: bottomMode === 'macd' }" class="indicator-btn" @click="bottomMode = 'macd'">MACD</button>
+        <button :class="{ active: bottomMode === 'kdj' }" class="indicator-btn" @click="bottomMode = 'kdj'">KDJ</button>
+        <button :class="{ active: bottomMode === 'rsi' }" class="indicator-btn" @click="bottomMode = 'rsi'">RSI</button>
+        <button :class="{ active: bottomMode === 'wr' }" class="indicator-btn" @click="bottomMode = 'wr'">WR</button>
+      </div>
+    </div>
     <div class="chart-body">
       <div v-if="loading || minuteLoading || multiDayLoading" class="chart-fallback">{{ $t('common.loading') }}</div>
       <template v-else-if="activeTab === 'multiDay'">
@@ -549,7 +637,7 @@ onUnmounted(() => {
           <VChart :key="`multi-${symbol}-${selectedDayDate}`" :option="multiDayChartOption" autoresize class="minute-chart" />
         </div>
       </template>
-      <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="symbol" :option="option" autoresize class="kline-chart" />
+      <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="`${symbol}-${interval}-${topOverlay}-${bottomMode}`" :option="option" autoresize class="kline-chart" />
       <VChart v-else-if="hasEcharts && activeTab === 'minute'" :option="minuteChartOption" :update-options="{ notMerge: false }" autoresize class="minute-chart" />
       <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
       <div v-else class="chart-fallback">--</div>
@@ -610,4 +698,22 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .minute-chart { width: 100%; flex: 1; }
+.indicator-bar {
+  display: flex; gap: 16px; align-items: center;
+  padding: 4px 10px; border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+.indicator-group { display: flex; align-items: center; gap: 4px; }
+.indicator-label { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-right: 4px; }
+.indicator-btn {
+  padding: 2px 8px; border: 1px solid var(--color-border);
+  background: transparent; color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-size: var(--font-xs); font-family: 'JetBrains Mono', monospace;
+  transition: all var(--transition-fast);
+}
+.indicator-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.indicator-btn.active {
+  background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+}
 </style>

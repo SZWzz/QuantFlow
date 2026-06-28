@@ -159,6 +159,57 @@ func (a *EastMoneySignalsAdapter) FetchLockupExpiry(ctx context.Context, code st
 	return events, nil
 }
 
+// ── IPO Calendar ──────────────────────────────────────────────────────
+
+// IPORecord represents a new stock issuance/listing record.
+type IPORecord struct {
+	Code           string  `json:"code"`
+	Name           string  `json:"name"`
+	IssuePrice     float64 `json:"issue_price"`
+	PE             float64 `json:"pe"`
+	SubscriptionDate string `json:"subscription_date"`
+	ListingDate    string  `json:"listing_date"`
+	LotteryRate    float64 `json:"lottery_rate"`
+	IssueVolume    float64 `json:"issue_volume"`
+	Status         string  `json:"status"`
+}
+
+// FetchIPOCalendar fetches upcoming and recent IPO calendar from EastMoney
+// datacenter. startDate/endDate format: "YYYY-MM-DD". Max pageSize is 500.
+func (a *EastMoneySignalsAdapter) FetchIPOCalendar(ctx context.Context, startDate, endDate string, pageSize int) ([]IPORecord, error) {
+	if pageSize <= 0 || pageSize > 500 {
+		pageSize = 100
+	}
+	filter := fmt.Sprintf(`(LISTING_DATE>='%s')(LISTING_DATE<='%s')`, startDate, endDate)
+	rows, err := a.queryDatacenter("RPT_NEW_SHARE_ISSUE", filter, pageSize, "LISTING_DATE", "-1")
+	if err != nil {
+		return nil, fmt.Errorf("eastmoney_signals ipo: %w", err)
+	}
+	records := make([]IPORecord, 0, len(rows))
+	for _, r := range rows {
+		listingDate := strval(r["LISTING_DATE"])
+		if listingDate == "" {
+			listingDate = strval(r["IPO_DATE"])
+		}
+		subDate := strval(r["SUBSCRIPTION_DATE"])
+		if subDate == "" {
+			subDate = strval(r["APPLY_DATE"])
+		}
+		records = append(records, IPORecord{
+			Code:             strval(r["SECURITY_CODE"]),
+			Name:             strval(r["SECURITY_NAME_ABBR"]),
+			IssuePrice:       floatval(r["ISSUE_PRICE"]),
+			PE:               floatval(r["ISSUE_PE"]),
+			SubscriptionDate: subDate,
+			ListingDate:      listingDate,
+			LotteryRate:      floatval(r["LOTTERY_RATE"]),
+			IssueVolume:      floatval(r["ISSUE_VOLUME"]),
+			Status:           strval(r["STATUS_CODE"]),
+		})
+	}
+	return records, nil
+}
+
 // ── Industry Ranking ──────────────────────────────────────────────────
 
 // FetchIndustryRanks fetches industry ranking by daily change.

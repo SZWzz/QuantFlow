@@ -32,11 +32,7 @@ function getName(sym: string): string {
 }
 
 let nextId = 1
-const rows = ref<篮子Row[]>([
-  { id: nextId++, symbol: 'AAPL', name: '', weight: 30, quantity: 50, price: 195.3 },
-  { id: nextId++, symbol: '600519', name: '', weight: 40, quantity: 100, price: 1780.0 },
-  { id: nextId++, symbol: 'TSLA', name: '', weight: 30, quantity: 80, price: 248.5 },
-])
+const rows = ref<篮子Row[]>([{ id: nextId++, symbol: '', name: '', weight: 0, quantity: 0, price: 0 }])
 
 // Watch symbols to resolve names
 watch(() => rows.value.map(r => r.symbol), (symbols) => {
@@ -92,29 +88,29 @@ const isExecuting = ref(false)
 async function execute篮子() {
   isExecuting.value = true
   logs.value = []
+  const app = (window as any).go?.main?.App
+  if (!app?.PlaceOrder) { isExecuting.value = false; return }
 
   for (const row of rows.value) {
     if (!row.symbol) continue
-    const entry: LogEntry = {
-      symbol: row.symbol,
-      status: 'pending',
-      message: `Queued ${row.symbol}`,
-      time: new Date().toLocaleTimeString(),
-    }
+    const now = new Date().toLocaleTimeString()
+    const entry: LogEntry = { symbol: row.symbol, status: 'executing', message: `Submitting ${row.symbol} — ${execMode.value}`, time: now }
     logs.value.push(entry)
 
-    // Simulate sequential execution with 300ms delay
-    await new Promise(resolve => setTimeout(resolve, 300))
-
-    entry.status = 'executing'
-    entry.message = `Executing ${row.symbol} — ${execMode.value} order`
-    entry.time = new Date().toLocaleTimeString()
-
-    await new Promise(resolve => setTimeout(resolve, 300))
-
-    entry.status = 'filled'
-    entry.message = `Filled ${row.symbol}: ${row.quantity} @ ${row.price.toFixed(2)}`
-    entry.time = new Date().toLocaleTimeString()
+    try {
+      await app.PlaceOrder(
+        row.symbol, 'buy',
+        execMode.value === 'market' ? 'market' : 'limit',
+        row.quantity, row.price || 0, 'paper'
+      )
+      entry.status = 'filled'
+      entry.message = `Filled ${row.symbol}: ${row.quantity} @ ${(row.price || 0).toFixed(2)}`
+      entry.time = new Date().toLocaleTimeString()
+    } catch (e: any) {
+      entry.status = 'failed'
+      entry.message = `Failed ${row.symbol}: ${e?.message || e}`
+      entry.time = new Date().toLocaleTimeString()
+    }
   }
 
   isExecuting.value = false

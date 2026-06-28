@@ -469,9 +469,13 @@ class DataService(data_pb2_grpc.DataServiceServicer):
                 return await self._handle_sec(data_type, symbols, params)
             elif source == "macro":
                 return await self._handle_macro(data_type, symbols, start_date, end_date, params)
+            elif source == "crypto_extras":
+                return await self._handle_crypto_extras(data_type, symbols, params)
+            elif source == "analyzer":
+                return await self._handle_analyzer(data_type, symbols, params)
             else:
                 return data_pb2.FetchDataResponse(
-                    error=f"DataService: source '{source}' not implemented. Supported: mootdx, akshare, ccxt, sec, macro"
+                    error=f"DataService: source '{source}' not implemented. Supported: mootdx, akshare, ccxt, sec, macro, crypto_extras"
                 )
         except Exception as exc:
             logger.exception("DataService.FetchData failed (source=%s, type=%s)", source, data_type)
@@ -520,9 +524,11 @@ class DataService(data_pb2_grpc.DataServiceServicer):
         "options": ("derivatives", "option_current_day_sse"),
         "margin": ("margin", "stock_margin_detail_szse"),
         "bonds": ("bonds", "get_bond_zh_cov_spot"),
+        "cb_arbitrage": ("bonds", "get_bond_cb_jsl"),
+        "cb_redeem": ("bonds", "get_bond_cb_redeem_jsl"),
         "funds": ("funds", "get_fund_report_stock_cninfo"),
         "derivatives": ("derivatives", "get_all_endpoints"),
-        "futures": ("derivatives", "get_all_endpoints"),
+        "futures": ("derivatives", "futures_global_spot"),
         "index": ("index", "index_stock_cons"),
         "macro_cn": ("macro_cn", "get_all_endpoints"),
         # One-shot parallel summary: latest values + short series for all fast
@@ -535,6 +541,10 @@ class DataService(data_pb2_grpc.DataServiceServicer):
         # `macro_cn get_normalized <endpoint>`, yielding a uniform
         # {latest_value, series:[{date,value}]} payload.
         "macro_cn_indicator": ("macro_cn", "get_normalized"),
+        "hk_ipo": ("hk", "get_hk_ipo_subscription"),
+        "hk_cbbc": ("hk", "get_hk_cbbc"),
+        "hk_warrants": ("hk", "get_hk_warrants"),
+        "hk_trade_cal": ("hk", "get_hk_trade_cal"),
     }
 
     async def _handle_akshare(self, data_type, symbols, start_date, end_date, params):
@@ -560,7 +570,7 @@ class DataService(data_pb2_grpc.DataServiceServicer):
         # Only append symbol as arg for stock-specific data types. Macro summary
         # takes no symbol; macro_cn_indicator carries the target endpoint name
         # in symbols[0] and DOES need it appended (as the get_normalized arg).
-        if symbol and data_type not in ("macro_cn", "macro_cn_summary", "bonds"):
+        if symbol and data_type not in ("macro_cn", "macro_cn_summary", "bonds", "cb_arbitrage", "cb_redeem", "hk_ipo", "hk_cbbc", "hk_warrants", "hk_trade_cal"):
             cmd.append(symbol)
         if start_date and data_type == "fundflow":
             cmd.append(start_date)
@@ -820,3 +830,61 @@ class DataService(data_pb2_grpc.DataServiceServicer):
             return data_pb2.FetchDataResponse(error=f"Macro {data_type}: timeout after 120s")
         except Exception as e:
             return data_pb2.FetchDataResponse(error=f"Macro {data_type}: {str(e)}")
+
+    async def _handle_crypto_extras(self, data_type, symbols, params):
+        """Route crypto extra data (DeFi TVL, whale, gas fees) via crypto_extras module."""
+        import json as _json
+        import os as _os
+        import sys as _sys
+        import importlib as _il
+
+        try:
+            module_path = _os.path.join(_os.path.dirname(__file__), "fincept", "crypto_extras.py")
+            spec = _il.util.spec_from_file_location("crypto_extras", module_path)
+            crypto = _il.util.module_from_spec(spec)
+            spec.loader.exec_module(crypto)
+            wrapper = crypto.CryptoExtrasWrapper()
+
+            if data_type == "defi_tvl":
+                result = wrapper.get_defi_tvl()
+            elif data_type == "whale":
+                address = symbols[0] if symbols else ""
+                result = wrapper.get_whale_transactions(address)
+            elif data_type == "gas_fees":
+                result = wrapper.get_gas_fees()
+            else:
+                return data_pb2.FetchDataResponse(
+                    error=f"crypto_extras: unknown data_type '{data_type}'. Supported: defi_tvl, whale, gas_fees"
+                )
+
+            return data_pb2.FetchDataResponse(
+                data=_json.dumps(result, default=str).encode("utf-8")
+            )
+        except Exception as e:
+            return data_pb2.FetchDataResponse(error=f"crypto_extras {data_type}: {str(e)}")
+
+    # ── Financial Analyzer ─────────────────────────────────────────
+
+    _ANALYZER_FUNCS = {"report_analysis", "valuation", "audit", "forecast"}
+
+    async def _handle_analyzer(self, data_type, symbols, params):
+        if data_type not in self._ANALYZER_FUNCS:
+            return data_pb2.FetchDataResponse(
+                error=f"analyzer: unknown type '{data_type}'. Supported: {sorted(self._ANALYZER_FUNCS)}")
+
+        import json as _json
+        from src.data.fincept import analyzer
+
+        payload = (symbols[0] if symbols else "") or (params.get("data", "") if params else "")
+        quote_payload = (params.get("quote", "") if params else "")
+
+        try:
+            func = getattr(analyzer, data_type)
+            if data_type == "valuation" and quote_payload:
+                result = func(payload, quote_payload)
+            else:
+                result = func(payload)
+            return data_pb2.FetchDataResponse(
+                data=_json.dumps(result, default=str, ensure_ascii=False).encode("utf-8"))
+        except Exception as e:
+            return data_pb2.FetchDataResponse(error=f"analyzer {data_type}: {str(e)}")

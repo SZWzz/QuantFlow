@@ -185,3 +185,51 @@ func (a *EastMoneyCapitalAdapter) FetchDividendHistory(ctx context.Context, code
 	}
 	return results, nil
 }
+
+// ExDividendCalendarRecord represents a market-wide ex-dividend calendar entry.
+type ExDividendCalendarRecord struct {
+	Code          string  `json:"code"`
+	Name          string  `json:"name"`
+	ExDate        string  `json:"ex_date"`
+	BonusRMB      float64 `json:"bonus_rmb"`
+	TransferRatio float64 `json:"transfer_ratio"`
+	BonusRatio    float64 `json:"bonus_ratio"`
+	Plan          string  `json:"plan"`
+	DividendYield float64 `json:"dividend_yield"`
+	ClosePrice    float64 `json:"close_price"`
+}
+
+// FetchExDividendCalendar fetches market-wide ex-dividend calendar by date range.
+func (a *EastMoneyCapitalAdapter) FetchExDividendCalendar(ctx context.Context, startDate, endDate string) ([]ExDividendCalendarRecord, error) {
+	if a.signals == nil {
+		a.signals = NewEastMoneySignalsAdapter()
+	}
+
+	filter := fmt.Sprintf(`(EX_DIVIDEND_DATE>='%s')(EX_DIVIDEND_DATE<='%s')`, startDate, endDate)
+	rows, err := a.signals.queryDatacenter("RPT_SHAREBONUS_DET", filter, 500, "EX_DIVIDEND_DATE", "-1")
+	if err != nil {
+		return nil, fmt.Errorf("eastmoney_capital exdiv: %w", err)
+	}
+
+	results := make([]ExDividendCalendarRecord, 0, len(rows))
+	for _, r := range rows {
+		bonus := floatval(r["PRETAX_BONUS_RMB"])
+		closePrice := floatval(r["CLOSE_PRICE"])
+		yield := 0.0
+		if closePrice > 0 {
+			yield = (bonus / closePrice) * 100
+		}
+		results = append(results, ExDividendCalendarRecord{
+			Code:          strval(r["SECURITY_CODE"]),
+			Name:          strval(r["SECURITY_NAME_ABBR"]),
+			ExDate:        strval(r["EX_DIVIDEND_DATE"]),
+			BonusRMB:      bonus,
+			TransferRatio: floatval(r["TRANSFER_RATIO"]),
+			BonusRatio:    floatval(r["BONUS_RATIO"]),
+			Plan:          strval(r["ASSIGN_PROGRESS"]),
+			DividendYield: yield,
+			ClosePrice:    closePrice,
+		})
+	}
+	return results, nil
+}

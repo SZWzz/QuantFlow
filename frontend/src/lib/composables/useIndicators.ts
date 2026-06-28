@@ -1,0 +1,148 @@
+/** 客户端技术指标计算 — 纯 TS，零依赖。 */
+
+export interface BBResult { upper: (number | null)[]; middle: (number | null)[]; lower: (number | null)[] }
+export interface MACDResult { dif: (number | null)[]; dea: (number | null)[]; hist: (number | null)[] }
+export interface KDJResult { k: (number | null)[]; d: (number | null)[]; j: (number | null)[] }
+
+/** Simple Moving Average */
+export function sma(data: number[], period: number): (number | null)[] {
+  const r: (number | null)[] = []
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) { r.push(null); continue }
+    let s = 0
+    for (let j = i - period + 1; j <= i; j++) s += data[j]
+    r.push(s / period)
+  }
+  return r
+}
+
+/** Exponential Moving Average */
+export function ema(data: number[], period: number): (number | null)[] {
+  const r: (number | null)[] = []
+  const k = 2 / (period + 1)
+  let prev: number | null = null
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) { r.push(null); continue }
+    if (i === period - 1) {
+      let s = 0
+      for (let j = 0; j < period; j++) s += data[j]
+      prev = s / period
+      r.push(prev)
+    } else {
+      prev = (data[i] - prev!) * k + prev!
+      r.push(prev)
+    }
+  }
+  return r
+}
+
+/** Bollinger Bands */
+export function bb(data: number[], period = 20, k = 2): BBResult {
+  const m = sma(data, period)
+  const upper: (number | null)[] = []
+  const lower: (number | null)[] = []
+  for (let i = 0; i < data.length; i++) {
+    if (m[i] === null) { upper.push(null); lower.push(null); continue }
+    let ss = 0
+    const start = i - period + 1
+    for (let j = start; j <= i; j++) ss += (data[j] - m[i]!) ** 2
+    const std = Math.sqrt(ss / period)
+    upper.push(m[i]! + k * std)
+    lower.push(m[i]! - k * std)
+  }
+  return { middle: m, upper, lower }
+}
+
+/** MACD */
+export function macd(data: number[], fast = 12, slow = 26, signal = 9): MACDResult {
+  const ef = ema(data, fast)
+  const es = ema(data, slow)
+  const dif: (number | null)[] = []
+  for (let i = 0; i < data.length; i++) {
+    if (ef[i] === null || es[i] === null) { dif.push(null); continue }
+    dif.push(ef[i]! - es[i]!)
+  }
+  const validDif = dif.filter((v): v is number => v !== null)
+  const deaRaw = ema(validDif, signal)
+  const dea: (number | null)[] = []
+  let di = 0
+  for (let i = 0; i < data.length; i++) {
+    if (dif[i] === null) { dea.push(null); continue }
+    dea.push(deaRaw[di]!)
+    di++
+  }
+  const hist: (number | null)[] = []
+  for (let i = 0; i < data.length; i++) {
+    if (dif[i] === null || dea[i] === null) { hist.push(null); continue }
+    hist.push(dif[i]! - dea[i]!)
+  }
+  return { dif, dea, hist }
+}
+
+/** KDJ */
+export function kdj(close: number[], high: number[], low: number[], n = 9, m1 = 3, m2 = 3): KDJResult {
+  const rsv: (number | null)[] = []
+  for (let i = 0; i < close.length; i++) {
+    if (i < n - 1) { rsv.push(null); continue }
+    let hh = -Infinity, ll = Infinity
+    for (let j = i - n + 1; j <= i; j++) {
+      if (high[j] > hh) hh = high[j]
+      if (low[j] < ll) ll = low[j]
+    }
+    rsv.push(hh === ll ? 50 : (close[i] - ll) / (hh - ll) * 100)
+  }
+  const k = sma(rsv.filter((v): v is number => v !== null), m1)
+  const d = sma(k.filter((v): v is number => v !== null), m2)
+  const kFull: (number | null)[] = []; const dFull: (number | null)[] = []; const jFull: (number | null)[] = []
+  let ki = 0, di2 = 0
+  for (let i = 0; i < close.length; i++) {
+    if (rsv[i] === null) { kFull.push(null); dFull.push(null); jFull.push(null); continue }
+    const kv = k[ki]!; ki++
+    kFull.push(kv)
+    const dv = d[di2]!; di2++
+    dFull.push(dv)
+    jFull.push(3 * kv - 2 * dv)
+  }
+  return { k: kFull, d: dFull, j: jFull }
+}
+
+/** RSI */
+export function rsi(data: number[], period = 14): (number | null)[] {
+  const r: (number | null)[] = [null]
+  let gain = 0, loss = 0
+  for (let i = 1; i < data.length; i++) {
+    const diff = data[i] - data[i - 1]
+    if (diff > 0) gain += diff; else loss -= diff
+    if (i < period) { r.push(null); continue }
+    if (i === period) {
+      const ag = gain / period, al = loss / period
+      r.push(al === 0 ? 100 : 100 - 100 / (1 + ag / al))
+      continue
+    }
+    const prev = r[r.length - 1]!
+    const prevRs = prev === 100 ? Infinity : prev / (100 - prev)
+    const curGain = diff > 0 ? diff : 0
+    const curLoss = diff < 0 ? -diff : 0
+    const avgGain = (gain / period * (period - 1) + curGain) / period
+    const avgLoss = (loss / period * (period - 1) + curLoss) / period
+    gain = avgGain * period
+    loss = avgLoss * period
+    r.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss))
+  }
+  return r
+}
+
+/** Williams %R */
+export function wr(close: number[], high: number[], low: number[], period = 14): (number | null)[] {
+  const r: (number | null)[] = []
+  for (let i = 0; i < close.length; i++) {
+    if (i < period - 1) { r.push(null); continue }
+    let hh = -Infinity, ll = Infinity
+    for (let j = i - period + 1; j <= i; j++) {
+      if (high[j] > hh) hh = high[j]
+      if (low[j] < ll) ll = low[j]
+    }
+    r.push(hh === ll ? -50 : (hh - close[i]) / (hh - ll) * -100)
+  }
+  return r
+}

@@ -9,14 +9,20 @@ import WorkflowCanvas from './canvas/WorkflowCanvas.vue'
 import NodePalette from './NodePalette.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import ExecutionLog from './ExecutionLog.vue'
+import WorkflowList from './WorkflowList.vue'
 import { getIcon } from '@/lib/icons'
+
+import { onMounted } from 'vue'
 
 const session = useSessionStore()
 const workflow = useWorkflowStore()
 const terminal = useTerminalStore()
 const router = useRouter()
 
+onMounted(() => { workflow.fetchNodeMeta() })
+
 const showLog = ref(false)
+const showWorkflowList = ref(false)
 
 async function onRun() {
   workflow.resetExecution()
@@ -129,20 +135,16 @@ function onKeydown(event: KeyboardEvent) {
         <div class="logo">
           <span class="logo-icon" v-html="getIcon('workflow')" />
         </div>
-        <span class="wf-title">Workflow Mode</span>
+        <span class="wf-title">{{ $t('workflow.workflow_mode') }}</span>
       </div>
       <div class="wf-actions">
         <button class="wf-btn btn-run" @click="onRun" :disabled="workflow.executionStatus === 'running'">
           <span class="btn-icon" v-html="getIcon('execution')" />
-          Run <kbd class="key-hint">F5</kbd>
+          {{ $t('workflow.run') }} <kbd class="key-hint">F5</kbd>
         </button>
-        <button class="wf-btn btn-secondary" @click="onSave">
+        <button class="wf-btn btn-secondary" @click="showWorkflowList = true">
           <span class="btn-icon" v-html="getIcon('save')" />
-          {{ $t('common.save') }}
-        </button>
-        <button class="wf-btn btn-secondary" @click="onLoad">
-          <span class="btn-icon" v-html="getIcon('refresh')" />
-          {{ $t('workflow.load_workflow') }}
+          {{ $t('workflow.my_workflows') }}
         </button>
         <button class="wf-btn btn-secondary" @click="showLog = !showLog">
           <span class="btn-icon" v-html="getIcon('terminal')" />
@@ -164,6 +166,7 @@ function onKeydown(event: KeyboardEvent) {
     </div>
 
     <ExecutionLog v-if="showLog" />
+    <WorkflowList v-if="showWorkflowList" @close="showWorkflowList = false" />
   </div>
 </template>
 

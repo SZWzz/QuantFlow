@@ -83,8 +83,11 @@ export const useMLStore = defineStore('ml', () => {
     try {
       const app = (window as any).go?.main?.App
       if (!app) { error.value = 'Bridge unavailable'; return }
-      // ListMLModels not yet implemented in Go backend
-      models.value = []
+      if (app.ListMLModels) {
+        models.value = (await app.ListMLModels()) || []
+      } else {
+        models.value = []
+      }
     } catch (e) {
       error.value = String(e)
     } finally {
@@ -109,8 +112,11 @@ export const useMLStore = defineStore('ml', () => {
     try {
       const app = (window as any).go?.main?.App
       if (!app) { error.value = 'Bridge unavailable'; return }
-      // GetPredictions not yet implemented in Go backend
-      predictions.value = []
+      if (app.GetPredictions) {
+        predictions.value = (await app.GetPredictions(modelId, symbol)) || []
+      } else {
+        predictions.value = []
+      }
     } catch (e) {
       error.value = String(e)
     }
@@ -131,9 +137,25 @@ export const useMLStore = defineStore('ml', () => {
     factorNames: string[]; factorData: any; returnsData: any;
     populationSize: number; generations: number; topK: number;
   }) {
-    // RunAlphaMining not yet implemented in Go backend
-    miningRunning.value = false
-    discoveredFactors.value = []
+    miningRunning.value = true
+    error.value = null
+    try {
+      const app = (window as any).go?.main?.App
+      if (!app?.RunAlphaMining) { error.value = 'Backend not available'; miningRunning.value = false; return }
+      discoveredFactors.value = (await app.RunAlphaMining({
+        factor_names: params.factorNames,
+        population_size: params.populationSize,
+        generations: params.generations,
+        crossover_rate: 0.7,
+        mutation_rate: 0.1,
+        top_k: params.topK,
+        fitness_metric: 'ic',
+      })) || []
+    } catch (e) {
+      error.value = String(e)
+    } finally {
+      miningRunning.value = false
+    }
   }
 
   // Phase 10.3: RL Training actions

@@ -35,7 +35,7 @@ python/**/*.egg-info/
 .codegraph/
 
 # Local data (DB + config with API keys)
-data/
+/data/
 config.yaml
 
 # Task runner state

@@ -47,15 +47,20 @@ onPaneClick(() => {
 
 // Handle new connection
 onConnect((connection: Connection) => {
-  // 拒绝自环
-  if (connection.source === connection.target) {
-    return
-  }
-  // 拒绝重复边
+  if (connection.source === connection.target) return
   const existing = edges.value.some(
     e => e.source === connection.source && e.target === connection.target
   )
   if (existing) return
+
+  // Port type validation — block incompatible connections
+  const srcNode = workflow.nodes.find((n: any) => n.id === connection.source)
+  const tgtNode = workflow.nodes.find((n: any) => n.id === connection.target)
+  if (srcNode && tgtNode) {
+    const srcType = workflow.getPortType(srcNode.data?.nodeType, connection.sourceHandle || 'output', 'output')
+    const tgtType = workflow.getPortType(tgtNode.data?.nodeType, connection.targetHandle || 'input', 'input')
+    if (srcType && tgtType && !workflow.canConnectPorts(srcType, tgtType)) return
+  }
 
   const edge: Edge = {
     id: `e-${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}`,

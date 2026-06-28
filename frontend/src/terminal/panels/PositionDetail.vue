@@ -61,6 +61,9 @@ watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (newSym) => {
   }
 })
 
+watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
+  if (newSym && newSym !== symbol.value) { symbol.value = newSym; fetchPosition() }
+})
 onMounted(fetchPosition)
 </script>
 

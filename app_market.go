@@ -41,6 +41,7 @@ func (a *App) registerMarketAdapters() {
 	a.marketReg.Register(adapters.NewGateIOAdapter()) // primary crypto (accessible from CN)
 	a.marketReg.Register(adapters.NewOKXAdapter())
 	a.marketReg.Register(adapters.NewBinanceAdapter())
+	a.marketReg.Register(adapters.NewBinanceFuturesAdapter())
 	a.marketReg.Register(adapters.NewCoinGeckoAdapter())
 }
 
@@ -304,4 +305,281 @@ func (a *App) GetCryptoOverview(ctx context.Context, symbols []string) (map[stri
 		})
 	}
 	return map[string]interface{}{"cryptos": results}, nil
+}
+
+// GetCryptoFundingRates returns perpetual swap funding rates for crypto symbols.
+func (a *App) GetCryptoFundingRates(ctx context.Context, symbols []string) ([]map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	// Use binance_futures adapter directly (we need specific funding rate API, not quote fallback)
+	adpt := reg.Get("binance_futures")
+	if adpt == nil {
+		return nil, fmt.Errorf("binance_futures adapter not available")
+	}
+	bf, ok := adpt.(*adapters.BinanceFuturesAdapter)
+	if !ok {
+		return nil, fmt.Errorf("binance_futures adapter type assertion failed")
+	}
+	rates, err := bf.FetchFundingRates(ctx, symbols)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]interface{}, 0, len(rates))
+	for _, r := range rates {
+		result = append(result, map[string]interface{}{
+			"symbol":            r.Symbol,
+			"mark_price":        r.MarkPrice,
+			"index_price":       r.IndexPrice,
+			"funding_rate":      r.FundingRate,
+			"next_funding_time": r.NextFundingTime,
+		})
+	}
+	return result, nil
+}
+
+// GetCryptoLiquidations returns recent forced liquidation orders for a crypto symbol.
+func (a *App) GetCryptoLiquidations(ctx context.Context, symbol string, limit int) ([]map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	adpt := reg.Get("binance_futures")
+	if adpt == nil {
+		return nil, fmt.Errorf("binance_futures adapter not available")
+	}
+	bf, ok := adpt.(*adapters.BinanceFuturesAdapter)
+	if !ok {
+		return nil, fmt.Errorf("binance_futures adapter type assertion failed")
+	}
+	liquidations, err := bf.FetchLiquidations(ctx, symbol, limit)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]interface{}, 0, len(liquidations))
+	for _, l := range liquidations {
+		result = append(result, map[string]interface{}{
+			"symbol":     l.Symbol,
+			"side":       l.Side,
+			"price":      l.Price,
+			"qty":        l.Qty,
+			"amount":     l.Amount,
+			"time":       l.Time,
+			"order_side": l.OrderSide,
+		})
+	}
+	return result, nil
+}
+
+// GetCryptoDepth returns order book depth for a crypto pair on a given exchange via CCXT.
+func (a *App) GetCryptoDepth(ctx context.Context, exchange, symbol string, limit int) (map[string]interface{}, error) {
+	return a.FetchData("ccxt", "orderbook", []string{symbol}, "", "", map[string]string{
+		"exchange": exchange,
+		"limit":    fmt.Sprintf("%d", limit),
+	})
+}
+
+// GetDeFiTVL returns top DeFi protocols by TVL via DeFi Llama.
+func (a *App) GetDeFiTVL(ctx context.Context) (map[string]interface{}, error) {
+	return a.FetchData("crypto_extras", "defi_tvl", nil, "", "", nil)
+}
+
+// GetWhaleTransactions returns large crypto transactions via Etherscan.
+func (a *App) GetWhaleTransactions(ctx context.Context, address string) (map[string]interface{}, error) {
+	symbols := []string{}
+	if address != "" {
+		symbols = []string{address}
+	}
+	return a.FetchData("crypto_extras", "whale", symbols, "", "", nil)
+}
+
+// GetGasFees returns current Ethereum gas fees via Etherscan Gas Tracker.
+func (a *App) GetGasFees(ctx context.Context) (map[string]interface{}, error) {
+	return a.FetchData("crypto_extras", "gas_fees", nil, "", "", nil)
+}
+
+// GetShortInterest returns short interest data for a US stock symbol via Finnhub.
+func (a *App) GetShortInterest(ctx context.Context, symbol string) ([]map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	adpt := reg.Get("finnhub")
+	if adpt == nil {
+		return nil, fmt.Errorf("finnhub adapter not available")
+	}
+	fh, ok := adpt.(*adapters.FinnhubAdapter)
+	if !ok {
+		return nil, fmt.Errorf("finnhub adapter type assertion failed")
+	}
+	data, err := fh.FetchShortInterest(ctx, symbol)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]interface{}, 0, len(data))
+	for _, d := range data {
+		result = append(result, map[string]interface{}{
+			"symbol":         d.Symbol,
+			"date":           d.Date,
+			"short_interest": d.ShortInterest,
+			"avg_daily_vol":  d.AvgDailyVolume,
+			"days_to_cover":  d.DaysToCover,
+			"short_pct":      d.ShortPercent,
+		})
+	}
+	return result, nil
+}
+
+// GetEarningsCalendar returns upcoming US earnings events via Finnhub.
+func (a *App) GetEarningsCalendar(ctx context.Context, from, to string) ([]map[string]interface{}, error) {
+	reg := a.getMarketReg()
+	adpt := reg.Get("finnhub")
+	if adpt == nil {
+		return nil, fmt.Errorf("finnhub adapter not available")
+	}
+	fh, ok := adpt.(*adapters.FinnhubAdapter)
+	if !ok {
+		return nil, fmt.Errorf("finnhub adapter type assertion failed")
+	}
+	events, err := fh.FetchEarningsCalendar(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]interface{}, 0, len(events))
+	for _, e := range events {
+		result = append(result, map[string]interface{}{
+			"symbol":           e.Symbol,
+			"date":             e.Date,
+			"hour":             e.Hour,
+			"quarter":          e.Quarter,
+			"year":             e.Year,
+			"eps_actual":       e.EPSActual,
+			"eps_estimate":     e.EPSEstimate,
+			"revenue_actual":   e.RevenueActual,
+			"revenue_estimate": e.RevenueEstimate,
+		})
+	}
+	return result, nil
+}
+
+// GetUSOptionChain returns option chain data for a US stock via Finnhub.
+func (a *App) GetUSOptionChain(symbol string) ([]adapters.OptionChainItem, error) {
+	ctx := context.Background()
+	reg := a.getMarketReg()
+	adpt := reg.Get("finnhub")
+	if adpt == nil {
+		return nil, fmt.Errorf("finnhub adapter not available")
+	}
+	fh, ok := adpt.(*adapters.FinnhubAdapter)
+	if !ok {
+		return nil, fmt.Errorf("finnhub adapter type assertion failed")
+	}
+	return fh.FetchOptionChain(ctx, symbol)
+}
+
+// GetSECFilings returns recent SEC filings for a US stock via Finnhub.
+func (a *App) GetSECFilings(symbol string) ([]adapters.FinnhubSECFiling, error) {
+	ctx := context.Background()
+	reg := a.getMarketReg()
+	adpt := reg.Get("finnhub")
+	if adpt == nil {
+		return nil, fmt.Errorf("finnhub adapter not available")
+	}
+	fh, ok := adpt.(*adapters.FinnhubAdapter)
+	if !ok {
+		return nil, fmt.Errorf("finnhub adapter type assertion failed")
+	}
+	return fh.FetchSECFilings(ctx, symbol)
+}
+
+// GetCBArbitrageData returns convertible bond arbitrage data from AKShare (集思录).
+// Uses Python sidecar via FetchData. Returns JSL convertible bond list with
+// premium rates, conversion prices, and forced redemption warnings.
+func (a *App) GetCBArbitrageData() (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	if a.bridge == nil {
+		return nil, fmt.Errorf("Python sidecar not available")
+	}
+
+	jslData, err := a.FetchData("akshare", "cb_arbitrage", []string{"all"}, "", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("cb_arbitrage jsl: %w", err)
+	}
+	result["bonds"] = jslData
+
+	redeemData, err := a.FetchData("akshare", "cb_redeem", []string{"all"}, "", "", nil)
+	if err != nil {
+		// redeem data is optional; don't fail the whole request
+		result["redeem"] = nil
+	} else {
+		result["redeem"] = redeemData
+	}
+	return result, nil
+}
+
+// ── Hong Kong Market Data ───────────────────────────────────────────
+
+// GetHKIPOCalendar returns HK IPO subscription/listing data via Python sidecar.
+func (a *App) GetHKIPOCalendar(year int) (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	subData, err := a.FetchData("akshare", "hk_ipo", []string{"all"}, "", "", map[string]string{"cmd": "get_hk_ipo_subscription"})
+	if err != nil {
+		return nil, fmt.Errorf("hk ipo subscription: %w", err)
+	}
+	result["subscription"] = subData
+
+	listData, err := a.FetchData("akshare", "hk_ipo", []string{"all"}, "", "", map[string]string{"cmd": "get_hk_ipo_record"})
+	if err != nil {
+		result["listing"] = nil
+	} else {
+		result["listing"] = listData
+	}
+	return result, nil
+}
+
+// GetHKDerivatives returns HK CBBC and warrants data via Python sidecar.
+func (a *App) GetHKDerivatives() (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	cbbcData, err := a.FetchData("akshare", "hk_cbbc", []string{"all"}, "", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("hk cbbc: %w", err)
+	}
+	result["cbbc"] = cbbcData
+
+	warrantData, err := a.FetchData("akshare", "hk_warrants", []string{"all"}, "", "", nil)
+	if err != nil {
+		result["warrants"] = nil
+	} else {
+		result["warrants"] = warrantData
+	}
+	return result, nil
+}
+
+// GetHKTradingCalendar returns HK trading calendar for a given year.
+func (a *App) GetHKTradingCalendar(year int) (map[string]interface{}, error) {
+	return a.FetchData("akshare", "hk_trade_cal", []string{fmt.Sprintf("%d", year)}, "", "", nil)
+}
+
+// HKSettlementInfo holds static HK market settlement rules.
+type HKSettlementInfo struct {
+	Market          string  `json:"market"`
+	SettlementDays  int     `json:"settlement_days"`
+	StampDuty       float64 `json:"stamp_duty"`
+	ExchangeFee     float64 `json:"exchange_fee"`
+	SFCLevy         float64 `json:"sfc_levy"`
+	TradingFee      float64 `json:"trading_fee"`
+	FRCLevy         float64 `json:"frc_levy"`
+	HasPriceLimits  bool    `json:"has_price_limits"`
+	LotSizeMin      int     `json:"lot_size_min"`
+	Currency        string  `json:"currency"`
+	Description     string  `json:"description"`
+}
+
+// GetHKSettlementInfo returns static HK market settlement rules.
+func (a *App) GetHKSettlementInfo() HKSettlementInfo {
+	return HKSettlementInfo{
+		Market:         "HK",
+		SettlementDays: 2,
+		StampDuty:      0.13,
+		ExchangeFee:    0.00565,
+		SFCLevy:        0.00278,
+		TradingFee:     0.005,
+		FRCLevy:        0.00015,
+		HasPriceLimits: false,
+		LotSizeMin:     100,
+		Currency:       "HKD",
+		Description:    "港股 T+2 交收，无涨跌停限制，每手 100 股",
+	}
 }
