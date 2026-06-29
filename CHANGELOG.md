@@ -60,6 +60,15 @@
 ### 变更 — README 文档重构
 - [Docs] **README.md/README.en.md** — 全面重构：ASCII 架构图 → Mermaid 图、节点/面板/适配器列表转为 `<details>` 可折叠、修复 shields.io badge、精简过时内容、统一中英文排版
 
+### 新增 — 财务报表面板毛利率指标
+- [Python] **analyzer.py** — 从利润表提取 `营业成本` 计算 `gross_margin`（毛利率 = (营收 - 营业成本) / 营收 × 100%）
+- [前端] **FinancialsPanel** — 新增毛利率列（带 YoY），营收/净利润/归母净利 cell 内嵌 YoY 标签（绿涨红跌），右栏评分区锁定 180px 宽度
+- [Go] **sinaToAnalyzer** — 添加 `营业成本` 映射条目
+
+### 修复 — Python sidecar 进程残留导致新代码不生效
+- [Engine] **StartSidecar** — 取消版本号匹配复用逻辑，改为每次启动无条件 kill 端口 50051 残留进程后全新启动，确保 Python 代码每次加载最新版本
+- [Python] **pyproject.toml** — version 0.2.2 → 0.2.3（配合版本管理，防止残留进程匹配预期版本号）
+
 ## [2026.6.28] - 2026-06-28
 
 ### 新增 — 财务深度分析面板（Financial Analyzer 集成）

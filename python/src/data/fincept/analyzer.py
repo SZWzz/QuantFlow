@@ -48,6 +48,8 @@ def analyze_report(financials_json):
         inc = income_by_p.get(p, {})
         bal = balance_by_p.get(p, {})
         rev = _f(inc.get("营业总收入", inc.get("revenue", 0)))
+        oc = _f(inc.get("营业成本", inc.get("oper_cost", 0)))
+        gp = rev - oc if rev > 0 and oc > 0 else 0
         np_ = _f(inc.get("净利润", inc.get("net_income", 0)))
         pp = _f(inc.get("归母净利润", inc.get("net_income_parent", np_)))
         ta = _f(bal.get("总资产", bal.get("total_assets", 0)))
@@ -61,6 +63,7 @@ def analyze_report(financials_json):
             "parent_profit": round(pp, 2), "total_assets": round(ta, 2), "equity": round(eq, 2),
             "roe": round(np_ / eq * 100, 1) if eq > 0 else None,
             "debt_ratio": round(tl / ta * 100, 1) if ta > 0 else None,
+            "gross_margin": round(gp / rev * 100, 1) if rev > 0 else None,
             "profit_margin": round(np_ / rev * 100, 1) if rev > 0 else None,
         })
 

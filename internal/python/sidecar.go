@@ -21,7 +21,7 @@ import (
 
 // ExpectedSidecarVersion must match the version string in python/pyproject.toml.
 // The sidecar reads this at startup from importlib.metadata or falls back to this string.
-const ExpectedSidecarVersion = "0.2.2"
+const ExpectedSidecarVersion = "0.2.3"
 
 // SidecarProcess wraps a running Python sidecar child process.
 type SidecarProcess struct {
@@ -48,31 +48,11 @@ func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProc
 	binDir := filepath.Dir(pythonDir)
 	pidFile := filepath.Join(binDir, ".quantflow-sidecar.pid")
 
-	// Check if a sidecar is already listening on the port.
-	if conn, err := net.DialTimeout("tcp", addr, 500*time.Millisecond); err == nil {
-		conn.Close()
-
-		// Verify the running sidecar's version before reusing it.
-		if version, err := getSidecarVersion(ctx, addr); err == nil {
-			if version == ExpectedSidecarVersion {
-				slog.Info("python sidecar already running (version matches)",
-					"addr", addr, "version", version)
-				return nil, nil
-			}
-			slog.Warn("python sidecar version mismatch, killing stale process",
-				"running_version", version, "expected_version", ExpectedSidecarVersion)
-		} else {
-			slog.Warn("python sidecar found but health check failed, killing stale process",
-				"addr", addr, "error", err)
-		}
-
-		// Kill the stale sidecar so we can start a fresh one.
-		killSidecarByPort(port)
-		// Give the OS time to release the port.
-		time.Sleep(300 * time.Millisecond)
-	}
-
-	// Remove any stale PID file from a previous run.
+	// Always kill any stale sidecar process on the port before starting fresh.
+	// This prevents reusing an old Python process that has stale code loaded,
+	// which can happen when the Go app exits but the Python sidecar orphan survives.
+	killSidecarByPort(port)
+	time.Sleep(300 * time.Millisecond)
 	os.Remove(pidFile)
 
 	// Resolve the Python binary — prefer the project's venv, fall back to system.

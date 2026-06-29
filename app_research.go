@@ -408,6 +408,7 @@ func (a *App) fetchFinancialJSON(symbol string) (string, error) {
 var sinaToAnalyzer = map[string]string{
 	"营业总收入":                  "营业总收入",
 	"营业收入":                   "营业总收入",
+	"营业成本":                   "营业成本",
 	"营业总成本":                  "营业总成本",
 	"营业利润":                   "营业利润",
 	"利润总额":                   "利润总额",
