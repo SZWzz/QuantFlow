@@ -73,6 +73,27 @@ def _is_stopword(word: str) -> bool:
     """Check if a word is a stopword."""
     return word in _CN_STOPWORDS or len(word) <= 1
 
+
+def _is_numeric_token(word: str) -> bool:
+    """Check if a token is purely numeric (should not be a keyword)."""
+    if not word:
+        return True
+    # Strip common punctuation from boundaries
+    w = word.strip(".,:;%+-")
+    if not w:
+        return True
+    # Check if it's a number (int or float)
+    try:
+        float(w)
+        return True
+    except ValueError:
+        pass
+    # Check if it contains mostly digits (e.g. "2.78", "515.32")
+    digit_count = sum(1 for c in w if c.isdigit() or c in ".-")
+    if len(w) > 0 and digit_count / len(w) > 0.5:
+        return True
+    return False
+
 # Lazy, one-time VADER readiness check (module-level to avoid repeated network hangs).
 _vader_ready: Optional[bool] = None
 
@@ -180,8 +201,16 @@ class NLPPipeline:
             try:
                 s = SnowNLP(text)
                 raw = s.sentiments
+                # Dampen extreme scores: SnowNLP is trained on product reviews,
+                # not financial news, so 0.0/1.0 outputs are unreliable.
+                if raw <= 0.05 or raw >= 0.95:
+                    raw = 0.5 + (raw - 0.5) * 0.3  # pull toward neutral
+                    confidence = 0.35  # low: extreme output from out-of-domain model
+                elif raw <= 0.15 or raw >= 0.85:
+                    confidence = 0.5  # moderate: somewhat confident
+                else:
+                    confidence = 0.65  # reasonable: within typical range
                 score = (raw - 0.5) * 2.0
-                confidence = 0.7
                 engine = "snownlp"
             except Exception:
                 logger.debug("SnowNLP analysis failed", exc_info=True)
@@ -211,10 +240,17 @@ class NLPPipeline:
             confidence = 0.3
             engine = "keyword"
 
-        # Extract keywords from text
+        # Confidence penalty for very short text (likely noise, not meaningful news)
+        text_len = len(text.strip())
+        if text_len < 50:
+            confidence *= 0.5
+        elif text_len < 100:
+            confidence *= 0.8
+
+        # Extract keywords from text (filter numerics to avoid garbage like "2.78")
         if language == "zh" and _JIEBA_AVAILABLE:
             words = jieba.lcut(text)
-            keywords = [w for w in words if len(w) >= 2 and not _is_stopword(w)][:10]
+            keywords = [w for w in words if len(w) >= 2 and not _is_stopword(w) and not _is_numeric_token(w)][:10]
         else:
             words = [w.strip(".,!?;:()[]{}\"'") for w in text.split() if len(w) > 3]
             keywords = [w for w in words if w.isalpha()][:10]

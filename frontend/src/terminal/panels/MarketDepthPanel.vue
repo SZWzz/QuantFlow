@@ -60,19 +60,27 @@ async function refresh() {
   const app = (window as any).go?.main?.App
   if (!app) return
   try {
-    const result = await app.GetQuote(detectMarket(symbol.value), symbol.value)
-    const snapshot = Array.isArray(result) ? result[0] : result
+    const mkt = detectMarket(symbol.value)
+    const [quoteResult, depthResult] = await Promise.all([
+      app.GetQuote(mkt, symbol.value),
+      app.GetDepth(mkt, symbol.value).catch(() => null),
+    ])
+    const snapshot = Array.isArray(quoteResult) ? quoteResult[0] : quoteResult
     if (!snapshot) return
     name.value = snapshot.name || symbol.value
     lastPrice.value = snapshot.last || 0
     change.value = snapshot.change || 0
     changePct.value = snapshot.change_pct || snapshot.changePct || 0
-    if (snapshot.bid > 0 && snapshot.ask > 0) {
+
+    if (depthResult && depthResult.bids?.length > 0) {
+      bidLevels.value = depthResult.bids.map((l: any) => ({ price: l.price, size: l.size }))
+      askLevels.value = depthResult.asks.map((l: any) => ({ price: l.price, size: l.size }))
+      isSimulated.value = false
+    } else if (snapshot.bid > 0 && snapshot.ask > 0) {
       buildSimulatedLevels(snapshot.bid, snapshot.ask)
+      isSimulated.value = true
     }
-    // No real tick data for A-shares via free APIs
     trades.value = []
-    isSimulated.value = true
   } catch(e) {
     console.error('[MarketDepth]', e)
   }

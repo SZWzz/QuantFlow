@@ -32,7 +32,7 @@ export default {
     symbol: '代码', last: '最新价', open: '开盘', high: '最高', low: '最低',
     volume: '成交量', change: '涨跌', change_pct: '涨跌幅',
     market_cap: '市值', pe: '市盈率', eps: '每股收益', dividend_yield: '股息率',
-    avg_volume: '均量', bid: '买价', ask: '卖价',
+    avg_volume: '均量', turnover: '成交额', bid: '买价', ask: '卖价',
   },
   watchlist: {
     title: '自选股', empty: '暂无自选', ticker_tape: '滚动报价',

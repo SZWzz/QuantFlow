@@ -214,21 +214,19 @@ func (a *EastMoneyCapitalAdapter) FetchExDividendCalendar(ctx context.Context, s
 	results := make([]ExDividendCalendarRecord, 0, len(rows))
 	for _, r := range rows {
 		bonus := floatval(r["PRETAX_BONUS_RMB"])
-		closePrice := floatval(r["CLOSE_PRICE"])
-		yield := 0.0
-		if closePrice > 0 {
-			yield = (bonus / closePrice) * 100
-		}
+		// DIVIDENT_RATIO from EastMoney = dividend_per_share / close_price (ratio, not %)
+		divRatio := floatval(r["DIVIDENT_RATIO"])
+		yield := divRatio * 100
 		results = append(results, ExDividendCalendarRecord{
 			Code:          strval(r["SECURITY_CODE"]),
 			Name:          strval(r["SECURITY_NAME_ABBR"]),
 			ExDate:        strval(r["EX_DIVIDEND_DATE"]),
 			BonusRMB:      bonus,
-			TransferRatio: floatval(r["TRANSFER_RATIO"]),
+			TransferRatio: floatval(r["IT_RATIO"]),
 			BonusRatio:    floatval(r["BONUS_RATIO"]),
 			Plan:          strval(r["ASSIGN_PROGRESS"]),
 			DividendYield: yield,
-			ClosePrice:    closePrice,
+			ClosePrice:    0, // not available from API
 		})
 	}
 	return results, nil

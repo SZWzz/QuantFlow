@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -59,7 +60,12 @@ func (a *SinaAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Qu
 	// Sina returns GBK-encoded content; convert to UTF-8 for proper Chinese name display.
 	bodyStr, err := decodeGBK(body)
 	if err != nil {
-		bodyStr = string(body) // fallback to raw bytes
+		if utf8.Valid(body) {
+			bodyStr = string(body) // already valid UTF-8, use as-is
+		} else {
+			// Invalid GBK and not UTF-8 — return error so caller falls through to next adapter
+			return nil, fmt.Errorf("sina: encoding decode failed for %s: %w", symbol, err)
+		}
 	}
 
 	// Detect market in the response: "hk" = HK, "gb_" = US, else CN
@@ -134,6 +140,7 @@ func parseSinaUSQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 		Volume:    volume,
 		Change:    change,
 		ChangePct: changePct,
+		Exchange:  "US",
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
 }
@@ -184,6 +191,7 @@ func parseSinaHKQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 	changePct := parseFloatSafe(fields[8])
 	bid := parseFloatSafe(fields[9])
 	ask := parseFloatSafe(fields[10])
+	turnover := parseFloatSafe(fields[11])
 	volume := parseFloatSafe(fields[12])
 
 	// If last is 0 (suspended/not trading), fall back to prevClose
@@ -193,18 +201,39 @@ func parseSinaHKQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
-		Name:      fields[1], // Chinese name
+		Name:      cleanName(fields[1]), // Chinese name
 		Last:      last,
 		Open:      open,
 		High:      high,
 		Low:       low,
+		PrevClose: prevClose,
 		Bid:       bid,
 		Ask:       ask,
 		Volume:    volume,
+		Turnover:  turnover,
 		Change:    change,
 		ChangePct: changePct,
+		Exchange:  "CN",
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
+}
+
+// cleanName validates a stock name is valid UTF-8 and returns it.
+// Invalid UTF-8 bytes are replaced with U+FFFD to avoid garbled display.
+func cleanName(name string) string {
+	if utf8.ValidString(name) {
+		return name
+	}
+	var b strings.Builder
+	b.Grow(len(name))
+	for _, r := range name {
+		if r == utf8.RuneError {
+			b.WriteRune('?')
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // decodeGBK converts a GBK/GB2312-encoded byte slice to a UTF-8 string.
@@ -215,6 +244,10 @@ func decodeGBK(data []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(decoded), nil
+	out := string(decoded)
+	if !utf8.ValidString(out) {
+		return "", fmt.Errorf("GBK decoded output is still invalid UTF-8")
+	}
+	return out, nil
 }
 

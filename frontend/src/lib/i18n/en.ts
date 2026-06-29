@@ -27,7 +27,7 @@ export default {
     symbol: 'Symbol', last: 'Last', open: 'Open', high: 'High', low: 'Low',
     volume: 'Volume', change: 'Change', change_pct: 'Chg%',
     market_cap: 'Market Cap', pe: 'P/E', eps: 'EPS', dividend_yield: 'Div Yield',
-    avg_volume: 'Avg Vol', bid: 'Bid', ask: 'Ask',
+    avg_volume: 'Avg Vol', turnover: 'Turnover', bid: 'Bid', ask: 'Ask',
   },
   watchlist: { title: 'Watchlist', empty: 'No watchlist', ticker_tape: 'Ticker Tape' },
   trade: {

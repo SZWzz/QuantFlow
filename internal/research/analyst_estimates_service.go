@@ -37,13 +37,19 @@ func (s *AnalystEstimatesService) GetEstimates(ctx context.Context, symbol strin
 		}
 		if len(reports) > 0 {
 			estimates := make([]AnalystEstimate, 0, len(reports))
+			seen := make(map[string]bool)
 			for _, r := range reports {
+				key := r.OrgName + "|" + r.Analyst + "|" + r.Rating
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
 				estimates = append(estimates, AnalystEstimate{
-					Analyst:    r.OrgName,
+					Analyst:    r.Analyst,
 					Firm:       r.OrgName,
 					Rating:     normalizeRating(r.Rating),
-					TargetLow:  r.PredictNextYearEPS,
-					TargetHigh: r.PredictThisYearEPS,
+					TargetLow:  r.TargetPriceLow,
+					TargetHigh: r.TargetPriceHigh,
 					Date:       r.PublishDate,
 				})
 			}

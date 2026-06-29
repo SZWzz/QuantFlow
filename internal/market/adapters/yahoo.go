@@ -143,9 +143,11 @@ func (a *YahooAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Q
 		Open:      last.Open,
 		High:      last.High,
 		Low:       last.Low,
+		PrevClose: prev.Close,
 		Volume:    last.Volume,
 		Change:    change,
 		ChangePct: changePct,
+		Exchange:  "US",
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
 }

@@ -54,6 +54,7 @@ async function fetchQuote(sym: string) {
       change: snapshot.change ?? 0,
       changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
       prevClose: snapshot.prevClose ?? ((snapshot.last ?? 0) - (snapshot.change ?? 0)),
+      turnover: snapshot.turnover ?? 0,
       avgVolume: snapshot.avgVolume ?? '--',
       marketCap: snapshot.marketCap ?? '--',
       pe: snapshot.pe ?? '--',
@@ -121,6 +122,14 @@ function fmtVolume(n: number): string {
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
   return n.toLocaleString()
 }
+function fmtMarketCap(n: any): string {
+  if (typeof n !== 'number' || n === 0) return '--'
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + '万亿'
+  if (n >= 1e8) return (n / 1e8).toFixed(2) + '亿'
+  if (n >= 1e4) return (n / 1e4).toFixed(1) + '万'
+  return n.toLocaleString()
+}
+
 function fmtFlow(n: number): string {
   if (typeof n !== 'number') return '--'
   const sign = n >= 0 ? '+' : ''
@@ -171,11 +180,11 @@ function flowBarStyle(val: number): Record<string, string> {
     </div>
     <div class="info-grid">
       <div class="kv-item"><span class="label">{{ $t('quote.volume') }}</span><span class="value">{{ fmtVolume(quote.volume) }}</span></div>
-      <div class="kv-item"><span class="label">{{ $t('quote.avg_volume') }}</span><span class="value">{{ quote.avgVolume }}</span></div>
-      <div class="kv-item"><span class="label">{{ $t('quote.market_cap') }}</span><span class="value">{{ quote.marketCap }}</span></div>
-      <div class="kv-item"><span class="label">{{ $t('quote.pe') }}</span><span class="value">{{ quote.pe }}</span></div>
-      <div class="kv-item"><span class="label">{{ $t('quote.eps') }}</span><span class="value">{{ quote.eps }}</span></div>
-      <div class="kv-item"><span class="label">{{ $t('quote.dividend_yield') }}</span><span class="value">{{ quote.dividendYield === '--' ? '--' : quote.dividendYield + '%' }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.turnover') }}</span><span class="value">{{ fmtVolume(quote.turnover) }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.market_cap') }}</span><span class="value">{{ fmtMarketCap(quote.marketCap) }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.pe') }}</span><span class="value">{{ typeof quote.pe === 'number' && quote.pe > 0 ? quote.pe.toFixed(2) : '--' }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.eps') }}</span><span class="value">{{ typeof quote.eps === 'number' ? quote.eps.toFixed(2) : '--' }}</span></div>
+      <div class="kv-item"><span class="label">{{ $t('quote.dividend_yield') }}</span><span class="value">{{ typeof quote.dividendYield === 'number' ? quote.dividendYield.toFixed(2) + '%' : '--' }}</span></div>
     </div>
     <!-- Capital Flow -->
     <div class="capital-flow-section">

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"quantflow/internal/market"
 )
@@ -59,7 +60,17 @@ func (a *TencentAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 		return nil, fmt.Errorf("tencent: HTTP %d", resp.StatusCode)
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	return parseTencentQuote(symbol, string(body))
+
+	// Tencent returns GBK-encoded content for Chinese text; decode to UTF-8.
+	bodyStr, err := decodeGBK(body)
+	if err != nil {
+		if utf8.Valid(body) {
+			bodyStr = string(body)
+		} else {
+			return nil, fmt.Errorf("tencent: encoding decode failed for %s: %w", symbol, err)
+		}
+	}
+	return parseTencentQuote(symbol, bodyStr)
 }
 
 // ── K-line ─────────────────────────────────────────────────────────────────────
@@ -174,6 +185,35 @@ func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 	return bars, nil
 }
 
+// FetchDepth returns 5-level order book depth for a symbol.
+// Tencent API returns bid/ask levels in its quote response so we reuse it.
+func (a *TencentAdapter) FetchDepth(ctx context.Context, symbol string) (*market.DepthSnapshot, error) {
+	code := toTencentCode(symbol)
+	url := fmt.Sprintf(tencentQuoteURL, code)
+
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req.Header.Set("Referer", "https://gu.qq.com/")
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, market.NewTransientErrorf("tencent depth: http error: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("tencent depth: HTTP %d", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+
+	bodyStr, err := decodeGBK(body)
+	if err != nil {
+		if utf8.Valid(body) {
+			bodyStr = string(body)
+		} else {
+			return nil, fmt.Errorf("tencent depth: encoding decode failed for %s: %w", symbol, err)
+		}
+	}
+	return parseTencentDepth(symbol, bodyStr)
+}
+
 func (a *TencentAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "600519")
 	return err
@@ -184,6 +224,67 @@ func (a *TencentAdapter) HealthCheck(ctx context.Context) error {
 type tencentKlineResponse struct {
 	Code int                               `json:"code"`
 	Data map[string]map[string]interface{} `json:"data"`
+}
+
+// parseTencentDepth parses 5-level bid/ask from Tencent's quote response.
+//
+// Tencent field mapping for bid/ask (0-indexed after ~ split):
+//
+//	[7]=bid1_price, [8]=ask1_price, [9]=bid1_vol(手), [10]=ask1_vol(手)
+//	[11]=bid2_price, [12]=ask2_price, [13]=bid2_vol, [14]=ask2_vol
+//	[15]=bid3_price, [16]=ask3_price, [17]=bid3_vol, [18]=ask3_vol
+//	[19]=bid4_price, [20]=ask4_price, [21]=bid4_vol, [22]=ask4_vol
+//	[23]=bid5_price, [24]=ask5_price, [25]=bid5_vol, [26]=ask5_vol
+func parseTencentDepth(symbol, body string) (*market.DepthSnapshot, error) {
+	start := 0
+	for start < len(body) {
+		if body[start] == '"' {
+			start++
+			break
+		}
+		start++
+	}
+	if start >= len(body) {
+		return nil, fmt.Errorf("tencent depth: unexpected format")
+	}
+	end := start
+	for end < len(body) {
+		if body[end] == '"' {
+			break
+		}
+		end++
+	}
+	content := body[start:end]
+	fields := splitTencent(content, "~")
+
+	if len(fields) < 27 {
+		return nil, fmt.Errorf("tencent depth: insufficient fields (%d)", len(fields))
+	}
+
+	bids := make([]market.DepthLevel, 5)
+	asks := make([]market.DepthLevel, 5)
+	for i := 0; i < 5; i++ {
+		bidPriceIdx := 7 + i*4
+		askPriceIdx := 8 + i*4
+		bidVolIdx := 9 + i*4
+		askVolIdx := 10 + i*4
+
+		bids[4-i] = market.DepthLevel{ // reverse so bids[0] is best (highest price)
+			Price: parseFloatSafe(fields[bidPriceIdx]),
+			Size:  parseFloatSafe(fields[bidVolIdx]) * 100,
+		}
+		asks[i] = market.DepthLevel{ // asks[0] is best (lowest price)
+			Price: parseFloatSafe(fields[askPriceIdx]),
+			Size:  parseFloatSafe(fields[askVolIdx]) * 100,
+		}
+	}
+
+	return &market.DepthSnapshot{
+		Symbol:    symbol,
+		Bids:      bids,
+		Asks:      asks,
+		Timestamp: time.Now().UnixMilli(),
+	}, nil
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────

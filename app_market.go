@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"quantflow/internal/market"
@@ -12,6 +13,34 @@ import (
 	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
+
+// idxDef describes a market index to query in GetMarketOverview.
+type idxDef struct{ code, name string }
+
+// marketOverviewCache caches the last market overview result with TTL.
+type marketOverviewCache struct {
+	mu      sync.Mutex
+	data    map[string]interface{}
+	expires time.Time
+}
+
+var overviewCache = &marketOverviewCache{}
+
+func (c *marketOverviewCache) get(mkt string) (map[string]interface{}, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.data != nil && time.Now().Before(c.expires) {
+		return c.data, true
+	}
+	return nil, false
+}
+
+func (c *marketOverviewCache) set(data map[string]interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.data = data
+	c.expires = time.Now().Add(30 * time.Second)
+}
 
 // registerMarketAdapters populates the adapter registry with every data source,
 // in the order the fallback chains expect (see market.FallbackChains). mootdx
@@ -235,10 +264,16 @@ func (a *App) getMarketReg() *market.AdapterRegistry {
 }
 
 // GetMarketOverview returns major market indices for the given market.
+// Results are cached in-memory for 30s; individual index quotes are fetched
+// in parallel to reduce wall-clock latency from N×serial to ~1×serial.
 func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
+	if data, ok := overviewCache.get(mkt); ok {
+		return data, nil
+	}
+
 	ctx := context.Background()
-	type idxDef struct{ code, name string }
 	var indices []idxDef
+	marketName := mkt
 	switch mkt {
 	case "HK":
 		indices = []idxDef{
@@ -253,6 +288,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			{"^DJI", "Dow Jones"},
 		}
 	default:
+		marketName = "CN"
 		indices = []idxDef{
 			{"000001.SH", "上证指数"},
 			{"399001.SZ", "深证成指"},
@@ -261,13 +297,24 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			{"000300.SH", "沪深300"},
 		}
 	}
+
+	type idxResult struct {
+		code string
+		snap *market.QuoteSnapshot
+	}
+	ch := make(chan idxResult, len(indices))
+	var wg sync.WaitGroup
+
 	sina := a.marketReg.Get("sina")
-	result := make([]map[string]interface{}, 0, len(indices))
+	sinaAvail := mkt == "CN" && sina != nil && sina.IsAvailable(ctx)
+
 	for _, idx := range indices {
-		var snap *market.QuoteSnapshot
-		var err error
-		if mkt == "CN" || mkt == "" {
-			if sina != nil && sina.IsAvailable(ctx) {
+		wg.Add(1)
+		go func(idx idxDef) {
+			defer wg.Done()
+			var snap *market.QuoteSnapshot
+			var err error
+			if sinaAvail {
 				sc := idx.code
 				parts := strings.Split(sc, ".")
 				if len(parts) == 2 {
@@ -275,27 +322,45 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 				}
 				snap, err = sina.FetchQuote(ctx, sc)
 			} else {
-				snap, _, err = a.GetQuote(ctx, "CN", idx.code)
+				snap, _, err = a.GetQuote(ctx, marketName, idx.code)
 			}
-		} else {
-			snap, _, err = a.GetQuote(ctx, mkt, idx.code)
-		}
-		if err != nil {
-			slog.Warn("GetMarketOverview: failed for", "code", idx.code, "error", err)
-			continue
-		}
+			if err != nil {
+				slog.Warn("GetMarketOverview: failed for", "code", idx.code, "error", err)
+				return
+			}
+			ch <- idxResult{idx.code, snap}
+		}(idx)
+	}
+	wg.Wait()
+	close(ch)
+
+	result := make([]map[string]interface{}, 0, len(indices))
+	for r := range ch {
 		result = append(result, map[string]interface{}{
-			"code":       idx.code,
-			"name":       idx.name,
-			"price":      snap.Last,
-			"change":     snap.Change,
-			"change_pct": snap.ChangePct,
+			"code":       r.code,
+			"name":       getIndexName(r.code, indices),
+			"price":      r.snap.Last,
+			"change":     r.snap.Change,
+			"change_pct": r.snap.ChangePct,
 		})
 	}
-	return map[string]interface{}{
+
+	out := map[string]interface{}{
 		"indices": result,
 		"breadth": map[string]int{"advancers": 0, "decliners": 0, "unchanged": 0},
-	}, nil
+	}
+	overviewCache.set(out)
+	return out, nil
+}
+
+// getIndexName looks up the display name for an index code from the idxDef list.
+func getIndexName(code string, indices []idxDef) string {
+	for _, idx := range indices {
+		if idx.code == code {
+			return idx.name
+		}
+	}
+	return code
 }
 
 // GetCryptoOverview returns quotes for major crypto pairs.
@@ -384,6 +449,36 @@ func (a *App) GetCryptoDepth(ctx context.Context, exchange, symbol string, limit
 		"exchange": exchange,
 		"limit":    fmt.Sprintf("%d", limit),
 	})
+}
+
+// GetDepth returns 5-level order book depth for a symbol.
+// For CN/HK: uses Tencent adapter (free, no auth).
+// For US: falls back to simulated (no free depth data).
+// For CRYPTO: routes to GetCryptoDepth via Python sidecar.
+func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSnapshot, error) {
+	switch mkt {
+	case "CN", "HK":
+		adpt := a.marketReg.Get("tencent")
+		if adpt == nil {
+			return nil, fmt.Errorf("tencent adapter not available")
+		}
+		tc, ok := adpt.(*adapters.TencentAdapter)
+		if !ok {
+			return nil, fmt.Errorf("tencent adapter type assertion failed")
+		}
+		return tc.FetchDepth(ctx, symbol)
+	case "CRYPTO":
+		exchange := "binance"
+		raw, err := a.GetCryptoDepth(ctx, exchange, symbol, 10)
+		if err != nil {
+			return nil, err
+		}
+		// Parse raw map response into DepthSnapshot
+		data, _ := raw["data"].(string)
+		return &market.DepthSnapshot{Symbol: symbol}, fmt.Errorf("crypto depth via Python sidecar, data=%s", data)
+	default:
+		return nil, fmt.Errorf("depth not available for market %s", mkt)
+	}
 }
 
 // GetDeFiTVL returns top DeFi protocols by TVL via DeFi Llama.

@@ -6,6 +6,50 @@
 
 ## [2026.6.29] - 2026-06-29
 
+### 修复 — 行情详细面板数据缺失
+- [行情] **QuoteSnapshot** — 扩展 struct 新增 `PrevClose`/`Turnover`/`MarketCap`/`Pe`/`Exchange` 字段，解决前端显示大量 `--` 的问题
+- [行情] **EastMoney 适配器** — 映射 F48(成交额)→Turnover、F116(总市值)→MarketCap、F162(市盈率)→Pe，从 secid 前缀推断 Exchange(SH/SZ)
+- [行情] **Sina CN 解析器** — 映射 field[2](昨收)→PrevClose、field[9](成交额 万元→元)→Turnover
+- [行情] **Sina HK 解析器** — 映射 field[3](昨收)→PrevClose、field[11](成交额)→Turnover
+- [行情] **Tencent/AKShare 解析器** — 映射 fields[4](昨收)→PrevClose、fields[37](成交额)→Turnover
+- [行情] **Yahoo 适配器** — 从 prev 日线提取 PrevClose
+- [前端] **QuoteDetailPanel** — 新增成交额/总市值/市盈率展示，总市值用万亿/亿/万格式化
+
+### 修复 — 分红除权面板数据全零
+- [行情] **ExDividendCalendar** — `CLOSE_PRICE` 不存在于 EastMoney RPT_SHAREBONUS_DET 接口，改用 `DIVIDENT_RATIO * 100` 计算股息率；`TRANSFER_RATIO` 改用 `IT_RATIO`（转增比例），`BONUS_RATIO` 保留原字段名（送股比例）
+
+### 修复 — 分析师预测面板目标价全零/分析师名重复
+- [行情] **ResearchReport** — 新增 `Analyst`/`TargetPriceLow`/`TargetPriceHigh` 字段，映射 API 的 `researcher`/`indvAimPriceL`/`indvAimPriceT`
+- [行情] **reportItem** — 新增 `Researcher`/`IndvAimPriceL`/`IndvAimPriceT` 字段以捕获 API 完整数据
+- [行情] **AnalystEstimatesService** — 修正字段映射：`Analyst` 改用分析师姓名（`r.Analyst`），`TargetLow`/`TargetHigh` 改用目标价（`r.TargetPriceLow`/`r.TargetPriceHigh`），不再使用机构名和EPS预测冒充目标价
+- [行情] **AnalystEstimatesService** — 添加 `(org+analyst+rating)` 去重，消除同一机构同评级重复行
+
+### 修复 — 市场概括加载卡顿
+- [行情] **GetMarketOverview** — 并行化指数行情请求（goroutine + WaitGroup），5 个指数从串行 ~1.5s 降至 ~300ms
+- [行情] **marketOverviewCache** — 新增 30s TTL 结果级缓存，避免 15s 自动刷新周期内重复请求
+- [行情] **idxDef** — 提取为包级类型，供 getIndexName 查找函数复用
+
+### 修复 — 市场深度面板无数据
+- [行情] **DepthLevel/DepthSnapshot** — 新增 5 档盘口行情类型（`market/types.go`），Bids/Asks 各 5 档含 price/size
+- [行情] **Tencent 适配器** — 新增 `FetchDepth` 方法，从 Tencent API 响应中解析 fields[7]~[26] 的 5 档买卖盘数据（字段格式: bid1_price~ask1_price~bid1_vol~ask1_vol~bid2_price~…），vol 统一从 手→股
+- [行情] **GetDepth** — 新增 Wails 方法（`app_market.go`），按市场路由: CN/HK → Tencent, CRYPTO → Python CCXT, US → 暂不支持
+- [前端] **MarketDepthPanel** — `refresh()` 改为并行调用 `GetQuote` + `GetDepth`，有真实 5 档盘口数据时用实时数据、移除 "模拟盘口" 标签，失败时回退到模拟显示
+
+### 修复 — 情绪分析面板分数异常 (POSITIVE +100.0)
+- [Python] **nlp_pipeline** — SnowNLP 置信度不再硬编码 0.7：极端分数 (raw≤0.05或≥0.95) → confidence=0.35，边界 (≤0.15或≥0.85) → 0.5，正常范围 → 0.65；短文本 (<50字) 再打 5 折
+- [Python] **nlp_pipeline** — SnowNLP 极端分数向中性拉回：raw≤0.05或≥0.95 时映射到 `0.5 + (raw-0.5)*0.3`，避免 +100 或 -100 的假象
+- [Python] **nlp_pipeline** — 关键词过滤数值 token（`_is_numeric_token`），不再显示 "2.78"、"515.32" 等数字垃圾
+- [Python] **nlp_pipeline** — 短文本置信度衰减：<50字 *0.5、<100字 *0.8，过滤噪声文本的过度自信
+
+### 修复 — 终端模式股票名称乱码
+- [行情] **Sina 适配器** — `decodeGBK` 失败时不再直接返回原始 GBK 字节导致 JSON 序列化产生 U+FFFD 乱码：检查是否已是合法 UTF-8，否则返回错误让 fallback 链切换到下一适配器
+- [行情] **Sina CN/HK 解析器** — 新增 `cleanName()` 函数，验证 UTF-8 合法性，非法字节替换为 `?`，避免非 UTF-8 字符串传到前端显示乱码
+- [行情] **Sina HK 解析器** — 修复 `Name` 误用 `fields[0]`（英文名）→ 改回 `fields[1]`（中文名）
+
+### 修复 — Tencent 适配器 GBK 编码乱码（经 Sina fix 后 fallback 链切到 Tencent 仍乱码）
+- [行情] **Tencent 适配器** — `FetchQuote`/`FetchDepth` 响应体添加 GBK→UTF-8 解码（与 Sina 共用 `decodeGBK`），中文股票名称不再显示乱码
+- [行情] **parseTencentQuote (akshare.go)** — Name 字段添加 `cleanName()` UTF-8 验证，双重保障
+
 ### 修复 — 分时图不刷新
 - [行情] **GetMinuteLine** — 当 `sinceTimestamp > 0`（增量轮询或切换代码时），缓存无新数据后不再返回空，改为执行 mootdx 实时抓取并合并到缓存，使分时图在交易时段内持续更新
 - [存储] **minute_cache_test.go** — 修复因硬编码日期 `"2026-06-26"` 与 `time.Now()` 不匹配导致的测试失败（`SaveAndGet`、`LRUFull`）

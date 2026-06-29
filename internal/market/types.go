@@ -4,6 +4,21 @@ package market
 
 import "time"
 
+// DepthLevel represents a single price level in the order book.
+type DepthLevel struct {
+	Price float64 `json:"price"`
+	Size  float64 `json:"size"`
+}
+
+// DepthSnapshot represents the order book depth for a symbol.
+// Bids are sorted highest-first; Asks sorted lowest-first.
+type DepthSnapshot struct {
+	Symbol    string       `json:"symbol"`
+	Bids      []DepthLevel `json:"bids"`
+	Asks      []DepthLevel `json:"asks"`
+	Timestamp int64        `json:"timestamp"`
+}
+
 // QuoteSnapshot is a real-time quote for a single symbol.
 type QuoteSnapshot struct {
 	Symbol    string  `json:"symbol"`
@@ -12,11 +27,16 @@ type QuoteSnapshot struct {
 	Open      float64 `json:"open"`
 	High      float64 `json:"high"`
 	Low       float64 `json:"low"`
+	PrevClose float64 `json:"prevClose"`
 	Bid       float64 `json:"bid"`
 	Ask       float64 `json:"ask"`
 	Volume    float64 `json:"volume"`
+	Turnover  float64 `json:"turnover"`
 	Change    float64 `json:"change"`
 	ChangePct float64 `json:"change_pct"`
+	MarketCap float64 `json:"marketCap"`
+	Pe        float64 `json:"pe"`
+	Exchange  string  `json:"exchange"`
 	Timestamp int64   `json:"timestamp"`
 }
 

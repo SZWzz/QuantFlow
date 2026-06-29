@@ -95,6 +95,11 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 	}
 
 	d := result.Data
+	prevClose := (d.F43 - d.F169) / 100.0
+	exchange := "SZ"
+	if strings.HasPrefix(secid, "1.") {
+		exchange = "SH"
+	}
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
 		Name:      d.F58,
@@ -102,9 +107,14 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 		Open:      d.F46 / 100.0,  // f46: 开盘价
 		High:      d.F44 / 100.0,  // f44: 最高价
 		Low:       d.F45 / 100.0,  // f45: 最低价
+		PrevClose: prevClose,
 		Volume:    d.F47,           // f47: 成交量 (手)
+		Turnover:  d.F48,           // f48: 成交额 (元)
 		Change:    d.F169 / 100.0,  // f169: 涨跌额
 		ChangePct: d.F170 / 100.0,  // f170: 涨跌幅
+		MarketCap: d.F116,          // f116: 总市值 (元)
+		Pe:        d.F162,          // f162: 市盈率
+		Exchange:  exchange,
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
 }

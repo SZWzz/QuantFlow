@@ -273,19 +273,26 @@ func parseTencentQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 			Volume:    result.Volume,
 			Change:    result.Change,
 			ChangePct: result.ChangePct,
+			Exchange:  "CN",
 			Timestamp: time.Now().UnixMilli(),
 		}, nil
 	}
 
 	// Tencent field mapping:
 	// [0]=unknown, [1]=name, [2]=code, [3]=last, [4]=prevClose, [5]=open,
-	// [6]=volume(手), [31]=high, [32]=low, [33]=high (alt), [34]=low (alt)
+	// [6]=volume(手), [31]=high, [32]=low, [33]=high (alt), [34]=low (alt),
+	// [37]=turnover/amount(元), [38]=turnoverRate(%), [39]=pe
 	last := parseFloatSafe(fields[3])
 	open := parseFloatSafe(fields[5])
 	high := parseFloatSafe(fields[33])
 	low := parseFloatSafe(fields[34])
 	volume := parseFloatSafe(fields[6]) * 100
 	prevClose := parseFloatSafe(fields[4])
+
+	var turnover float64
+	if len(fields) > 37 {
+		turnover = parseFloatSafe(fields[37])
+	}
 
 	change := last - prevClose
 	changePct := 0.0
@@ -295,13 +302,17 @@ func parseTencentQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
+		Name:      cleanName(fields[1]),
 		Last:      last,
 		Open:      open,
 		High:      high,
 		Low:       low,
+		PrevClose: prevClose,
 		Volume:    volume,
+		Turnover:  turnover,
 		Change:    change,
 		ChangePct: changePct,
+		Exchange:  "CN",
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
 }

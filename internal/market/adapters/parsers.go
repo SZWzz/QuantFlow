@@ -112,6 +112,7 @@ func parseSinaQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 	ask := parseFloatSafe(fields[7])
 	volume := parseFloatSafe(fields[8]) * 100 // 手→股
 	prevClose := parseFloatSafe(fields[2])
+	turnover := parseFloatSafe(fields[9]) * 10000 // 万→元
 
 	change := last - prevClose
 	changePct := 0.0
@@ -121,16 +122,19 @@ func parseSinaQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
-		Name:      fields[0],
+		Name:      cleanName(fields[0]),
 		Last:      last,
 		Open:      open,
 		High:      high,
 		Low:       low,
+		PrevClose: prevClose,
 		Bid:       bid,
 		Ask:       ask,
 		Volume:    volume,
+		Turnover:  turnover,
 		Change:    change,
 		ChangePct: changePct,
+		Exchange:  "CN",
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
 }
