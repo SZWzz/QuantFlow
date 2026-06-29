@@ -2,12 +2,14 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '')
 const { name } = useStockName(symbol)
+const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
 const error = ref('')
 const data = ref<any>(null)
@@ -39,7 +41,9 @@ async function loadData() {
   try {
     const w = (window as any)
     if (w?.go?.main?.App?.FetchData) {
-      const result = await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+      const { data: result } = await fetchWithCache('bonds:' + symbol.value, async () => {
+        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+      })
       if (result?.data) data.value = JSON.parse(result.data)
       else if (result?.error) error.value = result.error
     }
@@ -85,6 +89,7 @@ onMounted(loadData)
   <div class="panel-container">
     <div class="panel-header">
       <span class="title">可转债实时行情</span>
+      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
       <div class="header-actions">
         <input class="search-input" v-model="searchQuery" placeholder="搜索代码/名称" />
         <button class="btn-sm" @click="loadData">⟳ 刷新</button>

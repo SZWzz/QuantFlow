@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const { fetchWithCache } = usePanelCache()
 
 interface NewsItem { title: string; source: string; time: string; url?: string; symbol?: string }
 
@@ -31,8 +33,15 @@ async function loadNews() {
   loading.value = true
   try {
     const sym = props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || ''
-    const result = await (window as any).go.main.App.GetNews(sym, 20)
-    items.value = Array.isArray(result) ? result : []
+    const { data } = await fetchWithCache(
+      `news:${sym}`,
+      async () => {
+        const result = await (window as any).go.main.App.GetNews(sym, 20)
+        return Array.isArray(result) ? result : []
+      },
+      60 * 1000,
+    )
+    items.value = data
   } catch(e) { console.error('[News] fetch:', e); items.value = [] }
   finally { loading.value = false }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue'
-import { useDataFetch } from '@/lib/composables/useDataFetch'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -21,6 +21,7 @@ interface DailyHistory {
   sz_cum: number
 }
 
+const { fetchWithCache } = usePanelCache()
 const activeTab = ref<'northbound' | 'quota'>('northbound')
 const minuteFlow = ref<MinuteFlow[]>([])
 const history = ref<DailyHistory[]>([])
@@ -87,7 +88,7 @@ async function fetchData() {
   if (!app?.GetNorthboundFlow) return
   loading.value = true
   try {
-    const result = await app.GetNorthboundFlow()
+    const { data: result } = await fetchWithCache<any>('hk_northbound_flow', () => app.GetNorthboundFlow())
     if (result?.minute_flow) {
       minuteFlow.value = (result.minute_flow as any[]).map((f: any) => ({
         time: f.time || f.timestamp || '',

@@ -14,6 +14,7 @@ import { pearsonMatrix } from '@/lib/stats'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 use([HeatmapChart, TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, CanvasRenderer])
 
@@ -32,6 +33,7 @@ const symbolText = ref(
 const lookback = ref(props.params?.lookback ?? 60)
 const matrix = ref<number[][] | null>(null)
 const symbols = ref<string[]>([])
+const { fetchWithCache } = usePanelCache()
 const hasECharts = ref(false)
 
 const firstSymbol = computed(() => symbols.value.length > 0 ? symbols.value[0] : undefined)
@@ -56,7 +58,8 @@ async function compute() {
   const app = (window as any).go?.main?.App
   if (!app) { matrix.value = null; return }
   try {
-    const corrMatrix = await app.GetCorrelationMatrix(syms, lookback.value)
+    const key = 'correlation:' + syms.join(',') + ':' + lookback.value
+    const { data: corrMatrix } = await fetchWithCache(key, () => app.GetCorrelationMatrix(syms, lookback.value))
     // Convert map[string]map[string]float64 to 2D array ordered by syms
     const m: number[][] = syms.map(si =>
       syms.map(sj => corrMatrix?.[si]?.[sj] ?? 0)

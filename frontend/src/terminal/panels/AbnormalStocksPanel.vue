@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -17,6 +18,7 @@ interface AbnormalStock {
   turnover: number
 }
 
+const { fetchWithCache } = usePanelCache()
 const market = ref<'SH' | 'SZ'>(props.params?.market || 'SH')
 const stocks = ref<AbnormalStock[]>([])
 const loading = ref(false)
@@ -38,7 +40,7 @@ async function refresh() {
   if (!app) return
   loading.value = true
   try {
-    const result = await app.GetAbnormalStocks(market.value)
+    const { data: result } = await fetchWithCache(`abnormal_stocks:${market.value}`, () => app.GetAbnormalStocks(market.value))
     const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
     stocks.value = items.map((i: any) => ({
       symbol: i.symbol || '',

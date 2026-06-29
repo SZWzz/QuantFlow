@@ -6,6 +6,18 @@
 
 ## [2026.6.29] - 2026-06-29
 
+### Added
+- [Frontend] **usePanelCache** — 新增通用面板缓存 composable，基于 dataStore 的 TTL 缓存，统一面板数据缓存逻辑
+- [Frontend] **TickerBar** — 新增全局滚动行情栏组件，展示 CN/HK/US 市场实时报价
+- [Frontend] **ForecastPanel** — 新增 ECharts 分组柱状图：X 轴三情景(保守/基准/乐观)，每组基准年/Y1/Y2 营收对比
+
+### Changed
+- [Frontend] **28 panels** — 全部接入 usePanelCache 缓存(5分钟TTL，系统监控5秒)，切换 symbol 时命中缓存避免重复 Go IPC 调用
+- [Frontend] **ForecastPanel** — 重写完整面板：代码解压缩、i18n 全覆盖、增加年均利润率/CAGR/基准增长率指标栏; 修复季度累计营收误作年化基数的显示问题
+- [Python] **forecast_financials** — 修复：区分年度(12-31)与季度累计(03-31/06-30/09-30)数据，年度数据不足时年化处理，返回 period_type/latest_period 供前端准确展示
+- [Frontend] **i18n** — 新增 forecast_* 系列翻译键(zh/en)
+- [Frontend] **registry.ts** — 移除 ticker-tape 面板注册，改为全局 TickerBar
+
 ### 修复 — 行情详细面板数据缺失
 - [行情] **QuoteSnapshot** — 扩展 struct 新增 `PrevClose`/`Turnover`/`MarketCap`/`Pe`/`Exchange` 字段，解决前端显示大量 `--` 的问题
 - [行情] **EastMoney 适配器** — 映射 F48(成交额)→Turnover、F116(总市值)→MarketCap、F162(市盈率)→Pe，从 secid 前缀推断 Exchange(SH/SZ)

@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 interface SECFiling {
   symbol: string
@@ -18,6 +20,7 @@ const { t } = useI18n()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
 const loading = ref(false)
 const error = ref('')
 const filings = ref<SECFiling[]>([])
@@ -25,6 +28,7 @@ const selectedFormType = ref('All')
 
 const formTypes = ['All', '13F', '4', '10-Q', '8-K', '10-K']
 const app = window.go.main.App
+const { fetchWithCache } = usePanelCache()
 
 const filteredFilings = computed(() => {
   if (selectedFormType.value === 'All') return filings.value
@@ -35,8 +39,11 @@ async function loadFilings() {
   loading.value = true
   error.value = ''
   try {
-    const result = await app.GetSECFilings(symbol.value)
-    filings.value = result || []
+    const { data } = await fetchWithCache('sec_filings:' + symbol.value, async () => {
+      const resp = await app.GetSECFilings(symbol.value)
+      return resp?.data ? JSON.parse(resp.data) : resp
+    })
+    filings.value = data || []
   } catch (e: any) {
     error.value = e.message || '加载失败'
   } finally {
@@ -80,6 +87,7 @@ onMounted(loadFilings)
   <div class="darkpool-panel">
     <div class="panel-header">
       <h3>{{ $t('institutional_trades') }}</h3>
+      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
       <div class="header-controls">
         <input
           class="symbol-input"
@@ -321,6 +329,7 @@ onMounted(loadFilings)
   white-space: nowrap;
   color: var(--color-text-secondary);
 }
+.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(59,130,246,0.15); color: #60a5fa; font-family: monospace; margin-right: 8px; }
 .panel-footer {
   flex-shrink: 0;
   padding-top: 8px;

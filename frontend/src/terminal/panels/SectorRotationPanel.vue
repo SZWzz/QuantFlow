@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useSessionStore } from '@/stores/session'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const session = useSessionStore()
 
+const { fetchWithCache } = usePanelCache()
 const market = ref<'CN' | 'HK' | 'US'>(props.params?.market || session.ui.activeMarket || 'CN')
 const lookback = ref(20)
 const loading = ref(false)
@@ -36,7 +38,7 @@ async function fetchData() {
   try {
     const app = (window as any).go?.main?.App
     if (!app?.GetIndustryRanks) return
-    const ranks = await app.GetIndustryRanks(20)
+    const { data: ranks } = await fetchWithCache<any>('industry_ranks', () => app.GetIndustryRanks(20))
     if (ranks && ranks.length > 0) {
       const pcts = ranks.map((r: any) => r.changePct || 0)
       sectors.value = ranks.map((r: any) => {

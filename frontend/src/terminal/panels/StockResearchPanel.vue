@@ -9,13 +9,20 @@ const { t } = useI18n()
 
 const KEY_MAP: Record<string, string> = {
   symbol: 'common.symbol', name: 'common.name',
-  market_cap: 'research.market_cap', pe_ratio: 'research.pe_ratio', pb_ratio: 'research.pb_ratio',
+  price: 'common.price',
+  sector: 'research.sector', market_cap: 'research.market_cap',
+  total_shares: 'research.total_shares', float_shares: 'research.float_shares',
+  list_date: 'research.list_date',
+  pe_ratio: 'research.pe_ratio', pb_ratio: 'research.pb_ratio',
   roe: 'research.roe', roa: 'research.roa', debt_to_equity: 'research.debt_to_equity',
   net_margin: 'research.net_margin', revenue: 'research.revenue',
   net_income: 'research.net_profit', eps: 'quote.eps',
   total_assets: 'research.total_assets', total_equity: 'research.total_equity',
   total_debt: 'research.total_debt', free_cash_flow: 'research.free_cashflow',
   margin: 'research.margin', revenue_growth: 'research.revenue_growth',
+  sentiment_score: 'research.sentiment_score',
+  sentiment_label: 'research.sentiment_label',
+  sentiment_confidence: 'research.sentiment_confidence',
 }
 function label(key: string): string { return KEY_MAP[key] ? t(KEY_MAP[key]) : key }
 

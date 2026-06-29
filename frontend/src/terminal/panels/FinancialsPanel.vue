@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -9,6 +10,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
+const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
 const error = ref('')
 const result = ref<any>(null)
@@ -50,6 +52,7 @@ interface ColDef {
 const mainCols: ColDef[] = [
   { key: 'period', label: '报告期', fmt: (v: string) => (v || '').slice(0, 7) },
   { key: 'revenue', label: '营收', fmt: (v: number) => v ? (v / 1e8).toFixed(2) : '--', suffix: '亿' },
+  { key: 'gross_profit', label: '毛利润', fmt: (v: number) => v ? (v / 1e8).toFixed(2) : '--', suffix: '亿' },
   { key: 'gross_margin', label: '毛利率', fmt: (v: number) => v != null ? v.toFixed(1) : '--', suffix: '%' },
   { key: 'net_profit', label: '净利润', fmt: (v: number) => v ? (v / 1e8).toFixed(2) : '--', suffix: '亿' },
   { key: 'parent_profit', label: '归母净利', fmt: (v: number) => v ? (v / 1e8).toFixed(2) : '--', suffix: '亿' },
@@ -60,7 +63,7 @@ const mainCols: ColDef[] = [
 ]
 
 // Columns that display YoY change inline under the value
-const yoyCols = new Set(['revenue', 'gross_margin', 'net_profit', 'parent_profit'])
+const yoyCols = new Set(['revenue', 'gross_profit', 'gross_margin', 'net_profit', 'parent_profit', 'total_assets', 'roe', 'profit_margin', 'debt_ratio'])
 
 // ── YoY comparison ─────────────────────────────────────────
 
@@ -105,7 +108,7 @@ function yoySuffix(key: string): string {
 
 function yoyColor(v: number | null): string {
   if (v == null) return ''
-  return v >= 0 ? '#4ade80' : '#f87171'
+  return v >= 0 ? '#f87171' : '#4ade80'
 }
 
 function yoySign(v: number | null): string {
@@ -118,8 +121,14 @@ async function loadData() {
   try {
     const app = (window as any).go?.main?.App
     if (!app?.GetFinancialAnalysis) return
-    const resp = await app.GetFinancialAnalysis(symbol.value)
-    result.value = resp?.data ? JSON.parse(resp.data) : resp
+    const { data } = await fetchWithCache(
+      `financials:${symbol.value}`,
+      async () => {
+        const resp = await app.GetFinancialAnalysis(symbol.value)
+        return resp?.data ? JSON.parse(resp.data) : resp
+      },
+    )
+    result.value = data
   } catch (e: any) { error.value = e.message || '加载失败' }
   finally { loading.value = false }
 }

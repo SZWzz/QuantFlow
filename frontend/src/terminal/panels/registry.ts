@@ -22,7 +22,7 @@ register('candlestick', () => import('./CandlestickPanel.vue'), { label: 'K 线�
 register('market-overview', () => import('./MarketOverviewPanel.vue'), { label: '市场概况', category: '市场行情', description: '大盘指数概览' })
 register('market-depth', () => import('./MarketDepthPanel.vue'), { label: '市场深度', category: '市场行情', description: '五档买卖盘口' })
 register('heatmap', () => import('./HeatmapPanel.vue'), { label: '板块热力图', category: '市场行情', description: '行业板块涨跌热力' })
-register('ticker-tape', () => import('./TickerTapePanel.vue'), { label: '滚动报价条', category: '市场行情', description: '滚动实时行情' })
+
 register('crypto-overview', () => import('./CryptoOverviewPanel.vue'), { label: '加密货币概览', category: '市场行情', description: '主流加密货币行情' })
 register('abnormal-stocks', () => import('./AbnormalStocksPanel.vue'), { label: '异动监控', category: '市场行情', description: '全市场异动股票实时监控' })
 register('dragon-tiger', () => import('./DragonTigerPanel.vue'), { label: '龙虎榜', category: '市场行情', description: '龙虎榜日榜单与个股上榜记录' })

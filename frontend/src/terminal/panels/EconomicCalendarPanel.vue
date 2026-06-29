@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -15,6 +16,7 @@ interface CalendarEvent {
   impact: 'high' | 'medium' | 'low'
 }
 
+const { fetchWithCache } = usePanelCache()
 const filter = ref<string>('all')
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
@@ -71,7 +73,7 @@ async function fetchData() {
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetEconomicIndicators) {
-      const result = await app.GetEconomicIndicators()
+      const { data: result } = await fetchWithCache('economic_indicators', () => app.GetEconomicIndicators())
       if (result && typeof result === 'object') {
         const entries = Object.entries(result).slice(0, 30)
         events.value = entries.map(([key, val]: [string, any]) => ({

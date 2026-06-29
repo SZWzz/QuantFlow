@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -9,6 +10,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 const { name } = useStockName(symbol)
+const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
 const error = ref('')
 const rawData = ref<any>(null)
@@ -52,7 +54,9 @@ async function loadData() {
   try {
     const w = (window as any)
     if (w?.go?.main?.App?.FetchData) {
-      const result = await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+      const { data: result } = await fetchWithCache('sec_financials:' + symbol.value, async () => {
+        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+      })
       if (result?.data) rawData.value = JSON.parse(result.data)
       else if (result?.error) error.value = result.error
     }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -19,6 +20,7 @@ interface EarningsEvent {
   revenue_estimate: number
 }
 
+const { fetchWithCache } = usePanelCache()
 const events = ref<EarningsEvent[]>([])
 const loading = ref(false)
 const dateRange = ref<'week' | 'month' | 'quarter'>('week')
@@ -47,7 +49,7 @@ async function fetchData() {
   loading.value = true
   try {
     const { from, to } = getDateRange()
-    const result = await app.GetEarningsCalendar(from, to)
+    const { data: result } = await fetchWithCache<any>(`earnings_calendar:${from}:${to}`, () => app.GetEarningsCalendar(from, to))
     events.value = (result || []).map((r: any) => ({
       symbol: r.symbol || '',
       date: r.date || '',

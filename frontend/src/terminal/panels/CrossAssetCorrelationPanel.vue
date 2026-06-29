@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, shallowRef } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -24,6 +25,7 @@ const assetPresets: AssetGroup[] = [
 
 const symbols = ref<string[]>(assetPresets[0].symbols)
 const lookback = ref(60)
+const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
 const matrix = ref<Record<string, Record<string, number>>>({})
 const assetList = ref<string[]>([])
@@ -41,7 +43,8 @@ async function fetchData() {
   if (!app?.GetCorrelationMatrix || symbols.value.length < 2) return
   loading.value = true
   try {
-    const result = await app.GetCorrelationMatrix(symbols.value, lookback.value)
+    const key = 'correlation:' + symbols.value.join(',') + ':' + lookback.value
+    const result = await fetchWithCache<any>(key, () => app.GetCorrelationMatrix(symbols.value, lookback.value)).then(r => r.data)
     matrix.value = result || {}
     assetList.value = symbols.value
   } catch (e) {

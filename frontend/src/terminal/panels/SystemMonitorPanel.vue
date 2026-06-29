@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
+const { fetchWithCache } = usePanelCache()
 const statsFetcher = useDataFetch(async () => {
-  return await (window as any).go.main.App.GetSystemStats()
+  const { data } = await fetchWithCache<any>('system_stats', () => (window as any).go.main.App.GetSystemStats(), 5000)
+  return data
 })
 
 let timer: ReturnType<typeof setInterval> | null = null

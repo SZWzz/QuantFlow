@@ -2,12 +2,13 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext(); const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
-const { name } = useStockName(symbol); const loading = ref(false); const error = ref(''); const result = ref<any>(null)
+const { name } = useStockName(symbol); const { fetchWithCache } = usePanelCache(); const loading = ref(false); const error = ref(''); const result = ref<any>(null)
 
 const findings = computed(() => result.value?.findings || [])
 const riskScore = computed(() => result.value?.risk_score ?? 0)
@@ -20,8 +21,14 @@ async function loadData() {
   try {
     const app = (window as any).go?.main?.App
     if (!app?.GetAuditFindings) return
-    const resp = await app.GetAuditFindings(symbol.value)
-    result.value = resp?.data ? JSON.parse(resp.data) : resp
+    const { data } = await fetchWithCache(
+      `audit:${symbol.value}`,
+      async () => {
+        const resp = await app.GetAuditFindings(symbol.value)
+        return resp?.data ? JSON.parse(resp.data) : resp
+      },
+    )
+    result.value = data
   } catch (e: any) { error.value = e.message || '加载失败' }
   finally { loading.value = false }
 }

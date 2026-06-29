@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const { t } = useI18n()
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -26,10 +28,13 @@ interface OptionRow {
 }
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
 const rows = ref<OptionRow[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const selectedExpiry = ref('')
+
+const { fetchWithCache } = usePanelCache()
 
 const expiries = computed(() => [...new Set(rows.value.map(r => r.expiry))].sort())
 
@@ -47,8 +52,8 @@ async function fetchData() {
   loading.value = true
   error.value = null
   try {
-    const result = await app.GetUSOptionChain(symbol.value)
-    rows.value = (result || []).map((r: any) => ({
+    const { data } = await fetchWithCache<any>('us_options:' + symbol.value, () => app.GetUSOptionChain(symbol.value))
+    rows.value = (data || []).map((r: any) => ({
       expiry: r.expiry || '',
       strike: r.strike || 0,
       type: r.type === 'put' ? 'put' : 'call',
@@ -89,6 +94,7 @@ onMounted(fetchData)
   <div class="us-options-panel">
     <div class="panel-header">
       <h3>{{ t('misc.us_option_chain') }}</h3>
+      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
       <input v-model="symbol" class="sym-input" :placeholder="t('common.symbol')" @change="fetchData" @click="onSymbolClick" />
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>

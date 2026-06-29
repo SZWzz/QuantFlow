@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const { t } = useI18n()
@@ -23,6 +24,7 @@ interface ExDividendStock {
 
 type Tab = 'today' | 'week' | 'month'
 
+const { fetchWithCache } = usePanelCache()
 const app = (window as any).go?.main?.App
 const activeTab = ref<Tab>('today')
 const data = ref<ExDividendStock[]>([])
@@ -65,7 +67,7 @@ async function fetchData() {
   loading.value = true
   try {
     const [start, end] = getDateRange(activeTab.value)
-    const result = await app.GetExDividendCalendar(start, end)
+    const { data: result } = await fetchWithCache(`ex_dividend:${start}:${end}`, () => app.GetExDividendCalendar(start, end))
     const raw = Array.isArray(result) ? result : (result ? [result] : [])
     data.value = raw.map((s: any) => ({
       code: s.code || '',

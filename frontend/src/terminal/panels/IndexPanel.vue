@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
+const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
 const error = ref('')
 const constituents = ref<any[]>([])
@@ -19,7 +21,9 @@ async function loadData() {
   try {
     const w = (window as any)
     if (w?.go?.main?.App?.FetchData) {
-      const result = await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [indexCode.value], '', '', {})
+      const { data: result } = await fetchWithCache('index:' + indexCode.value, async () => {
+        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [indexCode.value], '', '', {})
+      })
       if (result?.data) {
         const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
         if (parsed?.success === false) {

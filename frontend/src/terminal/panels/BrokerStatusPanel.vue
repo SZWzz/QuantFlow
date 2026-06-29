@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 interface BrokerStatus { name: string; label: string; market: string; connected: boolean; detail: string }
 
 const { t } = useI18n()
+const { fetchWithCache } = usePanelCache()
 const brokers = ref<BrokerStatus[]>([])
 const loading = ref(false)
 
@@ -14,7 +16,7 @@ async function loadStatus() {
   // TODO: move to store
   loading.value = true
   try {
-    const result = await (window as any).go.main.App.GetBrokerStatuses()
+    const { data: result } = await fetchWithCache('broker_status', () => (window as any).go.main.App.GetBrokerStatuses())
     brokers.value = Array.isArray(result) ? result : []
   } catch(e) { console.error('[BrokerStatus] fetch:', e); brokers.value = [] }
   finally { loading.value = false }

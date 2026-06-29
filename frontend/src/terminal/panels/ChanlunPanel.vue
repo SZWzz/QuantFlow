@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 defineProps<{
   panelId: string
@@ -42,6 +43,8 @@ const selectedSymbol = ref('')
 const { name } = useStockName(selectedSymbol)
 const loading = ref(false)
 
+const { fetchWithCache } = usePanelCache()
+
 const errMsg = ref('')
 const fractals = ref<Fractal[]>([])
 const biSegments = ref<BiSegment[]>([])
@@ -78,7 +81,7 @@ async function processQuery() {
   try {
     const app = (window as any).go?.main?.App
     if (!app) return
-    const result = await app.GetChanlun(selectedSymbol.value)
+    const { data: result } = await fetchWithCache<any>('chanlun:' + selectedSymbol.value, () => app.GetChanlun(selectedSymbol.value))
     if (result) {
       if (result.available === false) {
         errMsg.value = result.error || '缠论分析不可用（Python 侧未启动或模块缺失）'

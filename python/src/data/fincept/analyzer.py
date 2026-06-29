@@ -59,7 +59,8 @@ def analyze_report(financials_json):
         ar = _f(bal.get("应收账款", bal.get("receivables", 0)))
 
         periods.append({
-            "period": p, "revenue": round(rev, 2), "net_profit": round(np_, 2),
+            "period": p, "revenue": round(rev, 2), "gross_profit": round(gp, 2),
+            "net_profit": round(np_, 2),
             "parent_profit": round(pp, 2), "total_assets": round(ta, 2), "equity": round(eq, 2),
             "roe": round(np_ / eq * 100, 1) if eq > 0 else None,
             "debt_ratio": round(tl / ta * 100, 1) if ta > 0 else None,
@@ -230,34 +231,112 @@ def detect_audit_risks(financials_json):
 
 # ══════ Module 4: Forecast ══════
 
+def _parse_period(p):
+    """Parse YYYY-MM-DD period string, return (year, month) ints or None."""
+    parts = p.split("-")
+    if len(parts) == 3:
+        try: return int(parts[0]), int(parts[1])
+        except: pass
+    return None
+
+
+def _single_q_revenue(rev, month):
+    """Derive single-quarter revenue from cumulative figure.
+    month=3 → Q1 only (no deduction needed)
+    month=6 → Q2 standalone = H1 - Q1
+    month=9 → Q3 standalone = 9m - H1
+    """
+    return rev  # caller handles deduction
+
+
 def forecast_financials(financials_json):
     data = _load(financials_json)
     income = _load(data.get("income", "[]")) if isinstance(data, dict) else []
-    if not isinstance(income, list) or not income: return {"error": "No income data", "forecast_table": []}
+    if not isinstance(income, list) or not income:
+        return {"error": "No income data", "forecast_table": []}
 
-    revs, pros, labels = [], [], []
-    for row in sorted(income, key=lambda r: r.get("报告期", r.get("period", ""))):
+    # Parse all valid periods
+    parsed = []
+    for row in income:
         p = row.get("报告期", row.get("period", ""))
         rv = _f(row.get("营业总收入", row.get("revenue", 0)))
         pr = _f(row.get("净利润", row.get("net_income", 0)))
-        if rv > 0 and p: labels.append(p); revs.append(rv); pros.append(pr)
+        pm = _parse_period(p)
+        if pm and rv > 0 and pr > 0:
+            parsed.append({"period": p, "year": pm[0], "month": pm[1], "rev": rv, "profit": pr})
 
-    if len(revs) < 3: return {"error": "Need >=3 periods", "forecast_table": []}
+    if len(parsed) < 2:
+        return {"error": "Need >=2 periods", "forecast_table": []}
 
-    grs = [(revs[i]/revs[i-1]-1) for i in range(1, len(revs)) if revs[i-1] > 0]
-    avg = sum(grs)/len(grs) if grs else 0.05
+    # Sort by period ascending
+    parsed.sort(key=lambda r: r["period"])
 
+    latest = parsed[-1]
+    latest_period = latest["period"]
+    month = latest["month"]
+
+    # Separate annual (12-31) from interim periods
+    annuals = [r for r in parsed if r["month"] == 12]
+
+    if len(annuals) >= 2:
+        # Use annual data as baseline — revenue is full-year
+        annuals.sort(key=lambda r: r["period"])
+        base = annuals[-1]
+        prev_annual = annuals[-2]
+        base_rev = base["rev"]
+        base_profit = base["profit"]
+        # YoY growth between most recent two full years
+        yoy_growth = (base_rev / prev_annual["rev"]) - 1 if prev_annual["rev"] > 0 else 0.05
+        period_type = "annual"
+        annual_rev = base_rev
+        annual_profit = base_profit
+        annual_growth = yoy_growth
+        # Average growth across all consecutive annual pairs
+        annual_grs = []
+        for i in range(1, len(annuals)):
+            prev_r = annuals[i-1]["rev"]
+            if prev_r > 0:
+                annual_grs.append((annuals[i]["rev"] / prev_r) - 1)
+        if annual_grs:
+            annual_growth = sum(annual_grs) / len(annual_grs)
+    else:
+        # No or single annual period — annualize latest cumulative data
+        month_multiplier = {12: 1.0, 9: 4/3, 6: 2.0, 3: 4.0}
+        mult = month_multiplier.get(month, 4.0)
+        base_rev = latest["rev"] * mult
+        base_profit = latest["profit"] * mult
+        period_type = f"annualized_{month}m"
+        annual_rev = base_rev
+        annual_profit = base_profit
+        # Estimate growth from sequential data
+        annual_growth = 0.05  # default
+
+    # ---- Build forecast table ----
     table = []
-    for s, m in [("保守",0.5),("基准",1.0),("乐观",1.5)]:
-        g = avg * m
-        y1r = round(revs[-1]*(1+g), 2); y2r = round(y1r*(1+g), 2)
-        y1p = round(pros[-1]*(1+g), 2) if pros[-1] else 0; y2p = round(y1p*(1+g), 2)
-        table.append({"scenario": s, "growth": f"{g*100:.1f}%", "y1_rev": y1r, "y2_rev": y2r, "y1_profit": y1p, "y2_profit": y2p})
+    for label, multiplier in [("保守", 0.5), ("基准", 1.0), ("乐观", 1.5)]:
+        g = annual_growth * multiplier
+        y1r = round(annual_rev * (1 + g), 2)
+        y2r = round(y1r * (1 + g), 2)
+        y1p = round(annual_profit * (1 + g), 2) if annual_profit else 0
+        y2p = round(y1p * (1 + g), 2) if annual_profit else 0
+        table.append({
+            "scenario": label,
+            "growth": f"{g*100:.1f}%",
+            "y1_rev": y1r, "y2_rev": y2r,
+            "y1_profit": y1p, "y2_profit": y2p,
+        })
 
-    return {"periods": len(labels), "segments": [
-        {"name": "主营收入", "pct": 85, "value": round(revs[-1]*0.85, 2)},
-        {"name": "其他收入", "pct": 15, "value": round(revs[-1]*0.15, 2)}],
-        "forecast_table": table, "latest_rev": revs[-1], "latest_profit": pros[-1], "avg_growth": round(avg*100, 1)}
+    return {
+        "forecast_table": table,
+        "latest_period": latest_period,
+        "period_type": period_type,
+        "latest_rev": latest["rev"],
+        "latest_profit": latest["profit"],
+        "annual_rev": round(annual_rev, 2),
+        "annual_profit": round(annual_profit, 2),
+        "avg_growth": round(annual_growth * 100, 1),
+        "annual_periods": len(annuals),
+    }
 
 
 # ══════ CLI ══════

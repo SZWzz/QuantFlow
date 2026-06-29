@@ -15,6 +15,8 @@ import {
 import { CanvasRenderer } from 'echarts/renderers'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { histogramBins } from '@/lib/stats'
+import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 use([
   BarChart,
@@ -36,8 +38,11 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbol = ref(props.params?.symbol ?? ctx.getGroupSymbol(pg.groupId) ?? '600519')
+const { name } = useStockName(symbol)
 const lookback = ref(props.params?.lookback ?? 252)
 const lookbackOptions = [30, 60, 90, 252]
+
+const { fetchWithCache } = usePanelCache()
 
 const binData = ref<{ x: number; y: number }[]>([])
 const normalCurve = ref<{ x: number; y: number }[]>([])
@@ -62,7 +67,7 @@ async function compute() {
   const app = (window as any).go?.main?.App
   if (!app) { dataReady.value = false; return }
   try {
-    const result = await app.GetReturnDistribution(symbol.value, lookback.value, 30)
+    const { data: result } = await fetchWithCache<any>('return_dist:' + symbol.value, () => app.GetReturnDistribution(symbol.value, lookback.value, 30))
     if (!result?.bins || !result?.counts) { dataReady.value = false; return }
     const bins: number[] = result.bins
     const counts: number[] = result.counts
@@ -197,6 +202,7 @@ onMounted(() => {
   <div class="distribution-panel">
     <div class="panel-header">
       <h3>{{ t('misc.distribution') }}</h3>
+      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
     </div>
 
     <div class="controls-row">

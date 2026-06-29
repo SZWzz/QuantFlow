@@ -8,6 +8,7 @@ import DockView from './DockView/DockView.vue'
 import PushPinBar from './PushPinBar.vue'
 import StatusBar from './StatusBar.vue'
 import SymbolBar from './SymbolBar.vue'
+import TickerBar from './TickerBar.vue'
 import { getIcon } from '@/lib/icons'
 
 const session = useSessionStore()
@@ -88,6 +89,7 @@ function onSwitchToWorkflow() {
     </header>
 
     <SymbolBar />
+    <TickerBar />
     <main class="terminal-content">
       <PushPinBar />
       <DockView />

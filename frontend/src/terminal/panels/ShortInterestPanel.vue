@@ -2,6 +2,8 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -16,6 +18,8 @@ interface ShortInterestRow {
 }
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
+const { name } = useStockName(symbol)
+const { fetchWithCache } = usePanelCache()
 const rows = ref<ShortInterestRow[]>([])
 const loading = ref(false)
 
@@ -35,8 +39,8 @@ async function fetchData() {
   if (!app?.GetShortInterest) return
   loading.value = true
   try {
-    const result = await app.GetShortInterest(symbol.value)
-    rows.value = (result || []).map((r: any) => ({
+    const { data } = await fetchWithCache<any>('short_interest:' + symbol.value, () => app.GetShortInterest(symbol.value))
+    rows.value = (data || []).map((r: any) => ({
       date: r.date || '',
       short_interest: r.short_interest || 0,
       avg_daily_vol: r.avg_daily_vol || 0,
@@ -72,6 +76,7 @@ onMounted(fetchData)
   <div class="short-interest-panel">
     <div class="panel-header">
       <h3>{{ $t('misc.short_interest') }}</h3>
+      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
       <input v-model="symbol" class="sym-input" :placeholder="$t('common.symbol')" @change="fetchData" />
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>

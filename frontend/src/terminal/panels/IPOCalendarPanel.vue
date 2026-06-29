@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
 
@@ -25,6 +26,7 @@ interface IPOItem {
 
 type TabKey = 'today_apply' | 'upcoming' | 'recent'
 
+const { fetchWithCache } = usePanelCache()
 const activeTab = ref<TabKey>('today_apply')
 const allData = ref<IPOItem[]>([])
 const loading = ref(false)
@@ -84,7 +86,7 @@ async function fetchData() {
   try {
     const start = inDays(new Date(), -30).toISOString().slice(0, 10)
     const end = inDays(new Date(), 30).toISOString().slice(0, 10)
-    const result = await app.GetIPOCalendar(start, end)
+    const { data: result } = await fetchWithCache<any>(`ipo_calendar:${start}:${end}`, () => app.GetIPOCalendar(start, end))
     allData.value = (result || []).map((r: any) => ({
       code: r.code || '',
       name: r.name || '',

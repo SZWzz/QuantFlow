@@ -2,12 +2,17 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const { t } = useI18n()
 const app = window.go.main.App
 const symbol = ref('AAPL')
+const { name } = useStockName(symbol)
 const loading = ref(false)
 const events = ref<any[]>([])
+
+const { fetchWithCache } = usePanelCache()
 
 const totalDisallowed = computed(() =>
   events.value.reduce((sum: number, e: any) => sum + (Number(e.disallowed_loss) || 0), 0)
@@ -18,8 +23,8 @@ async function checkWashSale() {
   if (!sym) return
   loading.value = true
   try {
-    const raw = await app.CheckWashSale(sym)
-    events.value = Array.isArray(raw) ? raw : []
+    const { data } = await fetchWithCache('washsale:' + sym, () => app.CheckWashSale(sym))
+    events.value = Array.isArray(data) ? data : []
   } catch {
     events.value = []
   } finally {
@@ -42,6 +47,7 @@ function isNegative(v: any): boolean {
   <div class="panel">
     <div class="panel-header">
       <h3>{{ t('wash_sale') }}</h3>
+      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
       <div class="header-controls">
         <input class="symbol-input" v-model="symbol" placeholder="Symbol" @keyup.enter="checkWashSale" />
         <button class="check-btn" @click="checkWashSale" :disabled="loading">
