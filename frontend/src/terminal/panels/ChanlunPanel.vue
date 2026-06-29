@@ -42,6 +42,7 @@ const selectedSymbol = ref('')
 const { name } = useStockName(selectedSymbol)
 const loading = ref(false)
 
+const errMsg = ref('')
 const fractals = ref<Fractal[]>([])
 const biSegments = ref<BiSegment[]>([])
 const zsBlocks = ref<ZSBlock[]>([])
@@ -71,7 +72,7 @@ const zsSummary = computed(() => {
 })
 
 async function processQuery() {
-  loading.value = true
+  loading.value = true; errMsg.value = ''
   selectedSymbol.value = searchSymbol.value
 
   try {
@@ -79,11 +80,15 @@ async function processQuery() {
     if (!app) return
     const result = await app.GetChanlun(selectedSymbol.value)
     if (result) {
+      if (result.available === false) {
+        errMsg.value = result.error || '缠论分析不可用（Python 侧未启动或模块缺失）'
+      }
       fractals.value = result.fractals || []
       biSegments.value = result.bi_list || []
       zsBlocks.value = result.zs_list || []
     }
-  } catch (e) {
+  } catch (e: any) {
+    errMsg.value = e.message || '请求失败'
     console.error('[Chanlun] fetch failed:', e)
   } finally {
     loading.value = false
@@ -117,7 +122,8 @@ function formatPct(v: number): string {
       </div>
     </div>
 
-    <div v-if="selectedSymbol" class="analysis-content">
+    <div v-if="errMsg" class="error-msg">{{ errMsg }}</div>
+    <div v-if="selectedSymbol && !errMsg" class="analysis-content">
       <!-- Tab bar -->
       <div class="tabs">
         <button
@@ -390,4 +396,5 @@ function formatPct(v: number): string {
 }
 .empty-state p { font-size: 14px; margin: 0; }
 .empty-state small { font-size: 11px; }
+.error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; color: #f87171; font-size: 12px; }
 </style>

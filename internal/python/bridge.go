@@ -136,7 +136,7 @@ func (b *PythonBridge) runPython(module string, args ...string) (map[string]any,
 	cmdArgs := append([]string{"-m", module}, args...)
 	cmd := exec.Command(pythonBin, cmdArgs...)
 	cmd.Dir = pythonDir
-	cmd.Env = append(os.Environ(), "PYTHONPATH="+filepath.Join(pythonDir, "src"))
+	cmd.Env = append(os.Environ(), "PYTHONPATH="+pythonDir)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

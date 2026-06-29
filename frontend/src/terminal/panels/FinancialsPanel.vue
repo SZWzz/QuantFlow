@@ -15,6 +15,19 @@ const result = ref<any>(null)
 
 const periods = computed(() => result.value?.periods || [])
 const anomalyFlags = computed(() => result.value?.anomaly_flags || [])
+const scoreBreakdown = computed(() => result.value?.score_breakdown || [])
+const latestPeriod = computed(() => periods.value[0]?.period || '')
+const groupedAnomalies = computed(() => {
+  const groups: Record<string, { type: string; level: string; count: number; detail: string; latest: boolean }> = {}
+  for (const a of anomalyFlags.value) {
+    const key = a.type
+    if (!groups[key]) { groups[key] = { type: a.type, level: a.level, count: 0, detail: a.detail, latest: false } }
+    groups[key].count++
+    if (a.level === 'high') groups[key].level = 'high'
+    if (a.period === latestPeriod.value) { groups[key].latest = true; groups[key].detail = a.detail }
+  }
+  return Object.values(groups).sort((a, b) => (a.latest === b.latest ? 0 : a.latest ? -1 : 1))
+})
 const healthScore = computed(() => result.value?.health_score ?? 0)
 const healthGrade = computed(() => result.value?.health_grade ?? '--')
 const metrics = computed(() => result.value?.metrics || {})
@@ -75,16 +88,20 @@ onMounted(loadData)
         </div>
         <div class="score-grade" :style="{ color: scoreColor }">{{ healthGrade }}</div>
         <div class="score-metrics">
-          <div class="metric-item"><span class="m-label">ROE</span><span class="m-value">{{ metrics.latest_roe != null ? metrics.latest_roe.toFixed(1) + '%' : '--' }}</span></div>
-          <div class="metric-item"><span class="m-label">负债率</span><span class="m-value">{{ metrics.latest_debt_ratio != null ? metrics.latest_debt_ratio.toFixed(1) + '%' : '--' }}</span></div>
-          <div class="metric-item"><span class="m-label">净利率</span><span class="m-value">{{ metrics.latest_profit_margin != null ? metrics.latest_profit_margin.toFixed(1) + '%' : '--' }}</span></div>
+          <div v-for="(b, i) in scoreBreakdown" :key="i" class="metric-item">
+            <span class="m-label">{{ b.item }}</span>
+            <span class="m-value" :style="{ color: b.effect >= 0 ? '#4ade80' : '#f87171' }">{{ b.effect > 0 ? '+' : '' }}{{ b.effect }}</span>
+          </div>
         </div>
       </div>
-      <div v-if="anomalyFlags.length" class="anomaly-section">
+      <div v-if="groupedAnomalies.length" class="anomaly-section">
         <div class="section-title">⚠️ 异常标记</div>
-        <div v-for="(a, i) in anomalyFlags" :key="i" class="anomaly-row" :class="a.level">
+        <div v-for="(a, i) in groupedAnomalies" :key="i" class="anomaly-row" :class="a.level">
           <span class="a-type">{{ a.type }}</span>
           <span class="a-detail">{{ a.detail }}</span>
+          <span v-if="!a.latest" class="a-count">近 {{ a.count }} 期中 {{ a.count }} 期</span>
+          <span v-else-if="a.count > 1" class="a-count">本期 · 持续 {{ a.count }} 期</span>
+          <span v-else class="a-count">本期</span>
         </div>
       </div>
       <div class="table-wrapper">
@@ -121,6 +138,7 @@ onMounted(loadData)
 .anomaly-row.medium { background: rgba(245,158,11,0.1); color: #fcd34d; }
 .a-type { font-weight: 600; flex-shrink: 0; }
 .a-detail { color: var(--color-text-secondary); }
+.a-count { margin-left: auto; font-size: 10px; color: var(--color-text-tertiary); background: rgba(255,255,255,0.06); padding: 0 6px; border-radius: 3px; }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header { display: flex; padding: 4px 0; border-bottom: 2px solid var(--color-border-strong); font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0; }
 .table-body { flex: 1; overflow-y: auto; font-size: 12px; }

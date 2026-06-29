@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/QuantFlow-Terminal-111827?style=for-the-badge&logo=quantum" alt="QuantFlow">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/QuantFlow-Terminal-111827?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjIgMTIuMjJ2LS43N2E5IDkgMCAwIDAtMTAtOC4wN0EzLjUgMy41IDAgMCAwIDIgNi41djMuM2ExMCAxMCAwIDAgMCA1IDguNjd2MS4wM2ExLjUgMS41IDAgMCAwIDMgMHYtMS4zYTEwIDEwIDAgMCAwIDUtOC42M3oiLz48cGF0aCBkPSJNMTIgMjJWMTIuMjIiLz48cGF0aCBkPSJNMTIgMi41djQuMjIiLz48cGF0aCBkPSJNMTYgMTUuNDJhNCA0IDAgMCAwLTgtMHYtMy4yIi8+PC9zdmc+">
+    <img src="https://img.shields.io/badge/QuantFlow-Terminal-111827?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjIgMTIuMjJ2LS43N2E5IDkgMCAwIDAtMTAtOC4wN0EzLjUgMy41IDMCAwIDAgMiA2LjV2My4zYTEwIDEwIDAgMCAwIDUgOC42N3YxLjAzYTEuNSAxLjUgMCAwIDAgMyAwdi0xLjNhMTAgMTAgMCAwIDAgNS04LjYzeiIvPjxwYXRoIGQ9Ik0xMiAyMlYxMi4yMiIvPjxwYXRoIGQ9Ik0xMiAyLjV2NC4yMiIvPjxwYXRoIGQ9Ik0xNiAxNS40MmE0IDQgMCAwIDAtOC0wdi0zLjIiLz48L3N2Zz4=" alt="QuantFlow">
+  </picture>
 </p>
 
 <h1 align="center">QuantFlow Terminal</h1>
@@ -9,173 +12,181 @@
 </p>
 
 <p align="center">
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/版本-2026.6.28-3b82f6?style=flat-square" alt="Version"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/阶段-12-success?style=flat-square" alt="Phase"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/节点-93-3b82f6?style=flat-square" alt="Nodes"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/面板-64-8b5cf6?style=flat-square" alt="Panels"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/适配器-37-f59e0b?style=flat-square" alt="Adapters"></a>
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/测试-832-brightgreen?style=flat-square" alt="Tests"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/动态-2026.6.29-3b82f6?style=flat-square&label=版本" alt="Version"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/Phase_12_完成-22c55e?style=flat-square&label=阶段" alt="Phase"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/93-3b82f6?style=flat-square&label=节点" alt="Nodes"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/64-8b5cf6?style=flat-square&label=面板" alt="Panels"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/37-f59e0b?style=flat-square&label=适配器" alt="Adapters"></a>
   <br>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go" alt="Go"></a>
-  <a href="https://vuejs.org"><img src="https://img.shields.io/badge/Vue-3.x-4FC08D?style=flat-square&logo=vue.js" alt="Vue"></a>
-  <a href="https://www.sqlite.org"><img src="https://img.shields.io/badge/SQLite-WAL-003B57?style=flat-square&logo=sqlite" alt="SQLite"></a>
-  <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python" alt="Python"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/许可-AGPL--3.0-blue?style=flat-square" alt="License"></a>
+  <a href="https://vuejs.org"><img src="https://img.shields.io/badge/Vue_3-4FC08D?style=flat-square&logo=vue.js" alt="Vue"></a>
+  <a href="https://www.sqlite.org"><img src="https://img.shields.io/badge/SQLite_WAL-003B57?style=flat-square&logo=sqlite" alt="SQLite"></a>
+  <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python_3.12-3776AB?style=flat-square&logo=python" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/AGPL_3.0-ef4444?style=flat-square&label=许可" alt="License"></a>
+</p>
+
+<p align="center">
+  <a href="README.md">中文</a> ·
+  <a href="README.en.md">English</a> ·
+  <a href="#-快速开始">快速开始</a> ·
+  <a href="#-架构">架构</a>
 </p>
 
 ---
 
-## 📊 项目状态
+## 架构
 
-> **Phase 1–12 完成** — 93 工作流节点 · 64 前端面板 · 37 数据适配器 · 832 测试 (前端 304 + Go 383 + Python 145)
+```mermaid
+graph TB
+    subgraph FE["前端 Vue 3 + TypeScript"]
+        TM["终端模式<br/>停靠面板 · 50+ 面板"]
+        WM["工作流模式<br/>vue-flow 画布 · 93 节点"]
+        PS["Pinia 状态管理<br/>8 共享 Store"]
+    end
 
-| 组件 | 状态 | 说明 |
-|------|:----:|------|
-| 工作流引擎 | ✅ | DAG + goroutine 并行 + Kahn 拓扑排序, 93 节点 |
-| 桌面壳 (Wails v3 + Vue 3) | ✅ | Terminal/Workflow 双模式一键切换, 64 面板 |
-| 交易引擎 (OMS) | ✅ | Paper/Live 双模式，Alpaca/Binance 实盘 |
-| 行情数据中心 | ✅ | 37 适配器，4 市场全覆盖，MAC协议直连 + Fallback 容灾 |
-| 回测引擎 | ✅ | CN/US/HK/CRYPTO 市场规则 |
-| Python gRPC Sidecar | ✅ | 因子/ML/LLM/NLP 独立进程 |
-| AI Agent 系统 | ✅ | ReAct 循环 + 4 LLM + 4 AgentProfile |
-| 券商集成 | ✅ | Alpaca(美股) + Binance(加密) + Futu(港股) |
-| 组合与风险管理 | ✅ | VaR/CVaR/Sharpe/MaxDD/Calmar |
-| 通知 + 定时调度 | ✅ | Telegram/应用内 + cron 引擎 |
-| 主题系统 | ✅ | 暗色/亮色 + 3 种密度 |
-| 国际化 | ✅ | 中文/英文双语 |
-| SQLite WAL 存储 | ✅ | 单文件零配置，10+ 迁移 |
+    subgraph BE["Go 后端（单二进制）"]
+        WE["工作流引擎<br/>Kahn + goroutine DAG"]
+        TE["交易引擎<br/>OMS · 订单匹配 · Paper/Live"]
+        MH["行情中心<br/>37 适配器 · Fallback 容灾"]
+        AI["AI Agent<br/>ReAct 循环 · 4 LLM"]
+        PR["组合 · 风控 · 通知 · 调度"]
+        ST["SQLite WAL<br/>零配置 · 12+ 迁移"]
+    end
+
+    subgraph PY["Python gRPC Sidecar"]
+        ML["ML / 因子<br/>PyTorch · Qlib · pandas"]
+        LLM["LLM 推理<br/>OpenAI · Claude · DeepSeek"]
+        NL["研究 · NLP"]
+    end
+
+    FE <-->|Wails IPC| BE
+    BE <-->|gRPC| PY
+```
+
+**双模式联动**：
+- **终端→工作流**：任何面板点 `[⊕]` → 自动生成工作流节点
+- **工作流→终端**：执行结果 `[固定到面板]` → 实时监控
 
 ---
 
-## 🎯 核心理念
+## 项目状态
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    QuantFlow Desktop                      │
-│  ┌──────────────────────┐  ┌───────────────────────────┐ │
-│  │   TERMINAL 模式       │  │    WORKFLOW 模式           │ │
-│  │   彭博式面板终端       │◄─►│    可视化策略编排           │ │
-│  │  [行情] [K线] [研究]   │  │  [数据]→[因子]→[策略]→[回测] │ │
-│  │  [订单] [组合] [风控]  │  │      └→[AI]→[信号]→[下单]  │ │
-│  └──────────────────────┘  └───────────────────────────┘ │
-│         共享底层：Go 引擎 · SQLite · 统一数据总线            │
-└──────────────────────────────────────────────────────────┘
-```
-
-- **Terminal → Workflow**：面板 `[⊕]` → 一键生成工作流节点
-- **Workflow → Terminal**：执行结果 `[固定到终端]` → 实时监控面板
-
----
-
-## 🏗️ 架构
-
-```
-前端 (Vue 3)                      Go 后端 (单二进制)
-┌─────────────────────────┐       ┌──────────────────────────────┐
-│ vue-flow · ECharts       │       │ 工作流引擎 (Kahn + goroutine) │
-│ Pinia (8 stores)         │       │ 交易引擎 (OMS + Paper/Live)  │
-│ Terminal Mode (64 面板)   │◄─IPC─►│ 行情中心 (37 适配器)          │
-│ Workflow Mode (93 节点)   │       │ AI Agent (ReAct + 4 LLM)    │
-│ 暗色/亮色主题 + i18n      │       │ 组合 · 风控 · 通知 · 调度    │
-└─────────────────────────┘       │ SQLite WAL (12+ 迁移)          │
-                                  │ gRPC ──► Python Sidecar      │
-                                  │   (因子/ML/NLP/LLM)          │
-                                  └──────────────────────────────┘
-```
+| 组件 | 状态 |
+|------|:----:|
+| 工作流引擎（DAG + goroutine 并行 + Kahn 拓扑排序） | ✅ |
+| 桌面壳（Wails v3 + Vue 3 + TypeScript） | ✅ |
+| 交易引擎（OMS + Paper/Live 双模式） | ✅ |
+| 行情数据中心（37 适配器，Fallback 容灾，MAC 直连） | ✅ |
+| 回测引擎（CN/US/HK/CRYPTO 市场规则） | ✅ |
+| Python gRPC Sidecar | ✅ |
+| AI Agent 系统（ReAct + 4 LLM + 15 技能） | ✅ |
+| 券商集成（Alpaca 实盘 + Binance 实盘） | ✅ |
+| 组合与风险管理（VaR/CVaR/Sharpe/MaxDD） | ✅ |
+| 通知 + 定时调度（Telegram + cron） | ✅ |
+| 主题系统（暗色/亮色 + 3 级密度） | ✅ |
+| 国际化（中文/英文，~350 条/语言） | ✅ |
+| SQLite WAL 存储（零配置单文件） | ✅ |
 
 ---
 
-## 📦 核心功能
+## 核心功能
 
-### 工作流节点 (93, 18 类别)
+### 工作流节点 · 93 个 · 18 类
+
+<details>
+<summary>查看全部类别</summary>
 
 | 类别 | 数量 | 代表节点 |
 |------|:----:|---------|
 | 数据加载 | 4 | DataLoader, Merge, Filter, Resample |
-| 技术指标 | 20 | SMA, MACD, RSI, EMA, Bollinger, OBV, MFI, PSY, Aroon, ASI, WR, CCI, ROC, BIAS, Chaikin, Keltner, Donchian, TRIX, MassIndex, Vortex |
-| 缠论 | 5 | ChanlunBi, ChanlunDuan, ChanlunZhongshu, ChanlunMaiDian, ChanlunLeixing |
-| Alpha 因子 | 12 | pct_change, rank, zscore, cross_over, if_else |
-| 信号工程 | 8 | CrossSignal, Threshold, hold_signal, entry/exit |
-| 策略构建 | 1 | StrategyNode (sma_cross/rsi/momentum/custom) |
-| 回测执行 | 1 | BacktestNode (CN/US/HK/CRYPTO) |
-| 滑点模型 | 3 | FixedSlippage, PercentageSlippage, VolumeSlippage |
-| 交易执行 | 4 | PlaceOrder, CancelOrder, Position/OrderQuery |
+| 技术指标 | 20 | SMA, MACD, RSI, EMA, Bollinger, OBV, MFI, PSY 等 |
+| 缠论 | 5 | Bi（笔）, Duan（段）, Zhongshu（中枢）, 买卖点, 走势类型 |
+| Alpha 因子 | 12 | pct_change, rank, zscore, cross_over, if_else 等 |
+| 信号工程 | 8 | CrossSignal, Threshold, 持仓信号, 进出场 |
+| 策略 | 1 | StrategyNode（金叉/RSI/动量/自定义） |
+| 回测 | 1 | BacktestNode（CN/US/HK/CRYPTO） |
+| 滑点模型 | 3 | Fixed / Percentage / VolumeSlippage |
+| 交易执行 | 4 | PlaceOrder, CancelOrder, OrderQuery, PositionQuery |
 | 组合管理 | 3 | PortfolioSummary, RiskMetrics, Allocation |
 | 风控 | 2 | StopLoss, PositionSizer |
-| ML 引擎 | 8 | FeatureEngineer, Train/Predict/Evaluate, RL×3 |
+| ML 引擎 | 8 | 特征工程 + 训练/预测/评估 + RL×3 |
 | AI Agent | 2 | FactorNode, AgentNode |
 | 通知 | 2 | Notify, Alert |
 | 控制流 | 3 | Loop, if_condition, sub_workflow |
 | 调度 | 2 | Schedule, Wait |
-| 研究分析 | 6 | Sentiment, StockResearch, Financials, Peers, Estimates, Insider |
+| 研究分析 | 6 | Sentiment, 研报, 财务, 同行, 估值, 内幕 |
 | 工具 | 5 | HTTPRequest, MathOperation, JSONParse, chart_data, fqfactor |
 
-### 前端面板 (64 个)
+</details>
+
+### 前端面板 · 64 个
+
+<details>
+<summary>查看全部类别</summary>
 
 | 类别 | 面板 |
 |------|------|
 | **行情** (6) | Watchlist, QuoteDetail, Candlestick, MarketOverview, MarketDepth, Heatmap |
-| **滚动** (1) | TickerTape |
+| **滚动行情** (1) | TickerTape |
 | **交易** (8) | OrderEntry, OrderBlotter, Execution, BasketOrder, Position, PositionDetail, BrokerConfig, BrokerStatus |
 | **组合** (3) | PortfolioSummary, Rebalance, RiskDashboard |
-| **研究** (8) | StockResearch, Financials, Sentiment, PeerComparison, AnalystEstimates, InsiderTrading, CongressTrading, FactorAnalysis |
-| **图表** (5) | EquityCurve, Correlation, Distribution, MonteCarlo, SurfaceChart |
-| **AI/ML** (5) | AIChat, ModelRegistry, PredictionDashboard, AlphaMining, RLMonitor |
+| **研究** (8) | 研报, 财务, 情绪, 同行对比, 分析师预测, 内幕交易, 国会交易, 因子分析 |
+| **图表** (5) | EquityCurve, 相关性, 分布, MonteCarlo, 曲面图 |
+| **AI/ML** (5) | AIChat, 模型注册, 预测面板, Alpha 挖掘, RL 监控 |
 | **回测** (1) | BacktestResult |
 | **因子** (1) | FQFactor |
 | **加密** (1) | CryptoOverview |
 | **缠论** (3) | ChanlunBi, ChanlunDuan, ChanlunZhongshu |
 | **资讯** (1) | News |
-| **工具** (3) | Drawing, ActionCenter, MACProtocol |
-| **系统** (4) | Schedule, Notify, Settings, SystemMonitor |
+| **工具** (3) | 画图, ActionCenter, MACProtocol |
+| **系统** (4) | 调度, 通知, 设置, 系统监控 |
 
-### 数据适配器 (37, 4 市场全覆盖)
+</details>
 
-| 市场 | 适配器 | 可用性 |
-|------|--------|:------:|
-| **A股** | mootdx(通达信) · MAC协议(TCP直连) · sina · eastmoney · tencent · baidu · akshare · tushare · ths · cninfo · iwencai | 11 源容灾 |
-| **港股** | sina · akshare/tencent · yahoo | 3 源 |
-| **美股** | yahoo(v8) · finnhub · polygon · alpaca | 4 源 |
-| **加密** | gateio · binance · okx · coingecko | 4 源 |
-| **专项** | eastmoney_news/global_news/capital/concept/fundflow/signals/report · sina_financials · ths_hot/consensus/northbound · MAC金钻/主力/板块 | 15 专项 |
+### 行情适配器 · 37 个 · 4 市场全覆盖
 
-### 缠论 (Chanlun)
+<details>
+<summary>查看详情</summary>
 
-- **5 种缠论节点**：Bi（笔）、Duan（段）、Zhongshu（中枢）、MaiDian（买卖点）、Leixing（走势类型）
-- **3 个缠论面板**：Bi/Duan/Zhongshu 可视化展示
-- 基于 MAC 协议 TCP 直连通达信，实时计算
+| 市场 | 适配器 | 数量 |
+|------|--------|:----:|
+| **A 股** | mootdx(通达信) · MAC协议(TCP直连) · sina · eastmoney · tencent · baidu · akshare · tushare · ths · cninfo · iwencai | **11 源容灾** |
+| **港股** | sina · akshare/tencent · yahoo | **3 源** |
+| **美股** | yahoo(v8) · finnhub · polygon · alpaca | **4 源** |
+| **加密** | gateio · binance · okx · coingecko | **4 源** |
+| **专项** | 快讯/全球/资金流向/概念/信号/财报/热度/北向/MAC金钻/主力/板块 | **15 源** |
 
-### MAC 协议适配器
-
-- **TCP 二进制协议**直连通达信行情服务器，零中间件
-- **5 数据通道**：金钻（VIP 实时快照）、主力（大单资金流）、板块（板块指数成分）、通用（行情/ K 线）、Level-2（十档）
-- **3 面板**：MACProtocol、主力资金、板块监测
-
-### 券商支持
-
-| 券商 | 市场 | 状态 | 说明 |
-|------|------|:----:|------|
-| **Alpaca** | 美股 | ✅ 实盘 | Paper/Live REST API，订单/持仓/账户 |
-| **Binance** | 加密 | ✅ 实盘 | 现货 REST API，订单/持仓/账户 |
-| **Futu (富途)** | 港股 | 🔧 存根 | 接口已定义，待实盘接入 |
+</details>
 
 ### AI Agent 系统
 
-- **ReAct 循环**：think → act → observe，带超时和步数限制
-- **4 LLM 提供商**：OpenAI · Anthropic · DeepSeek · Ollama (本地)
-- **4 AgentProfile**：general · quant_analyst · trader · research_assistant
-- **10+ 内置能力**：quote_lookup, search_symbol, compute_factor, run_backtest...
-- **流式 SSE** → 前端 Markdown 渲染 + 工具调用可视化
+- **ReAct 循环**：think → act → observe，超时 + 步数限制
+- **4 LLM 提供商**：OpenAI · Anthropic · DeepSeek · Ollama（本地部署）
+- **15 技能**：技术分析、基本面分析、风控、策略、微观结构
+- **流式输出**：SSE → 前端 Markdown 渲染 + 工具调用可视化
+
+### 券商支持
+
+| 券商 | 市场 | 状态 |
+|------|------|:----:|
+| **Alpaca** | 美股 | ✅ 实盘 |
+| **Binance** | 加密 | ✅ 实盘 |
+| **Futu（富途）** | 港股 | 🔧 待接入 |
+
+### 缠论
+
+Bi（笔）/ Duan（段）/ Zhongshu（中枢）/ 买卖点 / 走势类型 + 3 个可视化面板。
+基于 MAC 协议 TCP 直连通达信，实时计算。
 
 ---
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
 
 - **Go** 1.22+
 - **Node.js** 20+
-- **Python** 3.12+ (可选，ML/因子/LLM 需要)
+- **Python** 3.12+（可选，ML/因子/LLM 需要）
 
 ### 开发
 
@@ -183,109 +194,42 @@
 git clone https://github.com/SZWzz/QuantFlow.git
 cd QuantFlow
 
-# 启动开发服务器 (热重载)
+# 开发模式（热重载）
 wails dev
 
 # 完整检查
-go vet ./... && go test ./...                                  # Go: 383 tests
-cd frontend && npx vue-tsc --noEmit && npx vitest run          # 前端: 304 tests
-cd python && python -m pytest tests/ -x -q                      # Python: 145 tests
+go vet ./... && go test ./...                             # Go 后端
+cd frontend && npx vue-tsc --noEmit && npx vitest run     # 前端
+cd python && python -m pytest tests/ -x -q                # Python
 ```
 
 ---
 
-## 🗺️ 技术选型
+## 技术栈
 
 | 层 | 选择 | 理由 |
 |----|------|------|
-| 后端 | **Go 1.22+** | goroutine DAG 并行，单二进制部署 |
-| 桌面 | **Wails v3** | Go 原生壳，同进程零开销 |
-| 前端 | **Vue 3 + TypeScript** | vue-flow 画布，Pinia 状态管理 |
-| 数据库 | **SQLite WAL** | 零配置，单文件，桌面级并发 |
-| ML | **Python 3.12+ (gRPC)** | pandas/numpy 生态，独立 sidecar |
-| 图表 | **ECharts** | 金融图表全覆盖，GL 3D 支持 |
-| 主题 | **CSS Variables** | 双主题 + 三密度，运行时切换 |
-
-### 为什么不...
-
-| 不用 | 原因 |
-|------|------|
-| PostgreSQL/Redis | 桌面应用单用户 — SQLite WAL 足够 |
-| Tauri | Go+Rust 双工具链 — Wails 同语言 |
-| React | vue-flow 是 xyflow 官方 Vue 移植 |
-| Docker | Go 单二进制，无需容器 |
-| 印度市场 | 聚焦：A股 > 港股 > 美股 > 加密 |
+| 后端 | Go 1.22+ | goroutine 并行，单二进制 |
+| 桌面壳 | Wails v3 | Go 原生，零 IPC 开销 |
+| 前端 | Vue 3 + TypeScript | vue-flow 画布，Pinia 状态管理 |
+| 数据库 | SQLite WAL | 零配置单文件，桌面级并发 |
+| ML/AI | Python 3.12+ (gRPC) | pandas/numpy 生态，独立 sidecar |
+| 图表 | ECharts | 金融图表全覆盖 + GL 3D |
+| 主题 | CSS Variables | 双主题 + 三密度，运行时切换 |
 
 ---
 
-## 📋 路线图
+## 市场聚焦
 
-| 阶段 | 目标 | 状态 |
-|------|------|:----:|
-| Phase 1 | 纯 Go 工作流引擎 + CLI + SQLite | ✅ |
-| Phase 2 | Wails 桌面壳 + Vue 3 + 交易引擎 + 行情中心 | ✅ |
-| Phase 2.5 | 14 数据源适配器 + FallbackChain 容灾 | ✅ |
-| Phase 3 | Python gRPC + 25 Alpha 因子 + 回测引擎 | ✅ |
-| Phase 4 | AI Agent 系统 (ReAct + 4 LLM) | ✅ |
-| Phase 5 | 券商 + 组合/风控 + 通知 + 调度 | ✅ |
-| Phase 6 | 7 前端面板 + SSE + Pinia 商店 | ✅ |
-| Phase 7 | 主题系统 + i18n + 设置面板 | ✅ |
-| Phase 8 | 节点扩展 20→34 | ✅ |
-| Phase 9 | 因子原子 + 信号工程 34→54 | ✅ |
-| Phase 10 | ML 引擎 + Alpha 挖掘 + RL + 风险建模 | ✅ |
-| Phase 11 | 测试覆盖 + 数据源补强 + 面板扩展 | ✅ |
-| **Phase 12** | **easy-tdx 深度集成 + 前端质量重塑 + P0 金融正确性** | ✅ |
-| **Phase 13** | **缠论/指标节点 + MAC协议 + 分时图重放 + 股票名称展示** | ✅ |
-| **Phase 14** | **多市场数据源完善 + 更多券商 + 面板补齐** | 🔜 |
+| 市场 | 结算 | 关键规则 | 主要数据源 |
+|------|------|----------|-----------|
+| A 股 | T+1 | 涨跌停 ±10%/±20%, 印花税 0.05% | mootdx / MAC / 东财 / 新浪 / 腾讯 / 百度 / 同花顺 |
+| 港股 | T+2 | 港股通, T+2 交收 | 新浪 / 腾讯 / AkShare / Yahoo |
+| 美股 | T+2 | PDT 规则, wash sale | Yahoo / Finnhub / Polygon |
+| 加密 | 即时 | 资金费率, 强平 | Gate.io / Binance / OKX |
 
 ---
 
-## 📁 目录结构
-
-```
-quantflow/
-├── main.go                       # Wails 入口
-├── app.go                        # Go 导出函数(前端绑定)
-├── internal/
-│   ├── workflow/                 # 工作流引擎 + 93 节点
-│   ├── trading/                  # OMS + 券商适配器
-│   │   └── brokers/              # Alpaca / Binance / Futu
-│   ├── market/                   # 行情中心 + 37 适配器
-│   │   └── adapters/             # 全部数据源实现
-│   ├── research/                 # 研究分析服务 (9 Service)
-│   ├── ai/                       # AI Agent 系统
-│   ├── portfolio/                # 组合管理 + 风控
-│   ├── notify/                   # 通知引擎 (Telegram/InApp)
-│   ├── schedule/                 # cron 调度器
-│   ├── storage/                  # SQLite WAL + 迁移
-│   └── python/                   # gRPC 桥接
-├── frontend/                     # Vue 3 前端
-│   └── src/
-│       ├── terminal/panels/      # 64 面板
-│       ├── workflow/             # vue-flow 画布
-│       ├── stores/               # 8 Pinia 商店
-│       └── lib/                  # i18n · 主题 · stats
-├── python/                       # Python gRPC Sidecar
-│   └── src/ (factor/ml/llm/research/data)
-├── docs/specs/                   # Spec 文档
-├── resources/                    # 图标 · 模板
-├── CHANGELOG.md                  # 变更日志 (中文)
-└── LICENSE                       # AGPL-3.0
-```
-
----
-
-## 🌍 市场聚焦
-
-| 市场 | 结算 | 关键规则 | 主要数据源 | 券商 |
-|------|------|----------|-----------|------|
-| A 股 | T+1 | 涨跌停 ±10%/±20%, 印花税 0.05% | mootdx/MAC协议/东财/新浪/腾讯/百度/同花顺 | — |
-| 港股 | T+2 | 港股通, T+2 交收 | 新浪/腾讯/AkShare/Yahoo | 富途(存根) |
-| 美股 | T+2 | PDT 规则, wash sale | Yahoo/Finnhub/Polygon | Alpaca(实盘) |
-| 加密 | 即时 | 永续资金费率, 强平 | Gate.io/Binance/OKX | Binance(实盘) |
-
----
-
-## 📄 许可证
+## 许可证
 
 [AGPL-3.0](LICENSE) © 2024–2026 QuantFlow Contributors

@@ -58,7 +58,9 @@ function setFormType(type: string) {
 }
 
 function openUrl(url: string) {
-  if (url) window.open(url, '_blank')
+  if (!url) return
+  const app = (window as any).go?.main?.App
+  if (app?.OpenURL) app.OpenURL(url)
 }
 
 function handleSymbolSubmit(e: Event) {

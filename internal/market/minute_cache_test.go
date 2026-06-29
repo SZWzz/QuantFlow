@@ -44,16 +44,16 @@ func TestMinuteCache_SaveAndGet(t *testing.T) {
 	}
 	defer mc.Close()
 
-	// Save some ticks
+	today := time.Now().Format("2006-01-02")
+
 	input := []MinuteTick{
 		{Time: "09:30", Price: 100.5, Volume: 1000, AvgPrice: 100.5},
 		{Time: "09:31", Price: 100.8, Volume: 2000, AvgPrice: 100.65},
 	}
-	if err := mc.SaveTicks("600519", "2026-06-26", input); err != nil {
+	if err := mc.SaveTicks("600519", today, input); err != nil {
 		t.Fatal(err)
 	}
 
-	// Get all ticks
 	ticks, err := mc.GetIncremental("600519", 0)
 	if err != nil {
 		t.Fatal(err)
@@ -115,17 +115,18 @@ func TestMinuteCache_LRUFull(t *testing.T) {
 	}
 	defer mc.Close()
 
+	today := time.Now().Format("2006-01-02")
+
 	// Fill LRU beyond capacity (500 entries is huge, simulate with small cache)
 	// This test verifies the LRU eviction doesn't panic
 	for i := 0; i < 10; i++ {
 		symbol := "6005" + string(rune('0'+i))
 		ticks := []MinuteTick{{Time: "09:30", Price: 100.0, Volume: 100, AvgPrice: 100.0}}
-		if err := mc.SaveTicks(symbol, "2026-06-26", ticks); err != nil {
+		if err := mc.SaveTicks(symbol, today, ticks); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	// Verify first inserted symbol can still be loaded from DB
 	ticks, err := mc.GetIncremental("60050", 0)
 	if err != nil {
 		t.Fatal(err)

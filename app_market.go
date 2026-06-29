@@ -73,27 +73,42 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 
 	mkt := market.MarketForSymbol(symbol)
 
-	// Non-CN markets: minute data not available via free adapters,
-	// return daily OHLCV as fallback (frontend will display as daily bars).
 	if mkt != "CN" {
 		return nil, "unavailable", fmt.Errorf("minute data not available for market %s, use 1d interval instead", mkt)
 	}
 
-	// 1. Try cache first (SQLite + LRU).
 	ticks, err := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
 	if err != nil {
 		slog.Warn("minute_cache: get failed", "symbol", symbol, "err", err)
 	}
 
-	// 2. If cache has data and the request is incremental (since > 0),
-	//    return cached data. For initial load (since == 0), if cache
-	//    is empty, fall through to live fetch.
-	if len(ticks) > 0 || sinceTimestamp > 0 {
+	adpt := a.getMootdxAdapter()
+
+	// Incremental request (sinceTimestamp > 0): if cache already has new data,
+	// return it fast. Otherwise try live fetch to refresh the cache, then re-query.
+	if sinceTimestamp > 0 {
+		if len(ticks) > 0 {
+			return ticks, "cache", nil
+		}
+		if adpt != nil {
+			if liveTicks, err := adpt.FetchMinuteLine(symbol); err == nil && len(liveTicks) > 0 {
+				today := time.Now().Format("2006-01-02")
+				if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
+					slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
+				}
+				freshTicks, _ := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
+				return freshTicks, "mootdx", nil
+			}
+		}
 		return ticks, "cache", nil
 	}
 
-	// 3. Live fetch via mootdx (CN only).
-	adpt := a.getMootdxAdapter()
+	// Initial load (sinceTimestamp == 0): serve from cache if available.
+	if len(ticks) > 0 {
+		return ticks, "cache", nil
+	}
+
+	// Live fetch via mootdx.
 	if adpt == nil {
 		return nil, "unavailable", fmt.Errorf("mootdx adapter not available")
 	}
@@ -102,17 +117,14 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		return nil, "unavailable", err
 	}
 
-	// 4. Persist live data to cache.
 	if len(liveTicks) > 0 {
 		today := time.Now().Format("2006-01-02")
-		if err := a.minuteCache.SaveTicks(symbol, today, liveTicks); err != nil {
-			slog.Warn("minute_cache: save failed", "symbol", symbol, "err", err)
+		if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
+			slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
 		}
 		return liveTicks, "mootdx", nil
 	}
 
-	// 5. Live fetch returned empty (weekend/holiday/after-hours).
-	//    Fall back to the most recent trading day's cached data.
 	recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 5)
 	if err != nil {
 		slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)

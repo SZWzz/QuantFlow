@@ -75,27 +75,47 @@ def analyze_report(financials_json):
                 "detail": f"应收账款/营收={ar/rev*100:.1f}%，回款压力大"})
 
     score = 50
+    breakdown = [{"item": "基础分", "effect": 50, "detail": "起始分数"}]
     if periods:
         latest = periods[0]
         roe = latest.get("roe")
         dr = latest.get("debt_ratio")
         pm = latest.get("profit_margin")
-        if roe and roe > 15: score += 15
-        elif roe is not None and roe > 8: score += 8
-        elif roe is not None and roe < 0: score -= 15
-        if dr and dr < 40: score += 10
-        elif dr and dr > 70: score -= 10
-        if pm and pm > 20: score += 10
-        elif pm is not None and pm < 5: score -= 10
+
+        d = 0
+        if roe and roe > 15: d = 15; breakdown.append({"item": "ROE 优秀", "effect": 15, "detail": f"ROE={roe:.1f}% > 15%"})
+        elif roe is not None and roe > 8: d = 8; breakdown.append({"item": "ROE 良好", "effect": 8, "detail": f"ROE={roe:.1f}% > 8%"})
+        elif roe is not None and roe < 0: d = -15; breakdown.append({"item": "ROE 为负", "effect": -15, "detail": f"ROE={roe:.1f}% < 0"})
+        score += d
+
+        d = 0
+        if dr and dr < 40: d = 10; breakdown.append({"item": "负债率低", "effect": 10, "detail": f"负债率={dr:.1f}% < 40%"})
+        elif dr and dr > 70: d = -10; breakdown.append({"item": "负债率高", "effect": -10, "detail": f"负债率={dr:.1f}% > 70%"})
+        score += d
+
+        d = 0
+        if pm and pm > 20: d = 10; breakdown.append({"item": "净利率高", "effect": 10, "detail": f"净利率={pm:.1f}% > 20%"})
+        elif pm is not None and pm < 5: d = -10; breakdown.append({"item": "净利率低", "effect": -10, "detail": f"净利率={pm:.1f}% < 5%"})
+        score += d
+
+        d = 0
         if len(periods) >= 4:
             revs = [p.get("revenue", 0) or 0 for p in periods[:4]]
-            if revs[0] > revs[3] * 1.2: score += 10
-            elif revs[0] < revs[3]: score -= 5
-    score -= sum(3 for a in anomalies if a["level"] == "high") + sum(1 for a in anomalies if a["level"] == "medium")
+            if revs[0] > revs[3] * 1.2: d = 10; breakdown.append({"item": "营收增长", "effect": 10, "detail": "最新期营收 > 4期前 ×1.2"})
+            elif revs[0] < revs[3]: d = -5; breakdown.append({"item": "营收下滑", "effect": -5, "detail": "最新期营收 < 4期前"})
+        score += d
+
+    hc = sum(1 for a in anomalies if a["level"] == "high")
+    mc = sum(1 for a in anomalies if a["level"] == "medium")
+    penalty = hc * 3 + mc * 1
+    if penalty:
+        breakdown.append({"item": "异常扣分", "effect": -penalty, "detail": f"{hc}项高危×3 + {mc}项中危×1"})
+        score -= penalty
     score = max(0, min(100, score))
     grade = "优秀" if score >= 80 else "良好" if score >= 60 else "一般" if score >= 40 else "较差"
 
     return {"periods": periods[:12], "health_score": score, "health_grade": grade,
+            "score_breakdown": breakdown,
             "anomaly_flags": anomalies[:20], "metrics": {
                 "latest_roe": periods[0].get("roe") if periods else None,
                 "latest_debt_ratio": periods[0].get("debt_ratio") if periods else None,
@@ -118,7 +138,7 @@ def compute_valuation(financials_json, quote_json=None):
         if fcf <= 0 or math.isnan(fcf):
             op = _f(lc.get("经营现金流净额", lc.get("operating_cash_flow", 0)))
             cx = abs(_f(lc.get("资本支出", lc.get("capex", 0))))
-            fcf = op - cx if op > 0 else (op * 0.7 if op > 0 else 0)
+            fcf = op - cx if op > 0 else 0
         if fcf <= 0 or math.isnan(fcf):
             return {"error": "自由现金流为负或不可用，无法进行 DCF 估值", "scenarios": {}, "buy_sell": {}}
     if balance and isinstance(balance, list) and balance:
@@ -133,16 +153,16 @@ def compute_valuation(financials_json, quote_json=None):
     if fcf <= 0:
         return {"error": "自由现金流为负，无法 DCF 估值", "scenarios": {}, "buy_sell": {}}
 
-    wacc, g0, years = 0.08, 0.03, 5
+    wacc, terminal_g, years = 0.08, 0.03, 5
     scenarios = {}
-    for name, gm in [("保守", 0.5), ("基准", 1.0), ("乐观", 1.5)]:
-        g = g0 * gm; pv = 0; f = fcf
+    for name, proj_g in [("保守", 0.05), ("基准", 0.10), ("乐观", 0.18)]:
+        pv = 0; f = fcf
         for yr in range(1, years + 1):
-            f *= (1 + g); pv += f / ((1 + wacc) ** yr)
-        tv = f * (1 + g) / (wacc - g) if wacc > g else f / 0.02
+            f *= (1 + proj_g); pv += f / ((1 + wacc) ** yr)
+        tv = f * (1 + terminal_g) / (wacc - terminal_g) if wacc > terminal_g else f / 0.02
         pv_terminal = tv / ((1 + wacc) ** years)
         ev = pv + pv_terminal - net_debt
-        scenarios[name] = {"growth_rate": round(g*100, 1), "value_per_share": round(ev / shares, 2) if shares > 0 else 0}
+        scenarios[name] = {"growth_rate": round(proj_g*100, 1), "value_per_share": round(ev / shares, 2) if shares > 0 else 0}
 
     fair = scenarios["基准"]["value_per_share"]
     cp = _f(quote.get("price", 0))

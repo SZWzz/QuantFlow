@@ -109,9 +109,10 @@ async function loadOHLCV(sym: string) {
   loading.value = true
   try {
     const end = Math.floor(Date.now() / 1000)
-    // Lookback: minute intervals → 5 days, daily → 90 days, weekly → 180 days
+    // Lookback: minute intervals → 5 days, weekly → 450 days, daily → 365 days
+    // 365d → ~250 trading days for daily MA60 (needs 60); 450d → ~64 weeks for weekly MA60.
     const iv = interval.value
-    const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 180 : 90
+    const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 450 : 365
     const start = end - lookbackDays * 86400
     const fqfactor = 'qfq'  // default to 前复权 for A-shares
     const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, iv, fqfactor, start, end)

@@ -4,6 +4,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.6.29] - 2026-06-29
+
+### 修复 — 分时图不刷新
+- [行情] **GetMinuteLine** — 当 `sinceTimestamp > 0`（增量轮询或切换代码时），缓存无新数据后不再返回空，改为执行 mootdx 实时抓取并合并到缓存，使分时图在交易时段内持续更新
+- [存储] **minute_cache_test.go** — 修复因硬编码日期 `"2026-06-26"` 与 `time.Now()` 不匹配导致的测试失败（`SaveAndGet`、`LRUFull`）
+
+### 修复 — K线指标预热数据不足
+- [前端] **CandlestickPanel** — 日K回溯从 90 天改为 365 天（~250 交易日），周K从 180 天改为 450 天（~64 周），确保 MA60 及所有附图指标有足够预热数据，消除前段空白
+
+### 变更 — README 文档重构
+- [Docs] **README.md/README.en.md** — 全面重构：ASCII 架构图 → Mermaid 图、节点/面板/适配器列表转为 `<details>` 可折叠、修复 shields.io badge、精简过时内容、统一中英文排版
+
 ## [2026.6.28] - 2026-06-28
 
 ### 新增 — 财务深度分析面板（Financial Analyzer 集成）

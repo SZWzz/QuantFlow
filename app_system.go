@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os/exec"
 	"runtime"
 	"time"
 )
@@ -49,4 +50,18 @@ func (a *App) GetVersion() string {
 		return "unknown"
 	}
 	return a.cfg.Version
+}
+
+// OpenURL opens a URL in the system's default browser.
+func (a *App) OpenURL(url string) error {
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", url).Start()
+	case "linux":
+		return exec.Command("xdg-open", url).Start()
+	case "windows":
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	default:
+		return exec.Command("open", url).Start()
+	}
 }
