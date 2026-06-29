@@ -110,7 +110,7 @@ func RegisterAll(r *workflow.NodeRegistry) {
 	// Satellite: NASA POWER solar/wind + FIRMS wildfire
 	r.RegisterWithCategory("satellite", NewSatelliteNode, "alternative_data")
 
-	// easy-tdx integration: 19 indicator nodes
+	// TDX indicator nodes
 	r.RegisterWithCategory("indicator_kdj", NewIndicatorKDJNode, "indicators")
 	r.RegisterWithCategory("indicator_dmi", NewIndicatorDMINode, "indicators")
 	r.RegisterWithCategory("indicator_atr", NewIndicatorATRNode, "indicators")

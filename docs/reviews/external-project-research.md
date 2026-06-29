@@ -1,6 +1,6 @@
 # 外部项目调研报告：QuantFlow 可复用资产
 
-> **日期**: 2026-06-27 | **调研对象**: FinceptTerminal / AStockPursue / easy-tdx
+> **日期**: 2026-06-27 | **调研对象**: 某终端项目 / 某 A 股项目 / 某 TDX 项目
 
 ---
 
@@ -8,15 +8,15 @@
 
 | 项目 | 语言 | 定位 | 核心资产 | 协议 |
 |------|------|------|---------|:--:|
-| **FinceptTerminal** | C++20/Qt6+Python3.11 | 彭博式机构金融工作站 | 100+ 数据源、期权定价、组合优化、37+ AI Agent、DataHub 架构 | AGPL-3.0 |
-| **AStockPursue** | Go+Python+Next.js | AI 驱动 A 股量化工作流 | A股引擎、ST 风险预测、北向资金、450+ 因子 Zoo、因子 GP 进化 | MIT |
-| **easy-tdx** | Python 3.10+ | 通达信协议完整逆向实现 | 4 套 TDX 协议、codec 层 700 行可翻译 Go、离线数据解析 | MIT |
+| **某终端项目** | C++20/Qt6+Python3.11 | 彭博式机构金融工作站 | 100+ 数据源、期权定价、组合优化、37+ AI Agent、DataHub 架构 | AGPL-3.0 |
+| **某 A 股项目** | Go+Python+Next.js | AI 驱动 A 股量化工作流 | A股引擎、ST 风险预测、北向资金、450+ 因子 Zoo、因子 GP 进化 | MIT |
+| **某 TDX 项目** | Python 3.10+ | 通达信协议完整逆向实现 | 4 套 TDX 协议、codec 层 700 行可翻译 Go、离线数据解析 | MIT |
 
 ## 二、QuantFlow 现状对比
 
 ### 已有能力（不重复引入）
 
-| 能力 | QuantFlow 现有 | FinceptTerminal | AStockPursue | easy-tdx |
+| 能力 | QuantFlow 现有 | 某终端项目 | 某 A 股项目 | 某 TDX 项目 |
 |------|:--:|:--:|:--:|:--:|
 | A股 K 线 10 源回退链 | ✅ registry.go | ✅ 20+ akshare 脚本 | ✅ 7 源 FALLBACK_CHAINS | ✅ TDX 私有协议 |
 | 因子系统 | ✅ 25 因子 | ✅ | ✅ 450+ Alpha Zoo | ✅ 34 技术指标 |
@@ -39,7 +39,7 @@
 
 ### 关键结论
 
-> **三个项目中，AStockPursue 与 QuantFlow 重叠度最高**（同为 Go+Python+gRPC），可直接复用 Go 适配器和 A 股特定模块。**easy-tdx 提供 QuantFlow 最缺失的 TDX 协议直连能力**，其 codec 层可直接翻译为 Go。**FinceptTerminal 提供期权/组合优化/DataHub 架构等高级功能**，适合中长期纳入。
+> **三个项目中，某 A 股项目 与 QuantFlow 重叠度最高**（同为 Go+Python+gRPC），可直接复用 Go 适配器和 A 股特定模块。**某 TDX 项目 提供 QuantFlow 最缺失的 TDX 协议直连能力**，其 codec 层可直接翻译为 Go。**某终端项目 提供期权/组合优化/DataHub 架构等高级功能**，适合中长期纳入。
 
 ---
 
@@ -49,19 +49,19 @@
 
 #### 1. A 股数据源增强：新增 mootdx + northbound + iWenCai 适配器
 
-**来源**: AStockPursue + easy-tdx
+**来源**: 某 A 股项目 + 某 TDX 项目
 
 | 适配器 | 来源 | 文件 | 移植成本 |
 |--------|------|------|:--:|
-| **mootdx (Go)** | easy-tdx codec 翻译 | `internal/market/adapters/tdx.go` | 3h（700 行 Python→Go） |
-| **北向资金** | AStockPursue | `internal/market/adapters/northbound.go` | 30m（Python→Go 翻译） |
-| **iWenCai 选股** | AStockPursue | `internal/market/adapters/iwencai.go` | 30m（直接复用） |
+| **mootdx (Go)** | 某 TDX 项目 codec 翻译 | `internal/market/adapters/tdx.go` | 3h（700 行 Python→Go） |
+| **北向资金** | 某 A 股项目 | `internal/market/adapters/northbound.go` | 30m（Python→Go 翻译） |
+| **iWenCai 选股** | 某 A 股项目 | `internal/market/adapters/iwencai.go` | 30m（直接复用） |
 
 **优先级理由**: 北向资金是 A 股独有的核心信号，iWenCai 提供自然语言选股，TDX 协议直连是替代 mootdx Python 的最优方案。
 
 #### 2. ST/*ST 风险预测模块
 
-**来源**: AStockPursue `services/python/src/skills/ashare-pre-st-filter/`
+**来源**: 某 A 股项目 `services/python/src/skills/ashare-pre-st-filter/`
 
 **移植方案**: 完整复用 SKILL.md 中的规则知识图谱，用 Python sidecar 实现为 `python/src/research/st_risk.py`。
 
@@ -78,7 +78,7 @@
 
 #### 3. A 股新闻聚合
 
-**来源**: AStockPursue `backtest/loaders/news_sources/`
+**来源**: 某 A 股项目 `backtest/loaders/news_sources/`
 
 | 新闻源 | 文件 | 用途 |
 |--------|------|------|
@@ -96,9 +96,9 @@
 
 #### 4. Alpha Zoo 因子库补充（450+ 因子）
 
-**来源**: AStockPursue `services/python/src/factors/zoo/`
+**来源**: 某 A 股项目 `services/python/src/factors/zoo/`
 
-QuantFlow 现有 25 个因子，AStockPursue 有 450+ 个。可选择性引入 A 股特定因子：
+QuantFlow 现有 25 个因子，某 A 股项目 有 450+ 个。可选择性引入 A 股特定因子：
 
 | 因子集 | 数量 | 来源 | 移植价值 |
 |--------|:--:|------|---------|
@@ -112,7 +112,7 @@ QuantFlow 现有 25 个因子，AStockPursue 有 450+ 个。可选择性引入 A
 
 #### 5. 期权定价模块
 
-**来源**: FinceptTerminal `scripts/Analytics/derivatives/options.py`
+**来源**: 某终端项目 `scripts/Analytics/derivatives/options.py`
 
 QuantFlow 目前完全没有期权定价能力。这是最直接的填补。
 
@@ -131,7 +131,7 @@ QuantFlow 目前完全没有期权定价能力。这是最直接的填补。
 
 #### 6. DataHub 架构模式
 
-**来源**: FinceptTerminal `src/datahub/`
+**来源**: 某终端项目 `src/datahub/`
 
 概念而非代码的可移植性。QuantFlow 目前无进程内 pub/sub 机制。架构灵感：
 
@@ -149,7 +149,7 @@ QuantFlow 目前完全没有期权定价能力。这是最直接的填补。
 
 #### 7. 组合优化模块
 
-**来源**: FinceptTerminal `scripts/Analytics/portfolioManagement/portfolio_optimization.py`
+**来源**: 某终端项目 `scripts/Analytics/portfolioManagement/portfolio_optimization.py`
 
 6 种优化策略: Max Sharpe / Min Volatility / Efficient Risk / Max Quadratic Utility / Risk Parity / Black-Litterman
 
@@ -157,13 +157,13 @@ QuantFlow 目前完全没有期权定价能力。这是最直接的填补。
 
 #### 8. 量化分析工具集
 
-**来源**: FinceptTerminal `scripts/Analytics/quant/quant_modules_3042.py` (1278 行)
+**来源**: 某终端项目 `scripts/Analytics/quant/quant_modules_3042.py` (1278 行)
 
 时间序列（ADF/KPSS/ARIMA）、ML（Ridge/Lasso/ElasticNet）、采样（Bootstrap/jackknife）
 
 #### 9. C++ 交易类型系统参考
 
-**来源**: FinceptTerminal `src/trading/TradingTypes.h` (889 行)
+**来源**: 某终端项目 `src/trading/TradingTypes.h` (889 行)
 
 完整的交易域模型结构体定义，可作为 QuantFlow Go 类型系统的设计参考（不搬运代码，参考概念）。
 
@@ -173,18 +173,18 @@ QuantFlow 目前完全没有期权定价能力。这是最直接的填补。
 
 | 资产 | 来源 | 类型 | 成本 | 优先级 | 理由 |
 |------|------|------|:--:|:--:|------|
-| TDX 协议 Go 适配器 | easy-tdx | 代码翻译 | 3h | **P0** | 填补 A 股最低延迟数据源缺口 |
-| 北向资金适配器 | AStockPursue | 代码复用 | 30m | **P0** | A 股独有信号，Go adapter 直接可用 |
-| iWenCai 适配器 | AStockPursue | 代码复用 | 30m | **P0** | 自然语言选股，Go adapter 直接可用 |
-| ST 风险预测 | AStockPursue | 规则翻译 | 4h | **P0** | A 股退市预警关键功能 |
-| A 股新闻源 | AStockPursue | 代码搬运 | 1h | **P0** | 补齐信息流 |
-| Alpha Zoo GTJA191 | AStockPursue | 代码搬运 | 4h | **P1** | 因子库扩充 10 倍 |
-| 期权定价 | FinceptTerminal | 代码搬运 | 1h | **P1** | 从零补全新品类 |
-| DataHub 架构 | FinceptTerminal | 概念复用 | 2h | **P1** | 进程内行情总线 |
-| Qlib 集成 | FinceptTerminal | 代码搬运 | 8h | **P2** | ML 训练框架 |
-| 组合优化 | FinceptTerminal | 代码搬运 | 2h | **P2** | 补全分析能力 |
-| 量化工具集 | FinceptTerminal | 代码搬运 | 3h | **P2** | 增厚分析工具箱 |
-| easy-tdx 技术指标 | easy-tdx | 代码搬运 | 1h | **P2** | 34 个指标可选引入 |
+| TDX 协议 Go 适配器 | 某 TDX 项目 | 代码翻译 | 3h | **P0** | 填补 A 股最低延迟数据源缺口 |
+| 北向资金适配器 | 某 A 股项目 | 代码复用 | 30m | **P0** | A 股独有信号，Go adapter 直接可用 |
+| iWenCai 适配器 | 某 A 股项目 | 代码复用 | 30m | **P0** | 自然语言选股，Go adapter 直接可用 |
+| ST 风险预测 | 某 A 股项目 | 规则翻译 | 4h | **P0** | A 股退市预警关键功能 |
+| A 股新闻源 | 某 A 股项目 | 代码搬运 | 1h | **P0** | 补齐信息流 |
+| Alpha Zoo GTJA191 | 某 A 股项目 | 代码搬运 | 4h | **P1** | 因子库扩充 10 倍 |
+| 期权定价 | 某终端项目 | 代码搬运 | 1h | **P1** | 从零补全新品类 |
+| DataHub 架构 | 某终端项目 | 概念复用 | 2h | **P1** | 进程内行情总线 |
+| Qlib 集成 | 某终端项目 | 代码搬运 | 8h | **P2** | ML 训练框架 |
+| 组合优化 | 某终端项目 | 代码搬运 | 2h | **P2** | 补全分析能力 |
+| 量化工具集 | 某终端项目 | 代码搬运 | 3h | **P2** | 增厚分析工具箱 |
+| 某 TDX 项目 技术指标 | 某 TDX 项目 | 代码搬运 | 1h | **P2** | 34 个指标可选引入 |
 
 ---
 
@@ -192,7 +192,7 @@ QuantFlow 目前完全没有期权定价能力。这是最直接的填补。
 
 ```
 Phase A (本周): P0 移植
-├── easy-tdx codec 层翻译为 Go → tdx.go (3h)
+├── 某 TDX 项目 codec 层翻译为 Go → tdx.go (3h)
 ├── northbound.go + iwencai.go 复用 (1h)
 ├── ST 风险预测模块 (4h)
 └── 新闻聚合 (1h)
@@ -217,7 +217,7 @@ Phase C (后续): P2 移植
 
 1. **协议合法性**: TDX 协议为私有二进制协议，反向工程用于个人学习合法，但商业化使用有法律风险。AGPL 开源项目慎用。
 2. **依赖膨胀**: GTJA191 因子集引入大量 numpy 计算，需评估 Python sidecar 内存占用。
-3. **维护成本**: 引入外部代码 = 承担维护责任。AStockPursue 的 Go 适配器代码质量过硬（含测试），FinceptTerminal 的 Python 脚本较成熟。
-4. **AGPL 兼容性**: FinceptTerminal 也是 AGPL-3.0，代码搬运可直接复用。AStockPursue/easy-tdx 都是 MIT，兼容 AGPL。
+3. **维护成本**: 引入外部代码 = 承担维护责任。某 A 股项目 的 Go 适配器代码质量过硬（含测试），某终端项目 的 Python 脚本较成熟。
+4. **AGPL 兼容性**: 某终端项目 也是 AGPL-3.0，代码搬运可直接复用。某 A 股项目/某 TDX 项目 都是 MIT，兼容 AGPL。
 
 *报告完*

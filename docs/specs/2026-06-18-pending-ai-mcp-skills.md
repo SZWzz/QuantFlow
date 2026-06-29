@@ -6,7 +6,7 @@
 
 ## Motivation
 
-FinceptTerminal 的 MCP (81 工具) + AstockPursue 的 89 Skills 尚未集成。当前 Agent 框架仅能调用少数内置 capabilities，无法充分发挥 LLM Agent 的价值。
+某终端项目的 MCP (81 工具) + 某 A 股项目的 89 Skills 尚未集成。当前 Agent 框架仅能调用少数内置 capabilities，无法充分发挥 LLM Agent 的价值。
 
 ## 缺失组件清单
 

@@ -14,6 +14,7 @@
 - [Backend] **ListLLMModels** — 新增 Wails 方法调用 Python gRPC `ListModels`，返回可用 LLM 模型列表
 
 ### Changed
+- [Docs] 移除文档中外部参考项目名称（FinceptTerminal/AStockPursue/easy-tdx），替换为匿名称呼
 - [Frontend] **28 panels** — 全部接入 usePanelCache 缓存(5分钟TTL，系统监控5秒)，切换 symbol 时命中缓存避免重复 Go IPC 调用
 - [Frontend] **ForecastPanel** — 重写完整面板：代码解压缩、i18n 全覆盖、增加年均利润率/CAGR/基准增长率指标栏; 修复季度累计营收误作年化基数的显示问题
 - [Python] **forecast_financials** — 修复：区分年度(12-31)与季度累计(03-31/06-30/09-30)数据，年度数据不足时年化处理，返回 period_type/latest_period 供前端准确展示
@@ -250,7 +251,7 @@ MarginPanel, SECFinancialsPanel, SEC13FPanel — 使用 `<pre>{{ JSON.stringify(
 - [后端] NodeContext 集成修复：所有节点构造函数签名对齐 `node.NewBaseNode(id, nodeType)`
 - [行情] Mootdx 分钟线周末空数据：判断 `len == 0` 不再 panic，回退最近交易日
 
-- [Docs] 新增 5 篇规范文档：easy-tdx 集成、分时图实时渲染、前端质量重塑、股票名称展示、前端质量实施计划
+- [Docs] 新增 5 篇规范文档：TDX 协议集成、分时图实时渲染、前端质量重塑、股票名称展示、前端质量实施计划
 
 ### 优化
 

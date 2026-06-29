@@ -4,7 +4,7 @@
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/bollinger_breakout.py --table
+    backtest SZ 000001 --strategy-file strategies/bollinger_breakout.py --table
 """
 
 from .base import Strategy

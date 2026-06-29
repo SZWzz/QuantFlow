@@ -8,7 +8,7 @@ DMI 是唯一直接衡量趋势强度的指标：ADX 区分"有趋势可跟"和"
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/dmi_trend.py --count 2000 --table
+    backtest SZ 000001 --strategy-file strategies/dmi_trend.py --count 2000 --table
 """
 
 from ..indicators import MyTT

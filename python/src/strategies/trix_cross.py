@@ -8,7 +8,7 @@ TRIX 对收盘价做三次 EMA 平滑再算变化率，比 MACD 多一层过滤�
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/trix_cross.py --count 2000 --table
+    backtest SZ 000001 --strategy-file strategies/trix_cross.py --count 2000 --table
 """
 
 from ..indicators import MyTT

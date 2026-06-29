@@ -3,7 +3,7 @@
 // Implements the TDX MAC binary protocol for real-time data channels:
 // block ranking, capital flow, auction, abnormal stocks, multi-day minute data.
 //
-// Protocol reference: easy_tdx/src/easy_tdx/mac/ (MIT license).
+// Protocol reference: external TDX project (MIT license).
 package adapters
 
 import (

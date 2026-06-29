@@ -5,7 +5,7 @@ EMA12 上穿 EMA50 买入，EMA12 下穿 EMA50 卖出。
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/expma_cross.py --table
+    backtest SZ 000001 --strategy-file strategies/expma_cross.py --table
 """
 
 from .base import Strategy, crossover

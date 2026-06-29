@@ -6,7 +6,7 @@
 
 ## Motivation
 
-规划中 FinceptTerminal 的研究分析功能（EquityResearchScreen 7 标签页）和股票情绪分析（SentimentNode）目前完全未实现。这直接影响了用户做基本面研究、新闻情绪分析的能力。
+规划中 某终端项目的研究分析功能（EquityResearchScreen 7 标签页）和股票情绪分析（SentimentNode）目前完全未实现。这直接影响了用户做基本面研究、新闻情绪分析的能力。
 
 ## 缺失组件清单
 

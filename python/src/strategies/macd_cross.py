@@ -4,7 +4,7 @@ DIF 上穿 DEA（金叉）买入，DIF 下穿 DEA（死叉）卖出。
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/macd_cross.py --table
+    backtest SZ 000001 --strategy-file strategies/macd_cross.py --table
 """
 
 from .base import Strategy, crossover

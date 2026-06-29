@@ -9,7 +9,7 @@ MAOBV 平滑后的趋势比原始 OBV 更稳定，适合过滤噪声。
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/obv_trend.py --count 500 --table
+    backtest SZ 000001 --strategy-file strategies/obv_trend.py --count 500 --table
 """
 
 from ..indicators import MyTT

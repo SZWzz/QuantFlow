@@ -4,7 +4,7 @@ RSI < 30（超卖）买入，RSI > 70（超买）卖出。
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/rsi_reversal.py --table
+    backtest SZ 000001 --strategy-file strategies/rsi_reversal.py --table
 """
 
 from .base import Strategy

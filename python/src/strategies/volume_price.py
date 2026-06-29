@@ -5,7 +5,7 @@
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/volume_price.py --table
+    backtest SZ 000001 --strategy-file strategies/volume_price.py --table
 """
 
 from .base import Strategy

@@ -1,6 +1,6 @@
 """缠论分析器主入口。
 
-ChanlunAnalyser 接收 easy_tdx 的 K 线 DataFrame，
+ChanlunAnalyser 接收 外部 TDX 项目 的 K 线 DataFrame，
 内部执行完整的缠论计算管道：
 K线合并 → 分型识别 → 笔计算 → 中枢计算 → 线段 → 买卖点 → 背驰。
 """
@@ -26,7 +26,7 @@ from .zs import find_zss
 
 
 def _df_to_klines(df: pd.DataFrame) -> list[Kline]:
-    """将 easy_tdx K 线 DataFrame 转为缠论 Kline 列表。
+    """将 外部 TDX 项目 K 线 DataFrame 转为缠论 Kline 列表。
 
     期望 DataFrame 包含列：datetime, open, close, high, low, vol
     """
@@ -152,7 +152,7 @@ class ChanlunResult:
 class ChanlunAnalyser:
     """缠论分析器。
 
-    接收 easy_tdx K 线 DataFrame，执行缠论计算管道。
+    接收 外部 TDX 项目 K 线 DataFrame，执行缠论计算管道。
 
     用法：
         analyser = ChanlunAnalyser("SZ000001", "DAILY")
@@ -187,7 +187,7 @@ class ChanlunAnalyser:
         """处理 K 线 DataFrame，执行缠论计算管道。
 
         Args:
-            df: easy_tdx 返回的 K 线 DataFrame
+            df: 外部 TDX 项目 返回的 K 线 DataFrame
 
         Returns:
             ChanlunResult 包含所有缠论计算结果

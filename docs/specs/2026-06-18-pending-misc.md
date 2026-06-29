@@ -7,7 +7,7 @@
 ## 1. 浮窗面板 (Tear-off Windows)
 
 ### 规划
-对标 FinceptTerminal ADS 的 `tear_off_to_new_frame` — 将面板拖出主窗口成为独立窗口。
+对标 某终端项目 ADS 的 `tear_off_to_new_frame` — 将面板拖出主窗口成为独立窗口。
 
 ### 缺失组件
 | 组件 | 说明 |
@@ -96,7 +96,7 @@
 ## 7. GP 进化引擎
 
 ### 规划
-遗传规划因子挖掘 — 从 FinceptTerminal GP 引擎 + AstockPursue FactorEvolutionNode。
+遗传规划因子挖掘 — 从 某终端项目 GP 引擎 + 某 A 股项目 FactorEvolutionNode。
 
 ### 缺失组件
 | 组件 | 说明 |

@@ -5,7 +5,7 @@
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/bias_reversal.py --table
+    backtest SZ 000001 --strategy-file strategies/bias_reversal.py --table
 """
 
 from .base import Strategy

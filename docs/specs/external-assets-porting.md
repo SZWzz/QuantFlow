@@ -1,7 +1,7 @@
 # 外部项目可移植资产 — 最终 Spec
 
 > **版本**: 0.3.0 | **日期**: 2026-06-27
-> **调研对象**: FinceptTerminal / AStockPursue / easy-tdx
+> **调研对象**: 某终端项目 / 某 A 股项目 / 某 TDX 项目
 > **方法**: 对比 QuantFlow 现有 40+ Go 适配器 + Python 数据层，识别真正缺失的资产
 
 ---
@@ -50,9 +50,9 @@
 
 综合对比后，QuantFlow 真正缺失 + 外部可提供的资产如下：
 
-### 类别 A：A 股深度金融数据（FinceptTerminal AKShare 脚本）
+### 类别 A：A 股深度金融数据（某终端项目 AKShare 脚本）
 
-所有 32 个 FinceptTerminal AKShare 脚本都是**独立 Python 文件**，
+所有 32 个 某终端项目 AKShare 脚本都是**独立 Python 文件**，
 无宿主耦合，pip install akshare 即可运行，输出 JSON/DataFrame。
 
 | # | 脚本 | 行数 | 移植方式 | 成本 | 优先级 |
@@ -68,7 +68,7 @@
 | 9 | `akshare_economics_china.py` | 517 | 直接搬运 → `python/src/data/fincept/macro_cn.py` | 1h | P1 |
 | 10 | `akshare_index.py` | 598 | 直接搬运 → `python/src/data/fincept/index.py` | 1h | P2 |
 
-### 类别 B：全球经济数据（FinceptTerminal 宏观经济脚本）
+### 类别 B：全球经济数据（某终端项目 宏观经济脚本）
 
 | # | 脚本 | 行数 | 移植方式 | 成本 | 优先级 |
 |---|------|:--:|---------|:--:|:--:|
@@ -77,7 +77,7 @@
 | 13 | `eia_data.py` (能源) | 512 | 直接搬运 → `python/src/data/fincept/macro_eia.py` | 0.5h | P2 |
 | 14 | `open_meteo_data.py` (天气) | 238 | 直接搬运 → `python/src/data/fincept/macro_climate.py` | 0.5h | P2 |
 
-### 类别 C：美股 SEC 深度（FinceptTerminal EDGAR 脚本）
+### 类别 C：美股 SEC 深度（某终端项目 EDGAR 脚本）
 
 | # | 脚本 | 行数 | 移植方式 | 成本 | 优先级 |
 |---|------|:--:|---------|:--:|:--:|
@@ -85,20 +85,20 @@
 | 16 | `edgar/forms_13f.py` | 268 | 直接搬运 → `python/src/data/fincept/sec_13f.py` | 0.5h | P1 |
 | 17 | `edgar/forms_insider.py` | 234 | 直接搬运 → `python/src/data/fincept/sec_insider.py` | 0.5h | P1 |
 
-### 类别 D：CCXT 加密统一层（FinceptTerminal exchange/ 脚本）
+### 类别 D：CCXT 加密统一层（某终端项目 exchange/ 脚本）
 
 | # | 脚本 | 移植方式 | 成本 | 优先级 |
 |---|------|---------|:--:|:--:|
 | 18 | `exchange_client.py` + `fetch_*.py` (8 个) | 合并 → `python/src/data/ccxt_client.py` | 2h | **P0** |
 
-### 类别 E：A 股特色分析（AStockPursue 独有）
+### 类别 E：A 股特色分析（某 A 股项目 独有）
 
 | # | 资产 | 移植方式 | 成本 | 优先级 |
 |---|------|---------|:--:|:--:|
 | 19 | **ST/*ST 风险预测** | 规则引擎 → `python/src/research/st_risk.py` | 4h | **P0** |
 | 20 | **Alpha Zoo GTJA191** | 因子文件 → `python/src/factor/zoo/gtja191/` | 4h | **P1** |
 
-### 类别 F：高级分析引擎（FinceptTerminal Analytics）
+### 类别 F：高级分析引擎（某终端项目 Analytics）
 
 | # | 资产 | 移植方式 | 成本 | 优先级 |
 |---|------|---------|:--:|:--:|
@@ -106,11 +106,11 @@
 | 22 | **组合优化** (portfolio_optimization.py) | 直接搬运 → `python/src/analytics/portfolio_opt.py` | 2h | P1 |
 | 23 | **量化工具集** (quant_modules_3042.py) | 直接搬运 → `python/src/analytics/quant_tools.py` | 3h | P2 |
 
-### 类别 G：TDX 依赖替换（easy-tdx）
+### 类别 G：TDX 依赖替换（某 TDX 项目）
 
 | # | 资产 | 移植方式 | 成本 | 优先级 |
 |---|------|---------|:--:|:--:|
-| 24 | easy-tdx 替换 mootdx | pip install easy-tdx，修改 fetcher.py | 0.5h | P1 |
+| 24 | 某 TDX 项目 替换 mootdx | pip install 某 TDX 项目，修改 fetcher.py | 0.5h | P1 |
 
 ---
 
@@ -118,17 +118,17 @@
 
 | 资产 | 来源 | 不移植原因 |
 |------|------|-----------|
-| iWenCai 适配器 | AStockPursue | QuantFlow 已有 `iwencai.go` |
-| 北向资金适配器 | AStockPursue | QuantFlow 已有 `ths_northbound.go` |
-| Alpha101/Qlib158 | AStockPursue | 非 A 股专项因子，GTJA191 更合适 |
-| DataHub 架构 | FinceptTerminal | 概念复用，不涉及代码搬运 |
-| C++ TradingTypes | FinceptTerminal | 语言不匹配，作为设计参考 |
-| Alpha Vantage 脚本 | FinceptTerminal | QuantFlow 已有 yahoo/finnhub/polygon |
-| yfinance_data.py | FinceptTerminal | QuantFlow 已有 yahoo.go |
-| open_meteo/卫星 | FinceptTerminal | QuantFlow 已有 satellite.go |
-| Databento | FinceptTerminal | 付费 API，QuantFlow 定位免费工具 |
-| MULTPL S&P 500 | FinceptTerminal | 网页抓取不稳定，价值低 |
-| agno_trading | FinceptTerminal | 耦合过深，需大量适配 |
+| iWenCai 适配器 | 某 A 股项目 | QuantFlow 已有 `iwencai.go` |
+| 北向资金适配器 | 某 A 股项目 | QuantFlow 已有 `ths_northbound.go` |
+| Alpha101/Qlib158 | 某 A 股项目 | 非 A 股专项因子，GTJA191 更合适 |
+| DataHub 架构 | 某终端项目 | 概念复用，不涉及代码搬运 |
+| C++ TradingTypes | 某终端项目 | 语言不匹配，作为设计参考 |
+| Alpha Vantage 脚本 | 某终端项目 | QuantFlow 已有 yahoo/finnhub/polygon |
+| yfinance_data.py | 某终端项目 | QuantFlow 已有 yahoo.go |
+| open_meteo/卫星 | 某终端项目 | QuantFlow 已有 satellite.go |
+| Databento | 某终端项目 | 付费 API，QuantFlow 定位免费工具 |
+| MULTPL S&P 500 | 某终端项目 | 网页抓取不稳定，价值低 |
+| agno_trading | 某终端项目 | 耦合过深，需大量适配 |
 
 ---
 
@@ -144,10 +144,10 @@ python/src/data/fincept/          (新建目录)
 ├── ccxt_client.py   ← exchange/ 8 脚本合并            (2h)   跨所加密统一层
 
 python/src/research/
-└── st_risk.py       ← AStockPursue 规则引擎           (4h)   ST退市预警
+└── st_risk.py       ← 某 A 股项目 规则引擎           (4h)   ST退市预警
 
 python/src/analytics/
-└── options.py       ← FinceptTerminal options.py      (1h)   BSM+二叉树+Greeks
+└── options.py       ← 某终端项目 options.py      (1h)   BSM+二叉树+Greeks
 
 frontend/src/terminal/panels/
 └── 新增 FinancialsPanel / DerivativesPanel             (0.5h) 对应新数据的展示
@@ -168,10 +168,10 @@ python/src/data/fincept/
 ├── sec_insider.py    ← edgar/forms_insider.py          (0.5h) 内部人交易
 
 python/src/factor/zoo/gtja191/
-└── 191 个 A 股因子    ← AStockPursue Alpha Zoo          (4h)   GTJA191
+└── 191 个 A 股因子    ← 某 A 股项目 Alpha Zoo          (4h)   GTJA191
 
 python/src/analytics/
-└── portfolio_opt.py  ← FinceptTerminal portfolio_opt    (2h)   组合优化
+└── portfolio_opt.py  ← 某终端项目 portfolio_opt    (2h)   组合优化
 
 python/requirements.txt:
 + akshare, ccxt, edgartools 依赖                          (0.5h)
@@ -189,7 +189,7 @@ python/src/analytics/
 └── quant_tools.py    ← quant_modules_3042.py            (3h)   量化工具集
 
 python/fetcher.py:
-+ easy-tdx 替换 mootdx                                    (0.5h)
++ 某 TDX 项目 替换 mootdx                                    (0.5h)
 
 python/src/factor/zoo/
 + Alpha101 精选 50 个                                    (2h)
@@ -210,7 +210,7 @@ Python Sidecar (python/src/)
 ├── data/
 │   ├── fetcher.py              ← 现有：mootdx wrapper
 │   └── fincept/                 ← 新增：10+ 数据脚本
-│       ├── financials.py       ← FinceptTerminal 搬运
+│       ├── financials.py       ← 某终端项目 搬运
 │       ├── fundflow.py
 │       ├── margin.py
 │       ├── ccxt_client.py
@@ -225,15 +225,15 @@ Python Sidecar (python/src/)
 │       └── sec_insider.py
 ├── factor/
 │   └── zoo/
-│       └── gtja191/             ← 新增：AStockPursue 搬运
+│       └── gtja191/             ← 新增：某 A 股项目 搬运
 │           ├── factor_001.py
 │           └── ... (191 个因子)
 ├── research/
-│   └── st_risk.py               ← 新增：AStockPursue ST 预警
+│   └── st_risk.py               ← 新增：某 A 股项目 ST 预警
 └── analytics/
-    ├── options.py               ← 新增：FinceptTerminal 期权
-    ├── portfolio_opt.py         ← 新增：FinceptTerminal 组合优化
-    └── quant_tools.py           ← 新增：FinceptTerminal 量化工具
+    ├── options.py               ← 新增：某终端项目 期权
+    ├── portfolio_opt.py         ← 新增：某终端项目 组合优化
+    └── quant_tools.py           ← 新增：某终端项目 量化工具
 ```
 
 ---
@@ -242,7 +242,7 @@ Python Sidecar (python/src/)
 
 | 维度 | 评估 |
 |------|------|
-| **许可证兼容** | FinceptTerminal AGPL-3.0 ✅ / AStockPursue MIT ✅ / easy-tdx MIT ✅ / QuantFlow AGPL-3.0 ✅ |
+| **许可证兼容** | 某终端项目 AGPL-3.0 ✅ / 某 A 股项目 MIT ✅ / 某 TDX 项目 MIT ✅ / QuantFlow AGPL-3.0 ✅ |
 | **代码耦合度** | 所有标的脚本均为独立 Python 文件，输入参数 → 输出 JSON，无宿主框架耦合 |
 | **依赖冲突** | akshare / edgartools / ccxt 均为 PyPI 标准包，无版本冲突风险 |
 | **测试策略** | 每个搬运脚本附带 smoke test：`python -c "from fincept.financials import fetch; print(fetch('600519'))"` |

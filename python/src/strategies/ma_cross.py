@@ -4,7 +4,7 @@ MA5 上穿 MA20（金叉）全仓买入，MA5 下穿 MA20（死叉）全部卖�
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/ma_cross.py --table
+    backtest SZ 000001 --strategy-file strategies/ma_cross.py --table
 """
 
 from .base import Strategy, crossover

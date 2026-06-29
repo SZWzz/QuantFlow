@@ -8,7 +8,7 @@ MTM = 当前价 - N 日前价格，最纯粹的动量指标。
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/mtm_momentum.py --count 2000 --table
+    backtest SZ 000001 --strategy-file strategies/mtm_momentum.py --count 2000 --table
 """
 
 from ..indicators import MyTT

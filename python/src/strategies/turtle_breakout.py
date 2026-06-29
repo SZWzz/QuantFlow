@@ -5,7 +5,7 @@
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/turtle_breakout.py --table
+    backtest SZ 000001 --strategy-file strategies/turtle_breakout.py --table
 """
 
 from .base import Strategy

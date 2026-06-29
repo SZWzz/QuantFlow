@@ -4,7 +4,7 @@ K 上穿 D 且 J < 20（低位金叉）买入，K 下穿 D 且 J > 80（高位�
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/kdj_golden.py --table
+    backtest SZ 000001 --strategy-file strategies/kdj_golden.py --table
 """
 
 from .base import Strategy, crossover

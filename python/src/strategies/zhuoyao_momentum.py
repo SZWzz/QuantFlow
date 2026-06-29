@@ -15,7 +15,7 @@
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/zhuoyao_momentum.py --count 2000 --table
+    backtest SZ 000001 --strategy-file strategies/zhuoyao_momentum.py --count 2000 --table
 """
 
 from ..indicators import MyTT

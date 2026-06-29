@@ -2,7 +2,7 @@
 
 > **For agentic workers:** All tasks are independent file-copy operations. Dispatch in parallel waves (P0 → P1 → P2).
 
-**Goal:** 从 FinceptTerminal + AStockPursue 移植 19 项 Python 数据/分析资产到 QuantFlow
+**Goal:** 从 某终端项目 + 某 A 股项目 移植 19 项 Python 数据/分析资产到 QuantFlow
 
 **Architecture:** 纯 Python 文件搬运 → `python/src/data/fincept/` + `python/src/analytics/` + `python/src/research/` + `python/src/factor/zoo/gtja191/`。每个脚本带回后加一条 smoke test。
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- 源文件路径: FinceptTerminal = `/Volumes/etx/coding/rebuild/FinceptTerminal/fincept-qt/scripts/`，AStockPursue = `/Volumes/etx/coding/rebuild/AStockPursue/`
+- 源文件路径: 某终端项目 = `/Volumes/etx/coding/rebuild/某终端项目/fincept-qt/scripts/`，某 A 股项目 = `/Volumes/etx/coding/rebuild/某 A 股项目/`
 - 目标目录: `/Volumes/etx/coding/rebuild/quantflow/python/src/`
 - 不修改源文件的业务逻辑，只做 import 路径适配
 - 每项搬运后运行 `python -c "from ... import ...; print('OK')"` 验证
@@ -27,8 +27,8 @@
 **Files:**
 - Create: `python/src/data/fincept/__init__.py`
 - Create: `python/src/data/fincept/financials.py`
-- Source: `FinceptTerminal/fincept-qt/scripts/akshare_stocks_financial.py`
-- Copy: `FinceptTerminal/fincept-qt/scripts/akshare_company_info.py` → `python/src/data/fincept/company_info.py`
+- Source: `某终端项目/fincept-qt/scripts/akshare_stocks_financial.py`
+- Copy: `某终端项目/fincept-qt/scripts/akshare_company_info.py` → `python/src/data/fincept/company_info.py`
 
 **Step 1:** 创建 fincept 包目录
 ```bash
@@ -37,8 +37,8 @@ mkdir -p /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept
 
 **Step 2:** 复制文件并适配 import
 ```bash
-cp /Volumes/etx/coding/rebuild/FinceptTerminal/fincept-qt/scripts/akshare_stocks_financial.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/financials.py
-cp /Volumes/etx/coding/rebuild/FinceptTerminal/fincept-qt/scripts/akshare_company_info.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/company_info.py
+cp /Volumes/etx/coding/rebuild/某终端项目/fincept-qt/scripts/akshare_stocks_financial.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/financials.py
+cp /Volumes/etx/coding/rebuild/某终端项目/fincept-qt/scripts/akshare_company_info.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/company_info.py
 ```
 
 **Step 3:** Smoke test
@@ -51,12 +51,12 @@ cd /Volumes/etx/coding/rebuild/quantflow/python && python -c "from src.data.finc
 **Files:**
 - Create: `python/src/data/fincept/fundflow.py`
 - Create: `python/src/data/fincept/margin.py`
-- Source: `FinceptTerminal/fincept-qt/scripts/akshare_stocks_funds.py`, `akshare_stocks_margin.py`
+- Source: `某终端项目/fincept-qt/scripts/akshare_stocks_funds.py`, `akshare_stocks_margin.py`
 
 **Step 1:** 复制
 ```bash
-cp /Volumes/etx/coding/rebuild/FinceptTerminal/fincept-qt/scripts/akshare_stocks_funds.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/fundflow.py
-cp /Volumes/etx/coding/rebuild/FinceptTerminal/fincept-qt/scripts/akshare_stocks_margin.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/margin.py
+cp /Volumes/etx/coding/rebuild/某终端项目/fincept-qt/scripts/akshare_stocks_funds.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/fundflow.py
+cp /Volumes/etx/coding/rebuild/某终端项目/fincept-qt/scripts/akshare_stocks_margin.py /Volumes/etx/coding/rebuild/quantflow/python/src/data/fincept/margin.py
 ```
 
 **Step 2:** Smoke test
@@ -68,7 +68,7 @@ cd /Volumes/etx/coding/rebuild/quantflow/python && python -c "from src.data.finc
 
 **Files:**
 - Create: `python/src/data/fincept/ccxt_client.py`
-- Source: `FinceptTerminal/fincept-qt/scripts/exchange/` (合并核心 8 文件)
+- Source: `某终端项目/fincept-qt/scripts/exchange/` (合并核心 8 文件)
 
 **Step 1:** 复制 + 合并
 ```bash
@@ -92,7 +92,7 @@ echo "ccxt>=4.0" >> /Volumes/etx/coding/rebuild/quantflow/python/requirements.tx
 **Files:**
 - Create: `python/src/research/__init__.py`
 - Create: `python/src/research/st_risk.py`
-- Source: `AStockPursue/services/python/src/skills/ashare-pre-st-filter/SKILL.md` (规则) + 自行实现
+- Source: `某 A 股项目/services/python/src/skills/ashare-pre-st-filter/SKILL.md` (规则) + 自行实现
 
 **Step 1:** 基于 SKILL.md 中的 4R+3E 规则框架实现 `st_risk.py`（~300 行）
 
@@ -113,11 +113,11 @@ cd /Volumes/etx/coding/rebuild/quantflow/python && python -c "from src.research.
 **Files:**
 - Create: `python/src/analytics/__init__.py`
 - Create: `python/src/analytics/options.py`
-- Source: `FinceptTerminal/fincept-qt/scripts/Analytics/derivatives/options.py` (268 行)
+- Source: `某终端项目/fincept-qt/scripts/Analytics/derivatives/options.py` (268 行)
 
 **Step 1:** 直接复制
 ```bash
-cp /Volumes/etx/coding/rebuild/FinceptTerminal/fincept-qt/scripts/Analytics/derivatives/options.py /Volumes/etx/coding/rebuild/quantflow/python/src/analytics/options.py
+cp /Volumes/etx/coding/rebuild/某终端项目/fincept-qt/scripts/Analytics/derivatives/options.py /Volumes/etx/coding/rebuild/quantflow/python/src/analytics/options.py
 ```
 
 **Step 2:** Smoke test
@@ -142,7 +142,7 @@ cd /Volumes/etx/coding/rebuild/quantflow/python && python -c "from src.analytics
 
 ### Task 7-16: 数据脚本批量搬运
 
-所有脚本从 FinceptTerminal 直接复制，无需修改业务逻辑：
+所有脚本从 某终端项目 直接复制，无需修改业务逻辑：
 
 | Task | 目标文件 | 源文件 |
 |------|---------|--------|
@@ -155,7 +155,7 @@ cd /Volumes/etx/coding/rebuild/quantflow/python && python -c "from src.analytics
 | 13 | `data/fincept/sec_financials.py` | `mcp/edgar/financials.py` |
 | 14 | `data/fincept/sec_13f.py` | `mcp/edgar/forms_13f.py` |
 | 15 | `data/fincept/sec_insider.py` | `mcp/edgar/forms_insider.py` |
-| 16 | `factor/zoo/gtja191/` | `AStockPursue/services/python/src/factors/zoo/gtja191/` |
+| 16 | `factor/zoo/gtja191/` | `某 A 股项目/services/python/src/factors/zoo/gtja191/` |
 
 每项的验证命令：
 ```bash
@@ -174,10 +174,10 @@ echo "edgartools>=0.5" >> requirements.txt
 
 **Files:**
 - Create: `python/src/analytics/portfolio_opt.py`
-- Source: `FinceptTerminal/fincept-qt/scripts/Analytics/portfolioManagement/portfolio_optimization.py`
+- Source: `某终端项目/fincept-qt/scripts/Analytics/portfolioManagement/portfolio_optimization.py`
 
 ```bash
-cp /Volumes/etx/coding/rebuild/FinceptTerminal/fincept-qt/scripts/Analytics/portfolioManagement/portfolio_optimization.py /Volumes/etx/coding/rebuild/quantflow/python/src/analytics/portfolio_opt.py
+cp /Volumes/etx/coding/rebuild/某终端项目/fincept-qt/scripts/Analytics/portfolioManagement/portfolio_optimization.py /Volumes/etx/coding/rebuild/quantflow/python/src/analytics/portfolio_opt.py
 ```
 
 ---

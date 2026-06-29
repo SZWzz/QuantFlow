@@ -8,7 +8,7 @@ CCI 衡量价格偏离统计平均的程度：|CCI| > 100 代表偏离显著。
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/cci_breakout.py --count 2000 --table
+    backtest SZ 000001 --strategy-file strategies/cci_breakout.py --count 2000 --table
 """
 
 from ..indicators import MyTT

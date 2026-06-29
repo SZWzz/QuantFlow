@@ -8,7 +8,7 @@ MFI 是成交量的 RSI——把量价关系压缩成一个振荡器，比纯价
 
 用法::
 
-    easy-tdx backtest SZ 000001 --strategy-file strategies/mfi_volume.py --count 2000 --table
+    backtest SZ 000001 --strategy-file strategies/mfi_volume.py --count 2000 --table
 """
 
 from ..indicators import MyTT

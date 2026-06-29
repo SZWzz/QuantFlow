@@ -1,8 +1,8 @@
-# easy-tdx 能力集成 — 实现计划
+# 通达信能力集成 — 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended).
 
-**Goal:** 移植 easy_tdx（MIT 协议）的核心能力到 QuantFlow：34 个指标、缠论、策略库、选股扫描、回测增强、MAC 协议。
+**Goal:** 移植某 TDX 协议项目（MIT 协议）的核心能力到 QuantFlow：34 个指标、缠论、策略库、选股扫描、回测增强、MAC 协议。
 
 **Architecture:** Python sidecar 新增 `indicators/` + `chanlun/` + `strategies/` 三个模块，gRPC 暴露；Go 端新增对应 workflow nodes 和数据适配器。
 
@@ -29,15 +29,15 @@
 **Interfaces:**
 - Produces: `compute_indicators(df: pd.DataFrame, indicator_names: List[str], params: Dict) -> Dict[str, np.ndarray]`
 
-- [ ] **Step 1: 从 easy_tdx 复制指标源码**
+- [ ] **Step 1: 从某外部项目复制指标源码**
 
 ```bash
-cp -r /Users/shenzhiwei/Downloads/easy_tdx-main/src/easy_tdx/indicators/*.py /Volumes/etx/coding/rebuild/quantflow/python/src/indicators/
+cp -r /path/to/external-tdx-project/indicators/*.py /Volumes/etx/coding/rebuild/quantflow/python/src/indicators/
 ```
 
 创建 `__init__.py`：
 ```python
-"""Technical indicator registry — ported from easy-tdx (MIT)."""
+"""Technical indicator registry — ported from 某 TDX 项目 (MIT)."""
 from . import macd, kdj, dmi, atr, wr, cci, bias, obv, mfi, sar, vwap, boll, rsi, ema, sma, ma
 from . import zhuoyao, aroon, asi, brar, cr, dpo, emv, ktn, mass, mtm, psy, roc, trix, xsii
 from . import bbi, dfma, expma, taq
@@ -148,14 +148,14 @@ func (a *MootdxAdapter) FetchOHLCV(ctx context.Context, symbol, interval string,
 ### Task 4: 缠论分析模块
 
 **Files:**
-- Create: `python/src/chanlun/` — 从 easy_tdx 移植全部文件
+- Create: `python/src/chanlun/` — 从某外部项目移植全部文件
 - Create: `python/proto/chanlun.proto`
 - Create: Go `internal/workflow/nodes/chanlun.go`
 
 - [ ] **Step 1: 移植缠论代码**
 
 ```bash
-cp -r /Users/shenzhiwei/Downloads/easy_tdx-main/src/easy_tdx/chanlun/* /Volumes/etx/coding/rebuild/quantflow/python/src/chanlun/
+cp -r /path/to/external-tdx-project/chanlun/* /Volumes/etx/coding/rebuild/quantflow/python/src/chanlun/
 ```
 
 - [ ] **Step 2: 定义 gRPC proto + Go node**
@@ -174,7 +174,7 @@ cp -r /Users/shenzhiwei/Downloads/easy_tdx-main/src/easy_tdx/chanlun/* /Volumes/
 - [ ] **Step 1: 移植策略**
 
 ```bash
-cp -r /Users/shenzhiwei/Downloads/easy_tdx-main/strategies/* /Volumes/etx/coding/rebuild/quantflow/python/src/strategies/
+cp -r /path/to/external-tdx-project/strategies/* /Volumes/etx/coding/rebuild/quantflow/python/src/strategies/
 ```
 
 - [ ] **Step 2: StrategyScanNode**
@@ -209,7 +209,7 @@ type SquareRootSlippage struct{ Base, VolRatio float64 }
 **Files:**
 - Modify: `python/src/factor/engine.py` — IC/分层/衰减/预处理
 
-- [ ] **Step 1: 移植 easy_tdx factor_analysis 模块**
+- [ ] **Step 1: 移植某外部项目 factor_analysis 模块**
 
 IC 分析、quantile 分层回测、IC 衰减、去极值/中性化/标准化。
 

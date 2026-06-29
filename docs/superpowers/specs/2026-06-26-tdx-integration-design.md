@@ -1,6 +1,6 @@
-# easy-tdx 能力集成 — 设计文档
+# 通达信能力集成 — 设计文档
 
-> 基于 easy_tdx（MIT 协议）补齐 QuantFlow 在 A 股技术分析、数据深度、策略生态上的短板。
+> 基于某外部项目（MIT 协议）补齐 QuantFlow 在 A 股技术分析、数据深度、策略生态上的短板。
 
 ## 现状 vs 目标
 
@@ -25,7 +25,7 @@
 **定位**：最小改动、最大效果。直接在 Python sidecar 中新增指标计算模块。
 
 **核心交付**：
-- Python 新增 `python/src/indicators/` 包，移植 easy_tdx 的 34 个指标算法
+- Python 新增 `python/src/indicators/` 包，移植某外部项目的 34 个指标算法
 - 新增 gRPC 服务 `ComputeIndicators`，接收 OHLCV DataFrame + 指标名列表，返回多指标结果
 - Go 后端新增 19 个 workflow nodes（每个指标一个 node）
 - mootdx adapter 新增复权参数 `fqfactor`（前复权/后复权/不复权）

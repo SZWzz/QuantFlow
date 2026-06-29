@@ -353,7 +353,7 @@ Go long assets with positive recent returns, short those with negative...
 - A-share specific: T+1 settlement means signals must be generated one day ahead
 ```
 
-Initial skill set: ~15 skills across 5 categories (migrated/adapted from AstockPursue's 89 skills, selecting those relevant to A-share/US/HK/crypto markets).
+Initial skill set: ~15 skills across 5 categories (migrated/adapted from 某 A 股量化项目's 89 skills, selecting those relevant to A-share/US/HK/crypto markets).
 
 ### Go Side: gRPC LLM Client
 
