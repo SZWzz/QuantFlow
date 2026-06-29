@@ -18,6 +18,14 @@ export interface SettingsState {
   finnhubApiKey: string
   iwencaiApiKey: string
   colorScheme: string  // 'cn' = 红涨绿跌 (A股), 'us' = 绿涨红跌 (美股)
+  llmOpenaiKey: string
+  llmOpenaiBaseUrl: string
+  llmAnthropicKey: string
+  llmAnthropicBaseUrl: string
+  llmDeepseekKey: string
+  llmDeepseekBaseUrl: string
+  llmOllamaBaseUrl: string
+  llmDefaultModel: string
 }
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -53,6 +61,14 @@ export const useSettingsStore = defineStore('settings', () => {
       finnhubApiKey: '',
       iwencaiApiKey: '',
       colorScheme: 'cn',
+      llmOpenaiKey: '',
+      llmOpenaiBaseUrl: '',
+      llmAnthropicKey: '',
+      llmAnthropicBaseUrl: '',
+      llmDeepseekKey: '',
+      llmDeepseekBaseUrl: '',
+      llmOllamaBaseUrl: '',
+      llmDefaultModel: '',
     }
   }
 

@@ -501,6 +501,31 @@ func (a *App) Chat(profileName string, model string, message string) (string, er
 	return result.FinalContent, nil
 }
 
+// ListLLMModels returns available LLM models from the Python sidecar.
+func (a *App) ListLLMModels() ([]map[string]interface{}, error) {
+	if a.bridge == nil {
+		return nil, fmt.Errorf("Python sidecar not connected")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	resp, err := a.bridge.ListModels(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list models: %w", err)
+	}
+	models := make([]map[string]interface{}, 0, len(resp))
+	for _, m := range resp {
+		models = append(models, map[string]interface{}{
+			"id":              m.Id,
+			"provider":        m.Provider,
+			"display_name":    m.DisplayName,
+			"context_window":  m.ContextWindow,
+			"supports_tools":  m.SupportsTools,
+			"supports_vision": m.SupportsVision,
+		})
+	}
+	return models, nil
+}
+
 // ListProfiles returns available agent profiles for the frontend dropdown.
 func (a *App) ListProfiles() []*ai.AgentProfile {
 	if a.profileMgr == nil {
