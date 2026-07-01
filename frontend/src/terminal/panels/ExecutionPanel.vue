@@ -7,6 +7,8 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const store = usePortfolioStore()
 
+const loadError = ref('')
+
 // -- Pagination --
 const pageSize = 20
 const visibleCount = ref(pageSize)
@@ -14,9 +16,20 @@ const visibleCount = ref(pageSize)
 // -- Auto-refresh (5s) --
 let timer: ReturnType<typeof setInterval> | null = null
 
-onMounted(() => {
-  store.fetchTrades()
-  timer = setInterval(() => store.fetchTrades(), 5000)
+onMounted(async () => {
+  loadError.value = ''
+  try {
+    await store.fetchTrades()
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  }
+  timer = setInterval(async () => {
+    try {
+      await store.fetchTrades()
+    } catch (e: any) {
+      loadError.value = e?.message || String(e)
+    }
+  }, 5000)
 })
 
 onUnmounted(() => {
@@ -48,6 +61,7 @@ function fmt(n: number, dec = 2): string {
 
 <template>
   <div class="execution-panel">
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <!-- Table -->
     <div class="table-wrap">
       <table>

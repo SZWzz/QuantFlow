@@ -34,6 +34,8 @@ const lookback = ref(props.params?.lookback ?? 60)
 const matrix = ref<number[][] | null>(null)
 const symbols = ref<string[]>([])
 const { fetchWithCache } = usePanelCache()
+const loading = ref(false)
+const loadError = ref('')
 const hasECharts = ref(false)
 
 const firstSymbol = computed(() => symbols.value.length > 0 ? symbols.value[0] : undefined)
@@ -57,6 +59,8 @@ async function compute() {
   }
   const app = (window as any).go?.main?.App
   if (!app) { matrix.value = null; return }
+  loading.value = true
+  loadError.value = ''
   try {
     const key = 'correlation:' + syms.join(',') + ':' + lookback.value
     const { data: corrMatrix } = await fetchWithCache(key, () => app.GetCorrelationMatrix(syms, lookback.value))
@@ -65,8 +69,11 @@ async function compute() {
       syms.map(sj => corrMatrix?.[si]?.[sj] ?? 0)
     )
     matrix.value = m
-  } catch {
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     matrix.value = null
+  } finally {
+    loading.value = false
   }
 }
 
@@ -214,8 +221,10 @@ onMounted(() => {
       </div>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div class="chart-body">
-      <div v-if="!matrix" class="placeholder-msg">
+      <div v-if="loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+      <div v-else-if="!matrix" class="placeholder-msg">
         Enter symbols and click 计算
       </div>
 

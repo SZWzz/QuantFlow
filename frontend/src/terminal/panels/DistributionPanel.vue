@@ -54,6 +54,8 @@ const kurtosisVal = ref(0)
 const jarqueBeraVal = ref(0)
 
 const hasECharts = ref(false)
+const loading = ref(false)
+const loadError = ref('')
 const dataReady = ref(false)
 
 function normalPDF(x: number, mean: number, std: number): number {
@@ -66,6 +68,8 @@ function normalPDF(x: number, mean: number, std: number): number {
 async function compute() {
   const app = (window as any).go?.main?.App
   if (!app) { dataReady.value = false; return }
+  loading.value = true
+  loadError.value = ''
   try {
     const { data: result } = await fetchWithCache<any>('return_dist:' + symbol.value, () => app.GetReturnDistribution(symbol.value, lookback.value, 30))
     if (!result?.bins || !result?.counts) { dataReady.value = false; return }
@@ -89,8 +93,11 @@ async function compute() {
       normalCurve.value = bins.map(x => ({ x, y: normalPDF(x, mean, std) * total }))
     }
     dataReady.value = true
-  } catch {
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     dataReady.value = false
+  } finally {
+    loading.value = false
   }
 }
 
@@ -252,8 +259,10 @@ onMounted(() => {
       </div>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div class="chart-body">
-      <div v-if="!dataReady" class="placeholder-msg">
+      <div v-if="loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+      <div v-else-if="!dataReady" class="placeholder-msg">
         Enter a symbol and click 计算
       </div>
 

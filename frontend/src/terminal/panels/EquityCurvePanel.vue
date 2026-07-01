@@ -22,6 +22,9 @@ const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const store = usePortfolioStore()
 
+const loading = ref(false)
+const loadError = ref('')
+
 const hasEcharts = computed(() => {
   try {
     return !!VChart
@@ -185,8 +188,16 @@ const metricCards = computed(() => [
   { label: 'Calmar Ratio', value: calmarRatio.value.toFixed(2), color: calmarRatio.value >= 1 ? '#22c55e' : calmarRatio.value >= 0.3 ? '#f59e0b' : '#ef4444' },
 ])
 
-function refresh() {
-  store.fetchEquityCurve()
+async function refresh() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    await store.fetchEquityCurve()
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
@@ -203,7 +214,9 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="store.equityCurve && store.equityCurve.length > 0" class="curve-content">
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
+    <div v-if="loading" class="chart-fallback">{{ $t('common.loading') }}</div>
+    <div v-else-if="store.equityCurve && store.equityCurve.length > 0" class="curve-content">
       <!-- Top section: Equity curve chart (70% height) -->
       <div class="chart-section-top">
         <VChart v-if="hasEcharts" :option="equityChartOption" autoresize class="equity-chart" />

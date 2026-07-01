@@ -5,6 +5,8 @@ import { useResearchStore } from '@/stores/research'
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
 
+const loadError = ref('')
+
 const partyFilter = ref('All')
 const chamberFilter = ref('All')
 
@@ -27,14 +29,26 @@ const totalBuyVolume = computed(() => {
   return `${buys.length} Buys / ${sells.length} Sells`
 })
 
-onMounted(() => {
-  store.fetchCongressTrades()
+onMounted(async () => {
+  loadError.value = ''
+  try {
+    await store.fetchCongressTrades()
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  }
 })
 
 function setPartyFilter(p: string) { partyFilter.value = p }
 function setChamberFilter(c: string) { chamberFilter.value = c }
 
-function refresh() { store.fetchCongressTrades() }
+async function refresh() {
+  loadError.value = ''
+  try {
+    await store.fetchCongressTrades()
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  }
+}
 
 function amountColor(amount: string): string {
   if (!amount) return '#e5e7eb'
@@ -83,6 +97,7 @@ function amountColor(amount: string): string {
     </div>
 
     <!-- Trades Table -->
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
     <div v-else-if="store.congressTrades" class="panel-content">
       <table v-if="filteredTrades.length > 0" class="congress-table">

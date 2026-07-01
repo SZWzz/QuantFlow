@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, shallowRef } from 'vue'
+import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
@@ -27,10 +27,12 @@ const symbols = ref<string[]>(assetPresets[0].symbols)
 const lookback = ref(60)
 const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
+const loadError = ref('')
 const matrix = ref<Record<string, Record<string, number>>>({})
 const assetList = ref<string[]>([])
 const activePreset = ref(0)
 let chartInstance: any = null
+let renderTimer: ReturnType<typeof setTimeout> | null = null
 
 const colorScale = computed(() => {
   const values = Object.values(matrix.value).flatMap(r => Object.values(r))
@@ -42,18 +44,19 @@ async function fetchData() {
   const app = (window as any).go?.main?.App
   if (!app?.GetCorrelationMatrix || symbols.value.length < 2) return
   loading.value = true
+  loadError.value = ''
   try {
     const key = 'correlation:' + symbols.value.join(',') + ':' + lookback.value
     const result = await fetchWithCache<any>(key, () => app.GetCorrelationMatrix(symbols.value, lookback.value)).then(r => r.data)
     matrix.value = result || {}
     assetList.value = symbols.value
   } catch (e) {
-    console.error('[CrossAssetCorrelation]', e)
+    loadError.value = (e as any)?.message || String(e)
     matrix.value = {}
   } finally {
     loading.value = false
   }
-  setTimeout(renderChart, 300)
+  renderTimer = setTimeout(renderChart, 300)
 }
 
 function renderChart() {
@@ -118,6 +121,9 @@ function selectPreset(idx: number) {
   fetchData()
 }
 
+onUnmounted(() => {
+  if (renderTimer) clearTimeout(renderTimer)
+})
 onMounted(fetchData)
 </script>
 
@@ -136,6 +142,7 @@ onMounted(fetchData)
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <SkeletonPanel v-if="loading && assetList.length === 0" type="chart" />
 
     <template v-else-if="assetList.length > 0">

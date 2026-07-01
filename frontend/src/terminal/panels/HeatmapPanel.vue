@@ -6,6 +6,7 @@ import type { SectorRanking, MarketOverview } from '@/stores/data'
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const loading = ref(false)
+const loadError = ref('')
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
@@ -49,9 +50,12 @@ function switchMarket(mkt: typeof activeMarket.value) {
 }
 async function refresh() {
   loading.value = true
+  loadError.value = ''
   try {
     await dataStore.fetchMarketOverview(activeMarket.value)
     dataStore.setCached(cacheKey.value, dataStore.marketOverview, 30_000)
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
   } finally {
     loading.value = false
   }
@@ -82,6 +86,7 @@ onMounted(() => {
       </button>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div v-if="loading" class="loading-state">{{ $t('common.loading') }}</div>
 
     <div v-else-if="cells.length > 0" class="heatmap-grid">
