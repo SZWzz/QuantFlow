@@ -36,6 +36,9 @@
 - [Build] **Taskfile** — Python venv 符号链接在 rsync 后创建，避免 --delete 误删
 
 ### Added
+- [Frontend] **AuditPanel 退市风险 tab** — 新增 A 股/港股/美股退市风险检测，覆盖财务类(营收+净利润组合/净资产)、交易类(面值/总市值)、规范类、重大违法类，纯 Go 规则引擎无 Python 依赖
+- [Backend] **GetDelistingRisk** — 新增 Wails 方法按市场路由(A/HK/US)返回退市风险结构化数据，含板块检测、ST 状态、逐项指标状态灯
+- [Backend] **internal/trading/delisting_risk** — 退市规则引擎包：ExtractFinancialMetrics 解析 Sina 财务 JSON，AssessCN/HK/US 三市场规则实现
 - [Frontend] **usePanelCache** — 新增通用面板缓存 composable，基于 dataStore 的 TTL 缓存，统一面板数据缓存逻辑
 - [Frontend] **TickerBar** — 新增全局滚动行情栏组件，展示 CN/HK/US 市场实时报价
 - [Frontend] **ForecastPanel** — 新增 ECharts 分组柱状图：X 轴三情景(保守/基准/乐观)，每组基准年/Y1/Y2 营收对比
