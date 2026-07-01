@@ -548,15 +548,20 @@ func (a *App) TestLLMConnection(provider, apiKey, baseUrl string) (map[string]in
 	}
 
 	client := &http.Client{Timeout: 15 * time.Second}
-	url := strings.TrimRight(baseUrl, "/")
+	raw := strings.TrimRight(baseUrl, "/")
 
+	var url string
 	switch provider {
 	case "google":
-		url += "/v1beta/models"
+		url = strings.TrimSuffix(raw, "/v1beta") + "/v1beta/models"
 	case "ollama":
-		url += "/api/tags"
+		url = strings.TrimSuffix(raw, "/v1") + "/api/tags"
 	default:
-		url += "/v1/models"
+		if strings.HasSuffix(raw, "/v1") {
+			url = raw + "/models"
+		} else {
+			url = raw + "/v1/models"
+		}
 	}
 
 	start := time.Now()
@@ -597,15 +602,21 @@ func (a *App) ListProviderModels(provider, apiKey, baseUrl string) ([]map[string
 	}
 
 	client := &http.Client{Timeout: 15 * time.Second}
-	url := strings.TrimRight(baseUrl, "/")
+	raw := strings.TrimRight(baseUrl, "/")
 
+	// Some providers already have /v1 at the end of base URL; avoid double /v1
+	var url string
 	switch provider {
 	case "google":
-		url += "/v1beta/models"
+		url = strings.TrimSuffix(raw, "/v1beta") + "/v1beta/models"
 	case "ollama":
-		url += "/api/tags"
+		url = strings.TrimSuffix(raw, "/v1") + "/api/tags"
 	default:
-		url += "/v1/models"
+		if strings.HasSuffix(raw, "/v1") {
+			url = raw + "/models"
+		} else {
+			url = raw + "/v1/models"
+		}
 	}
 
 	req, err := http.NewRequest("GET", url, nil)

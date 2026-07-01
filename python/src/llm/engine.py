@@ -179,6 +179,47 @@ AVAILABLE_MODELS = [
         supports_tools=True,
         supports_vision=False,
     ),
+    # ── OpenCode Zen ──
+    llm_pb2.LLMModelInfo(
+        id="opencode/gpt-5.5",
+        provider="opencode",
+        display_name="GPT 5.5",
+        context_window=272000,
+        supports_tools=True,
+        supports_vision=True,
+    ),
+    llm_pb2.LLMModelInfo(
+        id="opencode/gpt-5.4",
+        provider="opencode",
+        display_name="GPT 5.4",
+        context_window=272000,
+        supports_tools=True,
+        supports_vision=True,
+    ),
+    llm_pb2.LLMModelInfo(
+        id="opencode/claude-sonnet-4-6",
+        provider="opencode",
+        display_name="Claude Sonnet 4.6",
+        context_window=200000,
+        supports_tools=True,
+        supports_vision=True,
+    ),
+    llm_pb2.LLMModelInfo(
+        id="opencode/deepseek-v4-flash",
+        provider="opencode",
+        display_name="DeepSeek V4 Flash",
+        context_window=131072,
+        supports_tools=True,
+        supports_vision=False,
+    ),
+    llm_pb2.LLMModelInfo(
+        id="opencode/qwen3.7-plus",
+        provider="opencode",
+        display_name="Qwen 3.7 Plus",
+        context_window=131072,
+        supports_tools=True,
+        supports_vision=True,
+    ),
 ]
 
 

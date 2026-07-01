@@ -37,6 +37,12 @@ export interface SettingsState {
   llmZhipuBaseUrl: string
   llmOpenrouterKey: string
   llmOpenrouterBaseUrl: string
+  llmOpencodeKey: string
+  llmOpencodeBaseUrl: string
+  llmCustomKey: string
+  llmCustomBaseUrl: string
+  llmCustomName: string
+  llmCustomModels: string
   llmDefaultModel: string
 }
 
@@ -92,6 +98,12 @@ export const useSettingsStore = defineStore('settings', () => {
       llmZhipuBaseUrl: '',
       llmOpenrouterKey: '',
       llmOpenrouterBaseUrl: '',
+      llmOpencodeKey: '',
+      llmOpencodeBaseUrl: '',
+      llmCustomKey: '',
+      llmCustomBaseUrl: '',
+      llmCustomName: '',
+      llmCustomModels: '',
       llmDefaultModel: '',
     }
   }

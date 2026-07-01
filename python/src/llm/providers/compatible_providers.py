@@ -8,6 +8,7 @@ OpenAIProvider with different default base URLs and API key env vars:
   - SiliconFlow (api.siliconflow.cn)
   - Zhipu AI / 智谱 (open.bigmodel.cn)
   - OpenRouter (openrouter.ai)
+  - OpenCode Zen (opencode.ai/zen/v1)
 """
 
 import os
@@ -22,6 +23,7 @@ for name, env_key, default_url in [
     ("siliconflow", "SILICONFLOW_API_KEY",   "https://api.siliconflow.cn/v1"),
     ("zhipu",       "ZHIPU_API_KEY",         "https://open.bigmodel.cn/api/paas/v4"),
     ("openrouter",  "OPENROUTER_API_KEY",    "https://openrouter.ai/api/v1"),
+    ("opencode",    "OPENCODE_API_KEY",      "https://opencode.ai/zen/v1"),
 ]:
     api_key = os.getenv(env_key, "")
     provider = OpenAIProvider(base_url=default_url, api_key=api_key)

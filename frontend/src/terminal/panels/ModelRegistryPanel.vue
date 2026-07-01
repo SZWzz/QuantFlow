@@ -26,6 +26,8 @@ const providers: ProviderDef[] = [
   { id: 'siliconflow', name: 'SiliconFlow', icon: '🔬', needKey: true },
   { id: 'zhipu', name: '智谱 AI', icon: '🎯', needKey: true },
   { id: 'openrouter', name: 'OpenRouter', icon: '🔀', needKey: true },
+  { id: 'opencode', name: 'OpenCode Zen', icon: '🟢', needKey: true },
+  { id: 'custom', name: '自定义', icon: '⚙️', needKey: true },
   { id: 'ollama', name: 'Ollama', icon: '🦙', needKey: false },
 ]
 
@@ -39,6 +41,8 @@ const form = ref({
   siliconflow: { apiKey: '', baseUrl: '' },
   zhipu: { apiKey: '', baseUrl: '' },
   openrouter: { apiKey: '', baseUrl: '' },
+  opencode: { apiKey: '', baseUrl: '' },
+  custom: { apiKey: '', baseUrl: '' },
   ollama: { baseUrl: '' },
 })
 
@@ -48,6 +52,7 @@ const modelsError = ref('')
 const testingProvider = ref('')
 const testResults = ref<Record<string, { ok: boolean; msg: string }>>({})
 const saveMsg = ref('')
+const selectProvider = ref('') // provider id being selected (shows model picker)
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 const defaultUrls: Record<string, string> = {
@@ -60,6 +65,8 @@ const defaultUrls: Record<string, string> = {
   siliconflow: 'https://api.siliconflow.cn/v1',
   zhipu: 'https://open.bigmodel.cn/api/paas/v4',
   openrouter: 'https://openrouter.ai/api/v1',
+  opencode: 'https://opencode.ai/zen/v1',
+  custom: '',
   ollama: 'http://localhost:11434',
 }
 
@@ -73,6 +80,8 @@ const defaultUrlHint: Record<string, string> = {
   siliconflow: 'https://api.siliconflow.cn/v1',
   zhipu: 'https://open.bigmodel.cn/api/paas/v4',
   openrouter: 'https://openrouter.ai/api/v1',
+  opencode: 'https://opencode.ai/zen/v1',
+  custom: 'https://your-proxy.com/v1',
   ollama: 'http://localhost:11434',
 }
 
@@ -96,6 +105,10 @@ function loadFromStore() {
   form.value.zhipu.baseUrl = s.llmZhipuBaseUrl
   form.value.openrouter.apiKey = s.llmOpenrouterKey
   form.value.openrouter.baseUrl = s.llmOpenrouterBaseUrl
+  form.value.opencode.apiKey = s.llmOpencodeKey
+  form.value.opencode.baseUrl = s.llmOpencodeBaseUrl
+  form.value.custom.apiKey = s.llmCustomKey
+  form.value.custom.baseUrl = s.llmCustomBaseUrl
   form.value.ollama.baseUrl = s.llmOllamaBaseUrl
 }
 
@@ -119,6 +132,10 @@ function saveToStore() {
   settingsStore.update('llmZhipuBaseUrl', f.zhipu.baseUrl)
   settingsStore.update('llmOpenrouterKey', f.openrouter.apiKey)
   settingsStore.update('llmOpenrouterBaseUrl', f.openrouter.baseUrl)
+  settingsStore.update('llmOpencodeKey', f.opencode.apiKey)
+  settingsStore.update('llmOpencodeBaseUrl', f.opencode.baseUrl)
+  settingsStore.update('llmCustomKey', f.custom.apiKey)
+  settingsStore.update('llmCustomBaseUrl', f.custom.baseUrl)
   settingsStore.update('llmOllamaBaseUrl', f.ollama.baseUrl)
   saveMsg.value = t('settings.llm_save_hint')
   if (saveTimer) clearTimeout(saveTimer)
@@ -179,6 +196,30 @@ async function fetchProviderModels(pid: string) {
   }
 }
 
+function addCustomModels() {
+  const raw = settingsStore.settings.llmCustomModels || ''
+  const ids = raw.split(',').map(s => s.trim()).filter(Boolean)
+  const name = settingsStore.settings.llmCustomName || 'Custom'
+  models.value = models.value.filter((m: any) => m.provider !== 'custom')
+  for (const id of ids) {
+    models.value.push({
+      id: `custom/${id}`,
+      provider: 'custom',
+      display_name: `${name}: ${id}`,
+    })
+  }
+}
+
+function confirmSelect(modelId: string, pid: string) {
+  settingsStore.update('llmDefaultModel', modelId)
+  saveToStore()
+  selectProvider.value = ''
+  const m = models.value.find(x => x.id === modelId)
+  saveMsg.value = `✅ 已选定 ${m?.display_name || modelId}`
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => { saveMsg.value = ''; saveTimer = null }, 3000)
+}
+
 async function testProvider(pid: string) {
   testingProvider.value = pid
   testResults.value[pid] = { ok: false, msg: t('common.testing') }
@@ -192,6 +233,7 @@ async function testProvider(pid: string) {
         : { ok: false, msg: result?.error || t('settings.llm_test_fail') }
       if (result?.ok) {
         await fetchProviderModels(pid)
+        if (pid === 'custom') addCustomModels()
       }
     } else {
       await new Promise(r => setTimeout(r, 1000))
@@ -260,6 +302,15 @@ onMounted(loadFromStore)
         </div>
 
         <div class="card-body">
+          <div v-if="p.id === 'custom'" class="field">
+            <label>{{ t('settings.llm_custom_name') }}</label>
+            <input
+              type="text" class="form-input"
+              :value="settingsStore.settings.llmCustomName"
+              placeholder="My Proxy"
+              @input="(e) => settingsStore.update('llmCustomName', (e.target as HTMLInputElement).value)"
+            />
+          </div>
           <div v-if="p.needKey" class="field">
             <label>{{ t('settings.llm_openai_key') }}</label>
             <input
@@ -278,6 +329,15 @@ onMounted(loadFromStore)
               @input="(e) => { const f = form[p.id as keyof typeof form] as any; if (f) f.baseUrl = (e.target as HTMLInputElement).value }"
             />
           </div>
+          <div v-if="p.id === 'custom'" class="field">
+            <label>{{ t('settings.llm_custom_models') }}</label>
+            <input
+              type="text" class="form-input"
+              :value="settingsStore.settings.llmCustomModels"
+              placeholder="gpt-4o, claude-sonnet-4, deepseek-chat"
+              @input="(e) => settingsStore.update('llmCustomModels', (e.target as HTMLInputElement).value)"
+            />
+          </div>
         </div>
 
         <div class="card-footer">
@@ -286,7 +346,17 @@ onMounted(loadFromStore)
             :disabled="testingProvider === p.id"
             @click="testProvider(p.id)"
           >
-            {{ testingProvider === p.id ? '...' : '🔌 ' + t('settings.llm_test') }}
+            {{ testingProvider === p.id ? '...' : (p.id === 'custom' ? '⚙️ ' + t('settings.llm_load_models') : '🔌 ' + t('settings.llm_test')) }}
+          </button>
+          <button v-if="p.id === 'custom'" class="btn btn-sm" @click="addCustomModels">
+            📋 {{ t('settings.llm_apply_models') }}
+          </button>
+          <button
+            v-if="testResults[p.id]?.ok"
+            class="btn btn-sm btn-select"
+            @click="selectProvider = p.id"
+          >
+            ✅ {{ t('common.select') }}
           </button>
         </div>
       </div>
@@ -343,6 +413,30 @@ onMounted(loadFromStore)
           </tbody>
         </table>
       </template>
+    </div>
+
+    <!-- Model selection overlay (after test success) -->
+    <div v-if="selectProvider" class="detail-overlay" @click="selectProvider = ''">
+      <div class="detail-panel" @click.stop>
+        <h3>选择 {{ providers.find(p => p.id === selectProvider)?.name }} 模型</h3>
+        <div v-if="models.filter(m => m.provider === selectProvider).length === 0" class="status">
+          {{ t('common.no_data') }}
+        </div>
+        <div
+          v-for="m in models.filter(m => m.provider === selectProvider)"
+          :key="m.id"
+          class="select-row"
+        >
+          <span class="select-model-name">{{ m.display_name || m.id?.split('/')[1] || m.id }}</span>
+          <span class="select-model-id">{{ m.id }}</span>
+          <button class="btn btn-sm btn-select" @click="confirmSelect(m.id, selectProvider)">
+            ✅ 设为默认
+          </button>
+        </div>
+        <button @click="selectProvider = ''" class="btn" style="margin-top: 12px">
+          {{ t('common.close') }}
+        </button>
+      </div>
     </div>
 
     <!-- Detail overlay -->
@@ -534,6 +628,11 @@ onMounted(loadFromStore)
   color: var(--color-accent);
 }
 .btn-sm { padding: 3px 10px; font-size: 10px; }
+.btn-select {
+  background: rgba(34,197,94,0.15);
+  border-color: var(--color-down);
+  color: var(--color-down);
+}
 
 /* ── Detail overlay ── */
 .detail-overlay {
@@ -557,4 +656,13 @@ onMounted(loadFromStore)
 }
 .detail-panel dt { font-weight: 600; font-size: 12px; }
 .detail-panel dd { font-size: 12px; margin: 0; }
+.select-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.select-model-name { flex: 1; font-size: 12px; font-weight: 500; }
+.select-model-id { font-size: 10px; color: var(--color-text-tertiary); font-family: 'SF Mono', monospace; }
 </style>
