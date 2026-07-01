@@ -3,6 +3,7 @@ import type { ChartThemeColors } from '@/lib/composables/useChartTheme'
 import type { MinuteTick } from '@/lib/composables/useWailsApp'
 import { sma, bb, macd, kdj, rsi, wr } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
+import { i18n } from '@/lib/i18n'
 
 export interface KlineDataItem {
   date: string; open: number; high: number; low: number; close: number; volume: number
@@ -64,9 +65,10 @@ export function buildKlineOption(
 
   const cacheKey = `${symbol}-${interval}-${data.length}-${topOverlay}-${bottomMode}`
 
+  const t = i18n.global.t
   const series: any[] = [
     {
-      type: 'candlestick', name: 'K线',
+      type: 'candlestick', name: t('kline.kline'),
       data: kdata, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
       itemStyle: { color: upCol, color0: downCol, borderColor: upCol, borderColor0: downCol },
     },
@@ -88,7 +90,7 @@ export function buildKlineOption(
   }
 
   if (bottomMode === 'volume') {
-    series.push({ type: 'bar', name: 'Volume', data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 })
+    series.push({ type: 'bar', name: t('kline.volume'), data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 })
   } else if (bottomMode === 'macd') {
     const m = cache.getCached(`macd-${cacheKey}`, () => macd(close))
     series.push(
@@ -128,9 +130,10 @@ export function buildKlineOption(
     })
   }
 
+  const volUnit = i18n.global.locale.value === 'zh' ? '万' : 'K'
   let bottomYAxis: any = { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } }
   if (bottomMode === 'volume') {
-    bottomYAxis = { ...bottomYAxis, axisLabel: { ...bottomYAxis.axisLabel, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) } }
+    bottomYAxis = { ...bottomYAxis, axisLabel: { ...bottomYAxis.axisLabel, formatter: (v: number) => v >= 1 ? v.toFixed(1) + volUnit : String(v) } }
   } else if (bottomMode === 'kdj' || bottomMode === 'rsi') {
     bottomYAxis = { ...bottomYAxis, min: 0, max: 100 }
   } else if (bottomMode === 'wr') {
@@ -152,7 +155,27 @@ export function buildKlineOption(
       { ...bottomYAxis, scale: true },
     ],
     series,
-    tooltip: { trigger: 'axis' as const },
+    tooltip: {
+      trigger: 'axis' as const,
+      formatter: (ps: any[]) => {
+        if (!ps?.length) return ''
+        const lines: string[] = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]
+        for (const p of ps) {
+          const d = p.data
+          if (p.seriesType === 'candlestick' && Array.isArray(d) && d.length >= 4) {
+            lines.push(`<div style="margin-top:4px">${t('kline.open')}: ${d[0].toFixed(2)}</div>`)
+            lines.push(`<div>${t('kline.close')}: ${d[1].toFixed(2)}</div>`)
+            lines.push(`<div>${t('kline.low')}: ${d[2].toFixed(2)}</div>`)
+            lines.push(`<div>${t('kline.high')}: ${d[3].toFixed(2)}</div>`)
+          } else if (p.seriesType === 'bar') {
+            lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(1) : '--'}</div>`)
+          } else if (p.seriesType === 'line') {
+            lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(2) : '--'}</div>`)
+          }
+        }
+        return lines.join('')
+      },
+    },
     dataZoom: [
       { type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100 },
       { type: 'slider', xAxisIndex: [0, 1], bottom: 0, height: 20 },
@@ -170,6 +193,8 @@ export function buildMinuteOption(
 ): ECBasicOption {
   if (!ticks.length) return {} as ECBasicOption
 
+  const t = i18n.global.t
+  const volUnit = i18n.global.locale.value === 'zh' ? '万' : 'K'
   const times = ticks.map(t => t.time)
   const prices = ticks.map(t => t.price)
   const volumes = ticks.map(t => t.volume / 10000)
@@ -192,14 +217,14 @@ export function buildMinuteOption(
     max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
   })
   series.push(
-    { type: 'line', name: '价格', data: prices, xAxisIndex: 0, yAxisIndex: 0, smooth: false, symbol: 'none', lineStyle: { color: lineColor, width: 1.5 },
+    { type: 'line', name: t('common.price'), data: prices, xAxisIndex: 0, yAxisIndex: 0, smooth: false, symbol: 'none', lineStyle: { color: lineColor, width: 1.5 },
       areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [
         { offset: 0, color: isUp ? upCol + '40' : downCol + '40' },
         { offset: 1, color: 'rgba(0,0,0,0)' },
       ]}},
-      markLine: prevClose > 0 ? { silent: true, symbol: 'none', lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 }, data: [{ yAxis: prevClose, label: { formatter: `昨收 ${prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }] } : undefined,
+      markLine: prevClose > 0 ? { silent: true, symbol: 'none', lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 }, data: [{ yAxis: prevClose, label: { formatter: `${t('kline.prev_close')} ${prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }] } : undefined,
     },
-    { type: 'line', name: '均价', data: ticks.map(t => t.avg_price), xAxisIndex: 0, yAxisIndex: 0, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' } },
+    { type: 'line', name: t('kline.avg_price'), data: ticks.map(tick => tick.avg_price), xAxisIndex: 0, yAxisIndex: 0, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' } },
   )
 
   const botGridIdx = 1
@@ -208,8 +233,8 @@ export function buildMinuteOption(
   xAxis.push({ type: 'category', data: times, gridIndex: botGridIdx, axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 }, axisLine: { lineStyle: { color: theme.splitColor } } })
 
   if (bottomMode === 'volume') {
-    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) }, splitLine: { show: false } })
-    series.push({ type: 'bar', name: '成交量', data: volumes, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, itemStyle: { color: theme.splitColor }, barWidth: 1 })
+    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + volUnit : String(v) }, splitLine: { show: false } })
+    series.push({ type: 'bar', name: t('kline.volume'), data: volumes, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, itemStyle: { color: theme.splitColor }, barWidth: 1 })
   } else if (bottomMode === 'macd') {
     const m = cache.getCached(`minute-macd-${cacheKey}`, () => macd(prices))
     yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true })
@@ -240,7 +265,18 @@ export function buildMinuteOption(
   return {
     animation: false, animationDurationUpdate: 0, animationEasingUpdate: 'linear',
     backgroundColor: 'transparent', grid, xAxis, yAxis, series,
-    tooltip: { trigger: 'axis' },
+    tooltip: { trigger: 'axis' as const, formatter: (ps: any[]) => {
+      if (!ps?.length) return ''
+      const lines: string[] = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]
+      for (const p of ps) {
+        if (p.seriesType === 'bar') {
+          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(1) : '--'}</div>`)
+        } else {
+          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(2) : '--'}</div>`)
+        }
+      }
+      return lines.join('')
+    }},
   } as ECBasicOption
 }
 
@@ -252,9 +288,11 @@ export function buildMultiDayOption(
 ): ECBasicOption {
   if (!ticks.length) return {} as ECBasicOption
 
-  const times = ticks.map(t => t.time)
-  const prices = ticks.map(t => t.price)
-  const volumes = ticks.map(t => t.volume / 10000)
+  const t = i18n.global.t
+  const volUnit = i18n.global.locale.value === 'zh' ? '万' : 'K'
+  const times = ticks.map(tick => tick.time)
+  const prices = ticks.map(tick => tick.price)
+  const volumes = ticks.map(tick => tick.volume / 10000)
   const upCol = marketUpColor(symbol)
   const downCol = marketDownColor(symbol)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose
@@ -292,13 +330,13 @@ export function buildMultiDayOption(
       },
       {
         type: 'value', gridIndex: 1, position: 'left',
-        axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) },
+        axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + volUnit : String(v) },
         splitLine: { show: false },
       },
     ],
     series: [
       {
-        type: 'line', name: '价格', data: prices,
+        type: 'line', name: t('common.price'), data: prices,
         xAxisIndex: 0, yAxisIndex: 0,
         smooth: false, symbol: 'none',
         lineStyle: { color: lineColor, width: 1.5 },
@@ -314,22 +352,33 @@ export function buildMultiDayOption(
         markLine: prevClose > 0 ? {
           silent: true, symbol: 'none',
           lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 },
-          data: [{ yAxis: prevClose, label: { formatter: `昨收 ${prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }],
+          data: [{ yAxis: prevClose, label: { formatter: `${t('kline.prev_close')} ${prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }],
         } : undefined,
       },
       {
-        type: 'line', name: '均价', data: ticks.map(t => t.avg_price),
+        type: 'line', name: t('kline.avg_price'), data: ticks.map(tick => tick.avg_price),
         xAxisIndex: 0, yAxisIndex: 0,
         smooth: true, symbol: 'none',
         lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' },
       },
       {
-        type: 'bar', name: '成交量', data: volumes,
+        type: 'bar', name: t('kline.volume'), data: volumes,
         xAxisIndex: 1, yAxisIndex: 1,
         itemStyle: { color: theme.splitColor },
         barWidth: 1,
       },
     ],
-    tooltip: { trigger: 'axis' },
+    tooltip: { trigger: 'axis' as const, formatter: (ps: any[]) => {
+      if (!ps?.length) return ''
+      const lines: string[] = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]
+      for (const p of ps) {
+        if (p.seriesType === 'bar') {
+          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(1) : '--'}</div>`)
+        } else {
+          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(2) : '--'}</div>`)
+        }
+      }
+      return lines.join('')
+    }},
   } as ECBasicOption
 }

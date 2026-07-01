@@ -78,6 +78,135 @@ func (a *SinaAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Qu
 	return parseSinaQuote(symbol, bodyStr)
 }
 
+func (a *SinaAdapter) FetchDepth(ctx context.Context, symbol string) (*market.DepthSnapshot, error) {
+	code := toSinaCode(symbol)
+
+	url := fmt.Sprintf("http://hq.sinajs.cn/list=%s", code)
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req.Header.Set("Referer", "https://finance.sina.com.cn/")
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, market.NewTransientErrorf("sina depth: http error: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("sina depth: HTTP %d", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+
+	bodyStr, err := decodeGBK(body)
+	if err != nil {
+		if utf8.Valid(body) {
+			bodyStr = string(body)
+		} else {
+			return nil, fmt.Errorf("sina depth: encoding decode failed for %s: %w", symbol, err)
+		}
+	}
+
+	if strings.HasPrefix(code, "hk") {
+		return parseSinaHKDepth(symbol, bodyStr)
+	}
+	if strings.HasPrefix(code, "gb_") {
+		return nil, fmt.Errorf("sina depth: US depth not available")
+	}
+	return parseSinaDepth(symbol, bodyStr)
+}
+
+// parseSinaDepth parses 5-level bid/ask from Sina's quote response.
+//
+// Sina CN field mapping (0-indexed):
+//
+//	Level 1:      [6]=bid1_price, [7]=ask1_price, [10]=bid1_vol, [20]=ask1_vol
+//	Bid levels 2-5: vol at [12,14,16,18], price at [13,15,17,19]
+//	Ask levels 2-5: vol at [22,24,26,28], price at [23,25,27,29]
+//	[11]=bid1_price (repeated, unused)
+func parseSinaDepth(symbol, body string) (*market.DepthSnapshot, error) {
+	idx := strings.Index(body, "\"")
+	if idx == -1 {
+		return nil, fmt.Errorf("sina depth: unexpected format")
+	}
+	content := body[idx+1:]
+	endIdx := strings.LastIndex(content, "\"")
+	if endIdx == -1 {
+		return nil, fmt.Errorf("sina depth: unexpected format")
+	}
+	content = content[:endIdx]
+
+	fields := strings.Split(content, ",")
+	if len(fields) < 30 {
+		return nil, fmt.Errorf("sina depth: insufficient fields (%d)", len(fields))
+	}
+
+	bids := make([]market.DepthLevel, 5)
+	asks := make([]market.DepthLevel, 5)
+
+	// Level 1
+	bids[0] = market.DepthLevel{Price: parseFloatSafe(fields[6]), Size: parseFloatSafe(fields[10]) * 100}
+	asks[0] = market.DepthLevel{Price: parseFloatSafe(fields[7]), Size: parseFloatSafe(fields[20]) * 100}
+
+	// Bid levels 2-5: [vol, price] pairs
+	for i := 1; i < 5; i++ {
+		volIdx := 12 + (i-1)*2
+		priceIdx := volIdx + 1
+		bids[i] = market.DepthLevel{Price: parseFloatSafe(fields[priceIdx]), Size: parseFloatSafe(fields[volIdx]) * 100}
+	}
+
+	// Ask levels 2-5: [vol, price] pairs
+	for i := 1; i < 5; i++ {
+		volIdx := 22 + (i-1)*2
+		priceIdx := volIdx + 1
+		asks[i] = market.DepthLevel{Price: parseFloatSafe(fields[priceIdx]), Size: parseFloatSafe(fields[volIdx]) * 100}
+	}
+
+	return &market.DepthSnapshot{
+		Symbol:    symbol,
+		Bids:      bids,
+		Asks:      asks,
+		Timestamp: time.Now().UnixMilli(),
+	}, nil
+}
+
+// parseSinaHKDepth parses depth from Sina's HK quote response.
+func parseSinaHKDepth(symbol, body string) (*market.DepthSnapshot, error) {
+	idx := strings.Index(body, "\"")
+	if idx == -1 {
+		return nil, fmt.Errorf("sina HK depth: unexpected format")
+	}
+	content := body[idx+1:]
+	endIdx := strings.LastIndex(content, "\"")
+	if endIdx == -1 {
+		return nil, fmt.Errorf("sina HK depth: unexpected format")
+	}
+	content = content[:endIdx]
+
+	fields := strings.Split(content, ",")
+	if len(fields) < 13 {
+		return nil, fmt.Errorf("sina HK depth: insufficient fields (%d)", len(fields))
+	}
+
+	// HK only has single bid/ask at [9]=bid, [10]=ask, no 5-level
+	bid := parseFloatSafe(fields[9])
+	ask := parseFloatSafe(fields[10])
+	if bid <= 0 || ask <= 0 || ask <= bid {
+		return nil, fmt.Errorf("sina HK depth: invalid bid/ask")
+	}
+
+	bids := make([]market.DepthLevel, 5)
+	asks := make([]market.DepthLevel, 5)
+	step := (ask - bid) / 5
+	for i := 0; i < 5; i++ {
+		bids[i] = market.DepthLevel{Price: bid - float64(i)*step, Size: 0}
+		asks[i] = market.DepthLevel{Price: ask + float64(i)*step, Size: 0}
+	}
+
+	return &market.DepthSnapshot{
+		Symbol:    symbol,
+		Bids:      bids,
+		Asks:      asks,
+		Timestamp: time.Now().UnixMilli(),
+	}, nil
+}
+
 func (a *SinaAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
 	// Sina doesn't have a public OHLCV endpoint. Use Tencent K-line via AkShare adapter instead.
 	return nil, fmt.Errorf("sina: OHLCV not supported (real-time quotes only, use akshare or yahoo for historical data)")

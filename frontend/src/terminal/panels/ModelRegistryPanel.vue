@@ -647,6 +647,8 @@ onMounted(loadFromStore)
   border-radius: 8px;
   max-width: 400px;
   width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 .detail-panel dl {
   display: grid;

@@ -9,6 +9,7 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { buildKlineOption, buildMinuteOption, buildMultiDayOption, type KlineDataItem } from '@/lib/buildChartOption'
 import { useWailsApp, type OHLCVBar, type MultiDayMinute } from '@/lib/composables/useWailsApp'
+import { marketChangeColor } from '@/lib/composables/useMarketColors'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -20,6 +21,7 @@ const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new
 const topOverlay = ref<'none' | 'ma' | 'bb'>('none')
 const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr'>('volume')
 const minuteBottomMode = ref<'volume' | 'macd' | 'kdj'>('volume')
+
 
 
 // Market-aware trading hours check (polling guard).
@@ -88,6 +90,80 @@ const theme = useChartTheme()
 
 // Tab state
 const activeTab = ref<'kline' | 'minute' | 'multiDay'>('kline')
+
+// ── Depth sidebar (minute tab) ──
+const showDepth = ref(false)
+const depthData = ref<{ bids: {price:number;size:number}[]; asks: {price:number;size:number}[] } | null>(null)
+const depthLoading = ref(false)
+const depthSimulated = ref(false)
+const depthPrice = ref(0)
+const depthChange = ref(0)
+const depthChangePct = ref(0)
+
+const depthMaxSize = computed(() => {
+  if (!depthData.value) return 1
+  const all = [...depthData.value.bids, ...depthData.value.asks]
+  return Math.max(...all.map(l => l.size), 1)
+})
+
+function formatSize(size: number): string {
+  if (size >= 10000) return (size / 10000).toFixed(1) + '万'
+  return size.toFixed(0)
+}
+
+function barWidth(size: number): string {
+  return ((size / depthMaxSize.value) * 100).toFixed(0) + '%'
+}
+
+async function loadDepth() {
+  const app = (window as any).go?.main?.App
+  if (!app) return
+  depthLoading.value = true
+  try {
+    const mkt = detectMarket(symbol.value)
+    const [quoteResult, depthResult] = await Promise.all([
+      app.GetQuote(mkt, symbol.value).catch(() => null),
+      app.GetDepth(mkt, symbol.value).catch(() => null),
+    ])
+    const snapshot = Array.isArray(quoteResult) ? quoteResult[0] : quoteResult
+    if (snapshot) {
+      depthPrice.value = snapshot.last || 0
+      depthChange.value = snapshot.change || 0
+      depthChangePct.value = snapshot.change_pct || snapshot.changePct || 0
+    }
+    if (depthResult && depthResult.bids?.length > 0) {
+      depthData.value = {
+        bids: depthResult.bids.map((l: any) => ({ price: l.price, size: l.size })),
+        asks: depthResult.asks.map((l: any) => ({ price: l.price, size: l.size })),
+      }
+      depthSimulated.value = false
+    } else if (snapshot?.bid > 0 && snapshot?.ask > 0) {
+      const bids: {price:number;size:number}[] = []
+      const asks: {price:number;size:number}[] = []
+      const step = (snapshot.ask - snapshot.bid) / 5 || 0.02
+      for (let i = 0; i < 5; i++) {
+        bids.push({ price: +(snapshot.bid - i * step).toFixed(2), size: Math.round(1000 / (i + 1)) })
+        asks.push({ price: +(snapshot.ask + i * step).toFixed(2), size: Math.round(800 / (i + 1)) })
+      }
+      depthData.value = { bids, asks }
+      depthSimulated.value = true
+    } else {
+      depthData.value = null
+    }
+  } catch(e) {
+    console.error('[Candlestick] depth:', e)
+    depthData.value = null
+  } finally {
+    depthLoading.value = false
+  }
+}
+
+function toggleDepth() {
+  showDepth.value = !showDepth.value
+  if (showDepth.value && !depthData.value && !depthLoading.value) {
+    loadDepth()
+  }
+}
 
 // Multi-day minute data
 interface DayMinute {
@@ -332,6 +408,7 @@ watch(() => symbol.value, (newSymbol, oldSymbol) => {
 
   if (activeTab.value === 'minute') {
     loadMinuteLine()
+    if (showDepth.value) loadDepth()
   }
 })
 
@@ -426,6 +503,9 @@ onUnmounted(() => {
         <button :class="{ active: minuteBottomMode === 'macd' }" class="indicator-btn" @click="minuteBottomMode = 'macd'">MACD</button>
         <button :class="{ active: minuteBottomMode === 'kdj' }" class="indicator-btn" @click="minuteBottomMode = 'kdj'">KDJ</button>
       </div>
+      <div v-if="activeTab === 'minute'" class="indicator-group">
+        <button class="indicator-btn depth-toggle" :class="{ active: showDepth }" @click="toggleDepth">📊 {{ $t('misc.depth') }}</button>
+      </div>
     </div>
     <div v-if="errorMsg" class="err-toast">{{ errorMsg }}</div>
     <div class="chart-body">
@@ -444,8 +524,32 @@ onUnmounted(() => {
       </template>
       <KlineChart v-else-if="activeTab === 'kline' && ohlcvData.length > 0" :symbol="symbol" :option="option" :loading="loading && !ohlcvData.length" />
       <template v-else-if="activeTab === 'minute'">
-        <KlineChart v-if="minuteTicks.length" :symbol="`${symbol}-minute`" :option="minuteChartOption" :loading="minuteLoading && !minuteTicks.length" />
-        <div v-else class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
+        <div class="minute-layout">
+          <div class="minute-chart-area">
+            <KlineChart v-if="minuteTicks.length" :symbol="`${symbol}-minute`" :option="minuteChartOption" :loading="minuteLoading && !minuteTicks.length" />
+            <div v-else class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
+          </div>
+          <div v-if="showDepth" class="depth-sidebar">
+            <div class="dp-last-price" :style="{ color: marketChangeColor(symbol, depthChangePct) }">
+              <span class="dp-name">{{ name || symbol }}</span>
+              <span class="dp-val">{{ depthPrice.toFixed(2) }}</span>
+              <span class="dp-chg">{{ depthChange >= 0 ? '+' : '' }}{{ depthChange.toFixed(2) }} ({{ depthChangePct >= 0 ? '+' : '' }}{{ depthChangePct.toFixed(2) }}%)</span>
+            </div>
+            <div class="dp-ob-header">
+              <span class="h-bid">{{ $t('quote.bid') }}</span><span class="h-bs">{{ $t('common.size') }}</span><span class="h-bar"></span>
+              <span class="h-ask">{{ $t('quote.ask') }}</span><span class="h-as">{{ $t('common.size') }}</span><span class="h-bar"></span>
+            </div>
+            <div v-for="i in 5" :key="i" class="dp-ob-row">
+              <span class="dp-bid-p">{{ depthData?.bids[5-i]?.price.toFixed(2) ?? '' }}</span>
+              <span class="dp-bid-s">{{ depthData?.bids[5-i] ? formatSize(depthData.bids[5-i].size) : '' }}</span>
+              <span class="dp-bar-w"><span class="dp-bar bid" :style="{width: depthData?.bids[5-i] ? barWidth(depthData.bids[5-i].size) : '0%'}"></span></span>
+              <span class="dp-ask-p">{{ depthData?.asks[i-1]?.price.toFixed(2) ?? '' }}</span>
+              <span class="dp-ask-s">{{ depthData?.asks[i-1] ? formatSize(depthData.asks[i-1].size) : '' }}</span>
+              <span class="dp-bar-w"><span class="dp-bar ask" :style="{width: depthData?.asks[i-1] ? barWidth(depthData.asks[i-1].size) : '0%'}"></span></span>
+            </div>
+            <div v-if="depthSimulated" class="dp-sim">模拟</div>
+          </div>
+        </div>
       </template>
       <div v-else class="chart-fallback">--</div>
     </div>
@@ -494,15 +598,14 @@ onUnmounted(() => {
 .interval-btn.active {
   background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
 }
-.chart-body { flex: 1; min-height: 0; padding: 8px; position: relative; }
+.chart-body { flex: 1; min-height: 0; padding: 8px; display: flex; flex-direction: column; }
 .kline-chart { width: 100%; height: 100%; }
-.minute-chart { width: 100%; height: 100%; }
-.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
+.chart-fallback { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); }
 .no-data { color: var(--color-text-tertiary); padding: 40px; text-align: center; }
 
 /* Multi-Day Minute */
 .multi-day-chart-wrapper {
-  width: 100%; height: 100%; display: flex; flex-direction: column;
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
 }
 .day-selector {
   display: flex; justify-content: flex-end; padding: 4px 0; margin-bottom: 4px;
@@ -532,4 +635,30 @@ onUnmounted(() => {
   background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
 }
 .err-toast { padding: 6px 12px; background: rgba(239,68,68,0.15); color: #ef4444; font-size: 12px; border-radius: 4px; margin-bottom: 8px; }
+
+/* Depth sidebar */
+.depth-toggle { }
+.minute-layout { display: flex; flex: 1; min-height: 0; gap: 8px; }
+.minute-chart-area { flex: 1; min-width: 0; min-height: 0; display: flex; }
+.depth-sidebar { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 3px; padding: 6px; background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong); border-radius: 6px; overflow: hidden; }
+.dp-last-price { display: flex; align-items: baseline; gap: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--color-border-strong); font-size: 12px; }
+.dp-name { font-size: 10px; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-val { font-size: 14px; font-weight: 700; }
+.dp-chg { font-size: 10px; white-space: nowrap; }
+.dp-ob-header { display: flex; font-size: 9px; color: var(--color-text-tertiary); text-transform: uppercase; border-bottom: 1px solid var(--color-border-strong); padding: 2px 0; }
+.dp-ob-header .h-bid { width: 48px; text-align: left; }
+.dp-ob-header .h-bs { width: 52px; text-align: right; }
+.dp-ob-header .h-bar { flex: 1; }
+.dp-ob-header .h-ask { width: 48px; text-align: left; }
+.dp-ob-header .h-as { width: 52px; text-align: right; }
+.dp-ob-row { display: flex; font-size: 10px; font-variant-numeric: tabular-nums; padding: 1px 0; align-items: center; }
+.dp-bid-p { width: 48px; flex-shrink: 0; color: var(--color-down); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-bid-s { width: 52px; flex-shrink: 0; text-align: right; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-bar-w { flex: 1; min-width: 16px; position: relative; height: 12px; }
+.dp-bar { position: absolute; top: 1px; height: 9px; border-radius: 2px; opacity: 0.35; }
+.dp-bar.bid { background: var(--color-down); right: 0; }
+.dp-bar.ask { background: var(--color-up); left: 0; }
+.dp-ask-p { width: 48px; flex-shrink: 0; color: var(--color-up); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-ask-s { width: 52px; flex-shrink: 0; text-align: right; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-sim { font-size: 9px; color: var(--color-text-tertiary); text-align: center; padding: 1px; background: var(--color-border-strong); border-radius: 3px; }
 </style>

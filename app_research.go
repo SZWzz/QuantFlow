@@ -433,7 +433,8 @@ func (a *App) GetFinancialStatements(symbol string) (map[string]interface{}, err
 	}, nil
 }
 
-// fetchFinancialJSON fetches financial statements via Sina adapter and returns JSON.
+// fetchFinancialJSON fetches financial statements via Sina adapter and returns JSON
+// in the flat mapped format expected by the Python analyzer (formatFinPeriods).
 func (a *App) fetchFinancialJSON(symbol string) (string, error) {
 	if a.sinaFinAdpt == nil {
 		return "", fmt.Errorf("sina financials adapter not available")
@@ -449,6 +450,31 @@ func (a *App) fetchFinancialJSON(symbol string) (string, error) {
 		"income":   formatFinPeriods(income),
 		"balance":  formatFinPeriods(balance),
 		"cashflow": formatFinPeriods(cashflow),
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("marshal financials: %w", err)
+	}
+	return string(b), nil
+}
+
+// fetchDelistingFinancialJSON fetches financial statements and returns JSON in the
+// raw adapter format (item_title/item_value/item_tongbi) expected by trading.ExtractFinancialMetrics.
+func (a *App) fetchDelistingFinancialJSON(symbol string) (string, error) {
+	if a.sinaFinAdpt == nil {
+		return "", fmt.Errorf("sina financials adapter not available")
+	}
+	ctx := context.Background()
+	income, _ := a.sinaFinAdpt.FetchIncomeStatement(ctx, symbol, 12)
+	balance, _ := a.sinaFinAdpt.FetchBalanceSheet(ctx, symbol, 12)
+	cashflow, _ := a.sinaFinAdpt.FetchCashFlow(ctx, symbol, 12)
+	if income == nil && balance == nil {
+		return "", fmt.Errorf("no financial data for %s", symbol)
+	}
+	payload := map[string]interface{}{
+		"income":   income,
+		"balance":  balance,
+		"cashflow": cashflow,
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -572,7 +598,7 @@ func (a *App) GetDelistingRisk(symbol string) (*trading.DelistingRiskResult, err
 	market := detectMarketForSymbol(symbol)
 	isST := detectST(symbol)
 
-	finJSON, err := a.fetchFinancialJSON(symbol)
+	finJSON, err := a.fetchDelistingFinancialJSON(symbol)
 	if err != nil {
 		slog.Warn("delisting risk: financial data unavailable", "symbol", symbol, "err", err)
 		return a.computeDelistingRisk(symbol, market, isST, nil)

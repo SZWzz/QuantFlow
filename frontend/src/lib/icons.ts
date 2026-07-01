@@ -190,7 +190,6 @@ export const PANEL_ICONS: Record<string, IconName> = {
   'quote-detail': 'quote',
   candlestick: 'candlestick',
   'market-overview': 'market',
-  'market-depth': 'depth',
   heatmap: 'heatmap',
   'ticker-tape': 'ticker',
   'crypto-overview': 'crypto',

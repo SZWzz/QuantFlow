@@ -526,8 +526,39 @@ func (a *App) GetCryptoDepth(ctx context.Context, exchange, symbol string, limit
 // For CRYPTO: routes to GetCryptoDepth via Python sidecar.
 func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSnapshot, error) {
 	switch mkt {
-	case "CN", "HK":
-		adpt := a.marketReg.Get("tencent")
+	case "CN":
+		adpt := a.marketReg.Get("sina")
+		if adpt != nil {
+			if tc, ok := adpt.(*adapters.SinaAdapter); ok {
+				snap, err := tc.FetchDepth(ctx, symbol)
+				if err == nil {
+					return snap, nil
+				}
+				slog.Warn("sina depth failed, trying tencent", "symbol", symbol, "err", err)
+			}
+		}
+		// fallback to Tencent
+		adpt = a.marketReg.Get("tencent")
+		if adpt == nil {
+			return nil, fmt.Errorf("tencent adapter not available")
+		}
+		tc, ok := adpt.(*adapters.TencentAdapter)
+		if !ok {
+			return nil, fmt.Errorf("tencent adapter type assertion failed")
+		}
+		return tc.FetchDepth(ctx, symbol)
+	case "HK":
+		adpt := a.marketReg.Get("sina")
+		if adpt != nil {
+			if tc, ok := adpt.(*adapters.SinaAdapter); ok {
+				snap, err := tc.FetchDepth(ctx, symbol)
+				if err == nil {
+					return snap, nil
+				}
+				slog.Warn("sina HK depth failed, trying tencent", "symbol", symbol, "err", err)
+			}
+		}
+		adpt = a.marketReg.Get("tencent")
 		if adpt == nil {
 			return nil, fmt.Errorf("tencent adapter not available")
 		}
@@ -542,7 +573,6 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 		if err != nil {
 			return nil, err
 		}
-		// Parse raw map response into DepthSnapshot
 		data, _ := raw["data"].(string)
 		return &market.DepthSnapshot{Symbol: symbol}, fmt.Errorf("crypto depth via Python sidecar, data=%s", data)
 	default:

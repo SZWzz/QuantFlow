@@ -20,7 +20,6 @@ register('watchlist', () => import('./WatchlistPanel.vue'), { label: '自选股'
 register('quote-detail', () => import('./QuoteDetailPanel.vue'), { label: '行情详情', category: '市场行情', description: '单股详细报价' })
 register('candlestick', () => import('./CandlestickPanel.vue'), { label: 'K 线图', category: '市场行情', description: '历史 K 线图' })
 register('market-overview', () => import('./MarketOverviewPanel.vue'), { label: '市场概况', category: '市场行情', description: '大盘指数概览' })
-register('market-depth', () => import('./MarketDepthPanel.vue'), { label: '市场深度', category: '市场行情', description: '五档买卖盘口' })
 register('heatmap', () => import('./HeatmapPanel.vue'), { label: '板块热力图', category: '市场行情', description: '行业板块涨跌热力' })
 
 register('crypto-overview', () => import('./CryptoOverviewPanel.vue'), { label: '加密货币概览', category: '市场行情', description: '主流加密货币行情' })

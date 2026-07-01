@@ -23,6 +23,7 @@ const activeTab = ref<'audit' | 'delist'>('audit')
 const showBreakdown = ref(true)
 const showTrend = ref(false)
 const showHistory = ref(false)
+const reportType = ref<'annual' | 'quarterly'>('annual')
 const delisting = ref<Record<string, any> | null>(null)
 const delistingLoading = ref(false)
 const delistingError = ref('')
@@ -127,21 +128,30 @@ async function loadData() {
 async function loadDelistingRisk() {
   const app = (window as any).go?.main?.App
   if (!app?.GetDelistingRisk) return
-  delistingLoading.value = true
+  delisting.value = null
   delistingError.value = ''
+  delistingLoading.value = true
   try {
-    delisting.value = await app.GetDelistingRisk(symbol.value)
+    const { data: delistData } = await fetchWithCache<Record<string, any>>(
+      `delist:${symbol.value}`,
+      () => app.GetDelistingRisk(symbol.value),
+      10 * 60 * 1000,
+    )
+    delisting.value = delistData
   } catch (e: any) {
     delistingError.value = e.message || '退市风险数据加载失败'
   }
   delistingLoading.value = false
 }
 
+const latestPeriodPeriod = computed(() => latestPeriod.value?.period || '')
+
 const allFindings = computed(() => {
   const items: any[] = []
   for (const f of findings.value) {
     items.push({ ...f, source: 'audit' })
   }
+  const lp = latestPeriodPeriod.value
   for (const f of anomalyFlags.value) {
     items.push({
       metric: f.type,
@@ -150,7 +160,8 @@ const allFindings = computed(() => {
       threshold: '',
       detail: f.detail,
       source: 'analysis',
-      isLatest: f.is_latest !== false,
+      period: f.period,
+      isLatest: f.period === lp,
     })
   }
   return items
@@ -160,7 +171,7 @@ const latestFindings = computed(() => allFindings.value.filter(f => f.source ===
 const trendFindings = computed(() => allFindings.value.filter(f => f.source !== 'audit' && !f.isLatest))
 
 function growthRate(): number | null {
-  const ps = periods.value
+  const ps = filteredPeriods.value
   if (ps.length < 2) return null
   const latest = ps[0]
   if (!latest?.period || !latest.revenue) return null
@@ -184,8 +195,28 @@ function fmtAxis(v: any): string {
   return n.toFixed(0)
 }
 
-const chartOption = computed(() => {
+const latestPeriod = computed(() => {
+  const p = filteredPeriods.value[0]
+  if (!p) return {}
+  const rev = +(p.revenue || 0)
+  const profit = +(p.net_profit || 0)
+  return {
+    ...p,
+    profit_margin: p.profit_margin ?? (rev ? (profit / rev) * 100 : undefined),
+  }
+})
+
+const filteredPeriods = computed(() => {
   const ps = periods.value
+  if (!ps || ps.length === 0) return []
+  if (reportType.value === 'annual') {
+    return ps.filter((p: any) => p.period && p.period.endsWith('12-31'))
+  }
+  return ps.filter((p: any) => p.period && !p.period.endsWith('12-31'))
+})
+
+const chartOption = computed(() => {
+  const ps = filteredPeriods.value
   if (!ps || ps.length < 2) return {}
   const dates = ps.map((p: any) => (p.period || '').slice(0, 7)).reverse()
   const revenue = ps.map((p: any) => +(p.revenue || 0)).reverse()
@@ -262,9 +293,12 @@ const chartOption = computed(() => {
   }
 })
 
-watch(symbol, loadData)
+watch(symbol, () => { loadData(); loadDelistingRisk() })
 watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (n) => {
-  if (n && n !== symbol.value) { symbol.value = n; loadData() }
+  if (n && n !== symbol.value) { symbol.value = n; loadData(); loadDelistingRisk() }
+})
+watch(activeTab, (tab) => {
+  if (tab === 'delist') loadDelistingRisk()
 })
 onMounted(() => {
   loadData()
@@ -329,19 +363,19 @@ onMounted(() => {
       <div class="kpis">
         <div class="kpi">
           <span class="kpi-label">ROE</span>
-          <span class="kpi-val" :style="{ color: (metrics.latest_roe ?? 0) > 8 ? '#22c55e' : '#ef4444' }">{{ formatPct(metrics.latest_roe) }}</span>
+          <span class="kpi-val" :style="{ color: (latestPeriod.roe ?? 0) > 8 ? '#22c55e' : '#ef4444' }">{{ formatPct(latestPeriod.roe) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">负债率</span>
-          <span class="kpi-val" :style="{ color: (metrics.latest_debt_ratio ?? 100) < 60 ? '#22c55e' : '#ef4444' }">{{ formatPct(metrics.latest_debt_ratio) }}</span>
+          <span class="kpi-val" :style="{ color: (latestPeriod.debt_ratio ?? 100) < 60 ? '#22c55e' : '#ef4444' }">{{ formatPct(latestPeriod.debt_ratio) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">净利率</span>
-          <span class="kpi-val" :style="{ color: (metrics.latest_profit_margin ?? 0) > 10 ? '#22c55e' : '#ef4444' }">{{ formatPct(metrics.latest_profit_margin) }}</span>
+          <span class="kpi-val" :style="{ color: (latestPeriod.profit_margin ?? 0) > 10 ? '#22c55e' : '#ef4444' }">{{ formatPct(latestPeriod.profit_margin) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">毛利率</span>
-          <span class="kpi-val" :style="{ color: '#60a5fa' }">{{ formatPct(periods[0]?.gross_margin) }}</span>
+          <span class="kpi-val" :style="{ color: '#60a5fa' }">{{ formatPct(latestPeriod.gross_margin) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">营收增长</span>
@@ -349,13 +383,22 @@ onMounted(() => {
         </div>
         <div class="kpi">
           <span class="kpi-label">商誉/净资产</span>
-          <span class="kpi-val" :style="{ color: '#f59e0b' }">{{ formatPct(periods[0]?.equity ? (findings.find((f: any) => f.metric.includes('商誉'))?.value || '--') : '--') }}</span>
+          <span class="kpi-val" :style="{ color: '#f59e0b' }">{{ findings.find((f: any) => f.metric.includes('商誉'))?.value || '--' }}</span>
         </div>
       </div>
 
+      <!-- Report Type Toggle -->
+      <div v-if="periods.length >= 2" class="report-toggle">
+        <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
+        <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
+      </div>
+
       <!-- ECharts Trend -->
-      <div v-if="periods.length >= 2" class="section chart-section">
+      <div v-if="filteredPeriods.length >= 2" class="section chart-section">
         <VChart :option="chartOption" autoresize style="height: 200px" />
+      </div>
+      <div v-else-if="periods.length >= 2 && filteredPeriods.length < 2" class="section chart-section" style="text-align:center;padding:20px;color:var(--color-text-tertiary);font-size:12px">
+        暂无足够{{ reportType === 'annual' ? '年报' : '季报' }}数据
       </div>
 
       <!-- Score Breakdown (collapsible) -->
@@ -421,10 +464,10 @@ onMounted(() => {
       <!-- Financial History (collapsible) -->
       <div class="section">
         <div class="section-h" @click="showHistory = !showHistory">
-          <span class="section-title">财务历史 ({{ periods.length }} 期)</span>
+          <span class="section-title">财务历史 ({{ filteredPeriods.length }} 期 {{ reportType === 'annual' ? '年报' : '季报' }})</span>
           <span class="section-toggle">{{ showHistory ? '收起' : '展开' }}</span>
         </div>
-        <div v-if="showHistory && periods.length" class="hist-table-wrap">
+        <div v-if="showHistory && filteredPeriods.length" class="hist-table-wrap">
           <table class="hist-table">
             <thead>
               <tr>
@@ -437,7 +480,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(p, i) in periods" :key="i">
+              <tr v-for="(p, i) in filteredPeriods" :key="i">
                 <td class="period">{{ p.period }}</td>
                 <td class="num">{{ formatNum(p.revenue) }}</td>
                 <td class="num">{{ formatNum(p.net_profit) }}</td>
@@ -534,6 +577,14 @@ onMounted(() => {
 .br-effect { flex: 0 0 40px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .br-detail { flex: 1; color: var(--color-text-tertiary); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .br-total { display: flex; align-items: center; gap: 8px; padding: 4px 0; margin-top: 2px; border-top: 1px solid var(--color-border-strong); font-size: 12px; font-weight: 600; }
+
+/* Report Type Toggle */
+.report-toggle { display: flex; gap: 4px; flex-shrink: 0; }
+.report-toggle button {
+  padding: 2px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  background: var(--color-bg-elevated); color: var(--color-text-tertiary); font-size: 11px; cursor: pointer;
+}
+.report-toggle button.active { background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent); }
 
 /* Chart */
 .chart-section { padding: 4px 0; }

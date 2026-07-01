@@ -120,6 +120,23 @@ func findItemValue(items []finPeriodItem, title string) float64 {
 	return 0
 }
 
+// latestAnnualPeriod returns the period with the latest date ending in "12-31",
+// or the first period if no annual period is found.
+func latestAnnualPeriod(periods []finPeriod) *finPeriod {
+	var ann *finPeriod
+	for i, p := range periods {
+		if strings.HasSuffix(p.Period, "12-31") {
+			if ann == nil || p.Period > ann.Period {
+				ann = &periods[i]
+			}
+		}
+	}
+	if ann == nil && len(periods) > 0 {
+		ann = &periods[0]
+	}
+	return ann
+}
+
 func ExtractFinancialMetrics(jsonStr string) (*FinancialMetrics, error) {
 	var data finJSON
 	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
@@ -129,8 +146,8 @@ func ExtractFinancialMetrics(jsonStr string) (*FinancialMetrics, error) {
 		return nil, fmt.Errorf("no financial data")
 	}
 	m := &FinancialMetrics{}
-	if len(data.Income) > 0 {
-		items := data.Income[0].Items
+	if inc := latestAnnualPeriod(data.Income); inc != nil {
+		items := inc.Items
 		m.Revenue = findItemValue(items, "营业总收入")
 		m.NetProfit = findItemValue(items, "净利润")
 		cp := findItemValue(items, "扣非净利润")
@@ -139,11 +156,11 @@ func ExtractFinancialMetrics(jsonStr string) (*FinancialMetrics, error) {
 		}
 		m.CoreProfit = cp
 	}
-	if len(data.Balance) > 0 {
-		m.NetAssets = findItemValue(data.Balance[0].Items, "归属于母公司所有者的权益合计")
+	if bal := latestAnnualPeriod(data.Balance); bal != nil {
+		m.NetAssets = findItemValue(bal.Items, "归属于母公司所有者的权益合计")
 	}
-	if len(data.Cashflow) > 0 {
-		m.CashFlow = findItemValue(data.Cashflow[0].Items, "经营活动现金流量净额")
+	if cf := latestAnnualPeriod(data.Cashflow); cf != nil {
+		m.CashFlow = findItemValue(cf.Items, "经营活动现金流量净额")
 	}
 	return m, nil
 }
