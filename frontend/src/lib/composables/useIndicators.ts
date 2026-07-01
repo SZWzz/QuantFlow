@@ -62,7 +62,7 @@ export function macd(data: number[], fast = 12, slow = 26, signal = 9): MACDResu
   return { dif, dea, hist }
 }
 
-/** KDJ */
+/** KDJ (同花顺/通达信风格: 递归加权平均, 首值种子50) */
 export function kdj(close: number[], high: number[], low: number[], n = 9, m1 = 3, m2 = 3): KDJResult {
   const rsv: (number | null)[] = []
   for (let i = 0; i < close.length; i++) {
@@ -74,15 +74,18 @@ export function kdj(close: number[], high: number[], low: number[], n = 9, m1 = 
     }
     rsv.push(hh === ll ? 50 : (close[i] - ll) / (hh - ll) * 100)
   }
-  const k = sma(rsv.filter((v): v is number => v !== null), m1)
-  const d = sma(k.filter((v): v is number => v !== null), m2)
   const kFull: (number | null)[] = []; const dFull: (number | null)[] = []; const jFull: (number | null)[] = []
-  let ki = 0, di2 = 0
+  let prevK = 50, prevD = 50
+  const k1 = 2 / (m1 + 1)
+  const k2 = 2 / (m2 + 1)
   for (let i = 0; i < close.length; i++) {
-    if (rsv[i] === null) { kFull.push(null); dFull.push(null); jFull.push(null); continue }
-    const kv = k[ki]!; ki++
+    const r = rsv[i]
+    if (r === null) { kFull.push(null); dFull.push(null); jFull.push(null); continue }
+    const kv = (r - prevK) * k1 + prevK
+    prevK = kv
     kFull.push(kv)
-    const dv = d[di2]!; di2++
+    const dv = (kv - prevD) * k2 + prevD
+    prevD = dv
     dFull.push(dv)
     jFull.push(3 * kv - 2 * dv)
   }
