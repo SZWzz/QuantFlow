@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { detectMarket } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -10,6 +11,9 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const quote = ref<any>(null)
 const loading = ref(false)
+const loadError = ref('')
+let loadSeq = 0
+const { fetchWithCache } = usePanelCache()
 
 // Capital flow
 interface CapitalFlowData {
@@ -35,10 +39,14 @@ const maxFlowAbs = computed(() => {
 })
 
 async function fetchQuote(sym: string) {
+  const seq = ++loadSeq
+  loadError.value = ''
   // TODO: move to store
   loading.value = true
   try {
-    const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
+    const mkt = detectMarket(sym)
+    const { data: result } = await fetchWithCache<any>(`quote:${mkt}:${sym}`, () => (window as any).go?.main?.App?.GetQuote(mkt, sym), 60 * 1000)
+    if (seq !== loadSeq) return
     const snapshot = Array.isArray(result) ? result[0] : result
     quote.value = {
       symbol: snapshot.symbol ?? sym,
@@ -61,20 +69,24 @@ async function fetchQuote(sym: string) {
       eps: snapshot.eps ?? '--',
       dividendYield: snapshot.dividendYield ?? '--',
     }
-  } catch {
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     quote.value = null
   } finally {
     loading.value = false
   }
+  if (seq !== loadSeq) return
   fetchCapitalFlow(sym)
 }
 
 async function fetchCapitalFlow(sym: string) {
+  const seq = ++loadSeq
   const app = (window as any).go?.main?.App
   if (!app) return
   capitalFlowLoading.value = true
   try {
-    const result = await app.GetMACCapitalFlow(sym)
+    const { data: result } = await fetchWithCache<any>(`cap_flow:${sym}`, () => app.GetMACCapitalFlow(sym), 5 * 60 * 1000)
+    if (seq !== loadSeq) return
     const cf = Array.isArray(result) ? result[0] : result
     if (cf) {
       capitalFlow.value = {
@@ -85,8 +97,8 @@ async function fetchCapitalFlow(sym: string) {
         small_flow: cf.small_flow || 0,
       }
     }
-  } catch(e) {
-    console.error('[QuoteDetail] capital flow:', e)
+  } catch(e: any) {
+    loadError.value = e?.message || String(e)
     capitalFlow.value = null
   } finally {
     capitalFlowLoading.value = false
@@ -147,7 +159,8 @@ function flowBarStyle(val: number): Record<string, string> {
 
 <template>
   <div class="quote-panel">
-    <div v-if="loading && !quote" class="loading-state">{{ $t('common.loading') }}</div>
+    <div v-if="loadError" class="error-state" @click="fetchQuote(symbol)">{{ loadError }} ⟳</div>
+    <div v-else-if="loading && !quote" class="loading-state">{{ $t('common.loading') }}</div>
     <template v-else-if="quote">
     <div class="quote-header">
       <div class="header-main">
@@ -232,6 +245,10 @@ function flowBarStyle(val: number): Record<string, string> {
 .loading-state {
   display: flex; align-items: center; justify-content: center;
   height: 100%; color: var(--color-text-tertiary); font-size: var(--font-sm);
+}
+.error-state {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: var(--color-error); font-size: var(--font-sm); cursor: pointer;
 }
 .quote-header { margin-bottom: 10px; }
 .header-main { display: flex; align-items: center; gap: 8px; }

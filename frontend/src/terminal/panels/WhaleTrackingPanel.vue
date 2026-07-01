@@ -18,6 +18,8 @@ interface WhaleTx {
 
 const txs = ref<WhaleTx[]>([])
 const loading = ref(false)
+const loadError = ref('')
+let loadSeq = 0
 const address = ref('')
 const minUsd = ref(1000000)
 const sortKey = ref<string>('usd_value')
@@ -52,9 +54,12 @@ function shorten(addr: string): string {
 async function fetchData() {
   const app = (window as any).go?.main?.App
   if (!app?.GetWhaleTransactions) return
+  const seq = ++loadSeq
+  loadError.value = ''
   loading.value = true
   try {
     const { data: raw } = await fetchWithCache<any>(`whale_txs:${address.value}:${minUsd.value}`, () => app.GetWhaleTransactions(address.value), 3 * 60 * 1000)
+    if (seq !== loadSeq) return
     const items = raw?.data || raw?.result || []
     txs.value = (Array.isArray(items) ? items : []).map((t: any) => ({
       hash: t.hash || '',
@@ -66,8 +71,8 @@ async function fetchData() {
       time: Number(t.timeStamp || t.timestamp || 0) * 1000,
       symbol: t.tokenSymbol || t.tokenName || '',
     })).filter(t => t.usd_value >= minUsd.value)
-  } catch (e) {
-    console.error('[WhaleTracking]', e)
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     txs.value = []
   } finally {
     loading.value = false
@@ -97,9 +102,11 @@ onMounted(fetchData)
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
-    <SkeletonPanel v-if="loading && txs.length === 0" type="table" :rows="6" />
+    <div v-if="loadError" class="error-state" @click="fetchData">{{ loadError }} ⟳</div>
 
-    <div v-else-if="txs.length === 0" class="empty-state">
+    <SkeletonPanel v-else-if="loading && txs.length === 0" type="table" :rows="6" />
+
+    <div v-else-if="txs.length === 0 && !loading" class="empty-state">
       <div>{{ $t('misc.whale_empty') }}</div>
       <div class="hint">{{ $t('misc.whale_hint') }}</div>
     </div>
@@ -148,6 +155,10 @@ onMounted(fetchData)
 .empty-state {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px; gap: 4px;
+}
+.error-state {
+  display: flex; align-items: center; justify-content: center; padding: 12px;
+  color: var(--color-error); font-size: 13px; cursor: pointer;
 }
 .hint { font-size: 11px; opacity: 0.6; }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }

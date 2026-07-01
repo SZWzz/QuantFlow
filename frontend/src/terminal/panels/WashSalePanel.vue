@@ -6,10 +6,12 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const { t } = useI18n()
-const app = window.go.main.App
+const app = (window as any).go?.main?.App
 const symbol = ref('AAPL')
 const { name } = useStockName(symbol)
 const loading = ref(false)
+const loadError = ref('')
+let loadSeq = 0
 const events = ref<any[]>([])
 
 const { fetchWithCache } = usePanelCache()
@@ -21,11 +23,15 @@ const totalDisallowed = computed(() =>
 async function checkWashSale() {
   const sym = symbol.value.trim().toUpperCase()
   if (!sym) return
+  const seq = ++loadSeq
+  loadError.value = ''
   loading.value = true
   try {
     const { data } = await fetchWithCache('washsale:' + sym, () => app.CheckWashSale(sym))
+    if (seq !== loadSeq) return
     events.value = Array.isArray(data) ? data : []
-  } catch {
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     events.value = []
   } finally {
     loading.value = false
@@ -55,6 +61,8 @@ function isNegative(v: any): boolean {
         </button>
       </div>
     </div>
+
+    <div v-if="loadError" class="error-state" @click="checkWashSale">{{ loadError }} ⟳</div>
 
     <SkeletonPanel v-if="loading" type="table" />
 
@@ -200,6 +208,10 @@ function isNegative(v: any): boolean {
   justify-content: center;
   color: var(--color-text-tertiary);
   font-size: 13px;
+}
+.error-state {
+  display: flex; align-items: center; justify-content: center; padding: 12px;
+  color: var(--color-error); font-size: 13px; cursor: pointer;
 }
 .disclaimer {
   margin-top: 8px;

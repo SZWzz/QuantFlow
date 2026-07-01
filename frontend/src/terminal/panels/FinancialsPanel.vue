@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 interface FinPeriod {
@@ -20,6 +21,8 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
+const { fetchWithCache } = usePanelCache()
+let loadSeq = 0
 const loading = ref(false)
 const error = ref('')
 const statements = ref<FinStatements | null>(null)
@@ -43,11 +46,12 @@ function smartFormat(val: string): string {
 
 async function loadData() {
   if (!symbol.value) return
+  const seq = ++loadSeq
   loading.value = true
   error.value = ''
   try {
-    const app = (window as any).go.main.App
-    const res = await app.GetFinancialStatements(symbol.value)
+    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
+    if (seq !== loadSeq) return
     statements.value = {
       income: res.income || [],
       balance: res.balance || [],

@@ -20,6 +20,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
+let loadSeq = 0
 const loading = ref(false)
 const error = ref('')
 const result = ref<any>(null)
@@ -140,10 +141,12 @@ function calcMargin(profit: number, rev: number): string {
 }
 
 async function loadData() {
+  const seq = ++loadSeq
   loading.value = true
   error.value = ''
   try {
     const { data } = await fetchWithCache<any>(`forecast:${symbol.value}`, () => (window as any).go?.main?.App?.GetForecast(symbol.value), 30 * 60 * 1000)
+    if (seq !== loadSeq) return
     result.value = data?.data ? JSON.parse(data.data) : data
   } catch (e: any) {
     error.value = e.message || t('common.panel_error')

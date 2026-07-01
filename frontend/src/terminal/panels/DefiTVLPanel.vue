@@ -17,6 +17,7 @@ interface Protocol {
 
 const protocols = ref<Protocol[]>([])
 const loading = ref(false)
+const loadError = ref('')
 const { fetchWithCache } = usePanelCache()
 const search = ref('')
 const sortKey = ref<string>('tvl')
@@ -48,6 +49,7 @@ function sortArrow(key: string): string {
 async function fetchData() {
   const app = (window as any).go?.main?.App
   if (!app?.GetDeFiTVL) return
+  loadError.value = ''
   loading.value = true
   try {
     const { data: result } = await fetchWithCache<any>('defi_tvl', () => app.GetDeFiTVL(), 3 * 60 * 1000)
@@ -61,8 +63,8 @@ async function fetchData() {
       mcap: p.mcap || 0,
       category: p.category || '',
     }))
-  } catch (e) {
-    console.error('[DefiTVL]', e)
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     protocols.value = []
   } finally {
     loading.value = false
@@ -93,9 +95,11 @@ onMounted(fetchData)
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
-    <SkeletonPanel v-if="loading && protocols.length === 0" type="table" :rows="10" />
+    <div v-if="loadError" class="error-state" @click="fetchData">{{ loadError }} ⟳</div>
 
-    <div v-else-if="protocols.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
+    <SkeletonPanel v-else-if="loading && protocols.length === 0" type="table" :rows="10" />
+
+    <div v-else-if="protocols.length === 0 && !loading" class="empty-state">{{ $t('common.no_data') }}</div>
 
     <template v-else>
       <div class="table-wrapper">
@@ -142,6 +146,10 @@ onMounted(fetchData)
 .empty-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px;
+}
+.error-state {
+  display: flex; align-items: center; justify-content: center; padding: 12px;
+  color: var(--color-error); font-size: 13px; cursor: pointer;
 }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {

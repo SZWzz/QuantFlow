@@ -33,6 +33,7 @@ const minNetBuy = ref(0)
 const stocks = ref<DragonTigerStock[]>([])
 const historyData = ref<DragonTigerStock[]>([])
 const loading = ref(false)
+const loadError = ref('')
 const historyLoading = ref(false)
 const expandedRow = ref<string | null>(null)
 const historySymbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
@@ -48,6 +49,7 @@ watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (sym) => {
 async function fetchDaily() {
   const app = (window as any).go?.main?.App
   if (!app?.GetDailyDragonTiger) return
+  loadError.value = ''
   loading.value = true
   try {
     const { data: result } = await fetchWithCache<any>(`dragon_tiger:${date.value}:${minNetBuy.value}`, () => app.GetDailyDragonTiger(date.value, minNetBuy.value), 5 * 60 * 1000)
@@ -64,8 +66,8 @@ async function fetchDaily() {
       dept_sell_top5: (s.dept_sell_top5 || []).map((d: any) => ({ name: d.name, net_amount: d.net_amount })),
       dept_total_top5: (s.dept_total_top5 || []).map((d: any) => ({ name: d.name, net_amount: d.net_amount })),
     }))
-  } catch (e) {
-    console.error('[DragonTiger]', e)
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     stocks.value = []
   } finally {
     loading.value = false
@@ -75,6 +77,7 @@ async function fetchDaily() {
 async function fetchHistory() {
   const app = (window as any).go?.main?.App
   if (!app?.GetDragonTiger || !historySymbol.value) return
+  loadError.value = ''
   historyLoading.value = true
   try {
     const { data: result } = await fetchWithCache<any>(`dragon_tiger_history:${historySymbol.value}:${date.value}`, () => app.GetDragonTiger(historySymbol.value, date.value, 20), 5 * 60 * 1000)
@@ -91,8 +94,8 @@ async function fetchHistory() {
       dept_sell_top5: [],
       dept_total_top5: [],
     }))
-  } catch (e) {
-    console.error('[DragonTiger history]', e)
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     historyData.value = []
   } finally {
     historyLoading.value = false
@@ -147,7 +150,9 @@ onMounted(() => fetchDaily())
       </div>
     </div>
 
-    <SkeletonPanel v-if="loading && activeTab === 'daily'" type="table" :rows="8" />
+    <div v-if="loadError" class="error-state" @click="activeTab === 'daily' ? fetchDaily() : fetchHistory()">{{ loadError }} ⟳</div>
+
+    <SkeletonPanel v-else-if="loading && activeTab === 'daily'" type="table" :rows="8" />
     <SkeletonPanel v-else-if="historyLoading && activeTab === 'history'" type="table" :rows="8" />
 
     <template v-else-if="activeTab === 'daily'">
@@ -271,6 +276,10 @@ onMounted(() => fetchDaily())
 .empty-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px;
+}
+.error-state {
+  display: flex; align-items: center; justify-content: center; padding: 12px;
+  color: var(--color-error); font-size: 13px; cursor: pointer;
 }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {
