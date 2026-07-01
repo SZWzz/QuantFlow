@@ -6,6 +6,7 @@ const { t } = useI18n()
 import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -40,6 +41,7 @@ const loading = ref(true)
 const selectedEvent = ref<Event | null>(null)
 const priceHistory = ref<PricePoint[]>([])
 const signalInfo = ref<{ action: string; confidence: number; description: string } | null>(null)
+const { fetchWithCache } = usePanelCache()
 
 const categoryLabels: Record<string, string> = {
   all: t('common.all'), economics: '经济', crypto: '加密', politics: '政治',
@@ -52,8 +54,8 @@ async function loadEvents() {
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetPredictionMarkets) {
-      const result = await app.GetPredictionMarkets(cat, 30)
-      events.value = result.events || []
+      const { data: result } = await fetchWithCache<any>(`prediction_markets:${activeCategory.value}`, () => app.GetPredictionMarkets(cat, 30), 15 * 60 * 1000)
+      events.value = result?.events || []
     }
   } catch(e) {
     console.error('[PredictionMarket] loadEvents:', e)
@@ -66,8 +68,8 @@ async function loadDetail(event: Event) {
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetPredictionEventDetail) {
-      const result = await app.GetPredictionEventDetail(event.id)
-      if (result.prices?.length > 0) {
+      const { data: result } = await fetchWithCache<any>(`prediction_detail:${event.id}`, () => app.GetPredictionEventDetail(event.id), 15 * 60 * 1000)
+      if (result?.prices?.length > 0) {
         priceHistory.value = result.prices
         return
       }
@@ -79,10 +81,10 @@ async function loadDetail(event: Event) {
 
 async function loadSignals() {
   try {
-    const go = (window as any).go
-    if (go?.main?.App?.GetPredictionSignals) {
-      const result = await go.main.App.GetPredictionSignals('', 0.05)
-      signalInfo.value = result.signal || null
+    const app = (window as any).go?.main?.App
+    if (app?.GetPredictionSignals) {
+      const { data: result } = await fetchWithCache<any>('prediction_signals', () => app.GetPredictionSignals('', 0.05), 15 * 60 * 1000)
+      signalInfo.value = result?.signal || null
     }
   } catch(e) { console.error('[PredictionMarket] loadSignals:', e) }
 }

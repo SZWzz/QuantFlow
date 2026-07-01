@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -10,6 +11,7 @@ interface ScheduleTask {
 }
 
 const { t } = useI18n()
+const { fetchWithCache } = usePanelCache()
 const tasks = ref<ScheduleTask[]>([])
 const loading = ref(false)
 const showModal = ref(false)
@@ -23,7 +25,7 @@ const cronPresets = [
 async function loadTasks() {
   // TODO: move to store
   loading.value = true
-  try { const r = await (window as any).go.main.App.ListScheduleTasks(); tasks.value = Array.isArray(r) ? r : [] }
+  try { const { data: r } = await fetchWithCache<any>('schedule_tasks', () => (window as any).go.main.App.ListScheduleTasks(), 5 * 60 * 1000); tasks.value = Array.isArray(r) ? r : [] }
   catch(e) { console.error('[Schedule] fetch:', e); tasks.value = [] }
   finally { loading.value = false }
 }

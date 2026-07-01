@@ -3,11 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { t } = useI18n()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const { fetchWithCache } = usePanelCache()
 
 type TabKey = 'bull' | 'bear' | 'warrants'
 
@@ -48,8 +50,8 @@ async function fetchData() {
   loading.value = true
   error.value = null
   try {
-    const result = await app.GetHKDerivatives()
-    rawData.value = result
+    const { data: result } = await fetchWithCache<any>('hk_derivatives', () => app.GetHKDerivatives(), 15 * 60 * 1000)
+    rawData.value = result as HKDerivativesResult
   } catch (e) {
     console.error('[HKDerivatives]', e)
     error.value = String(e)

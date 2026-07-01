@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const { t } = useI18n()
 
@@ -10,13 +11,12 @@ const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const app = (window as any).go?.main?.App
+const { fetchWithCache } = usePanelCache()
 
 const loading = ref(false)
 const error = ref('')
 const data = ref<any>(null)
 const activeTab = ref<'arbitrage' | 'redeem' | 'put'>('arbitrage')
-
-let timer: ReturnType<typeof setInterval> | null = null
 
 const columnDefs: Record<string, { key: string; label: string; align?: string }[]> = {
   arbitrage: [
@@ -55,7 +55,7 @@ async function fetchData() {
   loading.value = true
   error.value = ''
   try {
-    const result = await app.GetCBArbitrageData()
+    const { data: result } = await fetchWithCache<any>('cb_arbitrage', () => app.GetCBArbitrageData(), 15 * 60 * 1000)
     data.value = result
   } catch (e: any) {
     error.value = e.message || String(e)
@@ -117,11 +117,6 @@ function switchTab(tab: 'arbitrage' | 'redeem' | 'put') {
 
 onMounted(() => {
   fetchData()
-  timer = setInterval(fetchData, 120000)
-})
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
 })
 </script>
 
