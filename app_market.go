@@ -24,6 +24,52 @@ type marketOverviewCache struct {
 	expires time.Time
 }
 
+// fetchDataCache is a generic TTL cache for FetchData results.
+// Each entry has its own TTL; expired entries are lazily evicted on read.
+type fetchDataCache struct {
+	mu    sync.RWMutex
+	store map[string]*fetchCacheEntry
+}
+
+type fetchCacheEntry struct {
+	data      map[string]interface{}
+	expiresAt time.Time
+}
+
+func newFetchDataCache() *fetchDataCache {
+	return &fetchDataCache{
+		store: make(map[string]*fetchCacheEntry),
+	}
+}
+
+func (c *fetchDataCache) Get(key string) (map[string]interface{}, bool) {
+	c.mu.RLock()
+	entry, ok := c.store[key]
+	c.mu.RUnlock()
+	if !ok || time.Now().After(entry.expiresAt) {
+		if ok {
+			c.mu.Lock()
+			delete(c.store, key)
+			c.mu.Unlock()
+		}
+		return nil, false
+	}
+	return entry.data, true
+}
+
+func (c *fetchDataCache) Set(key string, data map[string]interface{}, ttl time.Duration) {
+	c.mu.Lock()
+	c.store[key] = &fetchCacheEntry{data: data, expiresAt: time.Now().Add(ttl)}
+	c.mu.Unlock()
+}
+
+// fetchDataCacheTTL controls how long FetchData results are cached.
+// Macro summaries are relatively static (30min); other endpoints 10min.
+const (
+	fetchDataCacheDefaultTTL = 10 * time.Minute
+	fetchDataCacheMacroTTL   = 30 * time.Minute
+)
+
 var overviewCache = &marketOverviewCache{}
 
 func (c *marketOverviewCache) get(mkt string) (map[string]interface{}, bool) {
@@ -181,10 +227,20 @@ func (a *App) FetchOHLCV(ctx context.Context, marketName, symbol, interval, fqfa
 // FetchData proxies a data request to the Python sidecar's DataService gRPC endpoint.
 // Supported sources: mootdx, akshare, ccxt, sec, macro.
 // dataType varies per source (e.g. "financials", "fundflow", "ticker", "financials").
+// Results are cached with TTL (30min for macro_cn_summary, 10min for others).
 func (a *App) FetchData(source, dataType string, symbols []string, startDate, endDate string, params map[string]string) (map[string]interface{}, error) {
 	if a.bridge == nil {
 		return nil, fmt.Errorf("Python sidecar not available")
 	}
+
+	// Build cache key. Skip cache for mootdx (real-time quotes).
+	cacheKey := source + ":" + dataType + ":" + strings.Join(symbols, ",")
+	if a.dataCache != nil && source != "mootdx" {
+		if cached, ok := a.dataCache.Get(cacheKey); ok {
+			return cached, nil
+		}
+	}
+
 	ctx := context.Background()
 	req := &pb.FetchDataRequest{
 		Source:    source,
@@ -201,11 +257,24 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 	if resp.Error != "" {
 		return nil, fmt.Errorf("FetchData(%s/%s): %s", source, dataType, resp.Error)
 	}
-	return map[string]interface{}{
-		"data":         string(resp.Data),
-		"source":       resp.Source,
+
+	result := map[string]interface{}{
+		"data":          string(resp.Data),
+		"source":        resp.Source,
 		"fetch_time_ms": resp.FetchTimeMs,
-	}, nil
+		"_cached_at":    time.Now().Unix(),
+	}
+
+	// Cache result (macro_cn_summary gets longer TTL).
+	if a.dataCache != nil && source != "mootdx" {
+		ttl := fetchDataCacheDefaultTTL
+		if dataType == "macro_cn_summary" {
+			ttl = fetchDataCacheMacroTTL
+		}
+		a.dataCache.Set(cacheKey, result, ttl)
+	}
+
+	return result, nil
 }
 
 // GetFundFlow returns capital flow data for a symbol.

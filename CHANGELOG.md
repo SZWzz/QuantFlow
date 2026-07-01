@@ -7,6 +7,7 @@
 ## [2026.7.1] - 2026-07-01
 
 ### Added
+- [Backend] **FetchData TTL 缓存** — Go 侧 `fetchDataCache` 缓存 Python sidecar 数据请求结果，macro_cn_summary 30min 过期，其他 akshare/ccxt/sec 端点 10min，mootdx 实时行情不缓存
 - [Frontend] **K 线增量轮询** — 30s 定时器仅拉取增量数据而非全量 250-450 根 K 线，合并去重（loadSeq 竞态守卫）
 - [Frontend] **数据加载错误提示** — CandlestickPanel 内联 err-toast（8s 自动消失）
 - [Frontend] **typed Wails bridge** — `useWailsApp()` 类型化桥接，覆盖 FetchOHLCV/GetMinuteLine/GetMultiDayMinute/GetAuditFindings/GetFinancialAnalysis/GetDelistingRisk

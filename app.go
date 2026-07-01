@@ -59,6 +59,9 @@ type App struct {
 	sched        *schedule.Scheduler
 	portfolioSvc *portfolio.Service
 
+	// FetchData TTL cache (macro summaries, akshare endpoints, etc.).
+	dataCache     *fetchDataCache
+
 	// Market data: adapter registry + fallback chains (wired in startup).
 	marketReg     *market.AdapterRegistry
 	newsAdpt      adapters.NewsAdapter // news source for sentiment analysis
@@ -181,6 +184,10 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.marketReg = market.NewAdapterRegistry()
 	a.registerMarketAdapters()
 	slog.Info("market adapter registry initialized", "count", a.marketReg.Count())
+
+	// FetchData cache: prevents redundant Python sidecar calls for slow
+	// AKShare endpoints (macro_cn_summary takes 60-90s).
+	a.dataCache = newFetchDataCache()
 
 	// Initialize MarketDataHub for real-time pub/sub (audit fix M7).
 	// Currently a stub — full topic broker activation pending per-symbol subscription UI.
