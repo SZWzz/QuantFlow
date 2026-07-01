@@ -84,6 +84,8 @@ const interval = ref(props.params?.interval || '1d')
 const ohlcvData = ref<(string | number)[][]>([])
 const loading = ref(false)
 const indicatorCache = createIndicatorCache()
+const errorMsg = ref('')
+let loadSeq = 0
 
 // Tab state
 const activeTab = ref<'kline' | 'minute' | 'multiDay'>('kline')
@@ -128,37 +130,61 @@ function parseMinuteTimeToUnix(timeStr: string): number {
   return Math.floor(d.getTime() / 1000)
 }
 
-async function loadOHLCV(sym: string) {
-  // TODO: move to store
+async function loadOHLCV(sym: string, incremental = false) {
+  const seq = ++loadSeq
   loading.value = true
   try {
     const end = Math.floor(Date.now() / 1000)
-    // Lookback: minute intervals → 5 days, weekly → 450 days, daily → 365 days
-    // 365d → ~250 trading days for daily MA60 (needs 60); 450d → ~64 weeks for weekly MA60.
     const iv = interval.value
-    const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 450 : 365
-    const start = end - lookbackDays * 86400
-    const fqfactor = 'qfq'  // default to 前复权 for A-shares
+    let start: number
+    if (incremental && ohlcvData.value.length > 0) {
+      const lastDate = ohlcvData.value[ohlcvData.value.length - 1][0] as string
+      start = Math.floor(new Date(lastDate.replace(' ', 'T')).getTime() / 1000)
+    } else {
+      const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 450 : 365
+      start = end - lookbackDays * 86400
+    }
+    const fqfactor = 'qfq'
     const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, iv, fqfactor, start, end)
-    const bars = Array.isArray(result) ? result[0] : result
+    if (seq !== loadSeq) return
     const isIntraday = ['1m','5m','15m','30m','1h'].includes(iv)
-    ohlcvData.value = (bars as any[]).map((b: any) => {
-      const rawDate = b.date || b.Date || ''
-      const d = new Date(rawDate)
-      const date = isIntraday
-        ? d.toISOString().slice(0, 16).replace('T', ' ')  // "2026-06-25 09:35"
-        : d.toISOString().slice(0, 10)                     // "2026-06-25"
-      return [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0]
-    })
-  } catch(e) {
+    if (incremental && ohlcvData.value.length > 0) {
+      const newBars = (Array.isArray(result) ? result[0] : result) as any[]
+      if (newBars?.length) {
+        const mergeMap = new Map(ohlcvData.value.map((b: any) => [b[0] as string, b]))
+        for (const b of newBars) {
+          const rawDate = b.date || b.Date || ''
+          const d = new Date(rawDate)
+          const date = isIntraday
+            ? d.toISOString().slice(0, 16).replace('T', ' ')
+            : d.toISOString().slice(0, 10)
+          mergeMap.set(date, [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0])
+        }
+        ohlcvData.value = Array.from(mergeMap.values()).sort((a: any, b: any) => (a[0] as string).localeCompare(b[0] as string))
+      }
+    } else {
+      const bars = Array.isArray(result) ? result[0] : result
+      ohlcvData.value = (bars as any[]).map((b: any) => {
+        const rawDate = b.date || b.Date || ''
+        const d = new Date(rawDate)
+        const date = isIntraday
+          ? d.toISOString().slice(0, 16).replace('T', ' ')
+          : d.toISOString().slice(0, 10)
+        return [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0]
+      })
+    }
+  } catch(e: any) {
+    if (seq !== loadSeq) return
     console.error('[Candlestick]', e)
-    ohlcvData.value = []
-  } finally {
-    loading.value = false
+    errorMsg.value = 'K线数据加载失败: ' + (e.message || '未知错误')
+    setTimeout(() => { errorMsg.value = '' }, 8000)
+    if (!ohlcvData.value.length) ohlcvData.value = []
   }
+  if (seq === loadSeq) loading.value = false
 }
 
 async function loadMinuteLine() {
+  const seq = ++loadSeq
   const app = (window as any).go?.main?.App
   if (!app) return
   minuteLoading.value = true
@@ -172,6 +198,7 @@ async function loadMinuteLine() {
       : 0
 
     const result = await app.GetMinuteLine(symbol.value, sinceTimestamp)  // TODO: move to store
+    if (seq !== loadSeq) return
     const ticks: MinuteTick[] = Array.isArray(result) ? result[0] : result
     if (!Array.isArray(ticks) || ticks.length === 0) {
       return
@@ -249,8 +276,9 @@ function stopMinutePolling() {
 }
 
 function startKlineRefresh() {
-  if (klineTimer) clearInterval(klineTimer)
-  klineTimer = setInterval(() => loadOHLCV(symbol.value), 30000)
+  stopKlineRefresh()
+  loadOHLCV(symbol.value, true)
+  klineTimer = window.setInterval(() => loadOHLCV(symbol.value, true), 30000)
 }
 
 function stopKlineRefresh() {
@@ -660,6 +688,7 @@ onUnmounted(() => {
         <button :class="{ active: minuteBottomMode === 'kdj' }" class="indicator-btn" @click="minuteBottomMode = 'kdj'">KDJ</button>
       </div>
     </div>
+    <div v-if="errorMsg" class="err-toast">{{ errorMsg }}</div>
     <div class="chart-body">
       <!-- Only show loading overlay on initial load (no data yet); skip during polling to avoid flashing the chart -->
       <div v-if="(activeTab === 'kline' && loading && !ohlcvData.length) || (activeTab === 'minute' && minuteLoading && !minuteTicks.length) || (activeTab === 'multiDay' && multiDayLoading && !multiDayData.length)" class="chart-fallback">{{ $t('common.loading') }}</div>
@@ -763,4 +792,5 @@ onUnmounted(() => {
 .indicator-btn.active {
   background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
 }
+.err-toast { padding: 6px 12px; background: rgba(239,68,68,0.15); color: #ef4444; font-size: 12px; border-radius: 4px; margin-bottom: 8px; }
 </style>
