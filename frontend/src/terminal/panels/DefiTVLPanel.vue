@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -16,6 +17,7 @@ interface Protocol {
 
 const protocols = ref<Protocol[]>([])
 const loading = ref(false)
+const { fetchWithCache } = usePanelCache()
 const search = ref('')
 const sortKey = ref<string>('tvl')
 const sortDir = ref<number>(-1)
@@ -48,8 +50,8 @@ async function fetchData() {
   if (!app?.GetDeFiTVL) return
   loading.value = true
   try {
-    const raw = await app.GetDeFiTVL()
-    const items = raw?.data || []
+    const { data: result } = await fetchWithCache<any>('defi_tvl', () => app.GetDeFiTVL(), 3 * 60 * 1000)
+    const items = result?.data || []
     protocols.value = items.slice(0, 150).map((p: any) => ({
       name: p.name || p.id || '?',
       chain: p.chain || (p.chains?.[0] || 'multi'),

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
+
+const { fetchWithCache } = usePanelCache()
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -14,9 +17,7 @@ const sortKey = ref<string>('changePct24h')
 const sortDir = ref<number>(-1)
 
 const { data: cryptos, loading, error, execute: refreshExec } = useDataFetch<CryptoRow[]>(async () => {
-  const app = (window as any).go?.main?.App
-  if (!app) return []
-  const result = await app.GetCryptoOverview([])
+  const { data: result } = await fetchWithCache<any>('crypto_overview', () => (window as any).go?.main?.App?.GetCryptoOverview([]), 3 * 60 * 1000)
   if (result?.cryptos) {
     return result.cryptos.map((c: any) => ({
       symbol: c.symbol?.replace('USDT', '') || c.symbol,
