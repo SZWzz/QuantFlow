@@ -2,10 +2,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const { t } = useI18n()
 const settingsStore = useSettingsStore()
+const { fetchWithCache } = usePanelCache()
 
 interface ProviderDef {
   id: string
@@ -89,7 +91,7 @@ async function fetchModels() {
       ]
       return
     }
-    const result = await app.ListLLMModels()
+    const { data: result } = await fetchWithCache<any>('llm_models', () => app.ListLLMModels(), 5 * 60 * 1000)
     models.value = Array.isArray(result) ? result : []
   } catch (e: any) {
     modelsError.value = e.message || t('common.panel_error')

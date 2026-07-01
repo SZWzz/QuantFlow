@@ -23,6 +23,7 @@ const market = ref<'SH' | 'SZ'>(props.params?.market || 'SH')
 const filter = ref<'all' | 'limit-up' | 'limit-down'>('all')
 const stocks = ref<LimitStock[]>([])
 const loading = ref(false)
+const loadError = ref('')
 const autoRefresh = ref(true)
 let timer: ReturnType<typeof setInterval> | null = null
 
@@ -54,6 +55,7 @@ async function refresh() {
   const app = (window as any).go?.main?.App
   if (!app) return
   loading.value = true
+  loadError.value = ''
   try {
     const { data: result } = await fetchWithCache(`abnormal_stocks:${market.value}`, () => app.GetAbnormalStocks(market.value))
     const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
@@ -65,8 +67,9 @@ async function refresh() {
       volume: i.volume || 0,
       turnover: i.turnover || 0,
     }))
-  } catch (e) {
+  } catch (e: any) {
     console.error('[LimitUpDown]', e)
+    loadError.value = e?.message || String(e)
     stocks.value = []
   } finally {
     loading.value = false
@@ -130,6 +133,7 @@ const tableColumns = [
       @tab-change="switchMarket"
     />
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div class="filter-bar">
       <button
         v-for="f in [
@@ -216,6 +220,7 @@ const tableColumns = [
   overflow: hidden;
 }
 
+.panel-error { padding: 8px 12px; margin: 0 var(--panel-padding); border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .limit-up-down-panel :deep(.clickable) {
   cursor: pointer;
 }

@@ -10,6 +10,8 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const selectedModelId = ref('')
 const selectedSymbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '')
+const loading = ref(false)
+const loadError = ref('')
 
 const chartData = ref({
   distribution: [] as number[],
@@ -17,6 +19,19 @@ const chartData = ref({
   scatter: [] as [number, number][],
   quantile: [] as number[],
 })
+
+async function loadPredictions() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    await mlStore.fetchPredictions(selectedModelId.value, selectedSymbol.value)
+    buildCharts()
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  } finally {
+    loading.value = false
+  }
+}
 
 function buildCharts() {
   const preds = mlStore.predictions
@@ -59,6 +74,8 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 <template>
   <div class="prediction-dashboard">
     <PanelHeader :title="$t('ml.prediction_dashboard')" />
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
+    <div v-if="loading" class="loading-state">{{ $t('common.loading') }}</div>
     <PanelToolbar>
       <template #search>
         <select v-model="selectedModelId" class="filter-select">
@@ -67,7 +84,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
       </template>
       <template #actions>
         <input v-model="selectedSymbol" placeholder="Symbol (e.g. AAPL)" class="search-input" />
-        <button @click="mlStore.fetchPredictions(selectedModelId, selectedSymbol); buildCharts()" class="btn">{{ $t('ml.load') }}</button>
+        <button @click="loadPredictions" :disabled="loading" class="btn">{{ loading ? $t('common.loading') : $t('ml.load') }}</button>
       </template>
     </PanelToolbar>
     <div class="charts-grid">
@@ -94,6 +111,8 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.loading-state { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-tertiary); font-size: 13px; }
 .prediction-dashboard { padding: var(--panel-padding); height: 100%; display: flex; flex-direction: column; }
 .controls { display: flex; gap: 8px; margin-bottom: 8px; }
 .search-input { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-panel); color: var(--color-text-primary); }

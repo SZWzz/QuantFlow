@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useStockName } from '@/lib/composables/useStockName'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
+const { fetchWithCache } = usePanelCache()
 
 const symbol = ref('AAPL')
 const { name } = useStockName(symbol)
@@ -14,6 +16,7 @@ const stopPrice = ref(190.00)
 const broker = ref<'paper' | 'binance' | 'futu'>('paper')
 const lastPrice = ref(0)
 const quoteLoading = ref(false)
+const loadError = ref('')
 
 const estimatedTotal = computed(() => {
   const p = orderType.value === 'market' ? (lastPrice.value || price.value) : price.value
@@ -24,15 +27,16 @@ async function fetchQuote() {
   const app = (window as any).go?.main?.App
   if (!app?.GetQuote) return
   quoteLoading.value = true
+  loadError.value = ''
   try {
-    const result = await app.GetQuote('CN', symbol.value)
+    const { data: result } = await fetchWithCache<any>(`quote:${symbol.value}`, () => app.GetQuote('CN', symbol.value), 60 * 1000)
     const quote = Array.isArray(result) ? result[0] : result
     if (quote?.last) {
       lastPrice.value = quote.last
       price.value = quote.last
     }
-  } catch {
-    // empty — keep current price
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
   } finally {
     quoteLoading.value = false
   }
@@ -63,6 +67,7 @@ function placeOrder() {
 
 <template>
   <div class="order-panel">
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div class="order-form">
       <div class="form-group">
         <label>{{ $t('quote.symbol') }}
@@ -129,6 +134,7 @@ function placeOrder() {
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .order-panel { padding: 12px; background: var(--bg); height: 100%; }
 .order-form { display: flex; flex-direction: column; gap: 10px; }
 

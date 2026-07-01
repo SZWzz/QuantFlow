@@ -29,6 +29,7 @@ const app = (window as any).go?.main?.App
 const activeTab = ref<Tab>('today')
 const data = ref<ExDividendStock[]>([])
 const loading = ref(false)
+const loadError = ref('')
 
 function pad(n: number): string {
   return n.toString().padStart(2, '0')
@@ -65,6 +66,7 @@ function getDateRange(tab: Tab): [string, string] {
 async function fetchData() {
   if (!app?.GetExDividendCalendar) return
   loading.value = true
+  loadError.value = ''
   try {
     const [start, end] = getDateRange(activeTab.value)
     const { data: result } = await fetchWithCache(`ex_dividend:${start}:${end}`, () => app.GetExDividendCalendar(start, end))
@@ -80,8 +82,9 @@ async function fetchData() {
       dividend_yield: s.dividend_yield || 0,
       close_price: s.close_price || 0,
     }))
-  } catch (e) {
+  } catch (e: any) {
     console.error('[ExDividend]', e)
+    loadError.value = e?.message || String(e)
     data.value = []
   } finally {
     loading.value = false
@@ -119,6 +122,7 @@ onMounted(fetchData)
       </div>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <SkeletonPanel v-if="loading && data.length === 0" type="table" :rows="6" />
 
     <div v-else-if="data.length === 0" class="empty-state">
@@ -153,6 +157,7 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .ex-dividend-panel {
   padding: 12px;
   height: 100%;

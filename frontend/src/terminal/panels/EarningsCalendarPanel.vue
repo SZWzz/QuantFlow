@@ -23,6 +23,7 @@ interface EarningsEvent {
 const { fetchWithCache } = usePanelCache()
 const events = ref<EarningsEvent[]>([])
 const loading = ref(false)
+const loadError = ref('')
 const dateRange = ref<'week' | 'month' | 'quarter'>('week')
 
 function getDateRange(): { from: string; to: string } {
@@ -47,6 +48,7 @@ async function fetchData() {
   const app = (window as any).go?.main?.App
   if (!app?.GetEarningsCalendar) return
   loading.value = true
+  loadError.value = ''
   try {
     const { from, to } = getDateRange()
     const { data: result } = await fetchWithCache<any>(`earnings_calendar:${from}:${to}`, () => app.GetEarningsCalendar(from, to))
@@ -61,8 +63,9 @@ async function fetchData() {
       revenue_actual: r.revenue_actual || 0,
       revenue_estimate: r.revenue_estimate || 0,
     }))
-  } catch (e) {
+  } catch (e: any) {
     console.error('[EarningsCalendar]', e)
+    loadError.value = e?.message || String(e)
     events.value = []
   } finally {
     loading.value = false
@@ -103,6 +106,7 @@ onMounted(fetchData)
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <SkeletonPanel v-if="loading && events.length === 0" type="table" :rows="5" />
 
     <div v-else-if="events.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
@@ -127,6 +131,7 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .earnings-calendar-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
   color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;

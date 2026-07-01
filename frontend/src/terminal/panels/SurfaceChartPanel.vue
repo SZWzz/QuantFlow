@@ -17,6 +17,8 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const surfaceData = ref<number[][]>([])
+const loading = ref(false)
+const loadError = ref('')
 const { fetchWithCache } = usePanelCache()
 
 const hasEcharts = computed(() => { try { return typeof VChart !== 'undefined' } catch { return false } })
@@ -24,10 +26,13 @@ const hasEcharts = computed(() => { try { return typeof VChart !== 'undefined' }
 async function loadSurface() {
   const app = (window as any).go?.main?.App
   if (!app) return
+  loading.value = true
+  loadError.value = ''
   try {
     const { data } = await fetchWithCache<any>(`vol_surface:${symbol.value}`, () => app.GetVolatilitySurface(symbol.value), 15 * 60 * 1000)
     surfaceData.value = data || []
-  } catch(e) { console.error('[SurfaceChart] fetch:', e); surfaceData.value = [] }
+  } catch(e: any) { loadError.value = e?.message || String(e); console.error('[SurfaceChart] fetch:', e); surfaceData.value = [] }
+  finally { loading.value = false }
 }
 
 onMounted(loadSurface)
@@ -53,15 +58,18 @@ const chartOption = computed(() => {
 
 <template>
   <div class="surface-chart-panel">
-    <div class="panel-header"><h3>{{ $t('misc.volatility_surface') }}</h3><button class="refresh-btn" @click="loadSurface">&#x21bb;</button></div>
+    <div class="panel-header"><h3>{{ $t('misc.volatility_surface') }}</h3><button class="refresh-btn" @click="loadSurface" :disabled="loading">&#x21bb;</button></div>
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div class="surface-content">
-      <VChart v-if="hasEcharts && surfaceData.length" :option="chartOption" autoresize class="surface-chart" />
-      <div v-else class="no-data">{{ surfaceData.length === 0 ? '加载中或暂无数据' : '' }}</div>
+      <div v-if="loading" class="no-data">{{ $t('common.loading') }}</div>
+      <VChart v-else-if="hasEcharts && surfaceData.length" :option="chartOption" autoresize class="surface-chart" />
+      <div v-else class="no-data">{{ surfaceData.length === 0 ? '暂无数据' : '' }}</div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .surface-chart-panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }

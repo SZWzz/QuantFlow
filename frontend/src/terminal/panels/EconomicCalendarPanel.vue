@@ -20,6 +20,7 @@ const { fetchWithCache } = usePanelCache()
 const filter = ref<string>('all')
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
+const loadError = ref('')
 
 const filteredEvents = computed(() => {
   if (filter.value === 'all') return events.value
@@ -70,6 +71,7 @@ const dataSource = ref<'api' | 'mock'>('mock')
 
 async function fetchData() {
   loading.value = true
+  loadError.value = ''
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetEconomicIndicators) {
@@ -93,7 +95,8 @@ async function fetchData() {
     if (events.value.length === 0) {
       events.value = buildMockEvents()
     }
-  } catch {
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
     events.value = buildMockEvents()
   } finally {
     loading.value = false
@@ -129,6 +132,7 @@ onMounted(fetchData)
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <SkeletonPanel v-if="loading && events.length === 0" type="table" :rows="5" />
 
     <div v-else-if="events.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
@@ -155,6 +159,7 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .economic-calendar-panel {
   padding: 12px;
   height: 100%;

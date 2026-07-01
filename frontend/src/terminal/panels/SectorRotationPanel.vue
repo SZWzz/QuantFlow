@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useSessionStore } from '@/stores/session'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
@@ -11,6 +11,7 @@ const { fetchWithCache } = usePanelCache()
 const market = ref<'CN' | 'HK' | 'US'>(props.params?.market || session.ui.activeMarket || 'CN')
 const lookback = ref(20)
 const loading = ref(false)
+const loadError = ref('')
 
 interface SectorStrength {
   name: string
@@ -35,6 +36,7 @@ function calculateRRG(changePct: number, allPcts: number[]): { rs_ratio: number;
 
 async function fetchData() {
   loading.value = true
+  loadError.value = ''
   try {
     const app = (window as any).go?.main?.App
     if (!app?.GetIndustryRanks) return
@@ -51,8 +53,9 @@ async function fetchData() {
         }
       })
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('[SectorRotation]', e)
+    loadError.value = e?.message || String(e)
   } finally {
     loading.value = false
   }
@@ -104,6 +107,9 @@ function switchMarket(mkt: 'CN' | 'HK' | 'US') {
 }
 
 onMounted(fetchData)
+onUnmounted(() => {
+  chartInstance?.dispose()
+})
 </script>
 
 <template>
@@ -123,6 +129,7 @@ onMounted(fetchData)
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <SkeletonPanel v-if="loading && sectors.length === 0" type="chart" />
 
     <template v-else>
@@ -190,6 +197,7 @@ onMounted(fetchData)
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 
 .rrg-hint {
   display: flex; justify-content: space-around; margin-bottom: 4px; font-size: 10px;

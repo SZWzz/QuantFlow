@@ -19,6 +19,8 @@ const askLevels = ref<{ price: number; size: number }[]>([])
 const trades = ref<{ time: string; price: number; volume: number; side: 'B' | 'S' }[]>([])
 const isSimulated = ref(true) // A-share no free L2; show simulated from bid/ask
 const activeTab = ref<'depth' | 'auction'>('depth')
+const loadError = ref('')
+const loading = ref(false)
 
 // Auction data
 interface AuctionItem {
@@ -61,6 +63,8 @@ function buildSimulatedLevels(baseBid: number, baseAsk: number) {
 async function refresh() {
   const app = (window as any).go?.main?.App
   if (!app) return
+  loading.value = true
+  loadError.value = ''
   try {
     const mkt = detectMarket(symbol.value)
     const [quoteResult, depthResult] = await Promise.all([
@@ -83,8 +87,11 @@ async function refresh() {
       isSimulated.value = true
     }
     trades.value = []
-  } catch(e) {
+  } catch(e: any) {
     console.error('[MarketDepth]', e)
+    loadError.value = e?.message || String(e)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -152,8 +159,11 @@ onMounted(refresh)
       </div>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
+    <div v-if="loading && !lastPrice" class="loading-state">{{ $t('common.loading') }}</div>
+
     <!-- Tab: Depth -->
-    <template v-if="activeTab === 'depth'">
+    <template v-if="activeTab === 'depth' && !loading">
     <div class="last-price-row">
       <span class="price-label">{{ name || symbol }}</span>
       <span class="price-value" :style="{ color: marketChangeColor(symbol, changePct) }">
@@ -317,6 +327,8 @@ onMounted(refresh)
 .side-sell { color: var(--color-down); }
 
 /* Tabs */
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.loading-state { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-tertiary); font-size: 13px; }
 .tab-btns { display: flex; gap: 4px; }
 .tab-btn {
   padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;

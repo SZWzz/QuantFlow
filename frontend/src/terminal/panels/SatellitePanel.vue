@@ -31,24 +31,30 @@ interface EnergyPoint {
 
 const regions = ref<RegionSnapshot[]>([])
 const loading = ref(true)
+const loadError = ref('')
 const selectedRegion = ref<RegionSnapshot | null>(null)
+let loadSeq = 0
 const solarData = ref<EnergyPoint[]>([])
 const windData = ref<EnergyPoint[]>([])
 const chartLoading = ref(false)
 const { fetchWithCache } = usePanelCache()
 
 async function loadRegions() {
+  const seq = ++loadSeq
   loading.value = true
+  loadError.value = ''
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetSatelliteSnapshots) {
       const { data: result } = await fetchWithCache<any>('satellite_snapshots', () => app.GetSatelliteSnapshots(), 30 * 60 * 1000)
+      if (seq !== loadSeq) return
       regions.value = result?.regions || []
     }
-  } catch(e) {
+  } catch(e: any) {
     console.error('[Satellite] loadRegions:', e)
+    loadError.value = e?.message || String(e)
   }
-  loading.value = false
+  if (seq === loadSeq) loading.value = false
 }
 
 async function loadRegionDetail(region: RegionSnapshot) {
@@ -204,6 +210,7 @@ function wildfireClass(count: number): string {
 
 <template>
   <div class="satellite-panel" :data-panel-id="panelId">
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <!-- Header -->
     <div class="panel-header">
       <h3>🛰️ 卫星数据 (NASA POWER)</h3>
@@ -339,6 +346,7 @@ function wildfireClass(count: number): string {
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; margin: 8px 12px 0; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .satellite-panel {
   display: flex;
   flex-direction: column;

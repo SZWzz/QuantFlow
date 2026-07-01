@@ -16,6 +16,7 @@ const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
 const autoRefresh = ref(true)
+const loadError = ref('')
 const refreshInterval = ref(15)
 const countdown = ref(refreshInterval.value)
 let timer: ReturnType<typeof setInterval> | null = null
@@ -50,6 +51,7 @@ async function fetchBlockRank() {
   const app = (window as any).go?.main?.App
   if (!app) return
   blockRankLoading.value = true
+  loadError.value = ''
   try {
     const { data: result } = await fetchWithCache('block_rank', () => app.GetBlockRank(1, 0, 10), 5 * 60 * 1000)
     const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
@@ -60,8 +62,9 @@ async function fetchBlockRank() {
       volume: i.volume || 0,
       amount: i.amount || 0,
     }))
-  } catch(e) {
+  } catch(e: any) {
     console.error('[MarketOverview] block rank:', e)
+    loadError.value = e?.message || String(e)
     blockRank.value = []
   } finally {
     blockRankLoading.value = false
@@ -155,6 +158,7 @@ const blockRankColumns = [
       @tab-change="switchMarket"
     />
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <!-- Section A: Index Cards -->
     <div class="indices-row">
       <PanelCard
@@ -402,6 +406,7 @@ const blockRankColumns = [
   font-weight: 600;
 }
 
+.panel-error { padding: 8px 12px; margin: 0 var(--panel-padding); border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .block-empty {
   font-size: var(--font-xs);
   color: var(--color-text-tertiary);

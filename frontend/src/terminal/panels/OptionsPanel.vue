@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
 const error = ref('')
 const options = ref<any[]>([])
@@ -12,9 +14,9 @@ const DATA_TYPE = 'options'
 async function loadData() {
   loading.value = true; error.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
-      const result = await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [], '', '', {})
+    const app = (window as any).go?.main?.App
+    if (app?.FetchData) {
+      const { data: result } = await fetchWithCache<any>('options_data', () => app.FetchData(SOURCE, DATA_TYPE, [], '', '', {}), 5 * 60 * 1000)
       if (result?.data) {
         const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
         if (parsed?.success === false) {

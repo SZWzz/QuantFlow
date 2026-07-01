@@ -16,12 +16,14 @@ interface GasData {
 
 const gas = ref<GasData | null>(null)
 const loading = ref(false)
+const loadError = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
 async function fetchData() {
   const app = (window as any).go?.main?.App
   if (!app?.GetGasFees) return
   loading.value = true
+  loadError.value = ''
   try {
     const { data: raw } = await fetchWithCache<any>('gas_fees', () => app.GetGasFees(), 60 * 1000)
     if (raw?.success === false) {
@@ -29,8 +31,9 @@ async function fetchData() {
       return
     }
     gas.value = raw?.data as GasData || null
-  } catch (e) {
+  } catch (e: any) {
     console.error('[GasFee]', e)
+    loadError.value = e?.message || String(e)
     gas.value = null
   } finally {
     loading.value = false
@@ -82,6 +85,7 @@ onUnmounted(() => {
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <SkeletonPanel v-if="loading && !gas" type="table" :rows="3" />
 
     <div v-else-if="!gas" class="empty-state">
@@ -145,6 +149,7 @@ onUnmounted(() => {
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .empty-state {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px; gap: 4px;

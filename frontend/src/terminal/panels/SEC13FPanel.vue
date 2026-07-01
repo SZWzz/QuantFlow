@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
+const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
 const error = ref('')
 const rawData = ref<any>(null)
@@ -69,9 +71,9 @@ function fmtVal(v: any): string {
 async function loadData() {
   loading.value = true; error.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
-      const result = await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [], '', '', {})
+    const app = (window as any).go?.main?.App
+    if (app?.FetchData) {
+      const { data: result } = await fetchWithCache<any>('sec_13f', () => app.FetchData(SOURCE, DATA_TYPE, [], '', '', {}), 5 * 60 * 1000)
       if (result?.data) rawData.value = JSON.parse(result.data)
       else if (result?.error) error.value = result.error
     }

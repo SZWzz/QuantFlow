@@ -10,6 +10,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 const { name } = useStockName(symbol)
+const loadError = ref('')
 
 const trades = computed(() => store.research?.insider ?? [])
 
@@ -27,8 +28,15 @@ const netActivity = computed(() => {
   return { label: 'Neutral', color: 'var(--color-text-tertiary)' }
 })
 
-watch(symbol, (newVal) => {
-  if (newVal) store.fetchStockResearch(newVal, ['insider'])
+watch(symbol, async (newVal) => {
+  loadError.value = ''
+  if (newVal) {
+    try {
+      await store.fetchStockResearch(newVal, ['insider'])
+    } catch (e: any) {
+      loadError.value = e?.message || String(e)
+    }
+  }
 }, { immediate: true })
 
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
@@ -37,7 +45,14 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   }
 })
 
-function refresh() { store.fetchStockResearch(symbol.value, ['insider']) }
+async function refresh() {
+  loadError.value = ''
+  try {
+    await store.fetchStockResearch(symbol.value, ['insider'])
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  }
+}
 
 function formatShares(v: number | undefined | null): string {
   if (v == null) return '--'
@@ -66,6 +81,7 @@ function handleSymbolSubmit(e: Event) {
       </div>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
     <div v-else-if="trades.length > 0" class="panel-content">
       <!-- 净交易 Indicator -->
@@ -137,4 +153,5 @@ function handleSymbolSubmit(e: Event) {
 .date-cell { color: var(--color-text-secondary); }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 </style>

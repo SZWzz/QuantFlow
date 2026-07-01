@@ -19,6 +19,7 @@ const symbol = ref(props.params?.symbol || '')
 const range = ref<'24h' | '7d'>('24h')
 const liquidations = ref<Liquidation[]>([])
 const loading = ref(false)
+const loadError = ref('')
 const autoRefresh = ref(true)
 const { fetchWithCache } = usePanelCache()
 let timer: ReturnType<typeof setInterval> | null = null
@@ -41,6 +42,7 @@ async function fetchData() {
   const app = (window as any).go?.main?.App
   if (!app?.GetCryptoLiquidations) return
   loading.value = true
+  loadError.value = ''
   try {
     const { data: result } = await fetchWithCache<any>(`liquidations:${symbol.value}:100`, () => app.GetCryptoLiquidations(symbol.value, 100), 60 * 1000)
     liquidations.value = (result || []).map((l: any) => ({
@@ -52,8 +54,9 @@ async function fetchData() {
       time: l.time || 0,
       order_side: l.order_side || '',
     }))
-  } catch (e) {
+  } catch (e: any) {
     console.error('[Liquidation]', e)
+    loadError.value = e?.message || String(e)
     liquidations.value = []
   } finally {
     loading.value = false
@@ -106,6 +109,7 @@ onUnmounted(() => {
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <SkeletonPanel v-if="loading && liquidations.length === 0" type="card" :rows="3" />
 
     <template v-else-if="liquidations.length > 0">
@@ -187,6 +191,7 @@ onUnmounted(() => {
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .empty-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px;

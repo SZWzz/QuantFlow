@@ -62,8 +62,8 @@ function selectSymbol(sym: string) {
   ctx.setGroupSymbol(pg.groupId, sym)
 }
 
-function refreshAll() {
-  symbols.value.forEach(sym => refreshQuote(sym))
+async function refreshAll() {
+  await Promise.all(symbols.value.map(sym => refreshQuote(sym)))
 }
 
 function formatPrice(p: number): string {
@@ -78,9 +78,9 @@ function formatChange(c: number, pct: number): string {
   return `${sign}${c.toFixed(2)} (${sign}${pct.toFixed(2)}%)`
 }
 
-function onWatchlistChanged() {
+async function onWatchlistChanged() {
   symbols.value = loadSymbols()
-  symbols.value.forEach(sym => refreshQuote(sym))
+  await Promise.all(symbols.value.map(sym => refreshQuote(sym)))
 }
 
 onMounted(async () => {
@@ -88,7 +88,7 @@ onMounted(async () => {
   try {
     const app = (window as any).go?.main?.App
     if (app?.SearchSymbols) {
-      for (const sym of symbols.value) {
+      await Promise.all(symbols.value.map(async (sym) => {
         const { data: results } = await fetchWithCache(`search:${sym}`, () => app.SearchSymbols(sym, 1), 5 * 60 * 1000)
         if (Array.isArray(results) && results.length > 0 && results[0].name) {
           if (!quotes.value[sym]) {
@@ -97,10 +97,10 @@ onMounted(async () => {
             quotes.value[sym].name = results[0].name
           }
         }
-      }
+      }))
     }
   } catch { /* best-effort */ }
-  symbols.value.forEach(sym => refreshQuote(sym))
+  await Promise.all(symbols.value.map(sym => refreshQuote(sym)))
 })
 
 onUnmounted(() => {

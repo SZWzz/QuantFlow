@@ -63,6 +63,7 @@ const selectedMarket = ref('all')
 const selectedStrategy = ref<StrategyDef | null>(null)
 const paramValues = ref<Record<string, string>>({})
 const scanning = ref(false)
+const loadError = ref('')
 const results = ref<ScanResult[]>([])
 const sortField = ref<'score' | 'change_pct' | 'volume'>('score')
 const sortDir = ref<'asc' | 'desc'>('desc')
@@ -96,6 +97,7 @@ function selectStrategy(strategy: StrategyDef) {
 
 async function startScan() {
   scanning.value = true
+  loadError.value = ''
   results.value = []
 
   try {
@@ -114,8 +116,9 @@ async function startScan() {
         matched_conditions: r.matched_conditions || [],
       }))
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('[Scanner] scan failed:', e)
+    loadError.value = e?.message || String(e)
     results.value = []
   } finally {
     scanning.value = false
@@ -175,6 +178,7 @@ function tableData() {
 
 <template>
   <div class="scanner-panel">
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <PanelHeader
       :title="selectedStrategy ? selectedStrategy.name : 'Stock Scanner'"
       :subtitle="selectedStrategy ? selectedStrategy.category : '策略选股'"
@@ -254,6 +258,7 @@ function tableData() {
 </template>
 
 <style scoped>
+.panel-error { padding: 8px 12px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .scanner-panel {
   height: 100%;
   display: flex;
