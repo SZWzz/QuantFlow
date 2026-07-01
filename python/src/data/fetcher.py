@@ -592,7 +592,7 @@ class DataService(data_pb2_grpc.DataServiceServicer):
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                cwd="/Volumes/etx/coding/rebuild/quantflow/python",
+                cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
                 start_new_session=True,
             )
             if result.returncode != 0:

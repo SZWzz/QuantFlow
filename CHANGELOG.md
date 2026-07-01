@@ -17,6 +17,7 @@
 - [Frontend] **useChartTheme 缓存化** — MutationObserver 单次订阅 + 模块级 globalTheme 缓存，避免每次 computed 评估触发 7 次 getComputedStyle
 
 ### Fixed
+- [Python] **宏观经济硬编码路径** — `fetcher.py:_handle_akshare` 中 `cwd` 写死了旧项目路径 `/Volumes/etx/coding/rebuild/quantflow/python`，改为从 `__file__` 动态推导，移动项目或打包后路径变化不再报错
 - [Backend] **多日分时 TDX MAC 服务器单点故障** — MacAdapter 从单地址改为 7 个已知 TDX 服务器轮询（119.147.212.81/168, 115.238.56.58, 123.125.104.230, 180.153.18.170, 61.152.107.247, 124.74.236.65），连接超时自动 fallback 下一地址
 - [Frontend] **多日分时数据解析错误** — `GetMultiDayMinute` 返回 `{symbol, days[]}` 结构，前端之前直接当数组处理导致 `days` 字段未解出，数据始终为空
 - [Frontend] **KDJ 改为递归加权平均（首值种子 50）** — `kdj()` 之前用 `sma()` 导致第一个 RSV 后还需等 6 个周期才有 K/D/J（分时 09:42 才出图），现改为通达信/同花顺风格递归平滑 `K[i]=2/3×K[i-1]+1/3×RSV[i]` 且 K/D 首值=50，09:30 RSV 出值即绘制三线
