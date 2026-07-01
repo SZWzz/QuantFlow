@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -48,13 +49,15 @@ const riskBadgeMap: Record<string, string> = {
   high: '高', medium: '中', low: '低'
 }
 
+const { fetchWithCache } = usePanelCache()
+
 async function loadRisks() {
   loading.value = true
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetGeopoliticsRisks) {
-      const result = await app.GetGeopoliticsRisks()
-      risks.value = result.risks || []
+      const { data: result } = await fetchWithCache<any>('geopolitics_risks', () => app.GetGeopoliticsRisks(), 30 * 60 * 1000)
+      risks.value = result?.risks || []
     }
   } catch(e) {
     console.error('[Geopolitics] loadRisks:', e)
@@ -68,7 +71,7 @@ async function loadDetail(topic: TopicRisk) {
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetGeopoliticsDetail) {
-      const result = await app.GetGeopoliticsDetail(topic.id, '7d')
+      const { data: result } = await fetchWithCache<any>(`geopolitics_detail:${topic.id}`, () => app.GetGeopoliticsDetail(topic.id, '7d'), 30 * 60 * 1000)
       if (result.volumes?.length > 0) {
         detailVolumes.value = result.volumes
       }

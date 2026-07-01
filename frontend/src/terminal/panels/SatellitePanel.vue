@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const { t } = useI18n()
 
@@ -34,14 +35,15 @@ const selectedRegion = ref<RegionSnapshot | null>(null)
 const solarData = ref<EnergyPoint[]>([])
 const windData = ref<EnergyPoint[]>([])
 const chartLoading = ref(false)
+const { fetchWithCache } = usePanelCache()
 
 async function loadRegions() {
   loading.value = true
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetSatelliteSnapshots) {
-      const result = await app.GetSatelliteSnapshots()
-      regions.value = result.regions || []
+      const { data: result } = await fetchWithCache<any>('satellite_snapshots', () => app.GetSatelliteSnapshots(), 30 * 60 * 1000)
+      regions.value = result?.regions || []
     }
   } catch(e) {
     console.error('[Satellite] loadRegions:', e)
@@ -55,7 +57,7 @@ async function loadRegionDetail(region: RegionSnapshot) {
   try {
     const app = (window as any).go?.main?.App
     if (app?.GetSatelliteDetail) {
-      const result = await app.GetSatelliteDetail(region.id)
+      const { data: result } = await fetchWithCache<any>(`satellite_detail:${region.id}`, () => app.GetSatelliteDetail(region.id), 30 * 60 * 1000)
       solarData.value = result.solar_chart || result.solar_data || []
       windData.value = result.wind_chart || result.wind_data || []
     }

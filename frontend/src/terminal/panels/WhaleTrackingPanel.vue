@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -21,6 +22,7 @@ const address = ref('')
 const minUsd = ref(1000000)
 const sortKey = ref<string>('usd_value')
 const sortDir = ref<number>(-1)
+const { fetchWithCache } = usePanelCache()
 
 const sorted = computed(() => {
   const arr = [...txs.value]
@@ -52,7 +54,7 @@ async function fetchData() {
   if (!app?.GetWhaleTransactions) return
   loading.value = true
   try {
-    const raw = await app.GetWhaleTransactions(address.value)
+    const { data: raw } = await fetchWithCache<any>(`whale_txs:${address.value}:${minUsd.value}`, () => app.GetWhaleTransactions(address.value), 3 * 60 * 1000)
     const items = raw?.data || raw?.result || []
     txs.value = (Array.isArray(items) ? items : []).map((t: any) => ({
       hash: t.hash || '',

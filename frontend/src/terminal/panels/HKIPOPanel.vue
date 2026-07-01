@@ -4,12 +4,14 @@ import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const { t } = useI18n()
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const { fetchWithCache } = usePanelCache()
 
 interface HKIPOItem {
   股票代码: string
@@ -90,7 +92,7 @@ async function fetchData() {
   loading.value = true
   error.value = null
   try {
-    const result = await app.GetHKIPOCalendar(year.value)
+    const { data: result } = await fetchWithCache<any>(`hk_ipo:${year.value}`, () => app.GetHKIPOCalendar(year.value), 15 * 60 * 1000)
     const subRaw = result?.subscription?.data || []
     const listRaw = result?.listing?.data || []
     subscriptionData.value = subRaw.map((r: any) => normalizeItem(r))
