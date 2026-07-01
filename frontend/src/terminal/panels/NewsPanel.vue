@@ -36,7 +36,7 @@ async function loadNews() {
     const { data } = await fetchWithCache(
       `news:${sym}`,
       async () => {
-        const result = await (window as any).go.main.App.GetNews(sym, 20)
+        const result = await (window as any).go?.main?.App?.GetNews(sym, 20)
         return Array.isArray(result) ? result : []
       },
       60 * 1000,

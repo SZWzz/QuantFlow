@@ -25,7 +25,7 @@ const cronPresets = [
 async function loadTasks() {
   // TODO: move to store
   loading.value = true
-  try { const { data: r } = await fetchWithCache<any>('schedule_tasks', () => (window as any).go.main.App.ListScheduleTasks(), 5 * 60 * 1000); tasks.value = Array.isArray(r) ? r : [] }
+  try { const { data: r } = await fetchWithCache<any>('schedule_tasks', () => (window as any).go?.main?.App?.ListScheduleTasks(), 5 * 60 * 1000); tasks.value = Array.isArray(r) ? r : [] }
   catch(e) { console.error('[Schedule] fetch:', e); tasks.value = [] }
   finally { loading.value = false }
 }

@@ -27,7 +27,7 @@ const filings = ref<SECFiling[]>([])
 const selectedFormType = ref('All')
 
 const formTypes = ['All', '13F', '4', '10-Q', '8-K', '10-K']
-const app = window.go.main.App
+const app = (window as any).go?.main?.App
 const { fetchWithCache } = usePanelCache()
 
 const filteredFilings = computed(() => {

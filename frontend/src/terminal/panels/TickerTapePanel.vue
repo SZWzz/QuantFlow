@@ -27,7 +27,7 @@ const { data: items, loading, execute } = useDataFetch<TickerItem[]>(async () =>
   const results: TickerItem[] = []
   for (const sym of SYMBOLS.value) {
     try {
-      const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
+      const result = await (window as any).go?.main?.App?.GetQuote(detectMarket(sym), sym)
       const snapshot = Array.isArray(result) ? result[0] : result
       results.push({
         symbol: snapshot.symbol ?? sym,
