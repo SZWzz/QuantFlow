@@ -1,0 +1,35 @@
+<script setup lang="ts">
+import { shallowRef } from 'vue'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { CandlestickChart, BarChart, LineChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, MarkLineComponent } from 'echarts/components'
+import VChart from 'vue-echarts'
+import type { ECBasicOption } from 'echarts/types/dist/shared'
+
+use([CanvasRenderer, CandlestickChart, BarChart, LineChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, MarkLineComponent])
+
+const props = defineProps<{
+  option: ECBasicOption
+  symbol: string
+  loading?: boolean
+}>()
+
+const chartRef = shallowRef<InstanceType<typeof VChart>>()
+
+function refreshSize() {
+  chartRef.value?.resize?.()
+}
+
+defineExpose({ refreshSize })
+</script>
+
+<template>
+  <VChart
+    ref="chartRef"
+    :key="`kc-${symbol}`"
+    :option="option"
+    autoresize
+    style="height: 100%; width: 100%"
+  />
+</template>
