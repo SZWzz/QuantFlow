@@ -4,10 +4,11 @@ import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
-import { marketUpColor, marketDownColor, marketChangeColor } from '@/lib/composables/useMarketColors'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
-import { sma, ema, bb, macd, kdj, rsi, wr, createIndicatorCache } from '@/lib/composables/useIndicators'
+import { createIndicatorCache } from '@/lib/composables/useIndicators'
+import { buildKlineOption, buildMinuteOption, buildMultiDayOption, type KlineDataItem } from '@/lib/buildChartOption'
+import { useWailsApp, type OHLCVBar } from '@/lib/composables/useWailsApp'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -20,9 +21,6 @@ const topOverlay = ref<'none' | 'ma' | 'bb'>('none')
 const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr'>('volume')
 const minuteBottomMode = ref<'volume' | 'macd' | 'kdj'>('volume')
 
-// Color scheme: per-market (CN 红涨绿跌, others 绿涨红跌)
-function upColor() { return marketUpColor(symbol.value) }
-function downColor() { return marketDownColor(symbol.value) }
 
 // Market-aware trading hours check (polling guard).
 function isTradingHours(): boolean {
@@ -81,11 +79,12 @@ function toggleWatchlist() {
   }
 }
 const interval = ref(props.params?.interval || '1d')
-const ohlcvData = ref<(string | number)[][]>([])
+const ohlcvData = ref<KlineDataItem[]>([])
 const loading = ref(false)
 const indicatorCache = createIndicatorCache()
 const errorMsg = ref('')
 let loadSeq = 0
+const theme = useChartTheme()
 
 // Tab state
 const activeTab = ref<'kline' | 'minute' | 'multiDay'>('kline')
@@ -138,39 +137,41 @@ async function loadOHLCV(sym: string, incremental = false) {
     const iv = interval.value
     let start: number
     if (incremental && ohlcvData.value.length > 0) {
-      const lastDate = ohlcvData.value[ohlcvData.value.length - 1][0] as string
+      const lastDate = ohlcvData.value[ohlcvData.value.length - 1].date
       start = Math.floor(new Date(lastDate.replace(' ', 'T')).getTime() / 1000)
     } else {
       const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 450 : 365
       start = end - lookbackDays * 86400
     }
-    const fqfactor = 'qfq'
-    const result = await (window as any).go.main.App.FetchOHLCV(detectMarket(sym), sym, iv, fqfactor, start, end)
+    const app = useWailsApp()
+    if (!app) { loading.value = false; return }
+    const result = await app.FetchOHLCV(detectMarket(sym), sym, iv, 'qfq', String(start), String(end))
     if (seq !== loadSeq) return
     const isIntraday = ['1m','5m','15m','30m','1h'].includes(iv)
+    const anyResult = result as any
+    const rawBars: OHLCVBar[] = Array.isArray(anyResult) && Array.isArray(anyResult[0]) ? anyResult[0] : Array.isArray(anyResult) ? anyResult : []
+    if (!rawBars?.length && !incremental) { ohlcvData.value = []; loading.value = false; return }
     if (incremental && ohlcvData.value.length > 0) {
-      const newBars = (Array.isArray(result) ? result[0] : result) as any[]
-      if (newBars?.length) {
-        const mergeMap = new Map(ohlcvData.value.map((b: any) => [b[0] as string, b]))
-        for (const b of newBars) {
-          const rawDate = b.date || b.Date || ''
+      if (rawBars?.length) {
+        const mergeMap = new Map(ohlcvData.value.map(b => [b.date, b]))
+        for (const b of rawBars) {
+          const rawDate = b.date || ''
           const d = new Date(rawDate)
           const date = isIntraday
             ? d.toISOString().slice(0, 16).replace('T', ' ')
             : d.toISOString().slice(0, 10)
-          mergeMap.set(date, [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0])
+          mergeMap.set(date, { date, open: b.open, close: b.close, low: b.low, high: b.high, volume: b.volume })
         }
-        ohlcvData.value = Array.from(mergeMap.values()).sort((a: any, b: any) => (a[0] as string).localeCompare(b[0] as string))
+        ohlcvData.value = Array.from(mergeMap.values()).sort((a, b) => a.date.localeCompare(b.date))
       }
-    } else {
-      const bars = Array.isArray(result) ? result[0] : result
-      ohlcvData.value = (bars as any[]).map((b: any) => {
-        const rawDate = b.date || b.Date || ''
+    } else if (rawBars) {
+      ohlcvData.value = rawBars.map(b => {
+        const rawDate = b.date || ''
         const d = new Date(rawDate)
         const date = isIntraday
           ? d.toISOString().slice(0, 16).replace('T', ' ')
           : d.toISOString().slice(0, 10)
-        return [date, b.open ?? b.Open ?? 0, b.close ?? b.Close ?? 0, b.low ?? b.Low ?? 0, b.high ?? b.High ?? 0, b.volume ?? b.Volume ?? 0]
+        return { date, open: b.open, close: b.close, low: b.low, high: b.high, volume: b.volume }
       })
     }
   } catch(e: any) {
@@ -185,7 +186,7 @@ async function loadOHLCV(sym: string, incremental = false) {
 
 async function loadMinuteLine() {
   const seq = ++loadSeq
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app) return
   minuteLoading.value = true
   try {
@@ -231,7 +232,7 @@ async function loadMinuteLine() {
 }
 
 async function fetchMultiDayMinute() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app) return
   multiDayLoading.value = true
   try {
@@ -348,279 +349,19 @@ watch(interval, (iv) => {
 })
 
 const option = computed(() => {
-  if (ohlcvData.value.length === 0) return {} as ECBasicOption
-  const dates = ohlcvData.value.map((d: any) => d[0])
-  const kdata = ohlcvData.value.map((d: any) => [d[1], d[2], d[3], d[4]])
-  const close = ohlcvData.value.map((d: any) => d[2] as number)
-  const high = ohlcvData.value.map((d: any) => d[4] as number)
-  const low = ohlcvData.value.map((d: any) => d[3] as number)
-  const vdata = ohlcvData.value.map((d: any, i: number) => {
-    const open = d[1] as number
-    const cl = d[2] as number
-    return { value: (d[5] as number) / 10000, itemStyle: { color: cl >= open ? upColor() : downColor() } }
-  })
-
-  const cacheKey = `${symbol.value}-${interval.value}-${ohlcvData.value.length}-${topOverlay.value}-${bottomMode.value}`
-  const theme = useChartTheme()
-  const gridH = '52%'
-  const bottomTop = '68%'
-  const bottomH = '26%'
-
-  const series: any[] = [
-    {
-      type: 'candlestick', name: 'K线',
-      data: kdata, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
-      itemStyle: { color: upColor(), color0: downColor(), borderColor: upColor(), borderColor0: downColor() },
-    },
-  ]
-
-  if (topOverlay.value === 'ma') {
-    ;[5, 10, 20, 60].forEach(p => {
-      series.push({
-        type: 'line', name: `MA${p}`, data: indicatorCache.getCached(`sma-${cacheKey}-${p}`, () => sma(close, p)),
-        gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
-        symbol: 'none', lineStyle: { width: 1 },
-      })
-    })
-  } else if (topOverlay.value === 'bb') {
-    const b = indicatorCache.getCached(`bb-${cacheKey}-20-2`, () => bb(close, 20, 2))
-    series.push({ type: 'line', name: 'BB上轨', data: b.upper, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
-    series.push({ type: 'line', name: 'BB中轨', data: b.middle, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } })
-    series.push({ type: 'line', name: 'BB下轨', data: b.lower, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
-  }
-
-  if (bottomMode.value === 'volume') {
-    series.push({ type: 'bar', name: 'Volume', data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 })
-  } else if (bottomMode.value === 'macd') {
-    const m = indicatorCache.getCached(`macd-${cacheKey}`, () => macd(close))
-    series.push(
-      { type: 'line', name: 'DIF', data: m.dif, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
-      { type: 'line', name: 'DEA', data: m.dea, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
-      { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => {
-        if (v === null) return null
-        return { value: v, itemStyle: { color: v >= 0 ? '#ef5350' : '#66bb6a' } }
-      }), gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 },
-    )
-  } else if (bottomMode.value === 'kdj') {
-    const kd = indicatorCache.getCached(`kdj-${cacheKey}`, () => kdj(close, high, low))
-    series.push(
-      { type: 'line', name: 'K', data: kd.k, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
-      { type: 'line', name: 'D', data: kd.d, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
-      { type: 'line', name: 'J', data: kd.j, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ab47bc' } },
-    )
-  } else if (bottomMode.value === 'rsi') {
-    const r = indicatorCache.getCached(`rsi-${cacheKey}-14`, () => rsi(close, 14))
-    series.push({
-      type: 'line', name: 'RSI', data: r, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
-      symbol: 'none', lineStyle: { width: 1, color: '#ec407a' },
-      markLine: { silent: true, symbol: 'none', data: [
-        { yAxis: 70, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
-        { yAxis: 30, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
-      ]},
-    })
-  } else if (bottomMode.value === 'wr') {
-    const w = indicatorCache.getCached(`wr-${cacheKey}-14`, () => wr(close, high, low, 14))
-    series.push({
-      type: 'line', name: 'WR', data: w, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
-      symbol: 'none', lineStyle: { width: 1, color: '#42a5f5' },
-      markLine: { silent: true, symbol: 'none', data: [
-        { yAxis: -20, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
-        { yAxis: -80, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
-      ]},
-    })
-  }
-
-  let bottomYAxis: any = { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } }
-  if (bottomMode.value === 'volume') {
-    bottomYAxis = { ...bottomYAxis, axisLabel: { ...bottomYAxis.axisLabel, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) } }
-  } else if (bottomMode.value === 'kdj' || bottomMode.value === 'rsi') {
-    bottomYAxis = { ...bottomYAxis, min: 0, max: 100 }
-  } else if (bottomMode.value === 'wr') {
-    bottomYAxis = { ...bottomYAxis, min: -100, max: 0 }
-  }
-
-  return {
-    backgroundColor: 'transparent',
-    grid: [
-      { left: 60, right: 10, top: 10, height: gridH },
-      { left: 60, right: 10, top: bottomTop, height: bottomH },
-    ],
-    xAxis: [
-      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } } },
-      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } } },
-    ],
-    yAxis: [
-      { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
-      { ...bottomYAxis, scale: true },
-    ],
-    series,
-    tooltip: { trigger: 'axis' as const },
-    dataZoom: [
-      { type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100 },
-      { type: 'slider', xAxisIndex: [0, 1], bottom: 0, height: 20 },
-    ],
-  } as ECBasicOption
+  if (!ohlcvData.value.length) return {} as ECBasicOption
+  return buildKlineOption(ohlcvData.value, topOverlay.value, bottomMode.value, theme, indicatorCache, symbol.value, interval.value)
 })
 
 const minuteChartOption = computed(() => {
   if (!minuteTicks.value.length) return {} as ECBasicOption
-  const times = minuteTicks.value.map(t => t.time)
-  const prices = minuteTicks.value.map(t => t.price)
-  const volumes = minuteTicks.value.map(t => t.volume / 10000)
-  const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose.value
-  const lineColor = isUp ? upColor() : downColor()
-  const theme = useChartTheme()
-
-  const grid: any[] = []
-  const xAxis: any[] = []
-  const yAxis: any[] = []
-  const series: any[] = []
-
-  // Price grid (shared across all modes)
-  const priceBot = minuteBottomMode.value === 'volume' ? '78%' : '55%'
-  grid.push({ left: 60, right: 20, top: 10, height: minuteBottomMode.value === 'volume' ? '62%' : '40%' })
-  xAxis.push({ type: 'category', data: times, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } }, axisTick: { show: false } })
-  yAxis.push({ type: 'value', gridIndex: 0, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { lineStyle: { color: theme.bgColor } },
-    min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
-    max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
-  })
-  series.push(
-    { type: 'line', name: '价格', data: prices, xAxisIndex: 0, yAxisIndex: 0, smooth: false, symbol: 'none', lineStyle: { color: lineColor, width: 1.5 },
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [
-        { offset: 0, color: isUp ? upColor() + '40' : downColor() + '40' },
-        { offset: 1, color: 'rgba(0,0,0,0)' },
-      ]}},
-      markLine: prevClose.value > 0 ? { silent: true, symbol: 'none', lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 }, data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }] } : undefined,
-    },
-    { type: 'line', name: '均价', data: minuteTicks.value.map(t => t.avg_price), xAxisIndex: 0, yAxisIndex: 0, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' } },
-  )
-
-  // Bottom grid: volume or MACD/KDJ
-  const botGridIdx = 1
-  const botAxisIdx = 1
-  grid.push({ left: 60, right: 20, top: priceBot, height: minuteBottomMode.value === 'volume' ? '15%' : '35%' })
-  xAxis.push({ type: 'category', data: times, gridIndex: botGridIdx, axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 }, axisLine: { lineStyle: { color: theme.splitColor } } })
-
-  if (minuteBottomMode.value === 'volume') {
-    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) }, splitLine: { show: false } })
-    series.push({ type: 'bar', name: '成交量', data: volumes, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, itemStyle: { color: theme.splitColor }, barWidth: 1 })
-  } else if (minuteBottomMode.value === 'macd') {
-    const m = macd(prices)
-    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true })
-    series.push(
-      { type: 'line', name: 'DIF', data: m.dif, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
-      { type: 'line', name: 'DEA', data: m.dea, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
-      { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => v === null ? null : { value: v, itemStyle: { color: v >= 0 ? '#ef5350' : '#66bb6a' } }), xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx },
-    )
-  } else if (minuteBottomMode.value === 'kdj') {
-    const n = 9
-    const minPrices = prices.map((_, i) => {
-      const start = Math.max(0, i - n + 1)
-      return Math.min(...prices.slice(start, i + 1))
-    })
-    const maxPrices = prices.map((_, i) => {
-      const start = Math.max(0, i - n + 1)
-      return Math.max(...prices.slice(start, i + 1))
-    })
-    const kd = kdj(prices, maxPrices, minPrices, n, 3, 3)
-    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true })
-    series.push(
-      { type: 'line', name: 'K', data: kd.k, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
-      { type: 'line', name: 'D', data: kd.d, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
-      { type: 'line', name: 'J', data: kd.j, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ab47bc' } },
-    )
-  }
-
-  return {
-    animation: false, animationDurationUpdate: 0, animationEasingUpdate: 'linear',
-    backgroundColor: 'transparent', grid, xAxis, yAxis, series,
-    tooltip: { trigger: 'axis' },
-  } as ECBasicOption
+  return buildMinuteOption(minuteTicks.value, prevClose.value, minuteBottomMode.value, theme, indicatorCache, symbol.value)
 })
 
 const multiDayChartOption = computed(() => {
   const day = multiDayData.value[selectedDayIndex.value]
   if (!day || !day.ticks.length) return {} as ECBasicOption
-  const ticks = day.ticks
-  const times = ticks.map(t => t.time)
-  const prices = ticks.map(t => t.price)
-  const volumes = ticks.map(t => t.volume / 10000)
-  const isUp = prices.length > 0 && prices[prices.length - 1] >= day.prevClose
-  const lineColor = isUp ? upColor() : downColor()
-  const theme = useChartTheme()
-
-  return {
-    animation: false,
-    animationDurationUpdate: 0,
-    animationEasingUpdate: 'linear',
-    backgroundColor: 'transparent',
-    grid: [
-      { left: 60, right: 20, top: 10, height: '62%' },
-      { left: 60, right: 20, top: '78%', height: '15%' },
-    ],
-    xAxis: [
-      {
-        type: 'category', data: times, gridIndex: 0,
-        axisLabel: { show: false },
-        axisLine: { lineStyle: { color: theme.splitColor } },
-        axisTick: { show: false },
-      },
-      {
-        type: 'category', data: times, gridIndex: 1,
-        axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 },
-        axisLine: { lineStyle: { color: theme.splitColor } },
-      },
-    ],
-    yAxis: [
-      {
-        type: 'value', gridIndex: 0, position: 'left',
-        axisLabel: { color: theme.axisColor, fontSize: 10 },
-        splitLine: { lineStyle: { color: theme.bgColor } },
-        min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
-        max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
-      },
-      {
-        type: 'value', gridIndex: 1, position: 'left',
-        axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) },
-        splitLine: { show: false },
-      },
-    ],
-    series: [
-      {
-        type: 'line', name: '价格', data: prices,
-        xAxisIndex: 0, yAxisIndex: 0,
-        smooth: false, symbol: 'none',
-        lineStyle: { color: lineColor, width: 1.5 },
-        areaStyle: {
-          color: {
-            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: isUp ? upColor() + '40' : downColor() + '40' },
-              { offset: 1, color: 'rgba(0,0,0,0)' }
-            ]
-          }
-        },
-        markLine: day.prevClose > 0 ? {
-          silent: true, symbol: 'none',
-          lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 },
-          data: [{ yAxis: day.prevClose, label: { formatter: `昨收 ${day.prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }],
-        } : undefined,
-      },
-      {
-        type: 'line', name: '均价', data: ticks.map(t => t.avg_price),
-        xAxisIndex: 0, yAxisIndex: 0,
-        smooth: true, symbol: 'none',
-        lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' },
-      },
-      {
-        type: 'bar', name: '成交量', data: volumes,
-        xAxisIndex: 1, yAxisIndex: 1,
-        itemStyle: { color: theme.splitColor },
-        barWidth: 1,
-      },
-    ],
-    tooltip: { trigger: 'axis' },
-  } as ECBasicOption
+  return buildMultiDayOption(day.ticks, day.prevClose, theme, symbol.value)
 })
 
 onMounted(() => {
