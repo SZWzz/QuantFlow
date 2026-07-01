@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
@@ -20,6 +20,12 @@ const providers: ProviderDef[] = [
   { id: 'openai', name: 'OpenAI', icon: '🤖', needKey: true },
   { id: 'anthropic', name: 'Anthropic', icon: '🧠', needKey: true },
   { id: 'deepseek', name: 'DeepSeek', icon: '🔮', needKey: true },
+  { id: 'google', name: 'Google Gemini', icon: '🌐', needKey: true },
+  { id: 'mistral', name: 'Mistral AI', icon: '🌬️', needKey: true },
+  { id: 'groq', name: 'Groq', icon: '⚡', needKey: true },
+  { id: 'siliconflow', name: 'SiliconFlow', icon: '🔬', needKey: true },
+  { id: 'zhipu', name: '智谱 AI', icon: '🎯', needKey: true },
+  { id: 'openrouter', name: 'OpenRouter', icon: '🔀', needKey: true },
   { id: 'ollama', name: 'Ollama', icon: '🦙', needKey: false },
 ]
 
@@ -27,6 +33,12 @@ const form = ref({
   openai: { apiKey: '', baseUrl: '' },
   anthropic: { apiKey: '', baseUrl: '' },
   deepseek: { apiKey: '', baseUrl: '' },
+  google: { apiKey: '', baseUrl: '' },
+  mistral: { apiKey: '', baseUrl: '' },
+  groq: { apiKey: '', baseUrl: '' },
+  siliconflow: { apiKey: '', baseUrl: '' },
+  zhipu: { apiKey: '', baseUrl: '' },
+  openrouter: { apiKey: '', baseUrl: '' },
   ollama: { baseUrl: '' },
 })
 
@@ -36,11 +48,18 @@ const modelsError = ref('')
 const testingProvider = ref('')
 const testResults = ref<Record<string, { ok: boolean; msg: string }>>({})
 const saveMsg = ref('')
+let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 const defaultUrls: Record<string, string> = {
   openai: 'https://api.openai.com',
   anthropic: 'https://api.anthropic.com',
   deepseek: 'https://api.deepseek.com',
+  google: 'https://generativelanguage.googleapis.com',
+  mistral: 'https://api.mistral.ai',
+  groq: 'https://api.groq.com/openai/v1',
+  siliconflow: 'https://api.siliconflow.cn/v1',
+  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+  openrouter: 'https://openrouter.ai/api/v1',
   ollama: 'http://localhost:11434',
 }
 
@@ -48,6 +67,12 @@ const defaultUrlHint: Record<string, string> = {
   openai: 'https://api.openai.com',
   anthropic: 'https://api.anthropic.com',
   deepseek: 'https://api.deepseek.com',
+  google: 'https://generativelanguage.googleapis.com',
+  mistral: 'https://api.mistral.ai',
+  groq: 'https://api.groq.com/openai/v1',
+  siliconflow: 'https://api.siliconflow.cn/v1',
+  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+  openrouter: 'https://openrouter.ai/api/v1',
   ollama: 'http://localhost:11434',
 }
 
@@ -59,6 +84,18 @@ function loadFromStore() {
   form.value.anthropic.baseUrl = s.llmAnthropicBaseUrl
   form.value.deepseek.apiKey = s.llmDeepseekKey
   form.value.deepseek.baseUrl = s.llmDeepseekBaseUrl
+  form.value.google.apiKey = s.llmGoogleKey
+  form.value.google.baseUrl = s.llmGoogleBaseUrl
+  form.value.mistral.apiKey = s.llmMistralKey
+  form.value.mistral.baseUrl = s.llmMistralBaseUrl
+  form.value.groq.apiKey = s.llmGroqKey
+  form.value.groq.baseUrl = s.llmGroqBaseUrl
+  form.value.siliconflow.apiKey = s.llmSiliconflowKey
+  form.value.siliconflow.baseUrl = s.llmSiliconflowBaseUrl
+  form.value.zhipu.apiKey = s.llmZhipuKey
+  form.value.zhipu.baseUrl = s.llmZhipuBaseUrl
+  form.value.openrouter.apiKey = s.llmOpenrouterKey
+  form.value.openrouter.baseUrl = s.llmOpenrouterBaseUrl
   form.value.ollama.baseUrl = s.llmOllamaBaseUrl
 }
 
@@ -70,10 +107,25 @@ function saveToStore() {
   settingsStore.update('llmAnthropicBaseUrl', f.anthropic.baseUrl)
   settingsStore.update('llmDeepseekKey', f.deepseek.apiKey)
   settingsStore.update('llmDeepseekBaseUrl', f.deepseek.baseUrl)
+  settingsStore.update('llmGoogleKey', f.google.apiKey)
+  settingsStore.update('llmGoogleBaseUrl', f.google.baseUrl)
+  settingsStore.update('llmMistralKey', f.mistral.apiKey)
+  settingsStore.update('llmMistralBaseUrl', f.mistral.baseUrl)
+  settingsStore.update('llmGroqKey', f.groq.apiKey)
+  settingsStore.update('llmGroqBaseUrl', f.groq.baseUrl)
+  settingsStore.update('llmSiliconflowKey', f.siliconflow.apiKey)
+  settingsStore.update('llmSiliconflowBaseUrl', f.siliconflow.baseUrl)
+  settingsStore.update('llmZhipuKey', f.zhipu.apiKey)
+  settingsStore.update('llmZhipuBaseUrl', f.zhipu.baseUrl)
+  settingsStore.update('llmOpenrouterKey', f.openrouter.apiKey)
+  settingsStore.update('llmOpenrouterBaseUrl', f.openrouter.baseUrl)
   settingsStore.update('llmOllamaBaseUrl', f.ollama.baseUrl)
   saveMsg.value = t('settings.llm_save_hint')
-  setTimeout(() => saveMsg.value = '', 3000)
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => { saveMsg.value = ''; saveTimer = null }, 3000)
 }
+
+onUnmounted(() => { if (saveTimer) clearTimeout(saveTimer) })
 
 async function fetchModels() {
   loadingModels.value = true
@@ -88,6 +140,14 @@ async function fetchModels() {
         { id: 'anthropic/claude-sonnet-4-6', provider: 'anthropic', display_name: 'Claude Sonnet 4.6' },
         { id: 'anthropic/claude-opus-4-8', provider: 'anthropic', display_name: 'Claude Opus 4.8' },
         { id: 'deepseek/deepseek-chat', provider: 'deepseek', display_name: 'DeepSeek-V3' },
+        { id: 'google/gemini-2.5-flash', provider: 'google', display_name: 'Gemini 2.5 Flash' },
+        { id: 'google/gemini-2.5-pro', provider: 'google', display_name: 'Gemini 2.5 Pro' },
+        { id: 'mistral/mistral-large-2506', provider: 'mistral', display_name: 'Mistral Large' },
+        { id: 'groq/llama-3.3-70b', provider: 'groq', display_name: 'Llama 3.3 70B (Groq)' },
+        { id: 'siliconflow/deepseek-v3', provider: 'siliconflow', display_name: 'DeepSeek-V3 (SiliconFlow)' },
+        { id: 'zhipu/glm-5', provider: 'zhipu', display_name: 'GLM-5' },
+        { id: 'zhipu/glm-5-flash', provider: 'zhipu', display_name: 'GLM-5 Flash' },
+        { id: 'openrouter/anthropic/claude-opus-4', provider: 'openrouter', display_name: 'Claude Opus 4 (OpenRouter)' },
       ]
       return
     }
@@ -148,7 +208,7 @@ function formatNumber(n: number): string {
   return String(n)
 }
 
-onMounted(loadFromStore)
+onMounted(() => { loadFromStore(); fetchModels() })
 </script>
 
 <template>

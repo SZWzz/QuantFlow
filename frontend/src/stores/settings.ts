@@ -25,6 +25,18 @@ export interface SettingsState {
   llmDeepseekKey: string
   llmDeepseekBaseUrl: string
   llmOllamaBaseUrl: string
+  llmGoogleKey: string
+  llmGoogleBaseUrl: string
+  llmMistralKey: string
+  llmMistralBaseUrl: string
+  llmGroqKey: string
+  llmGroqBaseUrl: string
+  llmSiliconflowKey: string
+  llmSiliconflowBaseUrl: string
+  llmZhipuKey: string
+  llmZhipuBaseUrl: string
+  llmOpenrouterKey: string
+  llmOpenrouterBaseUrl: string
   llmDefaultModel: string
 }
 
@@ -68,6 +80,18 @@ export const useSettingsStore = defineStore('settings', () => {
       llmDeepseekKey: '',
       llmDeepseekBaseUrl: '',
       llmOllamaBaseUrl: '',
+      llmGoogleKey: '',
+      llmGoogleBaseUrl: '',
+      llmMistralKey: '',
+      llmMistralBaseUrl: '',
+      llmGroqKey: '',
+      llmGroqBaseUrl: '',
+      llmSiliconflowKey: '',
+      llmSiliconflowBaseUrl: '',
+      llmZhipuKey: '',
+      llmZhipuBaseUrl: '',
+      llmOpenrouterKey: '',
+      llmOpenrouterBaseUrl: '',
       llmDefaultModel: '',
     }
   }
