@@ -3,11 +3,13 @@ import { ref, watch, onMounted, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
+const { fetchWithCache } = usePanelCache()
 const name = ref('')
 const lastPrice = ref(0)
 const change = ref(0)
@@ -62,7 +64,7 @@ async function refresh() {
   try {
     const mkt = detectMarket(symbol.value)
     const [quoteResult, depthResult] = await Promise.all([
-      app.GetQuote(mkt, symbol.value),
+      fetchWithCache(`quote:${mkt}:${symbol.value}`, () => app.GetQuote(mkt, symbol.value), 60 * 1000).then(r => r.data),
       app.GetDepth(mkt, symbol.value).catch(() => null),
     ])
     const snapshot = Array.isArray(quoteResult) ? quoteResult[0] : quoteResult
@@ -91,7 +93,7 @@ async function fetchAuction() {
   if (!app) return
   auctionLoading.value = true
   try {
-    const result = await app.GetAuction(symbol.value)
+    const { data: result } = await fetchWithCache(`auction:${symbol.value}`, () => app.GetAuction(symbol.value), 60 * 1000)
     const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
     auctionItems.value = items.map((i: any) => ({
       time: i.time || '',

@@ -4,11 +4,13 @@ import { useDataStore } from '@/stores/data'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { PanelHeader, PanelCard, PanelTable, LoadingState } from '@/terminal/components/panel'
 import type { IndexSnapshot, SectorRanking } from '@/stores/data'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const { fetchWithCache } = usePanelCache()
 
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
@@ -49,7 +51,7 @@ async function fetchBlockRank() {
   if (!app) return
   blockRankLoading.value = true
   try {
-    const result = await app.GetBlockRank(1, 0, 10)
+    const { data: result } = await fetchWithCache('block_rank', () => app.GetBlockRank(1, 0, 10), 5 * 60 * 1000)
     const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
     blockRank.value = items.map((i: any) => ({
       symbol: i.symbol || '',

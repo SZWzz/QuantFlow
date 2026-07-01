@@ -4,11 +4,13 @@ import { useDataStore } from '@/stores/data'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { PanelHeader } from '@/terminal/components/panel'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const { fetchWithCache } = usePanelCache()
 
 const WS_KEY = 'quantflow-watchlist'
 const defaultSymbols = ['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276']
@@ -32,7 +34,7 @@ const loading = ref<Record<string, boolean>>({})
 async function refreshQuote(sym: string) {
   loading.value[sym] = true
   try {
-    const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
+    const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => (window as any).go?.main?.App?.GetQuote(detectMarket(sym), sym), 60 * 1000)
     const snapshot = Array.isArray(result) ? result[0] : result
     quotes.value[sym] = {
       symbol: snapshot?.symbol ?? sym,
@@ -87,7 +89,7 @@ onMounted(async () => {
     const app = (window as any).go?.main?.App
     if (app?.SearchSymbols) {
       for (const sym of symbols.value) {
-        const results = await app.SearchSymbols(sym, 1)
+        const { data: results } = await fetchWithCache(`search:${sym}`, () => app.SearchSymbols(sym, 1), 5 * 60 * 1000)
         if (Array.isArray(results) && results.length > 0 && results[0].name) {
           if (!quotes.value[sym]) {
             quotes.value[sym] = { symbol: sym, name: results[0].name, last: 0, change: 0, changePct: 0 }
