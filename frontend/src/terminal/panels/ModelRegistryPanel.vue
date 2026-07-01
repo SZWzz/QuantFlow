@@ -160,6 +160,25 @@ async function fetchModels() {
   }
 }
 
+async function fetchProviderModels(pid: string) {
+  const f = form.value[pid as keyof typeof form.value] as any
+  const app = (window as any).go?.main?.App
+  if (!app?.ListProviderModels) return
+  try {
+    const result = await app.ListProviderModels(pid, f.apiKey || '', f.baseUrl || defaultUrls[pid] || '')
+    const fetchedModels = (Array.isArray(result) ? result : []).map((m: any) => ({
+      ...m,
+      id: m.id || `${pid}/${m.ID || ''}`,
+      provider: pid,
+      display_name: m.display_name || m.id?.split('/').pop() || m.ID || m.id,
+    }))
+    models.value = models.value.filter((m: any) => m.provider !== pid)
+    models.value.push(...fetchedModels)
+  } catch (e: any) {
+    console.error(`[ModelRegistry] fetch ${pid} models:`, e)
+  }
+}
+
 async function testProvider(pid: string) {
   testingProvider.value = pid
   testResults.value[pid] = { ok: false, msg: t('common.testing') }
@@ -171,6 +190,9 @@ async function testProvider(pid: string) {
       testResults.value[pid] = result?.ok
         ? { ok: true, msg: t('settings.llm_test_success') + (result.latencyMs ? ` (${result.latencyMs}ms)` : '') }
         : { ok: false, msg: result?.error || t('settings.llm_test_fail') }
+      if (result?.ok) {
+        await fetchProviderModels(pid)
+      }
     } else {
       await new Promise(r => setTimeout(r, 1000))
       testResults.value[pid] = { ok: true, msg: t('settings.llm_test_success') + ' (fallback)' }
@@ -208,7 +230,7 @@ function formatNumber(n: number): string {
   return String(n)
 }
 
-onMounted(() => { loadFromStore(); fetchModels() })
+onMounted(loadFromStore)
 </script>
 
 <template>
@@ -284,7 +306,7 @@ onMounted(() => { loadFromStore(); fetchModels() })
             <option v-for="m in models" :key="m.id" :value="m.id">{{ m.id }}</option>
           </select>
           <button class="btn btn-primary" @click="fetchModels" :disabled="loadingModels">
-            {{ loadingModels ? '...' : '📡 ' + t('settings.llm_fetch_models') }}
+            {{ loadingModels ? '...' : '📡 ' + t('settings.llm_refresh_all') }}
           </button>
         </div>
       </div>

@@ -110,6 +110,7 @@ export default {
     llm_ollama_url: 'Ollama 接口地址',
     llm_default_model: '默认对话模型',
     llm_fetch_models: '获取模型列表',
+    llm_refresh_all: '刷新全部',
     llm_test: '测试连接',
     llm_test_success: '连接成功',
     llm_test_fail: '连接失败',

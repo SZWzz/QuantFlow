@@ -5,10 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -529,6 +532,163 @@ func (a *App) ListLLMModels() ([]map[string]interface{}, error) {
 			"context_window":  m.ContextWindow,
 			"supports_tools":  m.SupportsTools,
 			"supports_vision": m.SupportsVision,
+		})
+	}
+	return models, nil
+}
+
+// TestLLMConnection verifies connectivity to an LLM provider by sending a
+// minimal request (list models) to the provider's API endpoint.
+func (a *App) TestLLMConnection(provider, apiKey, baseUrl string) (map[string]interface{}, error) {
+	if apiKey == "" {
+		return map[string]interface{}{"ok": false, "error": "API key is required"}, nil
+	}
+	if baseUrl == "" {
+		return map[string]interface{}{"ok": false, "error": "base URL is required"}, nil
+	}
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	url := strings.TrimRight(baseUrl, "/")
+
+	switch provider {
+	case "google":
+		url += "/v1beta/models"
+	case "ollama":
+		url += "/api/tags"
+	default:
+		url += "/v1/models"
+	}
+
+	start := time.Now()
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return map[string]interface{}{"ok": false, "error": fmt.Sprintf("create request: %v", err)}, nil
+	}
+	if provider != "ollama" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return map[string]interface{}{"ok": false, "error": fmt.Sprintf("http request: %v", err)}, nil
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	latencyMs := time.Since(start).Milliseconds()
+
+	if resp.StatusCode != 200 {
+		return map[string]interface{}{"ok": false, "error": fmt.Sprintf("API error (%d): %.200s", resp.StatusCode, string(body))}, nil
+	}
+
+	return map[string]interface{}{"ok": true, "latencyMs": latencyMs}, nil
+}
+
+// ListProviderModels fetches available models from a provider's /v1/models API.
+// This calls the provider directly (OpenAI-compatible) rather than going through
+// the Python sidecar, so it works even when the sidecar is not connected.
+func (a *App) ListProviderModels(provider, apiKey, baseUrl string) ([]map[string]interface{}, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("API key is required")
+	}
+	if baseUrl == "" {
+		return nil, fmt.Errorf("base URL is required")
+	}
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	url := strings.TrimRight(baseUrl, "/")
+
+	switch provider {
+	case "google":
+		url += "/v1beta/models"
+	case "ollama":
+		url += "/api/tags"
+	default:
+		url += "/v1/models"
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	if provider != "ollama" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	// Google Gemini uses a different response format
+	if provider == "google" {
+		var googleResult struct {
+			Models []struct {
+				Name        string `json:"name"`
+				DisplayName string `json:"displayName"`
+			} `json:"models"`
+		}
+		if err := json.Unmarshal(body, &googleResult); err != nil {
+			return nil, fmt.Errorf("parse google response: %w", err)
+		}
+		models := make([]map[string]interface{}, 0, len(googleResult.Models))
+		for _, m := range googleResult.Models {
+			models = append(models, map[string]interface{}{
+				"id":           provider + "/" + m.Name,
+				"provider":     provider,
+				"display_name": m.DisplayName,
+			})
+		}
+		return models, nil
+	}
+
+	// Ollama uses /api/tags with a different format
+	if provider == "ollama" {
+		var ollamaResult struct {
+			Models []struct {
+				Name string `json:"name"`
+			} `json:"models"`
+		}
+		if err := json.Unmarshal(body, &ollamaResult); err != nil {
+			return nil, fmt.Errorf("parse ollama response: %w", err)
+		}
+		models := make([]map[string]interface{}, 0, len(ollamaResult.Models))
+		for _, m := range ollamaResult.Models {
+			models = append(models, map[string]interface{}{
+				"id":       provider + "/" + m.Name,
+				"provider": provider,
+			})
+		}
+		return models, nil
+	}
+
+	// OpenAI-compatible response format
+	var result struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("parse response: %w", err)
+	}
+
+	models := make([]map[string]interface{}, 0, len(result.Data))
+	for _, m := range result.Data {
+		models = append(models, map[string]interface{}{
+			"id":       provider + "/" + m.ID,
+			"provider": provider,
 		})
 	}
 	return models, nil

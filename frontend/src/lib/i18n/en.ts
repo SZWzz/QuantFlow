@@ -97,6 +97,7 @@ export default {
     llm_ollama_url: 'Ollama Base URL',
     llm_default_model: 'Default Chat Model',
     llm_fetch_models: 'Fetch Models',
+    llm_refresh_all: 'Refresh All',
     llm_test: 'Test Connection',
     llm_test_success: 'Connection OK',
     llm_test_fail: 'Connection Failed',
