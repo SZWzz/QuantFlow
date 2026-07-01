@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
+	"unicode"
 
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/research"
+	"quantflow/internal/trading"
 )
 
 // GetSentiment returns sentiment analysis for a symbol.
@@ -34,6 +37,38 @@ func detectLanguage(symbol string) string {
 		return "zh"
 	}
 	return "en"
+}
+
+func detectMarketForSymbol(symbol string) string {
+	if strings.HasSuffix(symbol, ".HK") {
+		return "HK"
+	}
+	if strings.HasSuffix(symbol, ".SZ") || strings.HasSuffix(symbol, ".SH") {
+		return "CN"
+	}
+	if len(symbol) == 6 && (symbol[0] == '0' || symbol[0] == '3' || symbol[0] == '6') {
+		return "CN"
+	}
+	if len(symbol) == 5 && symbol[0] == '0' {
+		return "HK"
+	}
+	if len(symbol) <= 4 && allUpper(symbol) {
+		return "US"
+	}
+	return "CN"
+}
+
+func allUpper(s string) bool {
+	for _, r := range s {
+		if !unicode.IsUpper(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func detectST(symbol string) bool {
+	return strings.Contains(strings.ToUpper(symbol), "ST")
 }
 
 // GetSentimentHistory returns historical sentiment for a symbol.
@@ -530,4 +565,71 @@ func (a *App) GetExDividendCalendar(startDate, endDate string) ([]adapters.ExDiv
 		return nil, fmt.Errorf("capital adapter not initialized")
 	}
 	return a.capitalAdpt.FetchExDividendCalendar(context.Background(), startDate, endDate)
+}
+
+// GetDelistingRisk returns delisting risk assessment for a symbol.
+func (a *App) GetDelistingRisk(symbol string) (*trading.DelistingRiskResult, error) {
+	market := detectMarketForSymbol(symbol)
+	isST := detectST(symbol)
+
+	finJSON, err := a.fetchFinancialJSON(symbol)
+	if err != nil {
+		slog.Warn("delisting risk: financial data unavailable", "symbol", symbol, "err", err)
+		return a.computeDelistingRisk(symbol, market, isST, nil)
+	}
+
+	metrics, err := trading.ExtractFinancialMetrics(finJSON)
+	if err != nil {
+		slog.Warn("delisting risk: failed to parse financial data", "symbol", symbol, "err", err)
+		return a.computeDelistingRisk(symbol, market, isST, nil)
+	}
+
+	return a.computeDelistingRisk(symbol, market, isST, metrics)
+}
+
+func (a *App) computeDelistingRisk(symbol, market string, isST bool, metrics *trading.FinancialMetrics) (*trading.DelistingRiskResult, error) {
+	ctx := context.Background()
+	price, marketCap, volume := 0.0, 0.0, 0.0
+	totalShares := 0.0
+	board := trading.DetectBoard(symbol)
+
+	if a.eastmoneyAdpt != nil {
+		info, err := a.eastmoneyAdpt.FetchStockInfo(ctx, symbol)
+		if err == nil && info != nil {
+			marketCap = info.MarketCap
+			totalShares = info.TotalShares
+		}
+	}
+	quote, _, err := a.GetQuote(ctx, market, symbol)
+	if err == nil && quote != nil {
+		price = quote.Last
+		volume = quote.Volume
+		if quote.MarketCap > 0 {
+			marketCap = quote.MarketCap
+		}
+	}
+
+	var categories []trading.DelistingCategory
+	switch market {
+	case "CN":
+		categories = trading.AssessCN(metrics, board, price, marketCap, volume, totalShares)
+	case "HK":
+		categories = trading.AssessHK(price, marketCap, volume, totalShares)
+	case "US":
+		categories = trading.AssessUS(price, marketCap)
+	default:
+		categories = trading.AssessCN(metrics, board, price, marketCap, volume, totalShares)
+	}
+
+	overallRisk := trading.AssessOverall(categories)
+	summary := trading.GenerateSummary(categories, overallRisk)
+
+	return &trading.DelistingRiskResult{
+		Market:      market,
+		Board:       board,
+		IsST:        isST,
+		OverallRisk: overallRisk,
+		Categories:  categories,
+		Summary:     summary,
+	}, nil
 }
