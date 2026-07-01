@@ -1,18 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
-import VChart from 'vue-echarts'
-import { use } from 'echarts/core'
-import { CandlestickChart, BarChart, LineChart } from 'echarts/charts'
-import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
+import KlineChart from '@/terminal/components/panel/KlineChart.vue'
+import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { marketUpColor, marketDownColor, marketChangeColor } from '@/lib/composables/useMarketColors'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
-import { sma, ema, bb, macd, kdj, rsi, wr } from '@/lib/composables/useIndicators'
-
-use([CandlestickChart, BarChart, LineChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, CanvasRenderer])
+import { sma, ema, bb, macd, kdj, rsi, wr, createIndicatorCache } from '@/lib/composables/useIndicators'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -21,7 +16,6 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 // Shared minute data cache from parent DockView
 const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new Map())
 
-const hasEcharts = computed(() => !!VChart)
 const topOverlay = ref<'none' | 'ma' | 'bb'>('none')
 const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr'>('volume')
 const minuteBottomMode = ref<'volume' | 'macd' | 'kdj'>('volume')
@@ -89,6 +83,7 @@ function toggleWatchlist() {
 const interval = ref(props.params?.interval || '1d')
 const ohlcvData = ref<(string | number)[][]>([])
 const loading = ref(false)
+const indicatorCache = createIndicatorCache()
 
 // Tab state
 const activeTab = ref<'kline' | 'minute' | 'multiDay'>('kline')
@@ -288,6 +283,9 @@ watch(activeTab, (tab) => {
 
 // Watch symbol change — reload minute data
 watch(() => symbol.value, (newSymbol, oldSymbol) => {
+  if (oldSymbol && newSymbol !== oldSymbol) {
+    indicatorCache.clear()
+  }
   // Save old symbol data to shared cache
   if (oldSymbol) {
     const cacheKey = `${oldSymbol}:${getTodayDateString()}`
@@ -322,7 +320,7 @@ watch(interval, (iv) => {
 })
 
 const option = computed(() => {
-  if (ohlcvData.value.length === 0) return {}
+  if (ohlcvData.value.length === 0) return {} as ECBasicOption
   const dates = ohlcvData.value.map((d: any) => d[0])
   const kdata = ohlcvData.value.map((d: any) => [d[1], d[2], d[3], d[4]])
   const close = ohlcvData.value.map((d: any) => d[2] as number)
@@ -334,6 +332,7 @@ const option = computed(() => {
     return { value: (d[5] as number) / 10000, itemStyle: { color: cl >= open ? upColor() : downColor() } }
   })
 
+  const cacheKey = `${symbol.value}-${interval.value}-${ohlcvData.value.length}-${topOverlay.value}-${bottomMode.value}`
   const theme = useChartTheme()
   const gridH = '52%'
   const bottomTop = '68%'
@@ -350,13 +349,13 @@ const option = computed(() => {
   if (topOverlay.value === 'ma') {
     ;[5, 10, 20, 60].forEach(p => {
       series.push({
-        type: 'line', name: `MA${p}`, data: sma(close, p),
+        type: 'line', name: `MA${p}`, data: indicatorCache.getCached(`sma-${cacheKey}-${p}`, () => sma(close, p)),
         gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
         symbol: 'none', lineStyle: { width: 1 },
       })
     })
   } else if (topOverlay.value === 'bb') {
-    const b = bb(close)
+    const b = indicatorCache.getCached(`bb-${cacheKey}-20-2`, () => bb(close, 20, 2))
     series.push({ type: 'line', name: 'BB上轨', data: b.upper, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
     series.push({ type: 'line', name: 'BB中轨', data: b.middle, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } })
     series.push({ type: 'line', name: 'BB下轨', data: b.lower, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
@@ -365,7 +364,7 @@ const option = computed(() => {
   if (bottomMode.value === 'volume') {
     series.push({ type: 'bar', name: 'Volume', data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 })
   } else if (bottomMode.value === 'macd') {
-    const m = macd(close)
+    const m = indicatorCache.getCached(`macd-${cacheKey}`, () => macd(close))
     series.push(
       { type: 'line', name: 'DIF', data: m.dif, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
       { type: 'line', name: 'DEA', data: m.dea, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
@@ -375,14 +374,14 @@ const option = computed(() => {
       }), gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 },
     )
   } else if (bottomMode.value === 'kdj') {
-    const kd = kdj(close, high, low)
+    const kd = indicatorCache.getCached(`kdj-${cacheKey}`, () => kdj(close, high, low))
     series.push(
       { type: 'line', name: 'K', data: kd.k, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
       { type: 'line', name: 'D', data: kd.d, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
       { type: 'line', name: 'J', data: kd.j, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ab47bc' } },
     )
   } else if (bottomMode.value === 'rsi') {
-    const r = rsi(close)
+    const r = indicatorCache.getCached(`rsi-${cacheKey}-14`, () => rsi(close, 14))
     series.push({
       type: 'line', name: 'RSI', data: r, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
       symbol: 'none', lineStyle: { width: 1, color: '#ec407a' },
@@ -392,7 +391,7 @@ const option = computed(() => {
       ]},
     })
   } else if (bottomMode.value === 'wr') {
-    const w = wr(close, high, low)
+    const w = indicatorCache.getCached(`wr-${cacheKey}-14`, () => wr(close, high, low, 14))
     series.push({
       type: 'line', name: 'WR', data: w, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
       symbol: 'none', lineStyle: { width: 1, color: '#42a5f5' },
@@ -432,11 +431,11 @@ const option = computed(() => {
       { type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100 },
       { type: 'slider', xAxisIndex: [0, 1], bottom: 0, height: 20 },
     ],
-  }
+  } as ECBasicOption
 })
 
 const minuteChartOption = computed(() => {
-  if (!minuteTicks.value.length) return {}
+  if (!minuteTicks.value.length) return {} as ECBasicOption
   const times = minuteTicks.value.map(t => t.time)
   const prices = minuteTicks.value.map(t => t.price)
   const volumes = minuteTicks.value.map(t => t.volume / 10000)
@@ -486,7 +485,16 @@ const minuteChartOption = computed(() => {
       { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => v === null ? null : { value: v, itemStyle: { color: v >= 0 ? '#ef5350' : '#66bb6a' } }), xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx },
     )
   } else if (minuteBottomMode.value === 'kdj') {
-    const kd = kdj(prices, prices, prices)
+    const n = 9
+    const minPrices = prices.map((_, i) => {
+      const start = Math.max(0, i - n + 1)
+      return Math.min(...prices.slice(start, i + 1))
+    })
+    const maxPrices = prices.map((_, i) => {
+      const start = Math.max(0, i - n + 1)
+      return Math.max(...prices.slice(start, i + 1))
+    })
+    const kd = kdj(prices, maxPrices, minPrices, n, 3, 3)
     yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true })
     series.push(
       { type: 'line', name: 'K', data: kd.k, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
@@ -499,12 +507,12 @@ const minuteChartOption = computed(() => {
     animation: false, animationDurationUpdate: 0, animationEasingUpdate: 'linear',
     backgroundColor: 'transparent', grid, xAxis, yAxis, series,
     tooltip: { trigger: 'axis' },
-  }
+  } as ECBasicOption
 })
 
 const multiDayChartOption = computed(() => {
   const day = multiDayData.value[selectedDayIndex.value]
-  if (!day || !day.ticks.length) return {}
+  if (!day || !day.ticks.length) return {} as ECBasicOption
   const ticks = day.ticks
   const times = ticks.map(t => t.time)
   const prices = ticks.map(t => t.price)
@@ -584,7 +592,7 @@ const multiDayChartOption = computed(() => {
       },
     ],
     tooltip: { trigger: 'axis' },
-  }
+  } as ECBasicOption
 })
 
 onMounted(() => {
@@ -663,12 +671,14 @@ onUnmounted(() => {
               <option v-for="(d, i) in multiDayData" :key="i" :value="i">{{ d.date }}</option>
             </select>
           </div>
-          <VChart :key="`multi-${symbol}-${selectedDayDate}`" :option="multiDayChartOption" autoresize class="minute-chart" />
+          <KlineChart :symbol="`${symbol}-multi`" :option="multiDayChartOption" :loading="multiDayLoading && !multiDayData.length" />
         </div>
       </template>
-      <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="`${symbol}-${interval}-${topOverlay}-${bottomMode}`" :option="option" autoresize class="kline-chart" />
-      <VChart v-else-if="hasEcharts && activeTab === 'minute'" :key="`${symbol}-${getTodayDateString()}`" :option="minuteChartOption" :update-options="{ notMerge: false }" autoresize class="minute-chart" />
-      <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
+      <KlineChart v-else-if="activeTab === 'kline' && ohlcvData.length > 0" :symbol="symbol" :option="option" :loading="loading && !ohlcvData.length" />
+      <template v-else-if="activeTab === 'minute'">
+        <KlineChart v-if="minuteTicks.length" :symbol="`${symbol}-minute`" :option="minuteChartOption" :loading="minuteLoading && !minuteTicks.length" />
+        <div v-else class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
+      </template>
       <div v-else class="chart-fallback">--</div>
     </div>
   </div>
