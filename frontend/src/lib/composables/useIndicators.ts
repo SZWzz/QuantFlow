@@ -132,3 +132,18 @@ export function wr(close: number[], high: number[], low: number[], period = 14):
   }
   return r
 }
+
+/** Memoization wrapper for indicator computations */
+export function createIndicatorCache() {
+  const cache = new Map<string, any>()
+  return {
+    getCached<T>(key: string, fn: () => T): T {
+      if (cache.has(key)) return cache.get(key) as T
+      const r = fn()
+      cache.set(key, r)
+      return r
+    },
+    clear() { cache.clear() },
+    delete(key: string) { cache.delete(key) },
+  }
+}
