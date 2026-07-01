@@ -1,53 +1,62 @@
-/**
- * useChartTheme — reads CSS custom properties and returns concrete color values
- * for ECharts configuration. ECharts Canvas renderer does not parse CSS variables,
- * so we must resolve them at runtime via getComputedStyle.
- */
+import { reactive, onUnmounted } from 'vue'
+
 export interface ChartThemeColors {
-  /** Primary text color (axis labels, legend) */
   textColor: string
-  /** Tertiary/secondary text (axis names, tooltip text) */
   axisColor: string
-  /** Grid/split line color */
   splitColor: string
-  /** Chart background color */
   bgColor: string
-  /** Accent/crosshair color */
   crossColor: string
-  /** Tooltip background */
   tooltipBg: string
-  /** Tooltip text */
   tooltipText: string
 }
 
-export function useChartTheme(): ChartThemeColors {
+const root = typeof document !== 'undefined' ? document.documentElement : null
+const body = typeof document !== 'undefined' ? document.body : null
+
+function readTheme(): ChartThemeColors {
+  if (!root) {
+    return { textColor: '#333333', axisColor: '#888780', splitColor: '#e8e8e8', bgColor: '#ffffff', crossColor: '#e24b4a', tooltipBg: '#ffffff', tooltipText: '#333333' }
+  }
   try {
-    const styles = getComputedStyle(document.documentElement)
+    const s = (v: string) => getComputedStyle(root).getPropertyValue(v).trim() || getComputedStyle(body!).getPropertyValue(v).trim()
     return {
-      textColor:
-        styles.getPropertyValue('--color-text-primary').trim() || '#333333',
-      axisColor:
-        styles.getPropertyValue('--color-text-tertiary').trim() || '#888780',
-      splitColor:
-        styles.getPropertyValue('--color-border-subtle').trim() || '#e8e8e8',
-      bgColor:
-        styles.getPropertyValue('--color-bg-elevated').trim() || '#ffffff',
-      crossColor:
-        styles.getPropertyValue('--color-error').trim() || '#e24b4a',
-      tooltipBg:
-        styles.getPropertyValue('--color-bg-glass').trim() || '#ffffff',
-      tooltipText:
-        styles.getPropertyValue('--color-text-primary').trim() || '#333333',
+      textColor: s('--color-text-primary') || '#333333',
+      axisColor: s('--color-text-tertiary') || '#888780',
+      splitColor: s('--color-border-subtle') || '#e8e8e8',
+      bgColor: s('--color-bg-elevated') || '#ffffff',
+      crossColor: s('--color-error') || '#e24b4a',
+      tooltipBg: s('--color-bg-glass') || '#ffffff',
+      tooltipText: s('--color-text-primary') || '#333333',
     }
   } catch {
-    return {
-      textColor: '#333333',
-      axisColor: '#888780',
-      splitColor: '#e8e8e8',
-      bgColor: '#ffffff',
-      crossColor: '#e24b4a',
-      tooltipBg: '#ffffff',
-      tooltipText: '#333333',
-    }
+    return { textColor: '#333333', axisColor: '#888780', splitColor: '#e8e8e8', bgColor: '#ffffff', crossColor: '#e24b4a', tooltipBg: '#ffffff', tooltipText: '#333333' }
   }
+}
+
+let globalTheme: ChartThemeColors | null = null
+let subscribers: (() => void)[] = []
+let observer: MutationObserver | null = null
+
+function ensureObserver() {
+  if (observer || !body) return
+  observer = new MutationObserver(() => {
+    globalTheme = readTheme()
+    subscribers.forEach(fn => fn())
+  })
+  observer.observe(body, { attributes: true, attributeFilter: ['class'] })
+}
+
+export function useChartTheme(): ChartThemeColors {
+  if (!globalTheme) globalTheme = readTheme()
+  ensureObserver()
+
+  const theme = reactive<ChartThemeColors>({ ...globalTheme })
+  const update = () => { Object.assign(theme, globalTheme) }
+  subscribers.push(update)
+
+  onUnmounted(() => {
+    subscribers = subscribers.filter(fn => fn !== update)
+  })
+
+  return theme
 }
