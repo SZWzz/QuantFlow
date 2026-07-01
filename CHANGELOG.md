@@ -16,6 +16,7 @@
 ### Changed
 - [Frontend] **CandlestickPanel 3 阶段重构** — 756 行 → ~383 行脚本，拆分为 KlineChart 组件(稳定 key)、buildChartOption 纯函数 3 个、useWailsApp 类型化桥接
 - [Frontend] **useChartTheme 缓存化** — MutationObserver 单次订阅 + 模块级 globalTheme 缓存，避免每次 computed 评估触发 7 次 getComputedStyle
+- [Frontend] **fetchWithCache 缓存接入 22 面板** — Forecast, HKSettlement, DragonTiger, SurfaceChart, PredictionMarket, Schedule, CBArbitrage, HKDerivatives, HKIPO, Geopolitics, Satellite, WhaleTracking, DeFiTVL, CryptoOverview, Futures, GasFee, DepthComparison, FundingRate, Liquidation, MarketDepth, MarketOverview, Watchlist 统一使用 fetchWithCache 封装。TTL 按数据类型分档（30min 慢变宏观 → 1min 实时加密货币/行情），减少冗余 Wails IPC 调用和 Python sidecar 负载
 
 ### Fixed
 - [Python] **宏观经济硬编码路径** — `fetcher.py:_handle_akshare` 中 `cwd` 写死了旧项目路径 `/Volumes/etx/coding/rebuild/quantflow/python`，改为从 `__file__` 动态推导，移动项目或打包后路径变化不再报错
