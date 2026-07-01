@@ -39,16 +39,16 @@ function saveConfig() { alert('Config saved: not yet wired to Go backend') }
 .form-group { margin-bottom: 10px; }
 .form-group label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 4px; }
 .form-input { width: 100%; padding: 6px 8px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: 4px; color: var(--color-text-primary); font-size: 13px; outline: none; box-sizing: border-box; }
-.form-input:focus { border-color: #58a6ff; }
+.form-input:focus { border-color: var(--color-accent); }
 .checkbox-group label { font-size: 12px; color: var(--color-text-primary); display: flex; align-items: center; gap: 6px; text-transform: none; }
 .config-section { margin-top: 12px; }
 .section-title { font-size: 13px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px; }
-.section-note { font-size: 11px; color: #f0883e; margin-bottom: 8px; }
+.section-note { font-size: 11px; color: var(--color-accent); margin-bottom: 8px; }
 .connection-status { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot.on { background: #3fb950; } .status-dot.off { background: var(--color-text-tertiary); }
+.status-dot.on { background: var(--color-down); } .status-dot.off { background: var(--color-text-tertiary); }
 .status-text { font-size: 11px; color: var(--color-text-tertiary); }
 .actions { display: flex; gap: 8px; margin-top: 16px; }
-.test-btn { flex: 1; padding: 8px; background: var(--color-accent-soft); border: none; border-radius: 4px; color: #58a6ff; font-size: 13px; font-weight: 600; cursor: pointer; }
-.save-btn { flex: 1; padding: 8px; background: #0a3d1a; border: none; border-radius: 4px; color: #3fb950; font-size: 13px; font-weight: 600; cursor: pointer; }
+.test-btn { flex: 1; padding: 8px; background: var(--color-accent-soft); border: none; border-radius: 4px; color: var(--color-accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+.save-btn { flex: 1; padding: 8px; background: var(--color-down); border: none; border-radius: 4px; color: var(--color-down); font-size: 13px; font-weight: 600; cursor: pointer; }
 </style>

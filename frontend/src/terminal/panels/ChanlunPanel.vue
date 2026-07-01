@@ -292,12 +292,12 @@ function formatPct(v: number): string {
 }
 .subtitle {
   font-size: 11px;
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary, var(--color-text-tertiary));
   margin-left: 6px;
 }
 .symbol-info {
   font-size: 11px;
-  color: var(--color-accent, #534ab7);
+  color: var(--color-accent, var(--color-accent));
   margin-left: 8px;
   font-weight: 600;
 }
@@ -308,15 +308,15 @@ function formatPct(v: number): string {
 .symbol-field {
   width: 140px;
   padding: 4px 8px;
-  border: 1px solid var(--color-border, #2a2a3e);
-  background: var(--color-bg-panel, #1a1a2e);
-  color: var(--color-text, #e5e7eb);
+  border: 1px solid var(--color-border, var(--color-bg-elevated));
+  background: var(--color-bg-panel, var(--color-bg-panel));
+  color: var(--color-text, var(--color-border));
   font-size: 13px;
 }
 .query-btn {
   padding: 4px 12px;
-  background: var(--color-accent, #534ab7);
-  color: #fff;
+  background: var(--color-accent, var(--color-accent));
+  color: var(--color-text-primary);
   border: none;
   cursor: pointer;
   font-size: 13px;
@@ -337,16 +337,16 @@ function formatPct(v: number): string {
 }
 .tabs button {
   padding: 4px 12px;
-  border: 1px solid var(--color-border, #2a2a3e);
-  background: var(--color-bg-panel, #1a1a2e);
-  color: var(--color-text-tertiary, #6b7280);
+  border: 1px solid var(--color-border, var(--color-bg-elevated));
+  background: var(--color-bg-panel, var(--color-bg-panel));
+  color: var(--color-text-tertiary, var(--color-text-tertiary));
   cursor: pointer;
   font-size: 12px;
 }
 .tabs button.active {
-  background: var(--color-accent, #534ab7);
-  color: #fff;
-  border-color: var(--color-accent, #534ab7);
+  background: var(--color-accent, var(--color-accent));
+  color: var(--color-text-primary);
+  border-color: var(--color-accent, var(--color-accent));
 }
 .tab-content {
   flex: 1;
@@ -357,7 +357,7 @@ function formatPct(v: number): string {
   gap: 16px;
   padding: 6px 0;
   font-size: 12px;
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary, var(--color-text-tertiary));
 }
 .data-table {
   width: 100%;
@@ -366,24 +366,24 @@ function formatPct(v: number): string {
 }
 .data-table th, .data-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid var(--color-border, #2a2a3e);
+  border-bottom: 1px solid var(--color-border, var(--color-bg-elevated));
   text-align: left;
 }
 .data-table th {
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary, var(--color-text-tertiary));
   font-weight: 600;
 }
 .mono { font-family: monospace; }
-.positive { color: #4ade80; }
-.negative { color: #f87171; }
-.tag-top { color: #f87171; }
-.tag-bottom { color: #4ade80; }
-.tag-up { color: #4ade80; }
-.tag-down { color: #f87171; }
-.stat.up { color: #4ade80; }
-.stat.down { color: #f87171; }
+.positive { color: var(--color-down); }
+.negative { color: var(--color-up); }
+.tag-top { color: var(--color-up); }
+.tag-bottom { color: var(--color-down); }
+.tag-up { color: var(--color-down); }
+.tag-down { color: var(--color-up); }
+.stat.up { color: var(--color-down); }
+.stat.down { color: var(--color-up); }
 .empty-hint {
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary, var(--color-text-tertiary));
   font-style: italic;
   padding: 20px 0;
   text-align: center;
@@ -394,10 +394,10 @@ function formatPct(v: number): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary, var(--color-text-tertiary));
   gap: 4px;
 }
 .empty-state p { font-size: 14px; margin: 0; }
 .empty-state small { font-size: 11px; }
-.error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; color: #f87171; font-size: 12px; }
+.error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; color: var(--color-up); font-size: 12px; }
 </style>

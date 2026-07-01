@@ -103,10 +103,21 @@ def analyze_report(financials_json):
         score += d
 
         d = 0
-        if len(periods) >= 4:
-            revs = [p.get("revenue", 0) or 0 for p in periods[:4]]
-            if revs[0] > revs[3] * 1.2: d = 10; breakdown.append({"item": "营收增长", "effect": 10, "detail": "最新期营收 > 4期前 ×1.2"})
-            elif revs[0] < revs[3]: d = -5; breakdown.append({"item": "营收下滑", "effect": -5, "detail": "最新期营收 < 4期前"})
+        latest = periods[0]
+        latest_p = latest.get("period", "")
+        latest_rev = latest.get("revenue") or 0
+        if latest_rev and len(latest_p) >= 10:
+            latest_md = latest_p[5:]  # "2026-03-31" → "03-31"
+            old_rev = None
+            for p in periods[1:]:
+                if p.get("period", "")[5:] == latest_md:
+                    old_rev = p.get("revenue") or 0
+                    break
+            if old_rev:
+                if latest_rev > old_rev * 1.2:
+                    d = 10; breakdown.append({"item": "营收增长", "effect": 10, "detail": f"同比营收 +{(latest_rev/old_rev-1)*100:.0f}%"})
+                elif latest_rev < old_rev:
+                    d = -5; breakdown.append({"item": "营收下滑", "effect": -5, "detail": f"同比营收 {(latest_rev/old_rev-1)*100:.0f}%"})
         score += d
 
     hc = sum(1 for a in anomalies if a["level"] == "high")

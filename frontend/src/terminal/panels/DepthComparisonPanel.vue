@@ -161,7 +161,7 @@ onUnmounted(() => {
 <style scoped>
 .depth-comparison-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden;
+  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -194,8 +194,8 @@ onUnmounted(() => {
 .bid-col, .ask-col { flex: 1; padding: 4px 8px; }
 .col-label { font-size: 9px; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 2px; }
 .depth-row { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 0; font-variant-numeric: tabular-nums; }
-.depth-row.bid .dp { color: #16a34a; }
-.depth-row.ask .dp { color: #dc2626; }
+.depth-row.bid .dp { color: var(--color-down); }
+.depth-row.ask .dp { color: var(--color-up); }
 .depth-row .dq { color: var(--color-text-tertiary); }
 .cum-bar { height: 3px; display: flex; }
 .cum-bid { height: 100%; border-radius: 0 0 0 6px; opacity: 0.6; }

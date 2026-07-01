@@ -126,8 +126,8 @@ onMounted(loadData)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -144,7 +144,7 @@ onMounted(loadData)
   padding: 2px 8px;
   border-radius: 4px;
   background: rgba(59,130,246,0.15);
-  color: #60a5fa;
+  color: var(--color-accent);
   font-family: 'JetBrains Mono', monospace;
 }
 .refresh-btn {

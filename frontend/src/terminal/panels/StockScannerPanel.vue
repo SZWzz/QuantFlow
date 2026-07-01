@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
 
 defineProps<{
   panelId: string
@@ -148,25 +149,48 @@ function formatVol(v: number): string {
   if (v >= 1e4) return (v / 1e4).toFixed(1) + '万'
   return v.toFixed(0)
 }
+
+const tableColumns = [
+  { key: 'symbol', label: '代码', width: 80 },
+  { key: 'name', label: '名称', flex: 1 },
+  { key: 'score', label: '评分', width: 80, align: 'right' as const },
+  { key: 'change_pct', label: '涨跌幅', width: 90, align: 'right' as const, colorize: true },
+  { key: 'volume', label: '成交量', width: 100, align: 'right' as const, format: 'volume' as const },
+  { key: 'signal', label: '信号', width: 60 },
+  { key: 'matched_conditions', label: '匹配条件', flex: 2 },
+]
+
+function tableData() {
+  return sortedResults.value.map(r => ({
+    symbol: r.symbol,
+    name: r.name,
+    score: formatScore(r.score),
+    change_pct: r.change_pct,
+    volume: r.volume,
+    signal: r.signal === 'buy' ? '买入' : r.signal === 'sell' ? '卖出' : '观望',
+    matched_conditions: r.matched_conditions.join(', '),
+  }))
+}
 </script>
 
 <template>
   <div class="scanner-panel">
-    <div class="panel-header">
-      <div class="header-left">
-        <h3>Stock Scanner</h3>
-        <span class="subtitle">策略选股</span>
-      </div>
-      <div v-if="selectedStrategy" class="header-controls">
-        <select v-model="selectedMarket" class="market-select">
-          <option v-for="m in marketList" :key="m.code" :value="m.code">{{ m.name }}</option>
-        </select>
-        <button @click="startScan" :disabled="scanning" class="scan-btn">
-          {{ scanning ? '扫描中...' : '开始扫描' }}
-        </button>
-        <button @click="goBack" class="back-btn">返回</button>
-      </div>
-    </div>
+    <PanelHeader
+      :title="selectedStrategy ? selectedStrategy.name : 'Stock Scanner'"
+      :subtitle="selectedStrategy ? selectedStrategy.category : '策略选股'"
+    >
+      <template #controls>
+        <div v-if="selectedStrategy" class="header-controls">
+          <select v-model="selectedMarket" class="market-select">
+            <option v-for="m in marketList" :key="m.code" :value="m.code">{{ m.name }}</option>
+          </select>
+          <button @click="startScan" :disabled="scanning" class="scan-btn">
+            {{ scanning ? '扫描中...' : '开始扫描' }}
+          </button>
+          <button @click="goBack" class="back-btn">返回</button>
+        </div>
+      </template>
+    </PanelHeader>
 
     <!-- Strategy Selection Grid -->
     <div v-if="!selectedStrategy" class="strategy-grid">
@@ -204,54 +228,27 @@ function formatVol(v: number): string {
       <div v-if="results.length" class="result-summary">
         <span class="summary-stat">结果: {{ resultSummary.total }} 只</span>
         <span class="summary-stat">均分: {{ formatScore(resultSummary.avgScore) }}</span>
-        <span class="summary-stat positive">上涨: {{ resultSummary.positive }}</span>
+        <span class="summary-stat up">上涨: {{ resultSummary.positive }}</span>
       </div>
 
       <!-- Results Table -->
-      <div class="results-table">
-        <table v-if="results.length" class="data-table">
-          <thead>
-            <tr>
-              <th>代码</th>
-              <th>名称</th>
-              <th @click="toggleSort('score')" class="sortable">
-                评分 {{ sortField === 'score' ? (sortDir === 'desc' ? '↓' : '↑') : '' }}
-              </th>
-              <th @click="toggleSort('change_pct')" class="sortable">
-                涨跌幅 {{ sortField === 'change_pct' ? (sortDir === 'desc' ? '↓' : '↑') : '' }}
-              </th>
-              <th @click="toggleSort('volume')" class="sortable">
-                成交量 {{ sortField === 'volume' ? (sortDir === 'desc' ? '↓' : '↑') : '' }}
-              </th>
-              <th>信号</th>
-              <th>匹配条件</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="r in sortedResults" :key="r.symbol">
-              <td class="mono">{{ r.symbol }}</td>
-              <td>{{ r.name }}</td>
-              <td class="mono score">{{ formatScore(r.score) }}</td>
-              <td :class="r.change_pct >= 0 ? 'positive' : 'negative'">
-                {{ formatPct(r.change_pct) }}
-              </td>
-              <td class="mono">{{ formatVol(r.volume) }}</td>
-              <td>
-                <span :class="r.signal === 'buy' ? 'tag-buy' : r.signal === 'sell' ? 'tag-sell' : 'tag-hold'">
-                  {{ r.signal === 'buy' ? '买入' : r.signal === 'sell' ? '卖出' : '观望' }}
-                </span>
-              </td>
-              <td class="conditions-cell">
-                <span v-for="c in r.matched_conditions" :key="c" class="condition-tag">{{ c }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p v-else-if="!scanning" class="empty-hint">
-          选择参数后点击"开始扫描"
-        </p>
-        <p v-else class="scanning-hint">正在扫描全市场...</p>
-      </div>
+      <PanelTable
+        v-if="results.length"
+        :columns="tableColumns"
+        :data="tableData()"
+        :loading="scanning"
+        striped
+      />
+      <EmptyState
+        v-else-if="!scanning"
+        icon="search"
+        title="选择参数后点击开始扫描"
+      />
+      <EmptyState
+        v-else
+        icon="loader"
+        title="正在扫描全市场..."
+      />
     </div>
   </div>
 </template>
@@ -261,44 +258,38 @@ function formatVol(v: number): string {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: var(--panel-padding);
   gap: 10px;
   overflow-y: auto;
+  background: var(--color-bg-panel);
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.header-left h3 { margin: 0; font-size: 15px; }
-.subtitle { font-size: 11px; color: var(--color-text-tertiary, #6b7280); margin-left: 6px; }
 .header-controls { display: flex; gap: 6px; align-items: center; }
 .market-select {
   padding: 4px 8px;
-  background: var(--color-bg-panel, #1a1a2e);
-  border: 1px solid var(--color-border, #2a2a3e);
-  color: var(--color-text, #e5e7eb);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   font-size: 12px;
 }
 .scan-btn {
   padding: 4px 16px;
-  background: var(--color-accent, #534ab7);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-text-primary);
   border: none;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
+  border-radius: var(--radius-md);
 }
 .scan-btn:disabled { opacity: 0.5; cursor: default; }
 .back-btn {
   padding: 4px 8px;
-  background: var(--color-bg-panel, #1a1a2e);
-  color: var(--color-text-tertiary, #6b7280);
-  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-panel);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border);
   cursor: pointer;
   font-size: 12px;
+  border-radius: var(--radius-md);
 }
 .strategy-grid {
   flex: 1;
@@ -315,22 +306,24 @@ function formatVol(v: number): string {
   align-items: flex-start;
   gap: 3px;
   padding: 10px 12px;
-  background: var(--color-bg-panel, #1a1a2e);
-  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
   cursor: pointer;
   text-align: left;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
 .strategy-card:hover {
-  border-color: var(--color-accent, #534ab7);
-  background: var(--term-accent-dim);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 .card-category {
   font-size: 10px;
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
 }
-.card-name { font-size: 14px; font-weight: 600; }
-.card-desc { font-size: 11px; color: var(--color-text-tertiary, #6b7280); }
+.card-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.card-desc { font-size: 11px; color: var(--color-text-tertiary); }
 .strategy-detail {
   flex: 1;
   display: flex;
@@ -343,18 +336,19 @@ function formatVol(v: number): string {
   gap: 10px;
   align-items: baseline;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-border, #2a2a3e);
+  border-bottom: 1px solid var(--color-border);
 }
-.strat-name { font-size: 15px; font-weight: 700; }
-.strat-category { font-size: 11px; color: var(--color-text-tertiary, #6b7280); }
-.strat-desc { font-size: 11px; color: var(--color-accent, #534ab7); }
+.strat-name { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
+.strat-category { font-size: 11px; color: var(--color-text-tertiary); }
+.strat-desc { font-size: 11px; color: var(--color-accent); }
 .params-bar {
   display: flex;
   gap: 12px;
   padding: 6px 8px;
-  background: var(--term-bg-dim);
-  border: 1px solid var(--color-border, #2a2a3e);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
   flex-wrap: wrap;
+  border-radius: var(--radius-md);
 }
 .param-item {
   display: flex;
@@ -364,69 +358,23 @@ function formatVol(v: number): string {
 }
 .param-item label {
   font-weight: 600;
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary);
   min-width: 40px;
 }
 .param-input {
   width: 60px;
   padding: 2px 6px;
-  border: 1px solid var(--color-border, #2a2a3e);
-  background: var(--color-bg-panel, #1a1a2e);
-  color: var(--color-text, #e5e7eb);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
   font-size: 12px;
+  border-radius: var(--radius-sm);
 }
 .result-summary {
   display: flex;
   gap: 16px;
   font-size: 12px;
-  color: var(--color-text-tertiary, #6b7280);
+  color: var(--color-text-tertiary);
 }
-.summary-stat.positive { color: #4ade80; }
-.results-table {
-  flex: 1;
-  overflow: auto;
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.data-table th, .data-table td {
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--color-border, #2a2a3e);
-  text-align: left;
-}
-.data-table th { color: var(--color-text-tertiary, #6b7280); font-weight: 600; }
-.sortable { cursor: pointer; user-select: none; }
-.sortable:hover { color: var(--color-accent, #534ab7); }
-.mono { font-family: monospace; }
-.score { color: var(--color-accent, #534ab7); font-weight: 600; }
-.positive { color: #4ade80; }
-.negative { color: #f87171; }
-.tag-buy { color: #4ade80; font-weight: 600; }
-.tag-sell { color: #f87171; font-weight: 600; }
-.tag-hold { color: var(--color-text-tertiary, #6b7280); }
-.conditions-cell {
-  display: flex;
-  gap: 3px;
-  flex-wrap: wrap;
-  max-width: 160px;
-}
-.condition-tag {
-  font-size: 10px;
-  padding: 1px 4px;
-  background: var(--term-bg-dim);
-  border: 1px solid var(--color-border, #2a2a3e);
-}
-.empty-hint, .scanning-hint {
-  color: var(--color-text-tertiary, #6b7280);
-  font-style: italic;
-  text-align: center;
-  padding: 30px 0;
-}
-.scanning-hint { animation: pulse 1.5s infinite; }
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+.summary-stat.up { color: var(--color-up); }
 </style>

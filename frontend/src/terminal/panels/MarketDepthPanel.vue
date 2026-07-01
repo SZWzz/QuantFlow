@@ -249,7 +249,7 @@ onMounted(refresh)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
+  color: var(--color-text, var(--color-border));
   background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
@@ -292,10 +292,10 @@ onMounted(refresh)
 .size-col { width: 54px; text-align: right; }
 .bar-col { flex: 1; position: relative; height: 16px; }
 .ob-bar { position: absolute; right: 0; top: 2px; height: 12px; border-radius: 2px; opacity: 0.3; }
-.bid-bar { background: #22c55e; }
-.ask-bar { background: #ef4444; }
-.bid-price { color: #22c55e; }
-.ask-price { color: #ef4444; }
+.bid-bar { background: var(--color-down); }
+.ask-bar { background: var(--color-up); }
+.bid-price { color: var(--color-down); }
+.ask-price { color: var(--color-up); }
 .bid-size { color: var(--color-text-secondary); }
 .ask-size { color: var(--color-text-secondary); }
 
@@ -311,8 +311,8 @@ onMounted(refresh)
 .trade-price { width: 70px; text-align: right; }
 .trade-volume { width: 60px; text-align: right; color: var(--color-text-secondary); }
 .trade-side { width: 24px; text-align: center; font-weight: 600; font-size: 10px; }
-.side-buy { color: #ef4444; }
-.side-sell { color: #22c55e; }
+.side-buy { color: var(--color-up); }
+.side-sell { color: var(--color-down); }
 
 /* Tabs */
 .tab-btns { display: flex; gap: 4px; }
@@ -320,7 +320,7 @@ onMounted(refresh)
   padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
 }
-.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: #534ab7; }
+.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: var(--color-accent); }
 
 /* Auction */
 .auction-loading, .auction-empty {

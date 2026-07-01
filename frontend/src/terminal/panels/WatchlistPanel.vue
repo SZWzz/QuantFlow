@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useDataStore } from '@/stores/data'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
-import SymbolSearch from '@/terminal/SymbolSearch.vue'
-import type { StockEntry } from '@/lib/symbolSearch'
+import { PanelHeader } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -31,7 +30,6 @@ const quotes = ref<Record<string, any>>({})
 const loading = ref<Record<string, boolean>>({})
 
 async function refreshQuote(sym: string) {
-  // TODO: move to store
   loading.value[sym] = true
   try {
     const result = await (window as any).go.main.App.GetQuote(detectMarket(sym), sym)
@@ -45,26 +43,11 @@ async function refreshQuote(sym: string) {
     }
   } catch(e) {
     console.error('[Watchlist] fetch:', e)
-    // Keep existing name if quote fetch fails
     if (!quotes.value[sym]) {
       quotes.value[sym] = { symbol: sym, name: sym, last: 0, change: 0, changePct: 0 }
     }
   } finally {
     loading.value[sym] = false
-  }
-}
-
-function onSearchSelect(entry: StockEntry) {
-  if (!symbols.value.includes(entry.code)) {
-    symbols.value.push(entry.code)
-    saveSymbols(symbols.value)
-    // Pre-populate name from search result
-    quotes.value[entry.code] = {
-      symbol: entry.code,
-      name: entry.name,
-      last: 0, change: 0, changePct: 0,
-    }
-    refreshQuote(entry.code)
   }
 }
 
@@ -75,6 +58,10 @@ function removeSymbol(sym: string) {
 
 function selectSymbol(sym: string) {
   ctx.setGroupSymbol(pg.groupId, sym)
+}
+
+function refreshAll() {
+  symbols.value.forEach(sym => refreshQuote(sym))
 }
 
 function formatPrice(p: number): string {
@@ -89,8 +76,13 @@ function formatChange(c: number, pct: number): string {
   return `${sign}${c.toFixed(2)} (${sign}${pct.toFixed(2)}%)`
 }
 
+function onWatchlistChanged() {
+  symbols.value = loadSymbols()
+  symbols.value.forEach(sym => refreshQuote(sym))
+}
+
 onMounted(async () => {
-  // Pre-populate names from symbol search cache (works even when market is closed)
+  window.addEventListener('watchlist-changed', onWatchlistChanged)
   try {
     const app = (window as any).go?.main?.App
     if (app?.SearchSymbols) {
@@ -108,16 +100,20 @@ onMounted(async () => {
   } catch { /* best-effort */ }
   symbols.value.forEach(sym => refreshQuote(sym))
 })
+
+onUnmounted(() => {
+  window.removeEventListener('watchlist-changed', onWatchlistChanged)
+})
 </script>
 
 <template>
   <div class="watchlist-panel">
-    <div class="panel-toolbar">
-      <SymbolSearch
-        :placeholder="$t('common.search') + '...'"
-        @select="onSearchSelect"
-      />
-    </div>
+    <PanelHeader
+      :title="$t('watchlist.title')"
+      :controls="[
+        { icon: 'refresh', label: $t('common.refresh'), action: refreshAll },
+      ]"
+    />
     <div class="symbol-list">
       <div
         v-for="sym in symbols" :key="sym"
@@ -152,13 +148,9 @@ onMounted(async () => {
   height: 100%;
   background: var(--color-bg-panel);
 }
-.panel-toolbar {
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--color-border);
-}
 .symbol-list { flex: 1; overflow-y: auto; }
 .symbol-row {
-  display: flex; align-items: center; padding: 6px 8px;
+  display: flex; align-items: center; padding: var(--panel-padding-sm) var(--panel-padding);
   border-bottom: 1px solid var(--color-border-subtle);
   cursor: pointer; transition: background var(--transition-fast);
 }

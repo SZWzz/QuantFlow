@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="#-project-status"><img src="https://img.shields.io/badge/v2026.6.29-3b82f6?style=flat-square&label=release" alt="Version"></a>
+  <a href="#-project-status"><img src="https://img.shields.io/badge/v2026.7.1-3b82f6?style=flat-square&label=release" alt="Version"></a>
   <a href="#-project-status"><img src="https://img.shields.io/badge/Phase_12_Complete-22c55e?style=flat-square&label=phase" alt="Phase"></a>
   <a href="#-project-status"><img src="https://img.shields.io/badge/93-3b82f6?style=flat-square&label=nodes" alt="Nodes"></a>
   <a href="#-project-status"><img src="https://img.shields.io/badge/64-8b5cf6?style=flat-square&label=panels" alt="Panels"></a>

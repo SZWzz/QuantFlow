@@ -158,8 +158,8 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -178,7 +178,7 @@ onUnmounted(() => {
   padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.auto-btn.active { color: #60a5fa; border-color: #3b82f6; }
+.auto-btn.active { color: var(--color-accent); border-color: var(--color-accent); }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
@@ -198,8 +198,8 @@ onUnmounted(() => {
 }
 .stat-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .stat-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
 
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {

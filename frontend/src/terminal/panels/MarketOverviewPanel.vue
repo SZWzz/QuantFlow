@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useDataStore } from '@/stores/data'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { PanelHeader, PanelCard, PanelTable, LoadingState } from '@/terminal/components/panel'
 import type { IndexSnapshot, SectorRanking } from '@/stores/data'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -81,23 +82,9 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString()
 }
 
-function sparklinePoints(data: number[]): string {
-  if (!data.length) return ''
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
-  const w = 60
-  const h = 24
-  return data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w
-    const y = h - ((v - min) / range) * h
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
-}
-
 function changeColor(pct: number): string {
-  if (pct > 0) return '#ef4444'
-  if (pct < 0) return '#22c55e'
+  if (pct > 0) return 'var(--color-up)'
+  if (pct < 0) return 'var(--color-down)'
   return 'var(--color-text-secondary)'
 }
 
@@ -138,46 +125,47 @@ onMounted(() => {
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
+
+const blockRankColumns = [
+  { key: 'symbol', label: '代码', align: 'left' as const, width: 70 },
+  { key: 'name', label: '名称', align: 'left' as const, flex: 1 },
+  { key: 'price', label: '价格', align: 'right' as const, width: 70, format: 'price' as const },
+  { key: 'volume', label: '成交量', align: 'right' as const, width: 70, format: 'volume' as const },
+  { key: 'amount', label: '成交额', align: 'right' as const, width: 80, formatter: (v: number) => formatAmount(v) },
+]
 </script>
 
 <template>
   <div class="market-overview-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.market_overview') }}</h3>
-      <div class="market-tabs">
-        <button v-for="mkt in (['CN', 'HK', 'US'] as const)" :key="mkt"
-          :class="['mkt-tab', { active: activeMarket === mkt }]"
-          @click="switchMarket(mkt)"
-        >{{ mkt }}</button>
-      </div>
-      <div class="header-controls">
-        <span class="update-time">{{ formatTime(updatedAt) }}</span>
-        <button class="auto-btn" :class="{ active: autoRefresh }" @click="toggleAutoRefresh">
-          自动 {{ autoRefresh ? `(${countdown}s)` : '' }}
-        </button>
-        <button class="refresh-btn" @click="refresh" :disabled="loading">
-          {{ loading ? '...' : '⟳' }}
-        </button>
-      </div>
-    </div>
+    <PanelHeader
+      :title="$t('misc.market_overview')"
+      :subtitle="formatTime(updatedAt)"
+      :tabs="[
+        { key: 'CN', label: 'CN' },
+        { key: 'HK', label: 'HK' },
+        { key: 'US', label: 'US' },
+      ]"
+      :active-tab="activeMarket"
+      :controls="[
+        { label: autoRefresh ? `自动 (${countdown}s)` : '手动', action: toggleAutoRefresh, title: '切换自动刷新' },
+        { icon: 'refresh', action: refresh, loading: loading.valueOf(), title: '刷新' },
+      ]"
+      @tab-change="switchMarket"
+    />
 
     <!-- Section A: Index Cards -->
     <div class="indices-row">
-      <div v-for="idx in indices" :key="idx.symbol" class="index-card" @click="onIndexClick(idx)">
-        <div class="index-name">{{ idx.name }}</div>
-        <div class="index-price">{{ idx.last.toLocaleString() }}</div>
-        <div class="index-change" :style="{ color: changeColor(idx.changePct) }">
-          {{ formatPct(idx.changePct) }}
-        </div>
-        <svg class="index-sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
-          <polyline
-            :points="sparklinePoints(idx.sparkline)"
-            fill="none"
-            :stroke="changeColor(idx.changePct)"
-            stroke-width="1.5"
-          />
-        </svg>
-      </div>
+      <PanelCard
+        v-for="idx in indices"
+        :key="idx.symbol"
+        :title="idx.name"
+        :value="idx.last"
+        :change="idx.changePct / 100"
+        format="price"
+        :sparkline="idx.sparkline"
+        clickable
+        @click="onIndexClick(idx)"
+      />
     </div>
 
     <!-- Section B: 市场宽度 -->
@@ -216,140 +204,210 @@ onUnmounted(() => {
     <!-- Section D: Block Rank -->
     <div class="block-rank-section">
       <div class="block-rank-label">{{ $t('misc.block_rank') }}</div>
-      <div v-if="blockRankLoading" class="block-loading">{{ $t('common.loading') }}</div>
+      <LoadingState
+        v-if="blockRankLoading && blockRank.length === 0"
+        type="table"
+        :rows="3"
+        :cols="5"
+      />
       <div v-else-if="blockRank.length === 0" class="block-empty">{{ $t('common.no_data') }}</div>
-      <div v-else class="block-rank-table">
-        <div class="br-header-row">
-          <span class="br-col symbol-col">{{ $t('common.symbol') }}</span>
-          <span class="br-col name-col">{{ $t('common.name') }}</span>
-          <span class="br-col price-col">{{ $t('common.price') }}</span>
-          <span class="br-col vol-col">{{ $t('common.volume') }}</span>
-          <span class="br-col amt-col">{{ $t('common.amount') }}</span>
-        </div>
-        <div v-for="(item, idx) in blockRank" :key="idx" class="br-row">
-          <span class="br-col symbol-col">{{ item.symbol }}</span>
-          <span class="br-col name-col">{{ item.name }}</span>
-          <span class="br-col price-col">{{ item.price.toFixed(2) }}</span>
-          <span class="br-col vol-col">{{ formatVolume(item.volume) }}</span>
-          <span class="br-col amt-col">{{ formatAmount(item.amount) }}</span>
-        </div>
-      </div>
+      <PanelTable
+        v-else
+        :columns="blockRankColumns"
+        :data="blockRank"
+        :striped="true"
+      />
     </div>
 
-    <div v-if="loading" class="loading-overlay">{{ $t('common.loading') }}</div>
+    <!-- Skeleton: shown only on initial load (no data yet) -->
+    <div v-if="loading && !dataStore.marketOverview" class="skeleton-overlay">
+      <LoadingState type="card" :rows="5" />
+      <div class="skeleton-breadth">
+        <div class="skeleton-bar" />
+        <div class="skeleton-bar short" />
+      </div>
+      <LoadingState type="table" :rows="8" :cols="2" />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .market-overview-panel {
-  padding: 16px;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg, var(--color-bg-panel));
+  height: 100%;
   overflow: hidden;
+  position: relative;
+  color: var(--color-text-primary);
+  background: var(--color-bg-panel);
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.market-tabs { display: flex; gap: 4px; margin: 0 8px; }
-.mkt-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
-.header-controls { display: flex; gap: 8px; align-items: center; }
-.update-time { font-size: 11px; color: var(--color-text-tertiary); }
-.auto-btn {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.auto-btn.active { color: #60a5fa; border-color: #3b82f6; }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Index Cards */
 .indices-row {
-  display: flex; gap: 8px; overflow-x: auto;
-  padding-bottom: 4px; margin-bottom: 12px;
-  scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent;
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  padding: var(--panel-padding) var(--panel-padding) 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
 }
-.index-card {
-  flex: 0 0 auto; min-width: 130px;
-  padding: 10px 12px; border-radius: 6px;
-  background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong);
-  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+
+.indices-row :deep(.panel-card) {
+  flex: 0 0 auto;
+  min-width: 130px;
 }
-.index-card:hover { background: var(--color-bg-hover); border-color: var(--color-primary); }
-.index-name { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
-.index-price { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
-.index-change { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
-.index-sparkline { width: 100%; height: 24px; display: block; }
 
 /* Breadth */
-.breadth-section { margin-bottom: 12px; }
-.breadth-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
-.breadth-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
-.breadth-segment.up { background: #ef4444; }
-.breadth-segment.down { background: #22c55e; }
-.breadth-segment.flat { background: #4b5563; }
-.breadth-text { display: flex; gap: 16px; font-size: 11px; }
-.up-text { color: #ef4444; }
-.down-text { color: #22c55e; }
-.flat-text { color: var(--color-text-tertiary); }
+.breadth-section {
+  padding: 0 var(--panel-padding);
+  margin-bottom: var(--space-md);
+}
+
+.breadth-label {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.breadth-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.breadth-segment.up {
+  background: var(--color-up);
+}
+
+.breadth-segment.down {
+  background: var(--color-down);
+}
+
+.breadth-segment.flat {
+  background: var(--color-text-tertiary);
+}
+
+.breadth-text {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: var(--font-xs);
+}
+
+.up-text {
+  color: var(--color-up);
+}
+
+.down-text {
+  color: var(--color-down);
+}
+
+.flat-text {
+  color: var(--color-text-tertiary);
+}
 
 /* Sectors */
 .sectors-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-  flex: 1; overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  flex: 1;
+  overflow: hidden;
+  padding: 0 var(--panel-padding);
 }
-.sector-col { overflow-y: auto; }
-.sector-col-title { font-size: 12px; font-weight: 600; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--color-border-strong); }
-.sector-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 4px 0; font-size: 12px;
-}
-.sector-name { color: var(--color-text-primary); }
-.sector-pct { font-weight: 500; font-variant-numeric: tabular-nums; }
 
-.loading-overlay {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(17, 24, 39, 0.7); font-size: 14px; color: var(--color-text-tertiary);
+.sector-col {
+  overflow-y: auto;
+}
+
+.sector-col-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.sector-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-xs) 0;
+  font-size: var(--font-sm);
+}
+
+.sector-name {
+  color: var(--color-text-primary);
+}
+
+.sector-pct {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skeleton loading */
+.skeleton-overlay {
+  position: absolute;
+  inset: 0;
+  padding: var(--panel-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  background: var(--color-bg-panel);
+  z-index: 10;
+}
+
+.skeleton-breadth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.skeleton-bar {
+  height: 12px;
+  border-radius: var(--radius-sm);
+  width: 60%;
+  background: linear-gradient(90deg, var(--color-bg-elevated) 25%, var(--color-bg-hover) 50%, var(--color-bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-bar.short {
+  width: 40%;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* Block Rank */
 .block-rank-section {
-  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border-strong);
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--panel-padding);
+  border-top: 1px solid var(--color-border-strong);
   flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
+
 .block-rank-label {
-  font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; font-weight: 600;
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  font-weight: 600;
 }
-.block-loading, .block-empty {
-  font-size: 11px; color: var(--color-text-tertiary); padding: 8px 0; text-align: center;
+
+.block-empty {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  padding: var(--space-md) 0;
+  text-align: center;
 }
-.block-rank-table { font-size: 11px; font-variant-numeric: tabular-nums; }
-.br-header-row {
-  display: flex; padding: 2px 0; border-bottom: 1px solid var(--color-border-strong);
-  color: var(--color-text-tertiary); font-size: 10px;
+
+.block-rank-section :deep(.panel-table-wrapper) {
+  font-size: var(--font-xs);
 }
-.br-row {
-  display: flex; padding: 1px 0;
-}
-.br-row:nth-child(odd) { background: rgba(255,255,255,0.02); }
-.br-col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.symbol-col { width: 70px; }
-.name-col { flex: 1; min-width: 0; }
-.price-col { width: 70px; text-align: right; }
-.vol-col { width: 70px; text-align: right; }
-.amt-col { width: 80px; text-align: right; }
 </style>

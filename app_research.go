@@ -379,6 +379,25 @@ func (a *App) GetForecast(symbol string) (map[string]interface{}, error) {
 	return a.FetchData("analyzer", "forecast", []string{finJSON}, "", "", nil)
 }
 
+// GetFinancialStatements returns raw financial statements (利润表/资产负债表/现金流量表) for a symbol.
+func (a *App) GetFinancialStatements(symbol string) (map[string]interface{}, error) {
+	if a.sinaFinAdpt == nil {
+		return nil, fmt.Errorf("sina financials adapter not available")
+	}
+	ctx := context.Background()
+	income, _ := a.sinaFinAdpt.FetchIncomeStatement(ctx, symbol, 12)
+	balance, _ := a.sinaFinAdpt.FetchBalanceSheet(ctx, symbol, 12)
+	cashflow, _ := a.sinaFinAdpt.FetchCashFlow(ctx, symbol, 12)
+	if income == nil && balance == nil {
+		return nil, fmt.Errorf("no financial data for %s", symbol)
+	}
+	return map[string]interface{}{
+		"income":   formatFinPeriodsRaw(income),
+		"balance":  formatFinPeriodsRaw(balance),
+		"cashflow": formatFinPeriodsRaw(cashflow),
+	}, nil
+}
+
 // fetchFinancialJSON fetches financial statements via Sina adapter and returns JSON.
 func (a *App) fetchFinancialJSON(symbol string) (string, error) {
 	if a.sinaFinAdpt == nil {
@@ -458,6 +477,23 @@ func formatFinPeriods(periods []adapters.FinancialStatementPeriod) []map[string]
 				name = mapped
 			}
 			row[name] = item.Value
+		}
+		result = append(result, row)
+	}
+	return result
+}
+
+// formatFinPeriodsRaw converts FinancialStatementPeriod slice to a map-slice format
+// that preserves the original Chinese item titles (no mapping to analyzer names).
+func formatFinPeriodsRaw(periods []adapters.FinancialStatementPeriod) []map[string]interface{} {
+	if periods == nil {
+		return nil
+	}
+	result := make([]map[string]interface{}, 0, len(periods))
+	for _, p := range periods {
+		row := map[string]interface{}{"report_date": p.Period}
+		for _, item := range p.Items {
+			row[item.Title] = item.Value
 		}
 		result = append(result, row)
 	}

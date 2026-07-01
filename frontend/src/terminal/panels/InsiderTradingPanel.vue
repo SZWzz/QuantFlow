@@ -113,14 +113,14 @@ function handleSymbolSubmit(e: Event) {
 </template>
 
 <style scoped>
-.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
+.panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
 .symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: #78350f; color: #fbbf24; font-size: 12px; text-align: center; }
+.mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: var(--color-accent-soft); color: var(--color-accent); font-size: 12px; text-align: center; }
 .panel-content { flex: 1; overflow-y: auto; }
 .activity-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); font-size: 13px; }
 .activity-label { color: var(--color-text-secondary); font-weight: 500; }
@@ -131,8 +131,8 @@ function handleSymbolSubmit(e: Event) {
 .insider-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
 .role-cell { color: var(--color-text-secondary); }
 .type-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.type-badge.buy { background: #14532d; color: #22c55e; }
-.type-badge.sell { background: #7f1d1d; color: #ef4444; }
+.type-badge.buy { background: var(--color-down); color: var(--color-down); }
+.type-badge.sell { background: var(--color-up); color: var(--color-up); }
 .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
 .date-cell { color: var(--color-text-secondary); }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }

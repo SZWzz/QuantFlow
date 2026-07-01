@@ -109,20 +109,41 @@ export const useDataStore = defineStore('data', () => {
   }
 
   async function fetchMarketOverview(market = 'CN') {
+    const app = (window as any).go?.main?.App
+    if (!app) return
+
+    const sectorsCacheKey = `industryRanks:${market}`
+    const cachedSectors = getCached<SectorRanking[]>(sectorsCacheKey)
+
     marketLoading.value = true
     try {
-      const app = (window as any).go?.main?.App
-      if (!app) return
+      // Run GetMarketOverview and GetIndustryRanks in parallel
+      const [overviewResult, industryResult] = await Promise.all([
+        (async () => {
+          try {
+            return await app.GetMarketOverview(market)
+          } catch {
+            return null
+          }
+        })(),
+        (async () => {
+          // Use cache if available, skip the Go call entirely
+          if (cachedSectors) return null
+          if (!app.GetIndustryRanks) return null
+          try {
+            return await app.GetIndustryRanks(30)
+          } catch {
+            return null
+          }
+        })(),
+      ])
 
-      // Fetch indices from real API
+      // Process indices + breadth from market overview
       let indices: IndexSnapshot[] = []
       let breadth: MarketBreadth = { advancers: 0, decliners: 0, unchanged: 0 }
-      let sectors: SectorRanking[] = []
-
-      try {
-        const overview = await app.GetMarketOverview(market)
-        if (overview?.indices) {
-          indices = (overview.indices as any[]).map((idx: any) => ({
+      if (overviewResult) {
+        if (overviewResult.indices) {
+          indices = (overviewResult.indices as any[]).map((idx: any) => ({
             symbol: idx.code,
             name: idx.name,
             last: idx.price,
@@ -130,28 +151,25 @@ export const useDataStore = defineStore('data', () => {
             sparkline: [],
           }))
         }
-        if (overview?.breadth) {
+        if (overviewResult.breadth) {
           breadth = {
-            advancers: overview.breadth.advancers ?? 0,
-            decliners: overview.breadth.decliners ?? 0,
-            unchanged: overview.breadth.unchanged ?? 0,
+            advancers: overviewResult.breadth.advancers ?? 0,
+            decliners: overviewResult.breadth.decliners ?? 0,
+            unchanged: overviewResult.breadth.unchanged ?? 0,
           }
         }
-      } catch {
-        // indices remain empty
       }
 
-      // Fetch sector ranks (Go returns snake_case JSON, map to camelCase)
-      if (app.GetIndustryRanks) {
-        try {
-          const raw = await app.GetIndustryRanks(30)
-          sectors = (raw as any[]).map((s: any) => ({
-            name: s.name,
-            changePct: s.change_pct ?? s.changePct ?? 0,
-          }))
-        } catch {
-          // sectors remain empty
-        }
+      // Process sector ranks (use cache if fresh, otherwise use API result)
+      let sectors: SectorRanking[] = []
+      if (cachedSectors) {
+        sectors = cachedSectors
+      } else if (industryResult) {
+        sectors = (industryResult as any[]).map((s: any) => ({
+          name: s.name,
+          changePct: s.change_pct ?? s.changePct ?? 0,
+        }))
+        setCached(sectorsCacheKey, sectors, 5 * 60 * 1000)
       }
 
       marketOverview.value = { indices, breadth, sectors, updatedAt: Date.now() }

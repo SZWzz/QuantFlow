@@ -145,8 +145,8 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -161,7 +161,7 @@ onUnmounted(() => {
   padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.auto-btn.active { color: #60a5fa; border-color: #3b82f6; }
+.auto-btn.active { color: var(--color-accent); border-color: var(--color-accent); }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
@@ -175,7 +175,7 @@ onUnmounted(() => {
 .alert-bar {
   padding: 6px 10px; margin-bottom: 8px; border-radius: 4px;
   background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
-  color: #f59e0b; font-size: 11px; font-weight: 500;
+  color: var(--color-accent); font-size: 11px; font-weight: 500;
 }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {

@@ -60,7 +60,7 @@ const chartOption = computed(() => {
 </template>
 
 <style scoped>
-.surface-chart-panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg, var(--color-bg-panel)); }
+.surface-chart-panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; }

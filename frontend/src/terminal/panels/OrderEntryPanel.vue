@@ -140,7 +140,7 @@ function placeOrder() {
 }
 .form-input:focus { border-color: var(--accent); }
 
-.quote-status { font-size: 10px; color: #60a5fa; margin-left: 4px; }
+.quote-status { font-size: 10px; color: var(--color-accent); margin-left: 4px; }
 
 .side-toggle { display: flex; gap: 0; }
 .side-toggle button {
@@ -149,8 +149,8 @@ function placeOrder() {
 }
 .side-toggle button:first-child { border-radius: 4px 0 0 4px; }
 .side-toggle button:last-child { border-radius: 0 4px 4px 0; }
-.side-toggle button.active.buy { background: #0a3d1a; border-color: var(--up); color: var(--up); }
-.side-toggle button.active.sell { background: #3d0a0a; border-color: var(--down); color: var(--down); }
+.side-toggle button.active.buy { background: var(--color-down); border-color: var(--up); color: var(--up); }
+.side-toggle button.active.sell { background: var(--color-up-bg, rgba(220,38,38,0.08)); border-color: var(--down); color: var(--down); }
 
 .estimated { display: flex; justify-content: space-between; padding: 8px 0; font-size: 12px; color: var(--muted); }
 .total-value { color: var(--text); font-weight: 600; }
@@ -159,6 +159,6 @@ function placeOrder() {
   padding: 10px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
 }
 .place-order-btn.buy { background: var(--up); color: #000; }
-.place-order-btn.sell { background: var(--down); color: #fff; }
+.place-order-btn.sell { background: var(--down); color: var(--color-text-primary); }
 .place-order-btn:hover { opacity: 0.85; }
 </style>

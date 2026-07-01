@@ -6,6 +6,7 @@ import { useSessionStore } from '@/stores/session'
 import { useDataStore } from '@/stores/data'
 import { getPanelsByCategory, getPanelMeta, type PanelMeta } from './registry'
 import { PANEL_ICONS, getIcon } from '@/lib/icons'
+import { PanelHeader } from '@/terminal/components/panel'
 
 const { t } = useI18n()
 const terminal = useTerminalStore()
@@ -20,28 +21,25 @@ const CATEGORY_KEYS: Record<string, string> = {
   '市场行情': 'misc.cat_market', '交易执行': 'misc.cat_trading',
   '组合与风控': 'misc.cat_portfolio', '图表分析': 'misc.cat_chart',
   '研究分析': 'misc.cat_research', '量化分析': 'misc.cat_quant',
-  '另类数据': 'misc.cat_altdata', '系统': 'misc.cat_system',
+  '另类数据': 'misc.cat_altdata', '港股': 'misc.cat_hk',
+  '美股': 'misc.cat_us', '加密货币': 'misc.cat_crypto',
+  '系统': 'misc.cat_system',
 }
 function catLabel(cn: string): string { return CATEGORY_KEYS[cn] ? t(CATEGORY_KEYS[cn]) : cn }
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-const categoryColors: Record<string, { bg: string; border: string; accent: string }> = {
-  '市场行情': { bg: 'rgba(59, 130, 246, 0.08)', border: 'rgba(59, 130, 246, 0.2)', accent: '#3b82f6' },
-  '交易执行': { bg: 'rgba(233, 69, 96, 0.08)', border: 'rgba(233, 69, 96, 0.2)', accent: '#e94560' },
-  '组合与风控': { bg: 'rgba(139, 92, 246, 0.08)', border: 'rgba(139, 92, 246, 0.2)', accent: '#8b5cf6' },
-  '图表分析': { bg: 'rgba(6, 182, 212, 0.08)', border: 'rgba(6, 182, 212, 0.2)', accent: '#06b6d4' },
-  '研究分析': { bg: 'rgba(245, 158, 11, 0.08)', border: 'rgba(245, 158, 11, 0.2)', accent: '#f59e0b' },
-  '量化分析': { bg: 'rgba(34, 197, 94, 0.08)', border: 'rgba(34, 197, 94, 0.2)', accent: '#22c55e' },
-  '另类数据': { bg: 'rgba(236, 72, 153, 0.08)', border: 'rgba(236, 72, 153, 0.2)', accent: '#ec4899' },
-  '港股': { bg: 'rgba(255, 107, 53, 0.08)', border: 'rgba(255, 107, 53, 0.2)', accent: '#ff6b35' },
-  '美股': { bg: 'rgba(30, 144, 255, 0.08)', border: 'rgba(30, 144, 255, 0.2)', accent: '#1e90ff' },
-  '加密货币': { bg: 'rgba(247, 147, 26, 0.08)', border: 'rgba(247, 147, 26, 0.2)', accent: '#f7931a' },
-  '系统': { bg: 'rgba(148, 163, 184, 0.08)', border: 'rgba(148, 163, 184, 0.2)', accent: '#94a3b8' },
-}
-
-function getCategoryColor(cat: string) {
-  return categoryColors[cat] || categoryColors['系统']
+// Map Chinese category names to CSS data-cat keys
+function catKey(cn: string): string {
+  const map: Record<string, string> = {
+    '市场行情': 'market', '交易执行': 'trading',
+    '组合与风控': 'portfolio', '图表分析': 'chart',
+    '研究分析': 'research', '量化分析': 'quant',
+    '另类数据': 'altdata', '港股': 'hk',
+    '美股': 'us', '加密货币': 'crypto',
+    '系统': 'system',
+  }
+  return map[cn] || 'system'
 }
 
 function getIconSvg(panelId: string): string {
@@ -53,14 +51,14 @@ function getIconSvg(panelId: string): string {
 // Dynamic categories from registry
 const panelCategories = computed(() => {
   const groups = getPanelsByCategory()
-  const result: { title: string; items: PanelMeta[]; color: ReturnType<typeof getCategoryColor> }[] = []
+  const result: { title: string; items: PanelMeta[]; key: string }[] = []
   for (const [cat, panels] of Object.entries(groups)) {
     const filtered = panels.filter(p => p.id !== 'welcome')
     if (filtered.length === 0) continue
     result.push({
       title: cat,
       items: filtered,
-      color: getCategoryColor(cat),
+      key: catKey(cat),
     })
   }
   return result
@@ -100,7 +98,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 
     <div v-if="recentPanels.length > 0" class="dashboard-section">
       <div class="section-title">
-        <span class="section-dot" style="background:#3b82f6" />
+        <span class="section-dot accent" />
         {{ $t('misc.recent_panels') }}
       </div>
       <div class="recent-row">
@@ -117,7 +115,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 
     <div v-if="shIndex || hkIndex" class="dashboard-section">
       <div class="section-title">
-        <span class="section-dot" style="background:#22c55e" />
+        <span class="section-dot market" />
         {{ $t('misc.market_snapshot') }}
       </div>
       <div class="snapshot-row">
@@ -143,10 +141,11 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
         v-for="(cat, catIdx) in panelCategories"
         :key="cat.title"
         class="category-section"
+        :data-cat="cat.key"
         :style="{ animationDelay: `${catIdx * 50}ms` }"
       >
         <div class="category-header">
-          <span class="category-dot" :style="{ background: cat.color.accent }" />
+          <span class="category-dot" />
           <h2 class="category-title">{{ catLabel(cat.title) }}</h2>
           <span class="category-count">{{ cat.items.length }}</span>
         </div>
@@ -160,7 +159,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
           >
             <span
               class="card-icon"
-              :style="{ color: cat.color.accent, background: cat.color.bg }"
               v-html="getIconSvg(item.id)"
             />
             <div class="card-body">
@@ -182,6 +180,30 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   height: 100%;
   overflow-y: auto;
 }
+
+/* Category accent colors via data-cat */
+.category-section[data-cat="market"] .category-dot,
+.category-section[data-cat="market"] .card-icon { background: var(--cat-market-bg); color: var(--cat-market); }
+.category-section[data-cat="trading"] .category-dot,
+.category-section[data-cat="trading"] .card-icon { background: var(--cat-trading-bg); color: var(--cat-trading); }
+.category-section[data-cat="portfolio"] .category-dot,
+.category-section[data-cat="portfolio"] .card-icon { background: var(--cat-portfolio-bg); color: var(--cat-portfolio); }
+.category-section[data-cat="chart"] .category-dot,
+.category-section[data-cat="chart"] .card-icon { background: var(--cat-chart-bg); color: var(--cat-chart); }
+.category-section[data-cat="research"] .category-dot,
+.category-section[data-cat="research"] .card-icon { background: var(--cat-research-bg); color: var(--cat-research); }
+.category-section[data-cat="quant"] .category-dot,
+.category-section[data-cat="quant"] .card-icon { background: var(--cat-quant-bg); color: var(--cat-quant); }
+.category-section[data-cat="altdata"] .category-dot,
+.category-section[data-cat="altdata"] .card-icon { background: var(--cat-altdata-bg); color: var(--cat-altdata); }
+.category-section[data-cat="hk"] .category-dot,
+.category-section[data-cat="hk"] .card-icon { background: var(--cat-hk-bg); color: var(--cat-hk); }
+.category-section[data-cat="us"] .category-dot,
+.category-section[data-cat="us"] .card-icon { background: var(--cat-us-bg); color: var(--cat-us); }
+.category-section[data-cat="crypto"] .category-dot,
+.category-section[data-cat="crypto"] .card-icon { background: var(--cat-crypto-bg); color: var(--cat-crypto); }
+.category-section[data-cat="system"] .category-dot,
+.category-section[data-cat="system"] .card-icon { background: var(--cat-system-bg); color: var(--cat-system); }
 
 .welcome-header {
   display: flex;
@@ -369,8 +391,8 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.02) 100%);
-  opacity: 0;
+  background: linear-gradient(135deg, transparent 0%, var(--color-bg-elevated) 100%);
+  opacity: 0.02;
   transition: opacity var(--transition-normal);
 }
 
@@ -382,7 +404,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 }
 
 .panel-card:hover::before {
-  opacity: 1;
+  opacity: 0.04;
 }
 
 .card-icon {
@@ -478,6 +500,8 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   border-radius: 50%;
   flex-shrink: 0;
 }
+.section-dot.accent { background: var(--color-accent); }
+.section-dot.market { background: var(--color-up); }
 .recent-row {
   display: flex;
   flex-wrap: wrap;
@@ -498,7 +522,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 .recent-chip:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
-  background: rgba(59,130,246,0.1);
+  background: var(--color-accent-soft);
 }
 .snapshot-row {
   display: flex;
@@ -527,6 +551,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   font-size: 12px;
   font-weight: 500;
 }
-.snap-pct.up { color: #dc2626; }
-.snap-pct.down { color: #16a34a; }
+.snap-pct.up { color: var(--color-up); }
+.snap-pct.down { color: var(--color-down); }
 </style>

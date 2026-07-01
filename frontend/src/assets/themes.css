@@ -415,3 +415,45 @@ input::placeholder, textarea::placeholder {
 .animate-pulse {
   animation: pulse 2s ease infinite;
 }
+
+/* ── Panel Tokens ─────────────────────────────────────────────── */
+body {
+  --panel-padding: var(--padding-panel);
+  --panel-padding-lg: 16px;
+  --panel-padding-sm: 8px;
+
+  --panel-title-size: var(--font-lg);
+  --panel-title-weight: 600;
+  --panel-subtitle-size: var(--font-sm);
+  --panel-subtitle-color: var(--color-text-tertiary);
+
+  --table-header-size: var(--font-xs);
+  --table-header-color: var(--color-text-tertiary);
+  --table-header-weight: 600;
+  --table-row-size: var(--font-sm);
+  --table-row-height: var(--row-height);
+  --table-row-height-compact: 28px;
+  --table-row-height-comfortable: 44px;
+  --table-border: var(--color-border-subtle);
+  --table-row-hover: var(--color-bg-hover);
+  --table-row-odd: rgba(255, 255, 255, 0.02);
+
+  --tab-height: 28px;
+  --tab-padding: 4px 12px;
+  --tab-font-size: var(--font-xs);
+  --tab-active-bg: var(--color-bg-panel);
+  --tab-active-border: var(--color-accent);
+  --tab-inactive-color: var(--color-text-tertiary);
+
+  --toolbar-height: 36px;
+  --toolbar-gap: var(--space-sm);
+  --toolbar-padding: var(--space-sm) var(--space-md);
+
+  --card-padding: var(--space-md);
+  --card-gap: var(--space-sm);
+  --card-min-width: 200px;
+}
+
+body.theme-light {
+  --table-row-odd: rgba(0, 0, 0, 0.02);
+}

@@ -380,14 +380,14 @@ async function runSimulation() {
 }
 
 .param-input:focus {
-  border-color: #58a6ff;
+  border-color: var(--color-accent);
 }
 
 .run-btn {
   padding: 8px 0;
   background: var(--color-bg-elevated);
-  border: 1px solid #58a6ff;
-  color: #58a6ff;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
@@ -465,7 +465,7 @@ th {
 }
 
 .median {
-  color: #f59e0b;
+  color: var(--color-accent);
 }
 
 .stat-row {
@@ -500,9 +500,9 @@ th {
   font-variant-numeric: tabular-nums;
 }
 
-.stat-value.accent { color: #58a6ff; }
-.stat-value.positive { color: #22c55e; }
-.stat-value.negative { color: #f87171; }
+.stat-value.accent { color: var(--color-accent); }
+.stat-value.positive { color: var(--color-down); }
+.stat-value.negative { color: var(--color-up); }
 
 .stat-label {
   font-size: 10px;

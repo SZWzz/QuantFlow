@@ -66,11 +66,11 @@ onMounted(loadData)
 </template>
 
 <style scoped>
-.val-panel { padding: 12px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden; }
+.val-panel { padding: 12px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-right { display: flex; align-items: center; gap: 8px; }
-.s { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,0.15); color: #818cf8; font-family: 'JetBrains Mono', monospace; }
+.s { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
 .r { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .st { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
 .err { color: var(--color-error); }

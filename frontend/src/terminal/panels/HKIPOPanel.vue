@@ -199,8 +199,8 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -216,7 +216,7 @@ onMounted(() => {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.header-tabs .tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn {
   margin-left: auto; padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
@@ -227,7 +227,7 @@ onMounted(() => {
   color: var(--color-text-tertiary); font-size: 13px;
 }
 .error-icon { font-size: 24px; }
-.error-text { max-width: 300px; text-align: center; word-break: break-all; color: var(--color-warning, #f59e0b); }
+.error-text { max-width: 300px; text-align: center; word-break: break-all; color: var(--color-warning, var(--color-accent)); }
 .retry-btn {
   padding: 6px 16px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 12px;
@@ -248,7 +248,7 @@ onMounted(() => {
 }
 .table-row:hover { background: var(--color-bg-elevated); }
 .col-code { width: 64px; }
-.col-code.clickable { cursor: pointer; color: #60a5fa; }
+.col-code.clickable { cursor: pointer; color: var(--color-accent); }
 .col-name { width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-offer-price { width: 64px; text-align: right; }
 .col-entry-fee { width: 72px; text-align: right; }

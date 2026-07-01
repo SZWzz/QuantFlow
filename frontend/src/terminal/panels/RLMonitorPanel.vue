@@ -41,10 +41,10 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 .placeholder-message {
   font-size: 14px;
-  color: #f0883e;
+  color: var(--color-accent);
   margin-bottom: 8px;
   padding: 8px 16px;
-  border: 1px solid #f0883e;
+  border: 1px solid var(--color-accent);
   border-radius: 6px;
   background: rgba(240, 136, 62, 0.1);
 }

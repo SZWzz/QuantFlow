@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useStockName } from '@/lib/composables/useStockName'
+import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
 
 defineProps<{
   panelId: string
@@ -123,93 +124,112 @@ function goBack() {
   selectedIndicator.value = null
   results.value = []
 }
+
+const tableColumns = computed(() => {
+  if (!selectedIndicator.value) return []
+  const cols = [
+    { key: 'date', label: '日期', align: 'left' as const, width: 100 },
+  ]
+  for (const o of selectedIndicator.value.outputs) {
+    cols.push({
+      key: o.toLowerCase(),
+      label: o,
+      align: 'right' as const,
+      formatter: (v: number) => v?.toFixed?.(4) ?? v ?? '-',
+    })
+  }
+  return cols
+})
 </script>
 
 <template>
   <div class="indicator-panel">
-    <div class="panel-header">
-      <div class="header-left">
-        <h3>Indicator Panel</h3>
-        <span class="subtitle">技术指标</span>
-        <span v-if="symbol" class="symbol-info">{{ symbol }} {{ name }}</span>
-      </div>
-      <div v-if="selectedIndicator" class="symbol-input">
-        <input
-          v-model="symbol"
-          type="text"
-          placeholder="股票代码"
-          @keyup.enter="runComputation"
-          class="symbol-field"
-        />
-        <button @click="runComputation" :disabled="loading || !symbol" class="query-btn">
-          {{ loading ? '计算中...' : '计算' }}
-        </button>
-        <button @click="goBack" class="back-btn">返回</button>
-      </div>
-    </div>
+    <PanelHeader
+      :title="selectedIndicator ? selectedIndicator.name : 'Indicator Panel'"
+      :subtitle="selectedIndicator ? selectedIndicator.category : '技术指标'"
+      :controls="selectedIndicator ? [
+        { icon: 'chevron-left', label: '返回', action: goBack },
+      ] : []"
+    />
 
-    <!-- Category / Indicator Grid -->
-    <div v-if="!selectedIndicator" class="indicator-grid">
-      <div v-for="[cat, items] in categories" :key="cat" class="category-group">
-        <h4 class="cat-title">{{ cat }}</h4>
-        <div class="indicator-list">
+    <div class="panel-body">
+      <!-- Symbol input (when indicator selected) -->
+      <div v-if="selectedIndicator" class="symbol-bar">
+        <span v-if="symbol" class="symbol-tag">{{ symbol }} {{ name }}</span>
+        <div class="symbol-input">
+          <input
+            v-model="symbol"
+            type="text"
+            placeholder="股票代码"
+            @keyup.enter="runComputation"
+            class="symbol-field"
+          />
           <button
-            v-for="ind in items"
-            :key="ind.id"
-            @click="selectIndicator(ind)"
-            class="indicator-chip"
-            :title="ind.outputs.join(', ')"
+            @click="runComputation"
+            :disabled="loading || !symbol"
+            class="btn btn-primary"
           >
-            <span class="chip-name">{{ ind.name }}</span>
-            <span class="chip-outputs">→ {{ ind.outputs.join(', ') }}</span>
+            {{ loading ? '计算中...' : '计算' }}
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- Indicator Detail -->
-    <div v-else class="indicator-detail">
-      <div class="detail-header">
-        <span class="ind-name">{{ selectedIndicator.name }}</span>
-        <span class="ind-category">{{ selectedIndicator.category }}</span>
-        <span class="ind-outputs">输出: {{ selectedIndicator.outputs.join(', ') }}</span>
-      </div>
-
-      <!-- Params editor -->
-      <div v-if="selectedIndicator.params.length" class="params-section">
-        <div v-for="p in selectedIndicator.params" :key="p.name" class="param-row">
-          <label :title="p.description">{{ p.name }}</label>
-          <input
-            v-model="paramValues[p.name]"
-            type="text"
-            class="param-field"
-          />
-          <span class="param-desc">{{ p.description }}</span>
+      <!-- Category / Indicator Grid -->
+      <div v-if="!selectedIndicator" class="indicator-grid">
+        <div v-for="[cat, items] in categories" :key="cat" class="category-group">
+          <h4 class="cat-title">{{ cat }}</h4>
+          <div class="indicator-list">
+            <button
+              v-for="ind in items"
+              :key="ind.id"
+              @click="selectIndicator(ind)"
+              class="indicator-chip"
+              :title="ind.outputs.join(', ')"
+            >
+              <span class="chip-name">{{ ind.name }}</span>
+              <span class="chip-outputs">→ {{ ind.outputs.join(', ') }}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Results Table -->
-      <div v-if="results.length" class="results-table">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>日期</th>
-              <th v-for="o in selectedIndicator.outputs" :key="o">{{ o }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(r, idx) in results" :key="idx">
-              <td>{{ r.date }}</td>
-              <td v-for="o in selectedIndicator.outputs" :key="o" class="mono">
-                {{ r[o.toLowerCase()]?.toFixed?.(4) ?? r[o.toLowerCase()] ?? '-' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Indicator Detail -->
+      <div v-else class="indicator-detail">
+        <div class="detail-header">
+          <span class="ind-name">{{ selectedIndicator.name }}</span>
+          <span class="ind-category">{{ selectedIndicator.category }}</span>
+          <span class="ind-outputs">输出: {{ selectedIndicator.outputs.join(', ') }}</span>
+        </div>
+
+        <!-- Params editor -->
+        <div v-if="selectedIndicator.params.length" class="params-section">
+          <div v-for="p in selectedIndicator.params" :key="p.name" class="param-row">
+            <label :title="p.description">{{ p.name }}</label>
+            <input
+              v-model="paramValues[p.name]"
+              type="text"
+              class="param-field"
+            />
+            <span class="param-desc">{{ p.description }}</span>
+          </div>
+        </div>
+
+        <!-- Results Table -->
+        <div v-if="results.length" class="results-table">
+          <PanelTable
+            :columns="tableColumns"
+            :data="results"
+            :striped="true"
+            :loading="loading"
+          />
+        </div>
+        <EmptyState
+          v-else-if="!loading"
+          icon="chart"
+          title="暂无计算结果"
+          description="输入股票代码并点击计算查看结果"
+        />
       </div>
-      <p v-else-if="!loading" class="empty-hint">
-        输入股票代码并点击"计算"查看结果
-      </p>
     </div>
   </div>
 </template>
@@ -219,183 +239,204 @@ function goBack() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  gap: 10px;
+  overflow: hidden;
+}
+
+.panel-body {
+  flex: 1;
   overflow-y: auto;
-}
-.panel-header {
+  padding: var(--panel-padding);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.symbol-bar {
+  display: flex;
   align-items: center;
+  gap: var(--space-md);
   flex-wrap: wrap;
-  gap: 8px;
 }
-.header-left h3 {
-  margin: 0;
-  font-size: 15px;
-}
-.subtitle {
-  font-size: 11px;
-  color: var(--color-text-tertiary, #6b7280);
-  margin-left: 6px;
-}
-.symbol-info {
-  font-size: 11px;
-  color: var(--color-accent, #534ab7);
-  margin-left: 8px;
+
+.symbol-tag {
+  font-size: var(--font-sm);
+  color: var(--color-accent);
   font-weight: 600;
 }
+
 .symbol-input {
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
+  margin-left: auto;
 }
+
 .symbol-field {
   width: 120px;
-  padding: 4px 8px;
-  border: 1px solid var(--color-border, #2a2a3e);
-  background: var(--color-bg-panel, #1a1a2e);
-  color: var(--color-text, #e5e7eb);
-  font-size: 13px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-size: var(--font-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
-.query-btn {
-  padding: 4px 12px;
-  background: var(--color-accent, #534ab7);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
+
+.symbol-field:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
-.query-btn:disabled { opacity: 0.5; cursor: default; }
-.back-btn {
-  padding: 4px 8px;
-  background: var(--color-bg-panel, #1a1a2e);
-  color: var(--color-text-tertiary, #6b7280);
-  border: 1px solid var(--color-border, #2a2a3e);
-  cursor: pointer;
-  font-size: 12px;
-}
+
 .indicator-grid {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-lg);
 }
+
 .category-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
 }
+
 .cat-title {
   margin: 0;
-  font-size: 12px;
-  color: var(--color-text-tertiary, #6b7280);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--color-border, #2a2a3e);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
 }
+
 .indicator-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-xs);
 }
+
 .indicator-chip {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 6px 10px;
-  background: var(--color-bg-panel, #1a1a2e);
-  border: 1px solid var(--color-border, #2a2a3e);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-sm);
   text-align: left;
   min-width: 100px;
+  transition: all var(--transition-fast);
 }
+
 .indicator-chip:hover {
-  border-color: var(--color-accent, #534ab7);
-  background: var(--term-accent-dim);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
+
 .chip-name {
   font-weight: 600;
-  color: var(--color-text, #e5e7eb);
+  color: var(--color-text-primary);
 }
+
 .chip-outputs {
-  font-size: 10px;
-  color: var(--color-text-tertiary, #6b7280);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
   margin-top: 2px;
 }
+
 .indicator-detail {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-md);
+  overflow: hidden;
 }
+
 .detail-header {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
   align-items: baseline;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-border, #2a2a3e);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
 }
-.ind-name { font-size: 16px; font-weight: 700; }
-.ind-category { font-size: 11px; color: var(--color-text-tertiary, #6b7280); }
-.ind-outputs { font-size: 11px; color: var(--color-accent, #534ab7); }
+
+.ind-name {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.ind-category {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+}
+
+.ind-outputs {
+  font-size: var(--font-xs);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
 .params-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  background: var(--term-bg-dim);
-  border: 1px solid var(--color-border, #2a2a3e);
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
+
 .param-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: center;
-  font-size: 12px;
+  font-size: var(--font-sm);
 }
+
 .param-row label {
   width: 50px;
   font-weight: 600;
-  color: var(--color-text, #e5e7eb);
+  color: var(--color-text-primary);
+  flex-shrink: 0;
 }
+
 .param-field {
   width: 80px;
-  padding: 3px 6px;
-  border: 1px solid var(--color-border, #2a2a3e);
-  background: var(--color-bg-panel, #1a1a2e);
-  color: var(--color-text, #e5e7eb);
-  font-size: 12px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-size: var(--font-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
+
+.param-field:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
 .param-desc {
-  font-size: 11px;
-  color: var(--color-text-tertiary, #6b7280);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
 }
+
 .results-table {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.data-table th, .data-table td {
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--color-border, #2a2a3e);
-  text-align: right;
-}
-.data-table th:first-child, .data-table td:first-child { text-align: left; }
-.data-table th {
-  color: var(--color-text-tertiary, #6b7280);
-  font-weight: 600;
-  text-align: right;
-}
-.mono { font-family: monospace; }
-.empty-hint {
-  color: var(--color-text-tertiary, #6b7280);
-  font-style: italic;
-  text-align: center;
-  padding: 30px 0;
+
+.results-table :deep(.td) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--font-xs);
 }
 </style>

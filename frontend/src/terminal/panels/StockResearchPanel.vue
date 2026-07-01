@@ -180,7 +180,7 @@ function refresh() {
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .tab-bar { display: flex; gap: 2px; margin-bottom: 12px; border-bottom: 1px solid var(--color-border-strong); overflow-x: auto; }
 .tab-btn { padding: 6px 14px; border: none; background: none; color: var(--color-text-secondary); cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; white-space: nowrap; }
-.tab-btn.active { color: var(--color-text-primary); border-bottom-color: #3b82f6; }
+.tab-btn.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
 .tab-content { flex: 1; overflow-y: auto; }
 .tab-pane { padding: 8px 0; }
 .kv-grid { display: flex; flex-direction: column; gap: 6px; }
@@ -190,7 +190,7 @@ function refresh() {
 .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .data-table th { text-align: left; padding: 4px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); }
 .data-table td { padding: 4px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
-.buy { color: #22c55e; } .sell { color: #ef4444; }
+.buy { color: var(--color-down); } .sell { color: var(--color-up); }
 .no-data { color: var(--color-text-tertiary); font-size: 13px; text-align: center; padding: 20px; }
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

@@ -98,11 +98,11 @@ onMounted(loadData)
 </template>
 
 <style scoped>
-.sec-fin-panel { padding: 12px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden; }
+.sec-fin-panel { padding: 12px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden; }
 .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-right { display: flex; align-items: center; gap: 8px; }
-.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(30,144,255,0.15); color: #1e90ff; font-family: 'JetBrains Mono', monospace; }
+.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(30,144,255,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .status { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
@@ -116,5 +116,5 @@ onMounted(loadData)
 .fin-row:hover { background: var(--color-bg-hover); }
 .fin-label { font-size: 11px; color: var(--color-text-secondary); text-transform: capitalize; }
 .fin-value { font-size: 12px; font-weight: 500; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
-.fin-value.negative { color: #f85149; }
+.fin-value.negative { color: var(--color-up); }
 </style>

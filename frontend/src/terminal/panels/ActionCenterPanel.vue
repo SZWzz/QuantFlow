@@ -162,7 +162,7 @@ function formatTime(iso: string): string {
   border-left: 3px solid;
 }
 
-.border-info { border-left-color: #3b82f6; }
+.border-info { border-left-color: var(--color-accent); }
 
 .event-left {
   flex-shrink: 0;
@@ -171,7 +171,7 @@ function formatTime(iso: string): string {
 
 .event-icon {
   font-size: 14px;
-  color: #3b82f6;
+  color: var(--color-accent);
 }
 
 .event-body {

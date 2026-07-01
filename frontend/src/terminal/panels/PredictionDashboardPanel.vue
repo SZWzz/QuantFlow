@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useMLStore } from '@/stores/ml'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { PanelHeader, PanelToolbar } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const mlStore = useMLStore()
@@ -57,13 +58,18 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 
 <template>
   <div class="prediction-dashboard">
-    <div class="controls">
-      <select v-model="selectedModelId" class="filter-select">
-        <option v-for="m in mlStore.readyModels" :key="m.id" :value="m.id">{{ m.name }}</option>
-      </select>
-      <input v-model="selectedSymbol" placeholder="Symbol (e.g. AAPL)" class="search-input" />
-      <button @click="mlStore.fetchPredictions(selectedModelId, selectedSymbol); buildCharts()" class="btn">{{ $t('ml.load') }}</button>
-    </div>
+    <PanelHeader :title="$t('ml.prediction_dashboard')" />
+    <PanelToolbar>
+      <template #search>
+        <select v-model="selectedModelId" class="filter-select">
+          <option v-for="m in mlStore.readyModels" :key="m.id" :value="m.id">{{ m.name }}</option>
+        </select>
+      </template>
+      <template #actions>
+        <input v-model="selectedSymbol" placeholder="Symbol (e.g. AAPL)" class="search-input" />
+        <button @click="mlStore.fetchPredictions(selectedModelId, selectedSymbol); buildCharts()" class="btn">{{ $t('ml.load') }}</button>
+      </template>
+    </PanelToolbar>
     <div class="charts-grid">
       <div class="chart-box">
         <h4>{{ $t('ml.pred_distribution') }}</h4>
@@ -88,15 +94,15 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 </template>
 
 <style scoped>
-.prediction-dashboard { padding: 8px; height: 100%; display: flex; flex-direction: column; }
+.prediction-dashboard { padding: var(--panel-padding); height: 100%; display: flex; flex-direction: column; }
 .controls { display: flex; gap: 8px; margin-bottom: 8px; }
-.search-input { padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; }
-.filter-select { padding: 4px 8px; }
-.btn { padding: 4px 12px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; }
+.search-input { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-panel); color: var(--color-text-primary); }
+.filter-select { padding: 4px 8px; background: var(--color-bg-panel); border: 1px solid var(--color-border); color: var(--color-text-primary); }
+.btn { padding: 4px 12px; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; background: var(--color-bg-panel); color: var(--color-text-primary); }
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; }
-.chart-box { border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; }
-.chart-box h4 { margin: 0 0 8px 0; font-size: 0.9em; }
+.chart-box { border: 1px solid var(--color-border); border-radius: 4px; padding: 8px; }
+.chart-box h4 { margin: 0 0 8px 0; font-size: 0.9em; color: var(--color-text-primary); }
 .histogram { display: flex; align-items: flex-end; height: 150px; gap: 1px; }
-.bar { flex: 1; background: #4a90d9; min-height: 1px; border-radius: 1px 1px 0 0; }
-.line-chart-placeholder { height: 150px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.bar { flex: 1; background: var(--color-accent); min-height: 1px; border-radius: 1px 1px 0 0; }
+.line-chart-placeholder { height: 150px; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); }
 </style>

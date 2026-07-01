@@ -68,9 +68,9 @@ register('us-option-chain', () => import('./USOptionsPanel.vue'), { label: '期�
 register('wash-sale', () => import('./WashSalePanel.vue'), { label: 'Wash Sale', category: '美股', description: 'IRS 1091 洗售亏损检测' })
 register('institutional-trades', () => import('./DarkPoolPanel.vue'), { label: '机构交易', category: '美股', description: 'SEC 文件中的机构与内部人交易' })
 register('depth-comparison', () => import('./DepthComparisonPanel.vue'), { label: '多交易所深度对比', category: '加密货币', description: '跨交易所买卖盘深度对比' })
-register('defi-tvl', () => import('./DefiTVLPanel.vue'), { label: 'DeFi TVL 排行', category: '加密货币', description: 'DeFi 协议锁仓量排行榜' })
+register('defi-tvl', () => import('./DefiTVLPanel.vue'), { label: 'DeFi 锁仓排行', category: '加密货币', description: 'DeFi 协议锁仓排名' })
 register('whale-tracking', () => import('./WhaleTrackingPanel.vue'), { label: '巨鲸追踪', category: '加密货币', description: '大额链上转账监控' })
-register('gas-tracker', () => import('./GasFeePanel.vue'), { label: 'Gas 追踪', category: '加密货币', description: '以太坊实时 Gas 价格' })
+register('gas-tracker', () => import('./GasFeePanel.vue'), { label: '燃料费追踪', category: '加密货币', description: '以太坊实时燃料费价格' })
 
 // ── 研究分析 ──
 register('stock-research', () => import('./StockResearchPanel.vue'), { label: '股票研究', category: '研究分析', description: '多维度个股研究' })

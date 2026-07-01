@@ -164,6 +164,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 
 	// Initialize PythonBridge (optional — app works without Python sidecar)
 	bridgeOpts := python.DefaultOptions()
+	bridgeOpts.PythonDir = pythonDir
 	bridge, err := python.NewPythonBridge(bridgeOpts)
 	if err != nil {
 		slog.Warn("python sidecar not available, AI features disabled", "error", err)

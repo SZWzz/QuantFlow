@@ -160,8 +160,8 @@ onMounted(fetchData)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -177,7 +177,7 @@ onMounted(fetchData)
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.f-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.f-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
@@ -208,8 +208,8 @@ onMounted(fetchData)
 .event-row:hover { background: var(--color-bg-elevated); }
 .event-time { width: 40px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
 .event-country { width: 24px; font-size: 10px; font-weight: 600; text-align: center; }
-.event-country.cn { color: #dc2626; }
-.event-country.us { color: #3b82f6; }
+.event-country.cn { color: var(--color-up); }
+.event-country.us { color: var(--color-accent); }
 .event-impact { width: 20px; text-align: center; }
 .event-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .event-prev, .event-forecast, .event-actual {

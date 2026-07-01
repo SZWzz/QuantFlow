@@ -150,7 +150,7 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
+  color: var(--color-text, var(--color-border));
   background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
@@ -166,13 +166,13 @@ onUnmounted(() => {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.mkt-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .header-controls { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 .auto-btn {
   padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.auto-btn.active { color: #60a5fa; border-color: #3b82f6; }
+.auto-btn.active { color: var(--color-accent); border-color: var(--color-accent); }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;

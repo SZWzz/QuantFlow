@@ -156,7 +156,7 @@ onMounted(fetchData)
 <style scoped>
 .cross-asset-correlation-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden;
+  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; flex-wrap: wrap; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }

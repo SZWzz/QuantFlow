@@ -262,7 +262,7 @@ watch(() => messages.value.length, scrollToBottom)
 .tool-call-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; font-size: 11px; }
 .tool-call-header:hover { background: var(--color-bg-subtle); }
 .tool-call-icon { font-size: 8px; color: var(--color-text-tertiary); }
-.tool-call-name { color: #bc8cff; font-weight: 500; }
+.tool-call-name { color: var(--color-accent); font-weight: 500; }
 .tool-call-body { padding: 6px 8px; border-top: 1px solid var(--color-border); }
 .tool-section { margin-bottom: 6px; }
 .tool-label { font-size: 9px; color: var(--color-text-tertiary); text-transform: uppercase; display: block; margin-bottom: 2px; }

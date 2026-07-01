@@ -487,25 +487,25 @@ function positionAllocPct(pos: PositionDetail): string {
 }
 
 .market-us {
-  color: #388e3c;
+  color: var(--color-down);
   background: rgba(56, 142, 60, 0.15);
   border: 1px solid rgba(56, 142, 60, 0.3);
 }
 
 .market-cn {
-  color: #d32f2f;
+  color: var(--color-up);
   background: rgba(211, 47, 47, 0.15);
   border: 1px solid rgba(211, 47, 47, 0.3);
 }
 
 .market-hk {
-  color: #1976d2;
+  color: var(--color-accent);
   background: rgba(25, 118, 210, 0.15);
   border: 1px solid rgba(25, 118, 210, 0.3);
 }
 
 .market-crypto {
-  color: #f57c00;
+  color: var(--color-accent);
   background: rgba(245, 124, 0, 0.15);
   border: 1px solid rgba(245, 124, 0, 0.3);
 }

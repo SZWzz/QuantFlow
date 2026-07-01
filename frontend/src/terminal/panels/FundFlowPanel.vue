@@ -199,7 +199,7 @@ onMounted(loadData)
 .symbol { font-weight: 600; font-size: 14px; }
 .stock-name { color: var(--color-text-secondary); font-size: 12px; }
 .badge {
-  font-size: 10px; background: var(--color-accent); color: #fff;
+  font-size: 10px; background: var(--color-accent); color: var(--color-text-primary);
   padding: 2px 8px; border-radius: 10px;
 }
 .latest-date { font-size: 11px; color: var(--color-text-tertiary); }
@@ -224,8 +224,8 @@ onMounted(loadData)
 }
 .summary-close { font-size: 15px; font-weight: 600; }
 .summary-change { font-size: 14px; font-weight: 600; }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
 
 .card-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

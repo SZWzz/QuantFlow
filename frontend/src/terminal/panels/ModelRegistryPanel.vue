@@ -284,8 +284,8 @@ onMounted(loadFromStore)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: auto;
 }
 .panel-header {
@@ -299,7 +299,7 @@ onMounted(loadFromStore)
 .header-right { display: flex; gap: 8px; }
 .save-msg {
   font-size: 11px;
-  color: #60a5fa;
+  color: var(--color-accent);
   margin-bottom: 8px;
   padding: 4px 10px;
   background: rgba(59,130,246,0.1);
@@ -336,8 +336,8 @@ onMounted(loadFromStore)
   border-radius: 3px;
   font-weight: 400;
 }
-.test-badge.ok { background: rgba(34,197,94,0.15); color: #4ade80; }
-.test-badge.fail { background: rgba(239,68,68,0.15); color: #f87171; }
+.test-badge.ok { background: rgba(34,197,94,0.15); color: var(--color-down); }
+.test-badge.fail { background: rgba(239,68,68,0.15); color: var(--color-up); }
 .card-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .field { display: flex; flex-direction: column; gap: 2px; }
 .field label { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; }
@@ -351,7 +351,7 @@ onMounted(loadFromStore)
   font-family: 'SF Mono', monospace;
   outline: none;
 }
-.form-input:focus { border-color: #3b82f6; }
+.form-input:focus { border-color: var(--color-accent); }
 .card-footer { padding: 6px 10px; border-top: 1px solid var(--color-border-subtle); display: flex; gap: 6px; }
 
 /* ── Models section ── */
@@ -406,7 +406,7 @@ onMounted(loadFromStore)
   margin-bottom: 6px;
   outline: none;
 }
-.search-input:focus { border-color: #3b82f6; }
+.search-input:focus { border-color: var(--color-accent); }
 
 .model-table {
   width: 100%;
@@ -431,7 +431,7 @@ onMounted(loadFromStore)
   color: var(--color-text-tertiary);
 }
 .status-badge { padding: 2px 6px; border-radius: 3px; font-size: 11px; }
-.status-ready { background: rgba(34,197,94,0.15); color: #4ade80; }
+.status-ready { background: rgba(34,197,94,0.15); color: var(--color-down); }
 
 /* ── Buttons ── */
 .btn {
@@ -446,8 +446,8 @@ onMounted(loadFromStore)
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary {
   background: rgba(59,130,246,0.2);
-  border-color: #3b82f6;
-  color: #60a5fa;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 .btn-sm { padding: 3px 10px; font-size: 10px; }
 

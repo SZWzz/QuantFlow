@@ -10,6 +10,14 @@ import { detectMarket } from '@/lib/wails'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { useDataStore } from '@/stores/data'
+import {
+  PanelHeader,
+  PanelTabs,
+  EmptyState,
+  LoadingState,
+  SignalBadge,
+  TrendIndicator,
+} from '@/terminal/components/panel'
 
 const { t } = useI18n()
 const dataStore = useDataStore()
@@ -338,6 +346,16 @@ const chartOption = computed(() => {
   const dates = indicatorData.value.map(p => p.date)
   const values = indicatorData.value.map(p => p.value)
   const theme = useChartTheme()
+
+  // Resolve signal colors from CSS variables
+  const upColor = '#ef4444'
+  const downColor = '#22c55e'
+  const axisColor = theme.axisColor
+
+  const lineColor = selectedSignal.value?.signal === 'bullish'
+    ? upColor : selectedSignal.value?.signal === 'bearish'
+    ? downColor : axisColor
+
   return {
     tooltip: {
       trigger: 'axis' as const,
@@ -360,24 +378,15 @@ const chartOption = computed(() => {
       smooth: true,
       areaStyle: {
         color: selectedSignal.value?.signal === 'bullish'
-          ? 'rgba(22, 163, 74, 0.1)' : selectedSignal.value?.signal === 'bearish'
-          ? 'rgba(220, 38, 38, 0.1)' : 'rgba(156, 163, 175, 0.1)'
+          ? upColor + '1A' : selectedSignal.value?.signal === 'bearish'
+          ? downColor + '1A' : axisColor + '1A'
       },
-      lineStyle: {
-        color: selectedSignal.value?.signal === 'bullish'
-          ? '#16a34a' : selectedSignal.value?.signal === 'bearish'
-          ? '#dc2626' : theme.axisColor,
-        width: 2
-      },
-      itemStyle: {
-        color: selectedSignal.value?.signal === 'bullish'
-          ? '#16a34a' : selectedSignal.value?.signal === 'bearish'
-          ? '#dc2626' : theme.axisColor
-      },
+      lineStyle: { color: lineColor, width: 2 },
+      itemStyle: { color: lineColor },
       markLine: {
         silent: true,
         data: [{ type: 'average', name: t('misc.mean') }],
-        lineStyle: { color: '#f59e0b', type: 'dashed' }
+        lineStyle: { color: 'var(--color-accent)', type: 'dashed' }
       },
       showSymbol: false
     }]
@@ -398,77 +407,70 @@ function formatChange(c: number): string {
   return `${sign}${c.toFixed(2)}%`
 }
 
-function directionIcon(d: string): string {
-  if (d === 'up') return '↑'
-  if (d === 'down') return '↓'
-  return '→'
-}
-
-function signalEmoji(s: string): string {
-  if (s === 'bullish') return '🟢'
-  if (s === 'bearish') return '🔴'
-  return '⚪'
-}
-
-function signalLabel(s: string): string {
-  if (s === 'bullish') return '看涨'
-  if (s === 'bearish') return '看跌'
-  return '中性'
-}
-
-function signalClass(s: string): string {
-  return s
-}
-
 function changeClass(c: number): string {
-  if (c > 0) return 'text-green'
-  if (c < 0) return 'text-red'
-  return 'text-muted'
+  if (c > 0) return 'up'
+  if (c < 0) return 'down'
+  return 'muted'
 }
 </script>
 
 <template>
   <div class="govdata-panel" :data-panel-id="panelId">
     <!-- Header: source switch + signal summary -->
-    <div class="panel-header">
-      <div class="header-left">
-        <h3>{{ sourceCnLabels[activeSource] }}</h3>
-      </div>
-      <div class="header-summary">
-        <span class="summary-badge bullish" v-if="signalCounts.bullish > 0">🟢 {{ signalCounts.bullish }} 看涨</span>
-        <span class="summary-badge bearish" v-if="signalCounts.bearish > 0">🔴 {{ signalCounts.bearish }} 看跌</span>
-        <span class="summary-badge neutral" v-if="signalCounts.neutral > 0">⚪ {{ signalCounts.neutral }} 中性</span>
-        <button class="btn-sm" @click="loadSignals()">🔄 {{ $t('common.refresh') }}</button>
-      </div>
-    </div>
+    <PanelHeader
+      :title="sourceCnLabels[activeSource]"
+      :controls="[
+        { icon: 'refresh', label: $t('common.refresh'), action: loadSignals },
+      ]"
+    >
+      <template #extra>
+        <div class="signal-summary">
+          <span class="summary-badge" v-if="signalCounts.bullish > 0">
+            <SignalBadge signal="bullish" size="sm" /> {{ signalCounts.bullish }} 看涨
+          </span>
+          <span class="summary-badge" v-if="signalCounts.bearish > 0">
+            <SignalBadge signal="bearish" size="sm" /> {{ signalCounts.bearish }} 看跌
+          </span>
+          <span class="summary-badge" v-if="signalCounts.neutral > 0">
+            <SignalBadge signal="neutral" size="sm" /> {{ signalCounts.neutral }} 中性
+          </span>
+        </div>
+      </template>
+    </PanelHeader>
 
     <!-- Source switch tabs -->
-    <div class="source-tabs">
-      <button v-for="s in sources" :key="s.key"
-        :class="['source-tab', { active: activeSource === s.key }]"
-        @click="activeSource = s.key; activeCategory = 'all'; loadSignals()">
-        {{ s.label }}
-      </button>
-    </div>
+    <PanelTabs
+      variant="pill"
+      :tabs="sources.map(s => ({ key: s.key, label: s.label }))"
+      :active="activeSource"
+      @change="(k: string) => { activeSource = k as any; activeCategory = 'all'; loadSignals() }"
+    />
 
     <!-- Category filter tabs (dynamic per source) -->
-    <div class="category-tabs" v-if="categories.length > 2">
-      <button
-        v-for="cat in categories" :key="cat"
-        :class="['tab', { active: activeCategory === cat }]"
-        @click="activeCategory = cat; selectedSignal = null"
-      >
-        {{ categoryLabel(cat) }}
-      </button>
-    </div>
+    <PanelTabs
+      v-if="categories.length > 2"
+      variant="button"
+      :tabs="categories.map(cat => ({ key: cat, label: categoryLabel(cat) }))"
+      :active="activeCategory"
+      @change="(k: string) => { activeCategory = k; selectedSignal = null }"
+    />
 
     <!-- Main content: indicator grid + detail -->
     <div class="content-area">
       <!-- Indicator cards grid -->
       <div class="indicator-grid" :class="{ 'with-detail': selectedSignal }">
-        <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
-        <div v-else-if="loadError" class="empty-state error">{{ loadError }}</div>
-        <div v-else-if="filteredSignals.length === 0" class="empty-state">{{ $t('macro.no_data') }}</div>
+        <LoadingState v-if="loading" type="card" />
+        <EmptyState
+          v-else-if="loadError"
+          icon="alert-circle"
+          :title="$t('common.error')"
+          :description="loadError"
+        />
+        <EmptyState
+          v-else-if="filteredSignals.length === 0"
+          icon="inbox"
+          :title="$t('macro.no_data')"
+        />
         <div
           v-for="signal in filteredSignals"
           :key="signal.indicator_id"
@@ -477,9 +479,7 @@ function changeClass(c: number): string {
         >
           <div class="card-header">
             <span class="card-name">{{ signal.name_cn }}</span>
-            <span :class="['signal-badge', signalClass(signal.signal)]">
-              {{ signalEmoji(signal.signal) }} {{ signalLabel(signal.signal) }}
-            </span>
+            <SignalBadge :signal="(signal.signal as 'bullish'|'bearish'|'neutral')" />
           </div>
           <div class="card-value">
             <template v-if="signal.latest_value != null && signal.latest_value !== 0 || signal.latest_date">
@@ -488,9 +488,7 @@ function changeClass(c: number): string {
             <span v-else class="card-tap">点击查看数据</span>
           </div>
           <div class="card-change">
-            <span :class="['direction-icon', changeClass(signal.change)]">
-              {{ directionIcon(signal.direction) }}
-            </span>
+            <TrendIndicator :direction="(signal.direction as 'up'|'down'|'flat')" />
             <span :class="['change-text', changeClass(signal.change)]">
               {{ formatChange(signal.change) }}
             </span>
@@ -518,13 +516,13 @@ function changeClass(c: number): string {
           <div class="info-row">
             <span class="info-label">{{ $t('common.change') }}</span>
             <span :class="['info-value', changeClass(selectedSignal.change)]">
-              {{ directionIcon(selectedSignal.direction) }} {{ formatChange(selectedSignal.change) }}
+              <TrendIndicator :direction="(selectedSignal.direction as 'up'|'down'|'flat')" /> {{ formatChange(selectedSignal.change) }}
             </span>
           </div>
           <div class="info-row">
             <span class="info-label">{{ $t('macro.signal') }}</span>
-            <span :class="['info-value', signalClass(selectedSignal.signal)]">
-              {{ signalEmoji(selectedSignal.signal) }} {{ signalLabel(selectedSignal.signal) }}
+            <span class="info-value">
+              <SignalBadge :signal="(selectedSignal.signal as 'bullish'|'bearish'|'neutral')" /> {{ selectedSignal.signal === 'bullish' ? '看涨' : selectedSignal.signal === 'bearish' ? '看跌' : '中性' }}
             </span>
           </div>
           <div class="info-row">
@@ -537,13 +535,13 @@ function changeClass(c: number): string {
         <div class="chart-container" v-if="indicatorData.length > 0 && !chartLoading">
           <VChart :option="chartOption" style="height: 250px" autoresize />
         </div>
-        <div v-else-if="chartLoading" class="empty-state small">{{ $t('macro.loading_chart') }}</div>
-        <div v-else class="empty-state small">{{ $t('macro.no_history') }}</div>
+        <LoadingState v-else-if="chartLoading" type="inline" />
+        <EmptyState v-else icon="inbox" :title="$t('macro.no_history')" />
 
         <!-- Trend summary -->
         <div class="trend-summary" v-if="selectedSignal.direction !== 'flat'">
           <span :class="['trend-text', changeClass(selectedSignal.change)]">
-            {{ selectedSignal.direction === 'up' ? '📈 上升趋势' : '📉 下降趋势' }}
+            <TrendIndicator :direction="(selectedSignal.direction as 'up'|'down'|'flat')" /> {{ selectedSignal.direction === 'up' ? '上升趋势' : '下降趋势' }}
           </span>
           <span v-if="selectedSignal.signal === 'bullish'">{{ $t('macro.positive_signal') }}</span>
           <span v-else-if="selectedSignal.signal === 'bearish'">{{ $t('macro.negative_signal') }}</span>
@@ -563,92 +561,31 @@ function changeClass(c: number): string {
   font-size: 13px;
 }
 
-.panel-header {
+.signal-summary {
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
   align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
-  gap: 4px;
 }
-.panel-header h3 { margin: 0; font-size: 14px; }
-
-.header-summary { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .summary-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--color-bg-subtle);
 }
-.summary-badge.bullish { color: #16a34a; }
-.summary-badge.bearish { color: #dc2626; }
-.summary-badge.neutral { color: var(--color-text-secondary); }
-
-/* Source switch tabs */
-.source-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.source-tab {
-  padding: 3px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-.source-tab.active {
-  background: var(--color-accent);
-  color: #fff;
-  border-color: var(--color-accent);
-}
-.source-tab:hover:not(.active) { background: var(--color-bg-hover); }
-
-.btn-sm {
-  padding: 2px 8px;
-  font-size: 11px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-.btn-sm:hover { background: var(--color-bg-hover); }
-
-.category-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--color-border);
-  overflow-x: auto;
-}
-.tab {
-  padding: 3px 10px;
-  font-size: 11px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.tab.active { background: var(--color-accent); color: #fff; }
-.tab:hover:not(.active) { background: var(--color-bg-hover); }
 
 .content-area { display: flex; flex: 1; overflow: hidden; }
 
-/* Indicator grid */
+/* Indicator grid with responsive breakpoints */
 .indicator-grid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 12px;
+  padding: var(--panel-padding);
   overflow-y: auto;
   align-content: start;
 }
@@ -656,10 +593,41 @@ function changeClass(c: number): string {
   flex: 0 0 55%;
 }
 
+/* Responsive: 2 columns at 600px, 1 column at 400px */
+@media (max-width: 600px) {
+  .indicator-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .indicator-grid.with-detail {
+    flex: 0 0 45%;
+  }
+}
+@media (max-width: 400px) {
+  .indicator-grid {
+    grid-template-columns: 1fr;
+  }
+  .indicator-grid.with-detail {
+    flex: 0 0 40%;
+  }
+  .detail-panel {
+    min-width: 200px;
+  }
+}
+@media (max-width: 280px) {
+  .indicator-grid {
+    grid-template-columns: 1fr;
+    padding: var(--panel-padding-sm);
+  }
+  .detail-panel {
+    min-width: 160px;
+    padding: var(--panel-padding-sm);
+  }
+}
+
 .indicator-card {
   display: flex;
   flex-direction: column;
-  padding: 10px;
+  padding: var(--card-padding);
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
   cursor: pointer;
@@ -707,7 +675,6 @@ function changeClass(c: number): string {
   gap: 4px;
   font-size: 11px;
 }
-.direction-icon { font-weight: 700; font-size: 13px; }
 .change-text { font-variant-numeric: tabular-nums; }
 .card-unit {
   color: var(--color-text-tertiary);
@@ -718,25 +685,15 @@ function changeClass(c: number): string {
   white-space: nowrap;
 }
 
-.signal-badge {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--color-bg-subtle);
-  white-space: nowrap;
-}
-.signal-badge.bullish { color: #16a34a; }
-.signal-badge.bearish { color: #dc2626; }
-
-.text-green { color: #16a34a; }
-.text-red { color: #dc2626; }
-.text-muted { color: var(--color-text-tertiary); }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
+.muted { color: var(--color-text-tertiary); }
 
 /* Detail panel */
 .detail-panel {
   flex: 1;
   border-left: 1px solid var(--color-border);
-  padding: 12px;
+  padding: var(--panel-padding);
   overflow-y: auto;
   min-width: 300px;
 }
@@ -762,7 +719,7 @@ function changeClass(c: number): string {
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-bottom: 12px;
-  padding: 10px;
+  padding: var(--card-padding);
   background: var(--color-bg-subtle);
   border-radius: 6px;
 }
@@ -780,6 +737,9 @@ function changeClass(c: number): string {
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .chart-container { margin-bottom: 12px; }
@@ -790,17 +750,9 @@ function changeClass(c: number): string {
   background: var(--color-bg-subtle);
   font-size: 12px;
   line-height: 1.5;
-}
-.trend-text { font-weight: 600; }
-
-.empty-state {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: var(--color-text-tertiary);
-  grid-column: 1 / -1;
+  gap: 8px;
 }
-.empty-state.small { padding: 20px; font-size: 12px; }
-.empty-state.error { color: #dc2626; }
+.trend-text { font-weight: 600; display: flex; align-items: center; gap: 4px; }
 </style>

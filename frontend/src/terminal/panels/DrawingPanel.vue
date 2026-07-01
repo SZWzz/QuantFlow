@@ -287,7 +287,7 @@ onMounted(() => {
         <div class="toolbar-divider"></div>
         <input
           type="color"
-          v-model="active颜色"
+          v-model="activeColor"
           class="color-picker"
           title="颜色"
         />
@@ -332,7 +332,7 @@ onMounted(() => {
 
 .symbol-badge {
   font-size: 11px;
-  color: #58a6ff;
+  color: var(--color-accent);
   background: rgba(88, 166, 255, 0.1);
   padding: 2px 8px;
   border-radius: 3px;
@@ -373,18 +373,18 @@ onMounted(() => {
 
 .tool-btn:hover {
   background: var(--color-border-strong);
-  border-color: #4b5563;
+  border-color: var(--color-text-secondary);
 }
 
 .tool-btn.active {
-  border-color: #58a6ff;
+  border-color: var(--color-accent);
   background: rgba(88, 166, 255, 0.15);
-  color: #58a6ff;
+  color: var(--color-accent);
 }
 
 .tool-btn.clear-btn:hover {
-  border-color: #f87171;
-  color: #f87171;
+  border-color: var(--color-up);
+  color: var(--color-up);
   background: rgba(248, 113, 113, 0.1);
 }
 

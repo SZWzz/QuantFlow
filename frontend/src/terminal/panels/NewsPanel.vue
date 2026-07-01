@@ -84,10 +84,10 @@ watch(() => items.value, (newItems) => {
 .news-item:hover { background: rgba(88,166,255,0.05); }
 .news-title { font-size: 12px; color: var(--color-text-primary); line-height: 1.4; margin-bottom: 4px; }
 .news-meta { display: flex; gap: 8px; align-items: center; }
-.news-symbol { padding: 1px 4px; background: var(--color-accent-soft); color: #58a6ff; border-radius: 2px; font-size: 10px; font-weight: 600; }
+.news-symbol { padding: 1px 4px; background: var(--color-accent-soft); color: var(--color-accent); border-radius: 2px; font-size: 10px; font-weight: 600; }
 .news-source { font-size: 10px; color: var(--color-text-tertiary); }
-.news-time { font-size: 10px; color: #3a4a6c; }
-.news-link { font-size: 10px; color: var(--color-accent, #58a6ff); margin-left: auto; opacity: 0; transition: opacity 0.15s; }
+.news-time { font-size: 10px; color: var(--color-text-secondary); }
+.news-link { font-size: 10px; color: var(--color-accent, var(--color-accent)); margin-left: auto; opacity: 0; transition: opacity 0.15s; }
 .news-item:hover .news-link { opacity: 0.8; }
 .empty-state { padding: 40px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

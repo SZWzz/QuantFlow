@@ -145,8 +145,8 @@ onMounted(() => fetchData())
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -162,11 +162,11 @@ onMounted(() => fetchData())
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px; white-space: nowrap;
 }
-.header-tabs .tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .header-controls { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 .count-badge {
   font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
-  color: #60a5fa; background: rgba(59,130,246,0.1);
+  color: var(--color-accent); background: rgba(59,130,246,0.1);
 }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
@@ -176,10 +176,10 @@ onMounted(() => fetchData())
 .error-state {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
 }
-.error-text { color: #f87171; font-size: 12px; }
+.error-text { color: var(--color-up); font-size: 12px; }
 .retry-btn {
-  padding: 4px 14px; border: 1px solid #f87171; border-radius: 4px;
-  background: transparent; color: #f87171; cursor: pointer; font-size: 11px;
+  padding: 4px 14px; border: 1px solid var(--color-up); border-radius: 4px;
+  background: transparent; color: var(--color-up); cursor: pointer; font-size: 11px;
 }
 .retry-btn:hover { background: rgba(248,113,113,0.1); }
 .empty-state {
@@ -199,7 +199,7 @@ onMounted(() => fetchData())
 .table-row:hover { background: var(--color-bg-elevated); }
 .col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-code { width: 72px; flex-shrink: 0; }
-.col-code.clickable { cursor: pointer; color: #60a5fa; }
+.col-code.clickable { cursor: pointer; color: var(--color-accent); }
 .col-name { width: 80px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-strike { width: 70px; flex-shrink: 0; text-align: right; }
 .col-expiry { width: 80px; flex-shrink: 0; }

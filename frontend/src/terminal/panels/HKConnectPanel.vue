@@ -225,8 +225,8 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -242,7 +242,7 @@ onUnmounted(() => {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.header-tabs .tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
@@ -262,8 +262,8 @@ onUnmounted(() => {
 }
 .stat-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .stat-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
 
 .flow-chart { height: 160px; margin-bottom: 12px; flex-shrink: 0; }
 
@@ -288,7 +288,7 @@ onUnmounted(() => {
 .quota-label { font-size: 13px; font-weight: 600; }
 .quota-bar-track { height: 12px; background: var(--color-bg-elevated); border-radius: 6px; overflow: hidden; }
 .quota-bar-fill { height: 100%; border-radius: 6px; }
-.sh-bar { background: #ef4444; }
-.sz-bar { background: #22c55e; }
+.sh-bar { background: var(--color-up); }
+.sz-bar { background: var(--color-down); }
 .quota-detail { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); }
 </style>

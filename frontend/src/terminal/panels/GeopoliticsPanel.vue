@@ -376,7 +376,7 @@ function formatTime(ts: number): string {
   cursor: pointer;
   white-space: nowrap;
 }
-.tab.active { background: var(--color-accent); color: #fff; }
+.tab.active { background: var(--color-accent); color: var(--color-text-primary); }
 .tab:hover:not(.active) { background: var(--color-bg-hover); }
 
 /* ── Content area ────────────────────────────────────────────── */
@@ -429,9 +429,9 @@ function formatTime(ts: number): string {
   font-size: 10px;
   font-weight: 600;
 }
-.badge-high { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
-.badge-medium { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-.badge-low { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
+.badge-high { background: rgba(220, 38, 38, 0.12); color: var(--color-up); }
+.badge-medium { background: rgba(245, 158, 11, 0.12); color: var(--color-accent); }
+.badge-low { background: rgba(22, 163, 74, 0.12); color: var(--color-down); }
 
 .card-body { display: flex; flex-direction: column; gap: 4px; }
 
@@ -444,8 +444,8 @@ function formatTime(ts: number): string {
 .metric-value { font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
 .metric-sub { font-size: 10px; margin-left: 4px; }
 
-.text-green { color: #16a34a; }
-.text-red { color: #dc2626; }
+.text-green { color: var(--color-down); }
+.text-red { color: var(--color-up); }
 
 .card-footer {
   display: flex;

@@ -107,7 +107,7 @@ function isNegative(v: any): boolean {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
+  color: var(--color-text, var(--color-border));
   background: var(--color-bg, var(--color-bg-panel));
 }
 .panel-header {
@@ -174,7 +174,7 @@ function isNegative(v: any): boolean {
   font-variant-numeric: tabular-nums;
 }
 .negative {
-  color: var(--color-danger, #ef4444);
+  color: var(--color-danger, var(--color-up));
 }
 .total-row {
   display: flex;

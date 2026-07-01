@@ -28,6 +28,7 @@ type BridgeOptions struct {
 	DialTimeout    time.Duration
 	RequestTimeout time.Duration
 	MaxRetries     int
+	PythonDir      string // path to python/ directory (for subprocess calls like chanlun)
 }
 
 // DefaultOptions returns sensible defaults for local development.
@@ -76,9 +77,12 @@ func NewPythonBridge(opts BridgeOptions) (*PythonBridge, error) {
 		opts:            opts,
 	}
 
-	// Detect pythonDir from executable path (same logic as app.go).
-	if execPath, err := os.Executable(); err == nil {
-		b.pythonDir = filepath.Join(filepath.Dir(execPath), "python")
+	b.pythonDir = opts.PythonDir
+	if b.pythonDir == "" {
+		// Fall back to executable-relative path.
+		if execPath, err := os.Executable(); err == nil {
+			b.pythonDir = filepath.Join(filepath.Dir(execPath), "python")
+		}
 	}
 	return b, nil
 }

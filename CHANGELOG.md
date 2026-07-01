@@ -4,7 +4,36 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
-## [2026.6.29] - 2026-06-29
+## [2026.7.1] - 2026-07-01
+
+### Fixed
+- [Frontend] **AuditPanel 营收增长率改为同比（同周期类型）** — `growthRate()` 之前固定取 `periods[0]` vs `periods[3]`（混合不同周期类型如 Q1 vs 半年报），现在改为提取最新期的 month-day（如 `"03-31"`）在历史中匹配相同 month-day 的期进行对比，实现真正同比
+- [Python] **analyzer 营收评分改为同比比较** — `analyze_report()` 同期比较逻辑从固定 `revs[0] vs revs[3]` 改为按 month-day 匹配同周期类型，修正之前混合 Q1/半年报/年报带来的评分偏差
+- [Frontend] **CandlestickPanel 分时图刷新闪烁** — 轮询刷新时因 `minuteLoading` 翻转导致 loading 层替换 VChart（DOM 卸载→重建），改为仅在首次加载（`!minuteTicks.length`）时显示 loading，后续轮询保持 VChart 持续渲染。同时移除 `minuteBottomMode` 在 `:key` 中的依赖，避免切换副图指标时全量销毁/重建 ECharts 实例
+- [Frontend] **MACD 改用首值种子 EMA（同花顺 MACDFS 风格）** — `ema()` 从 SMA 种子（等 N 个值才有第一个值）改为首值种子（第 1 个值就初始化 EMA），分时图 MACD 从 09:30 开盘即可绘制 DIF/DEA/HIST，不再需要等到 10:03。同步加回 `BAR=2×(DIFF-DEA)` 倍数
+- [Frontend] **分时图轮询 10s → 5s** — 提高实时性，配合后端 3s 冷却锁避免 mootdx 空转
+- [Backend] **MootdxAdapter per-symbol 冷却锁** — `FetchMinuteLine` 新增 `sync.Mutex` + `map[string]time.Time` 冷却锁，同一标的两次调用间隔 < 3s 时直接返回空，避免交易时段轮询空转时重复请求 TDX 服务器
+- [Python] **缠论分析输出格式** — 重写 `chanlun.py` CLI 数据序列化，fractals/bi_list/zs_list 输出格式现在匹配前端 `Fractal`/`BiSegment`/`ZSBlock` TypeScript 接口。之前因字段名不匹配（如 `fx_type` vs `type`/`start_date` vs `from_date`）导致前端渲染为空
+- [Backend] **pythonDir 路径传递** — `BridgeOptions` 新增 `PythonDir` 字段，`app.go` 启动时将正确的 `python/` 目录路径传递给 `PythonBridge`，修复 `AnalyzeChanlun` 子进程因路径错误找不到 Python 模块的问题
+
+### Changed
+- [Frontend] **FinancialsPanel** — 完全重写：移除评分/异常列（移至 AuditPanel），改为三 Tab（利润表/资产负债表/现金流量表）展示 Sina 原始财务数据，行=科目名，列=报告期，数值自动格式化亿/万
+- [Backend] **GetFinancialStatements** — 新增 Wails 方法，直接返回 Sina 原始三表数据（不经过 Python analyzer 预处理）
+- [Frontend] **AuditPanel** — 完全重写：新增风险仪表盘 + 财务健康双 gauge、KPI 指标卡片(ROE/负债率/净利率/毛利率/营收增长)、评分明细展开、异常发现分类卡片、12 期财务历史表格；并行调用 GetAuditFindings + GetFinancialAnalysis 合并显示
+- [Frontend] **MarketOverviewPanel** — 全面性能优化：Promise.all 并行化 GetMarketOverview 和 GetIndustryRanks；IndustryRanks 前端缓存 5 分钟；骨架屏替代全屏 loading 遮罩；使用 PanelHeader/PanelTable 共享组件
+- [Frontend] **GovDataPanel** — 迁移至 PanelHeader/PanelTable/PanelToolbar 共享组件，统一加载/空态/错误显示
+- [Frontend] **IndicatorPanel** — 迁移至 PanelHeader/PanelTable 共享组件，硬编码颜色替换为 CSS 变量
+- [Frontend] **StockScannerPanel** — 迁移至 PanelHeader/PanelTable 共享组件，CSS 变量颜色统一
+- [Frontend] **LimitUpDownPanel** — 迁移至 PanelHeader/PanelTable 共享组件，并行数据加载
+- [Frontend] **WatchlistPanel** — 迁移至 PanelHeader/PanelTable 共享组件，CSS 变量颜色统一
+- [Frontend] **~50 面板** — 硬编码颜色（`#ef4444`/`#22c55e`/`#3b82f6` 等）全部替换为 CSS 变量 `var(--color-up)`/`var(--color-down)`/`var(--color-accent)`，主题切换后全面板生效
+- [Frontend] **ModelRegistryPanel** — 硬编码颜色替换为 CSS 变量
+- [Backend] **GetIndustryRanks** — 移除重试逻辑（原最多 3 次），一次失败立即返回空切片，避免阻塞面板 5-15 秒
+- [Backend] **GetMarketOverview** — 缓存 TTL 30s → 60s，减少重复请求
+- [Backend] **MacAdapter** — 新增 TCP 连接池复用（sync.Mutex + 持久连接），断线自动重连，消除每次 GetBlockRank 新建 TCP 的开销
+- [Frontend] **symbolSearch** — 搜索结果上限 20 条，Go 后端失败时优雅回退到前端 mock 搜索
+- [Build] **Makefile** — 新增 `build-full` 目标（frontend build → Go 编译 → Python sidecar rsync）
+- [Build] **Taskfile** — Python venv 符号链接在 rsync 后创建，避免 --delete 误删
 
 ### Added
 - [Frontend] **usePanelCache** — 新增通用面板缓存 composable，基于 dataStore 的 TTL 缓存，统一面板数据缓存逻辑
@@ -12,9 +41,12 @@
 - [Frontend] **ForecastPanel** — 新增 ECharts 分组柱状图：X 轴三情景(保守/基准/乐观)，每组基准年/Y1/Y2 营收对比
 - [Frontend] **ModelRegistryPanel** — 重写为大模型配置面板：Provider 卡片(OpenAI/Anthropic/DeepSeek/Ollama)、API Key + Base URL 编辑、连接测试、模型列表浏览
 - [Backend] **ListLLMModels** — 新增 Wails 方法调用 Python gRPC `ListModels`，返回可用 LLM 模型列表
+- [Frontend] **Panel 共享组件库** — 新增 10 个标准化组件：PanelHeader（标题/标签/操作栏）、PanelCard（信息卡片）、PanelTable（可排序表格）、PanelTabs、PanelToolbar、LoadingState、EmptyState、SignalBadge、TrendIndicator，统一 50+ 面板的 UI 模式
+- [Frontend] **Panel tokens CSS** — themes.css 新增面板设计令牌：panel-padding/title-size/table-row-height/tab-height/toolbar-gap 等，支持 density（紧凑/舒适）预设
+
+## [2026.6.29] - 2026-06-29
 
 ### Changed
-- [Docs] 移除文档中外部参考项目名称（FinceptTerminal/AStockPursue/easy-tdx），替换为匿名称呼
 - [Frontend] **28 panels** — 全部接入 usePanelCache 缓存(5分钟TTL，系统监控5秒)，切换 symbol 时命中缓存避免重复 Go IPC 调用
 - [Frontend] **ForecastPanel** — 重写完整面板：代码解压缩、i18n 全覆盖、增加年均利润率/CAGR/基准增长率指标栏; 修复季度累计营收误作年化基数的显示问题
 - [Python] **forecast_financials** — 修复：区分年度(12-31)与季度累计(03-31/06-30/09-30)数据，年度数据不足时年化处理，返回 period_type/latest_period 供前端准确展示

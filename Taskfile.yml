@@ -34,5 +34,6 @@ tasks:
         --exclude='.DS_Store'
         python/ build/python/
       # Symlink the source venv so the sidecar has its dependencies.
-      # If the symlink already exists, ln -sf replaces it silently.
-      - test -d python/.venv && ln -sfn "$(pwd)/python/.venv" build/python/.venv || true
+      # rsync --delete with --exclude skips .venv/ in both source and dest,
+      # so we create the symlink AFTER rsync to ensure it survives.
+      - ln -sfn "$(pwd)/python/.venv" build/python/.venv

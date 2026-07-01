@@ -41,8 +41,8 @@ onMounted(() => store.fetchNotifications())
 .notify-panel { padding: 10px; background: var(--color-bg-panel); height: 100%; display: flex; flex-direction: column; }
 .filter-bar { display: flex; gap: 4px; margin-bottom: 8px; align-items: center; }
 .filter-btn { padding: 3px 10px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: 3px; color: var(--color-text-tertiary); font-size: 10px; text-transform: capitalize; cursor: pointer; }
-.filter-btn.active { background: var(--color-accent-soft); color: #58a6ff; border-color: #58a6ff; }
-.unread-badge { margin-left: auto; padding: 2px 8px; background: #0a3d1a; border-radius: 10px; color: #3fb950; font-size: 10px; font-weight: 600; }
+.filter-btn.active { background: var(--color-accent-soft); color: var(--color-accent); border-color: var(--color-accent); }
+.unread-badge { margin-left: auto; padding: 2px 8px; background: var(--color-down); border-radius: 10px; color: var(--color-down); font-size: 10px; font-weight: 600; }
 .notify-list { flex: 1; overflow-y: auto; }
 .notify-row { display: flex; gap: 8px; padding: 8px; border-bottom: 1px solid var(--color-bg-input); cursor: pointer; transition: background 0.15s; }
 .notify-row:hover { background: var(--color-bg-subtle); }
@@ -50,10 +50,10 @@ onMounted(() => store.fetchNotifications())
 .notify-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
 .notify-body { flex: 1; min-width: 0; }
 .notify-title { display: block; font-size: 12px; font-weight: 600; color: var(--color-text-primary); }
-.notify-row.unread .notify-title { color: #fff; }
+.notify-row.unread .notify-title { color: var(--color-text-primary); }
 .notify-text { display: block; font-size: 11px; color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notify-time { font-size: 10px; color: var(--color-text-tertiary); flex-shrink: 0; }
 .empty-state { padding: 40px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; }
 .footer { padding-top: 8px; border-top: 1px solid var(--color-bg-input); }
-.read-all-btn { width: 100%; padding: 6px; background: var(--color-bg-subtle); border: 1px solid var(--color-accent-soft); border-radius: 4px; color: #58a6ff; font-size: 12px; cursor: pointer; }
+.read-all-btn { width: 100%; padding: 6px; background: var(--color-bg-subtle); border: 1px solid var(--color-accent-soft); border-radius: 4px; color: var(--color-accent); font-size: 12px; cursor: pointer; }
 </style>

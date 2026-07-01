@@ -256,16 +256,16 @@ td {
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
-.badge.filled    { background: #0a3d1a; color: var(--up); }
-.badge.partial   { background: #3d2e0a; color: #f0883e; }
-.badge.pending   { background: #3d2e0a; color: #f59e0b; }
+.badge.filled    { background: var(--color-down); color: var(--up); }
+.badge.partial   { background: var(--color-accent-soft); color: var(--color-accent); }
+.badge.pending   { background: var(--color-accent-soft); color: var(--color-accent); }
 .badge.cancelled { background: var(--bg); color: var(--muted); }
-.badge.rejected  { background: #3d0a0a; color: var(--down); }
+.badge.rejected  { background: var(--color-up-bg, rgba(220,38,38,0.08)); color: var(--down); }
 
 /* -- 取消 button -- */
 .cancel-btn {
   padding: 2px 8px;
-  background: #3d0a0a;
+  background: var(--color-up-bg, rgba(220,38,38,0.08));
   border: 1px solid var(--down);
   border-radius: 3px;
   color: var(--down);

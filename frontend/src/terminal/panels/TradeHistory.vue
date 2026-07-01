@@ -375,13 +375,13 @@ td {
 }
 
 .badge.filled {
-  background: #0a3d1a;
+  background: var(--color-down);
   color: var(--up);
 }
 
 .badge.pending {
-  background: #3d2e0a;
-  color: #f0883e;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 .badge.cancelled {
@@ -390,7 +390,7 @@ td {
 }
 
 .badge.rejected {
-  background: #3d0a0a;
+  background: var(--color-up-bg, rgba(220,38,38,0.08));
   color: var(--down);
 }
 </style>

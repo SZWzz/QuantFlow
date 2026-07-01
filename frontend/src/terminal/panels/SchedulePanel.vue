@@ -87,15 +87,15 @@ onMounted(loadTasks)
 .schedule-panel { padding: 12px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; font-variant-numeric: tabular-nums; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .task-count { font-size: 12px; color: var(--color-text-tertiary); }
-.new-btn { padding: 6px 14px; background: var(--color-accent-soft); border: none; border-radius: 4px; color: #58a6ff; font-size: 12px; font-weight: 600; cursor: pointer; }
+.new-btn { padding: 6px 14px; background: var(--color-accent-soft); border: none; border-radius: 4px; color: var(--color-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
 .empty-state { padding: 40px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; }
 .task-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--color-bg-subtle); border-radius: 4px; margin-bottom: 6px; }
 .task-info { display: flex; flex-direction: column; gap: 3px; }
 .task-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
-.task-cron { font-size: 12px; font-family: monospace; color: #58a6ff; }
+.task-cron { font-size: 12px; font-family: monospace; color: var(--color-accent); }
 .task-actions { display: flex; gap: 6px; align-items: center; }
 .toggle-btn { padding: 4px 10px; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; }
-.toggle-btn.on { background: #0a3d1a; color: #3fb950; }
+.toggle-btn.on { background: var(--color-down); color: var(--color-down); }
 .toggle-btn.off { background: var(--color-bg-panel); color: var(--color-text-tertiary); }
 .delete-btn { background: none; border: none; cursor: pointer; font-size: 14px; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
@@ -104,12 +104,12 @@ onMounted(loadTasks)
 .form-group { margin-bottom: 10px; }
 .form-group label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 4px; }
 .form-input { width: 100%; padding: 6px 8px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: 4px; color: var(--color-text-primary); font-size: 13px; outline: none; box-sizing: border-box; }
-.form-input:focus { border-color: #58a6ff; }
+.form-input:focus { border-color: var(--color-accent); }
 .form-input.mono { font-family: monospace; }
 .presets { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
 .preset-btn { padding: 3px 8px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: 3px; color: var(--color-text-tertiary); font-size: 10px; cursor: pointer; }
-.preset-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+.preset-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .cancel-btn { padding: 6px 14px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: 4px; color: var(--color-text-tertiary); font-size: 12px; cursor: pointer; }
-.save-btn { padding: 6px 14px; background: var(--color-accent-soft); border: none; border-radius: 4px; color: #58a6ff; font-size: 12px; font-weight: 600; cursor: pointer; }
+.save-btn { padding: 6px 14px; background: var(--color-accent-soft); border: none; border-radius: 4px; color: var(--color-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
 </style>

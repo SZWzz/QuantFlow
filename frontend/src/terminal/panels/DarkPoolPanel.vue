@@ -159,8 +159,8 @@ onMounted(loadFilings)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -228,9 +228,9 @@ onMounted(loadFilings)
   font-size: 11px;
 }
 .filter-btn.active {
-  background: #3b82f6;
-  color: #fff;
-  border-color: #3b82f6;
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent);
 }
 .error-state {
   flex: 1;
@@ -241,15 +241,15 @@ onMounted(loadFilings)
   gap: 8px;
 }
 .error-text {
-  color: #f87171;
+  color: var(--color-up);
   font-size: 12px;
 }
 .retry-btn {
   padding: 4px 14px;
-  border: 1px solid #f87171;
+  border: 1px solid var(--color-up);
   border-radius: 4px;
   background: transparent;
-  color: #f87171;
+  color: var(--color-up);
   cursor: pointer;
   font-size: 11px;
 }
@@ -300,19 +300,19 @@ onMounted(loadFilings)
 }
 .badge-blue {
   background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  color: var(--color-accent);
 }
 .badge-green {
   background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  color: var(--color-down);
 }
 .badge-yellow {
   background: rgba(234, 179, 8, 0.15);
-  color: #eab308;
+  color: var(--color-accent);
 }
 .badge-orange {
   background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
+  color: var(--color-accent);
 }
 .badge-gray {
   background: var(--color-bg-elevated);
@@ -329,7 +329,7 @@ onMounted(loadFilings)
   white-space: nowrap;
   color: var(--color-text-secondary);
 }
-.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(59,130,246,0.15); color: #60a5fa; font-family: monospace; margin-right: 8px; }
+.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; margin-right: 8px; }
 .panel-footer {
   flex-shrink: 0;
   padding-top: 8px;

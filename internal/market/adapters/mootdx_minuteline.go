@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	pb "quantflow/internal/python/proto"
 	"quantflow/internal/market"
@@ -12,10 +13,19 @@ import (
 
 // FetchMinuteLine returns today's minute-by-minute price/volume ticks
 // via the mootdx Python sidecar.
+// Has a per-symbol cooldown (3s) to avoid hammering the free TDX server.
 func (a *MootdxAdapter) FetchMinuteLine(symbol string) ([]market.MinuteTick, error) {
 	if a.dataClient == nil {
 		return nil, fmt.Errorf("mootdx: Python sidecar not connected")
 	}
+
+	a.mu.Lock()
+	if last, ok := a.lastMinute[symbol]; ok && time.Since(last) < mootdxMinuteCooldown {
+		a.mu.Unlock()
+		return nil, nil // cooldown active, no new data yet
+	}
+	a.lastMinute[symbol] = time.Now()
+	a.mu.Unlock()
 
 	resp, err := a.dataClient.FetchData(context.Background(), &pb.FetchDataRequest{
 		Source:   "mootdx",

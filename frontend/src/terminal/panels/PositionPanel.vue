@@ -74,7 +74,7 @@ onMounted(loadPositions)
 .summary-item { flex: 1; padding: 8px; background: var(--color-bg-subtle); border-radius: 4px; text-align: center; }
 .s-label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; }
 .s-value { font-size: 16px; font-weight: 700; }
-.s-value.up { color: #3fb950; } .s-value.down { color: #f85149; }
+.s-value.up { color: var(--color-down); } .s-value.down { color: var(--color-up); }
 .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); font-size: 13px; }
 
 .position-row { padding: 8px; border-bottom: 1px solid var(--color-bg-input); }
@@ -83,6 +83,6 @@ onMounted(loadPositions)
 .pos-qty { font-size: 11px; color: var(--color-text-tertiary); }
 .pos-prices { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 2px; display: flex; gap: 12px; }
 .pos-pnl { font-size: 12px; font-weight: 500; }
-.pos-pnl.up { color: #3fb950; } .pos-pnl.down { color: #f85149; }
+.pos-pnl.up { color: var(--color-down); } .pos-pnl.down { color: var(--color-up); }
 .pnl-pct { font-size: 10px; opacity: 0.7; }
 </style>

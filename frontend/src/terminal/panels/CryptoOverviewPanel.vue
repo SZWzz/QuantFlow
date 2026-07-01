@@ -111,7 +111,7 @@ onMounted(refresh)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
+  color: var(--color-text, var(--color-border));
   background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
@@ -136,7 +136,7 @@ onMounted(refresh)
   font-size: 13px;
 }
 .error-state {
-  color: #dc2626;
+  color: var(--color-up);
 }
 
 /* Dominance */
@@ -151,8 +151,8 @@ onMounted(refresh)
   flex: 1; height: 8px; background: var(--color-bg-elevated); border-radius: 4px; overflow: hidden;
 }
 .dom-bar-fill { height: 100%; border-radius: 4px; }
-.btc-bar { background: #f7931a; }
-.eth-bar { background: #627eea; }
+.btc-bar { background: var(--color-accent); }
+.eth-bar { background: var(--color-accent); }
 .dom-value { font-size: 12px; font-weight: 600; min-width: 44px; text-align: right; }
 
 /* Table */

@@ -166,8 +166,8 @@ onMounted(fetchData)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -183,7 +183,7 @@ onMounted(fetchData)
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.mkt-tab.active, .lb-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.mkt-tab.active, .lb-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
@@ -195,10 +195,10 @@ onMounted(fetchData)
   display: flex; justify-content: space-around; margin-bottom: 4px; font-size: 10px;
 }
 .quadrant-label { padding: 2px 8px; border-radius: 4px; }
-.quadrant-label.leading { color: #22c55e; }
-.quadrant-label.weakening { color: #f59e0b; }
-.quadrant-label.lagging { color: #ef4444; }
-.quadrant-label.improving { color: #3b82f6; }
+.quadrant-label.leading { color: var(--color-down); }
+.quadrant-label.weakening { color: var(--color-accent); }
+.quadrant-label.lagging { color: var(--color-up); }
+.quadrant-label.improving { color: var(--color-accent); }
 
 .rrg-chart { height: 200px; margin-bottom: 8px; flex-shrink: 0; }
 
@@ -217,9 +217,9 @@ onMounted(fetchData)
 .col-pct { width: 64px; text-align: right; font-weight: 500; }
 .col-ratio, .col-momentum { width: 64px; text-align: right; color: var(--color-text-secondary); }
 .col-signal { width: 60px; text-align: center; font-size: 11px; font-weight: 500; }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
-.leading { color: #22c55e; }
-.lagging { color: #ef4444; }
-.neutral { color: #f59e0b; }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
+.leading { color: var(--color-down); }
+.lagging { color: var(--color-up); }
+.neutral { color: var(--color-accent); }
 </style>

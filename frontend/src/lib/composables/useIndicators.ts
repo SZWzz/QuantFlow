@@ -16,22 +16,15 @@ export function sma(data: number[], period: number): (number | null)[] {
   return r
 }
 
-/** Exponential Moving Average */
-export function ema(data: number[], period: number): (number | null)[] {
-  const r: (number | null)[] = []
+/** Exponential Moving Average (同花顺风格: 首值种子, 从第1个值开始) */
+export function ema(data: number[], period: number): number[] {
+  const r: number[] = []
   const k = 2 / (period + 1)
-  let prev: number | null = null
-  for (let i = 0; i < data.length; i++) {
-    if (i < period - 1) { r.push(null); continue }
-    if (i === period - 1) {
-      let s = 0
-      for (let j = 0; j < period; j++) s += data[j]
-      prev = s / period
-      r.push(prev)
-    } else {
-      prev = (data[i] - prev!) * k + prev!
-      r.push(prev)
-    }
+  let prev = data[0]
+  r.push(prev) // i=0: 首值种子
+  for (let i = 1; i < data.length; i++) {
+    prev = (data[i] - prev) * k + prev
+    r.push(prev)
   }
   return r
 }
@@ -53,28 +46,18 @@ export function bb(data: number[], period = 20, k = 2): BBResult {
   return { middle: m, upper, lower }
 }
 
-/** MACD */
+/** MACD (同花顺风格: 首值种子 EMA, BAR=2×(DIFF-DEA)) */
 export function macd(data: number[], fast = 12, slow = 26, signal = 9): MACDResult {
   const ef = ema(data, fast)
   const es = ema(data, slow)
-  const dif: (number | null)[] = []
+  const dif: number[] = []
   for (let i = 0; i < data.length; i++) {
-    if (ef[i] === null || es[i] === null) { dif.push(null); continue }
-    dif.push(ef[i]! - es[i]!)
+    dif.push(ef[i] - es[i])
   }
-  const validDif = dif.filter((v): v is number => v !== null)
-  const deaRaw = ema(validDif, signal)
-  const dea: (number | null)[] = []
-  let di = 0
+  const dea = ema(dif, signal)
+  const hist: number[] = []
   for (let i = 0; i < data.length; i++) {
-    if (dif[i] === null) { dea.push(null); continue }
-    dea.push(deaRaw[di]!)
-    di++
-  }
-  const hist: (number | null)[] = []
-  for (let i = 0; i < data.length; i++) {
-    if (dif[i] === null || dea[i] === null) { hist.push(null); continue }
-    hist.push(dif[i]! - dea[i]!)
+    hist.push((dif[i] - dea[i]) * 2) // 同花顺: BAR=2×(DIFF-DEA)
   }
   return { dif, dea, hist }
 }

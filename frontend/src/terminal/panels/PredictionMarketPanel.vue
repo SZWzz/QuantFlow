@@ -269,8 +269,8 @@ function changeClass(c: number): string {
   border-radius: 4px;
   background: var(--color-bg-subtle);
 }
-.signal-badge.buy { color: #16a34a; }
-.signal-badge.sell { color: #dc2626; }
+.signal-badge.buy { color: var(--color-down); }
+.signal-badge.sell { color: var(--color-up); }
 
 .btn-sm {
   padding: 2px 8px;
@@ -300,7 +300,7 @@ function changeClass(c: number): string {
   cursor: pointer;
   white-space: nowrap;
 }
-.tab.active { background: var(--color-accent); color: #fff; }
+.tab.active { background: var(--color-accent); color: var(--color-text-primary); }
 .tab:hover:not(.active) { background: var(--color-bg-hover); }
 
 .content-area { display: flex; flex: 1; overflow: hidden; }
@@ -314,7 +314,7 @@ td { padding: 6px 12px; border-bottom: 1px solid var(--color-border-subtle); }
 tr { cursor: pointer; }
 tr:hover { background: var(--color-bg-hover); }
 tr.selected { background: var(--color-bg-selected); }
-tr.signal-row { border-left: 3px solid #f59e0b; }
+tr.signal-row { border-left: 3px solid var(--color-accent); }
 
 .event-title { min-width: 200px; }
 .category-tag {
@@ -329,8 +329,8 @@ tr.signal-row { border-left: 3px solid #f59e0b; }
 .prob { font-weight: 600; font-variant-numeric: tabular-nums; }
 .vol { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 .end-date { color: var(--color-text-tertiary); font-size: 11px; }
-.text-green { color: #16a34a; }
-.text-red { color: #dc2626; }
+.text-green { color: var(--color-down); }
+.text-red { color: var(--color-up); }
 
 .detail-panel {
   flex: 1;

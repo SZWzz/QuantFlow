@@ -155,7 +155,7 @@ function formatMoney(v: number): string {
 <style scoped>
 .scenario-analysis-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden;
+  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
 .panel-header { margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -168,13 +168,13 @@ function formatMoney(v: number): string {
   padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px;
 }
-.sc-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.sc-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .scenario-desc { font-size: 11px; color: var(--color-text-tertiary); }
 .run-btn {
   align-self: flex-start; padding: 6px 20px; border: none; border-radius: 4px;
-  background: #3b82f6; color: #fff; cursor: pointer; font-size: 12px; font-weight: 500;
+  background: var(--color-accent); color: var(--color-text-primary); cursor: pointer; font-size: 12px; font-weight: 500;
 }
-.run-btn:hover { background: #2563eb; }
+.run-btn:hover { background: var(--color-accent); }
 .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 
@@ -183,6 +183,6 @@ function formatMoney(v: number): string {
 .res-card { padding: 12px; border: 1px solid var(--color-border-subtle); border-radius: 8px; text-align: center; }
 .res-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .res-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
 </style>

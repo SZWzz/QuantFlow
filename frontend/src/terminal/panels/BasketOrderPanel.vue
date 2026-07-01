@@ -413,10 +413,10 @@ function statusDotClass(s: string): string {
   margin-top: 4px;
   flex-shrink: 0;
 }
-.dot-pending   { background: #f59e0b; }
-.dot-executing { background: #3b82f6; animation: pulse 0.8s infinite; }
-.dot-filled    { background: #22c55e; }
-.dot-failed    { background: #ef4444; }
+.dot-pending   { background: var(--color-accent); }
+.dot-executing { background: var(--color-accent); animation: pulse 0.8s infinite; }
+.dot-filled    { background: var(--color-down); }
+.dot-failed    { background: var(--color-up); }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }

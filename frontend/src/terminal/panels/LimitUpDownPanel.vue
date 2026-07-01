@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, PanelTable, EmptyState, LoadingState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -102,121 +102,126 @@ onMounted(() => {
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
+
+const tableColumns = [
+  { key: 'symbol', label: '代码', align: 'left' as const, width: 80 },
+  { key: 'name', label: '名称', align: 'left' as const, width: 80 },
+  { key: 'price', label: '价格', align: 'right' as const, width: 70, format: 'price' as const },
+  { key: 'change_pct', label: '涨跌幅', align: 'right' as const, width: 80, colorize: true, formatter: (v: number) => formatPct(v) },
+  { key: 'volume', label: '成交量', align: 'right' as const, flex: 1, format: 'volume' as const },
+]
 </script>
 
 <template>
   <div class="limit-up-down-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.limit_up_down') }}</h3>
-      <div class="market-tabs">
-        <button :class="['mkt-tab', { active: market === 'SH' }]" @click="switchMarket('SH')">SH</button>
-        <button :class="['mkt-tab', { active: market === 'SZ' }]" @click="switchMarket('SZ')">SZ</button>
-      </div>
-      <div class="filter-tabs">
-        <button :class="['f-tab', { active: filter === 'all' }]" @click="filter = 'all'">{{ $t('common.all') }}</button>
-        <button :class="['f-tab', { active: filter === 'limit-up' }]" @click="filter = 'limit-up'">涨停</button>
-        <button :class="['f-tab', { active: filter === 'limit-down' }]" @click="filter = 'limit-down'">跌停</button>
-      </div>
-      <div class="header-controls">
-        <span class="stat-badge up">{{ $t('misc.limit_up') }}: {{ limitUpStocks.length }}</span>
-        <span class="stat-badge down">{{ $t('misc.limit_down') }}: {{ limitDownStocks.length }}</span>
-        <button class="auto-btn" :class="{ active: autoRefresh }" @click="autoRefresh = !autoRefresh">
-          {{ autoRefresh ? '自动(30s)' : '手动' }}
-        </button>
-        <button class="refresh-btn" @click="refresh" :disabled="loading">⟳</button>
-      </div>
+    <PanelHeader
+      :title="$t('misc.limit_up_down')"
+      :tabs="[
+        { key: 'SH', label: 'SH' },
+        { key: 'SZ', label: 'SZ' },
+      ]"
+      :active-tab="market"
+      :controls="[
+        { label: `${$t('misc.limit_up')}: ${limitUpStocks.length}`, action: () => {}, title: '涨停数' },
+        { label: `${$t('misc.limit_down')}: ${limitDownStocks.length}`, action: () => {}, title: '跌停数' },
+        { label: autoRefresh ? '自动(30s)' : '手动', action: () => autoRefresh = !autoRefresh, title: '切换自动刷新' },
+        { icon: 'refresh', action: refresh, loading: loading.valueOf(), title: '刷新' },
+      ]"
+      @tab-change="switchMarket"
+    />
+
+    <div class="filter-bar">
+      <button
+        v-for="f in [
+          { key: 'all', label: $t('common.all') },
+          { key: 'limit-up', label: '涨停' },
+          { key: 'limit-down', label: '跌停' },
+        ]"
+        :key="f.key"
+        :class="['filter-btn', { active: filter === f.key }]"
+        @click="filter = f.key as typeof filter"
+      >
+        {{ f.label }}
+      </button>
     </div>
 
-    <SkeletonPanel v-if="loading && stocks.length === 0" type="table" :rows="6" />
+    <LoadingState
+      v-if="loading && stocks.length === 0"
+      type="table"
+      :rows="6"
+      :cols="5"
+    />
 
-    <div v-else-if="filteredStocks.length === 0" class="empty-state">{{ $t('misc.no_limit_stocks') }}</div>
+    <EmptyState
+      v-else-if="filteredStocks.length === 0"
+      icon="search"
+      :title="$t('misc.no_limit_stocks') || '暂无涨跌停股票'"
+    />
 
-    <div v-else class="table-wrapper">
-      <div class="table-header">
-        <span class="col-code">{{ $t('common.symbol') }}</span>
-        <span class="col-name">{{ $t('common.name') }}</span>
-        <span class="col-price">{{ $t('common.price') }}</span>
-        <span class="col-pct">{{ $t('quote.change_pct') }}</span>
-        <span class="col-vol">{{ $t('common.volume') }}</span>
-      </div>
-      <div class="table-body">
-        <div v-for="s in filteredStocks" :key="s.symbol" class="table-row">
-          <span class="col-code clickable" @click="onSymbolClick(s.symbol)">{{ s.symbol }}</span>
-          <span class="col-name">{{ s.name }}</span>
-          <span class="col-price">{{ s.price.toFixed(2) }}</span>
-          <span class="col-pct" :class="detectLimit(s.change_pct) === 'up' ? 'up' : 'down'" :style="{ color: marketChangeColor(s.symbol, s.change_pct) }">
-            {{ formatPct(s.change_pct) }}
-          </span>
-          <span class="col-vol">{{ formatVolume(s.volume) }}</span>
-        </div>
-      </div>
-    </div>
+    <PanelTable
+      v-else
+      :columns="tableColumns"
+      :data="filteredStocks"
+      :striped="true"
+      :loading="loading"
+      @row-click="(row) => onSymbolClick(row.symbol)"
+    />
   </div>
 </template>
 
 <style scoped>
 .limit-up-down-panel {
-  padding: 12px;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  height: 100%;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  background: var(--color-bg-panel);
+}
+
+.filter-bar {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--panel-padding);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.filter-btn {
+  padding: 2px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: var(--font-xs);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.filter-btn.active {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.limit-up-down-panel :deep(.panel-table-wrapper) {
+  flex: 1;
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
+
+.limit-up-down-panel :deep(.clickable) {
+  cursor: pointer;
 }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.market-tabs, .filter-tabs { display: flex; gap: 4px; }
-.mkt-tab, .f-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
+
+.limit-up-down-panel :deep(.clickable):hover {
+  text-decoration: underline;
+  color: var(--color-accent);
 }
-.mkt-tab.active, .f-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
-.header-controls { display: flex; gap: 6px; align-items: center; margin-left: auto; }
-.stat-badge {
-  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
-}
-.stat-badge.up { color: #dc2626; background: rgba(220,38,38,0.1); }
-.stat-badge.down { color: #16a34a; background: rgba(22,163,74,0.1); }
-.auto-btn {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.auto-btn.active { color: #60a5fa; border-color: #3b82f6; }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
-.table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.table-header {
-  display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0;
-}
-.table-body { flex: 1; overflow-y: auto; font-size: 12px; }
-.table-row {
-  display: flex; padding: 3px 0; align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.table-row:hover { background: var(--color-bg-elevated); }
-.col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-code { width: 64px; }
-.col-code.clickable { cursor: pointer; color: #60a5fa; }
-.col-name { width: 60px; }
-.col-price { width: 60px; text-align: right; }
-.col-pct { width: 64px; text-align: right; font-weight: 500; }
-.col-vol { flex: 1; min-width: 0; text-align: right; color: var(--color-text-secondary); }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
 </style>

@@ -85,8 +85,8 @@ onMounted(() => execute())
   height: 36px;
   display: flex;
   align-items: center;
-  color: var(--color-text, #e5e7eb);
-  background: #0f172a;
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-base);
   border-bottom: 1px solid var(--color-border, var(--color-border-strong));
   overflow: hidden;
   padding: 0 8px;
@@ -104,7 +104,7 @@ onMounted(() => execute())
   padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: 3px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; line-height: 1.2;
 }
-.mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.15); }
+.mkt-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.15); }
 .tape-loading {
   flex: 1;
   display: flex;

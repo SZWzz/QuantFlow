@@ -96,6 +96,6 @@ onMounted(loadData)
 .opt-table td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border-subtle); }
 .opt-table tr:hover td { background: var(--color-bg-hover); }
 .td-code { text-align: left !important; color: var(--color-text-secondary); font-family: monospace; }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
 </style>

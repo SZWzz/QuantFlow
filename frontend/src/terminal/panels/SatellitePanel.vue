@@ -364,8 +364,8 @@ function wildfireClass(count: number): string {
   border-radius: 4px;
   background: var(--color-bg-subtle);
 }
-.summary-badge.up { color: #16a34a; }
-.summary-badge.down { color: #dc2626; }
+.summary-badge.up { color: var(--color-down); }
+.summary-badge.down { color: var(--color-up); }
 .summary-badge.stable { color: var(--color-text-secondary); }
 
 .btn-sm {
@@ -436,8 +436,8 @@ function wildfireClass(count: number): string {
   background: var(--color-bg-subtle);
   white-space: nowrap;
 }
-.trend-badge.up { color: #16a34a; }
-.trend-badge.down { color: #dc2626; }
+.trend-badge.up { color: var(--color-down); }
+.trend-badge.down { color: var(--color-up); }
 .trend-badge.stable { color: var(--color-text-tertiary); }
 
 .gauge-row, .wildfire-row {
@@ -480,9 +480,9 @@ function wildfireClass(count: number): string {
   text-overflow: ellipsis;
 }
 
-.text-green { color: #16a34a; }
-.text-red { color: #dc2626; }
-.text-warning { color: #f59e0b; }
+.text-green { color: var(--color-down); }
+.text-red { color: var(--color-up); }
+.text-warning { color: var(--color-accent); }
 .text-muted { color: var(--color-text-tertiary); }
 
 /* Detail panel */

@@ -129,7 +129,7 @@ onMounted(fetchData)
 <style scoped>
 .earnings-calendar-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden;
+  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -138,7 +138,7 @@ onMounted(fetchData)
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.r-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.r-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn { margin-left: auto; padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
@@ -149,11 +149,11 @@ onMounted(fetchData)
 .event-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--color-border-subtle); }
 .event-row:hover { background: var(--color-bg-elevated); }
 .evt-hour { width: 32px; font-size: 10px; color: var(--color-text-tertiary); }
-.evt-symbol { width: 64px; font-weight: 600; cursor: pointer; color: #60a5fa; }
+.evt-symbol { width: 64px; font-weight: 600; cursor: pointer; color: var(--color-accent); }
 .evt-quarter { width: 24px; font-size: 10px; color: var(--color-text-tertiary); }
 .evt-est, .evt-act { width: 60px; text-align: right; font-variant-numeric: tabular-nums; color: var(--color-text-tertiary); }
 .evt-act.has-value { color: var(--color-text-primary); font-weight: 500; }
 .evt-surprise { width: 56px; text-align: right; font-weight: 500; font-size: 11px; }
-.up { color: #16a34a; }
-.down { color: #dc2626; }
+.up { color: var(--color-down); }
+.down { color: var(--color-up); }
 </style>

@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 
 export interface StockEntry {
   code: string
@@ -29,23 +29,29 @@ export function useSymbolSearch() {
     loading.value = true
     try {
       const app = (window as any).go?.main?.App
+      let data: any
       if (app?.SearchSymbols) {
-        results.value = await app.SearchSymbols(q.trim())
+        data = await app.SearchSymbols(q.trim(), 20)
       } else {
-        // Mock fallback for dev without Go backend
-        results.value = mockSearch(q.trim())
+        data = mockSearch(q.trim())
       }
+      results.value = Array.isArray(data) ? data : []
     } catch (e) {
-      console.warn('SearchSymbols failed:', e)
-      results.value = []
+      console.warn('SearchSymbols failed, using mock:', e)
+      results.value = mockSearch(q.trim())
     } finally {
       loading.value = false
     }
   }
 
-  watch(query, (newVal) => {
+  const stopWatch = watch(query, (newVal) => {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => doSearch(newVal), 200)
+  })
+
+  onUnmounted(() => {
+    stopWatch()
+    if (timer) clearTimeout(timer)
   })
 
   return { query, results, loading }

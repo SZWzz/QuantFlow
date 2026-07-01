@@ -39,7 +39,7 @@ func (c *marketOverviewCache) set(data map[string]interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.data = data
-	c.expires = time.Now().Add(30 * time.Second)
+		c.expires = time.Now().Add(60 * time.Second)
 }
 
 // registerMarketAdapters populates the adapter registry with every data source,

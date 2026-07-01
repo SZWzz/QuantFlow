@@ -176,7 +176,7 @@ onMounted(fetchData)
 <style scoped>
 .us-options-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden;
+  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -192,8 +192,8 @@ onMounted(fetchData)
 .chain-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow: hidden; }
 .chain-side { display: flex; flex-direction: column; overflow: hidden; }
 .side-header { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 0; margin-bottom: 2px; border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0; }
-.calls-header { color: #16a34a; }
-.puts-header { color: #dc2626; }
+.calls-header { color: var(--color-down); }
+.puts-header { color: var(--color-up); }
 
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header { display: flex; padding: 3px 0; border-bottom: 1px solid var(--color-border-strong); font-size: 9px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0; }
@@ -210,6 +210,6 @@ onMounted(fetchData)
 .col-grk { width: 58px; text-align: right; font-variant-numeric: tabular-nums; }
 
 .error-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
-.error-text { color: #dc2626; font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.error-text { color: var(--color-up); font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .retry-btn { padding: 4px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 11px; }
 </style>

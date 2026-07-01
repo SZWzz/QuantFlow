@@ -4,12 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"quantflow/internal/market"
 	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
+
+// mootdxMinuteCooldown is the minimum interval between mootdx minute-line
+// fetches for the same symbol. prevents hammering the free TDX server.
+const mootdxMinuteCooldown = 3 * time.Second
 
 // MootdxAdapter fetches A-share data via TDX (通达信) TCP protocol using the
 // Python mootdx library. This is the primary free A-share data source — no
@@ -18,13 +23,18 @@ import (
 // Architecture: Go adapter → gRPC → Python sidecar → mootdx → TDX TCP server.
 type MootdxAdapter struct {
 	dataClient *python.DataClient
+	mu         sync.Mutex
+	lastMinute map[string]time.Time // symbol → last FetchMinuteLine timestamp
 }
 
 // NewMootdxAdapter creates a new Mootdx adapter.
 // Pass nil dataClient if the Python sidecar is unavailable;
 // the adapter will report IsAvailable() == false and return clear errors.
 func NewMootdxAdapter(dataClient *python.DataClient) *MootdxAdapter {
-	return &MootdxAdapter{dataClient: dataClient}
+	return &MootdxAdapter{
+		dataClient: dataClient,
+		lastMinute: make(map[string]time.Time),
+	}
 }
 
 func (a *MootdxAdapter) Name() string      { return "mootdx" }

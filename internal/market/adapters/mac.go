@@ -15,6 +15,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"quantflow/internal/market"
@@ -38,8 +39,12 @@ const (
 )
 
 // MacAdapter fetches TDX advanced data via direct MAC protocol TCP connection.
+// TCP connections are pooled and reused to avoid the cost of repeated
+// handshakes to the remote server (119.147.212.81:7709).
 type MacAdapter struct {
 	addr string
+	mu   sync.Mutex
+	conn net.Conn
 }
 
 // NewMacAdapter creates a new MAC protocol adapter.
@@ -54,7 +59,39 @@ func (a *MacAdapter) Name() string      { return "mac" }
 func (a *MacAdapter) Markets() []string  { return []string{"CN"} }
 func (a *MacAdapter) RequiresAuth() bool { return false }
 
+// Close closes the pooled connection, if any.
+func (a *MacAdapter) Close() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.conn != nil {
+		err := a.conn.Close()
+		a.conn = nil
+		return err
+	}
+	return nil
+}
+
+// getConn returns the pooled connection, dialing a new one if needed.
+// Caller must hold a.mu.
+func (a *MacAdapter) getConn() (net.Conn, error) {
+	if a.conn != nil {
+		// Quick liveness check: if a write fails, reconnect
+		return a.conn, nil
+	}
+	conn, err := net.DialTimeout("tcp", a.addr, macConnectTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("mac: dial %s: %w", a.addr, err)
+	}
+	a.conn = conn
+	return conn, nil
+}
+
 func (a *MacAdapter) IsAvailable(ctx context.Context) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.conn != nil {
+		return true
+	}
 	conn, err := net.DialTimeout("tcp", a.addr, macConnectTimeout)
 	if err != nil {
 		return false
@@ -83,17 +120,30 @@ func buildMACRequest(msgID uint16, body []byte, headFlag uint8) []byte {
 }
 
 // sendMACRequest sends a request and reads the full response.
+// Uses the pooled connection; reconnects transparently on errors.
 func (a *MacAdapter) sendMACRequest(msgID uint16, body []byte, headFlag uint8) ([]byte, error) {
-	conn, err := net.DialTimeout("tcp", a.addr, macConnectTimeout)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	conn, err := a.getConn()
 	if err != nil {
-		return nil, fmt.Errorf("mac: dial %s: %w", a.addr, err)
+		return nil, err
 	}
-	defer conn.Close()
 
 	req := buildMACRequest(msgID, body, headFlag)
 	conn.SetWriteDeadline(time.Now().Add(macWriteTimeout))
 	if _, err := conn.Write(req); err != nil {
-		return nil, fmt.Errorf("mac: write: %w", err)
+		// Write failed — reconnect once
+		conn.Close()
+		a.conn = nil
+		conn, err = a.getConn()
+		if err != nil {
+			return nil, err
+		}
+		conn.SetWriteDeadline(time.Now().Add(macWriteTimeout))
+		if _, err := conn.Write(req); err != nil {
+			return nil, fmt.Errorf("mac: write (after reconnect): %w", err)
+		}
 	}
 
 	conn.SetReadDeadline(time.Now().Add(macReadTimeout))
@@ -101,11 +151,15 @@ func (a *MacAdapter) sendMACRequest(msgID uint16, body []byte, headFlag uint8) (
 	// Read 16-byte response header
 	respHdr := make([]byte, respHeaderSize)
 	if _, err := io.ReadFull(conn, respHdr); err != nil {
+		conn.Close()
+		a.conn = nil
 		return nil, fmt.Errorf("mac: read response header: %w", err)
 	}
 
 	u0 := binary.LittleEndian.Uint32(respHdr[0:])
 	if u0 != respMagic {
+		conn.Close()
+		a.conn = nil
 		return nil, fmt.Errorf("mac: invalid magic: got %#x, want %#x", u0, respMagic)
 	}
 	zipFlag := respHdr[4]
@@ -118,6 +172,8 @@ func (a *MacAdapter) sendMACRequest(msgID uint16, body []byte, headFlag uint8) (
 	// Read body
 	rawBody := make([]byte, zipsize)
 	if _, err := io.ReadFull(conn, rawBody); err != nil {
+		conn.Close()
+		a.conn = nil
 		return nil, fmt.Errorf("mac: read body: %w", err)
 	}
 

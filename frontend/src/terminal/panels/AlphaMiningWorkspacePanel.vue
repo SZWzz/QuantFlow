@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useMLStore } from '@/stores/ml'
+import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
 
 const mlStore = useMLStore()
 const 已选Factors = ref<string[]>([])
@@ -37,63 +38,177 @@ function registerFactor(factor: { formula: string }) {
     detail: { formula: factor.formula }
   }))
 }
+
+const tableColumns = [
+  { key: 'formula', label: 'Formula', align: 'left' as const, formatter: (v: string) => v },
+  { key: 'ic', label: 'IC', align: 'right' as const, formatter: (v: number) => v?.toFixed(4) ?? '--' },
+  { key: 'ir', label: 'IR', align: 'right' as const, formatter: (v: number) => v?.toFixed(4) ?? '--' },
+  { key: 'sharpe', label: 'Sharpe', align: 'right' as const, formatter: (v: number) => v?.toFixed(4) ?? '--' },
+]
 </script>
 
 <template>
   <div class="alpha-mining-panel">
-    <h3>{{ $t('ml.alpha_mining') }}</h3>
-    <div class="factor-pool">
-      <h4>基础因子池 ({{ 已选Factors.length }} 已选)</h4>
-      <div class="factor-chips">
-        <span v-for="f in availableFactors" :key="f"
-              :class="['chip', { active: 已选Factors.includes(f) }]"
-              @click="toggleFactor(f)">{{ f }}</span>
+    <PanelHeader
+      :title="$t('ml.alpha_mining')"
+      :subtitle="已选Factors.length + ' ' + $t('common.selected')"
+    />
+
+    <div class="panel-content">
+      <div class="factor-pool">
+        <h4>基础因子池 ({{ 已选Factors.length }} 已选)</h4>
+        <div class="factor-chips">
+          <span
+            v-for="f in availableFactors"
+            :key="f"
+            :class="['chip', { active: 已选Factors.includes(f) }]"
+            @click="toggleFactor(f)"
+          >{{ f }}</span>
+        </div>
       </div>
-    </div>
-    <div class="gp-config">
-      <h4>{{ $t('ml.genetic_config') }}</h4>
-      <div class="config-grid">
-        <label>{{ $t('ml.population') }}: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
-        <label>{{ $t('ml.generations') }}: <input v-model.number="generations" type="number" min="5" max="200" /></label>
-        <label>{{ $t('ml.crossover') }}: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
-        <label>{{ $t('ml.mutation') }}: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
-        <label>{{ $t('ml.top_k') }}: <input v-model.number="topK" type="number" min="1" max="50" /></label>
-        <label>适应度:
-          <select v-model="fitnessMetric">
-            <option value="ic">{{ $t('ml.ic') }}</option><option value="ir">{{ $t('ml.ir') }}</option>
-            <option value="sharpe">Sharpe</option><option value="composite">综合</option>
-          </select>
-        </label>
+
+      <div class="gp-config">
+        <h4>{{ $t('ml.genetic_config') }}</h4>
+        <div class="config-grid">
+          <label>{{ $t('ml.population') }}: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
+          <label>{{ $t('ml.generations') }}: <input v-model.number="generations" type="number" min="5" max="200" /></label>
+          <label>{{ $t('ml.crossover') }}: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
+          <label>{{ $t('ml.mutation') }}: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
+          <label>{{ $t('ml.top_k') }}: <input v-model.number="topK" type="number" min="1" max="50" /></label>
+          <label>适应度:
+            <select v-model="fitnessMetric">
+              <option value="ic">{{ $t('ml.ic') }}</option><option value="ir">{{ $t('ml.ir') }}</option>
+              <option value="sharpe">Sharpe</option><option value="composite">综合</option>
+            </select>
+          </label>
+        </div>
       </div>
-    </div>
-    <button @click="runMining" :disabled="mlStore.miningRunning || 已选Factors.length < 2" class="btn-run">
-      {{ mlStore.miningRunning ? '挖掘中...' : '开始挖掘' }}
-    </button>
-    <div v-if="mlStore.discoveredFactors.length" class="results">
-      <h4>{{ $t('ml.discovered_factors') }}</h4>
-      <table><thead><tr><th>{{ $t('ml.formula') }}</th><th>{{ $t('ml.ic') }}</th><th>{{ $t('ml.ir') }}</th><th>Sharpe</th><th>{{ $t('common.actions') }}</th></tr></thead>
-        <tbody><tr v-for="(f, i) in mlStore.discoveredFactors" :key="i">
-          <td class="formula">{{ f.formula }}</td><td>{{ f.ic?.toFixed(4) }}</td>
-          <td>{{ f.ir?.toFixed(4) }}</td><td>{{ f.sharpe?.toFixed(4) }}</td>
-          <td><button @click="registerFactor(f)" class="btn btn-sm">{{ $t('ml.register') }}</button></td>
-        </tr></tbody>
-      </table>
+
+      <button
+        @click="runMining"
+        :disabled="mlStore.miningRunning || 已选Factors.length < 2"
+        class="btn btn-primary btn-run"
+      >
+        {{ mlStore.miningRunning ? '挖掘中...' : '开始挖掘' }}
+      </button>
+
+      <div v-if="mlStore.discoveredFactors.length" class="results">
+        <h4>{{ $t('ml.discovered_factors') }}</h4>
+        <PanelTable
+          :columns="tableColumns"
+          :data="mlStore.discoveredFactors"
+          :striped="true"
+        >
+          <template #action="{ row }">
+            <button @click="registerFactor(row)" class="btn btn-ghost btn-sm">
+              {{ $t('ml.register') }}
+            </button>
+          </template>
+        </PanelTable>
+      </div>
+
+      <EmptyState
+        v-else-if="!mlStore.miningRunning"
+        icon="search"
+        :title="$t('ml.no_discovered') || '暂无挖掘结果'"
+        :description="$t('ml.select_factors_hint') || '选择至少2个因子并点击开始挖掘'"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
-.alpha-mining-panel { padding: 12px; height: 100%; overflow-y: auto; }
-.factor-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
-.chip { padding: 2px 8px; border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; font-size: 0.85em; }
-.chip.active { background: #4a90d9; color: white; border-color: #4a90d9; }
-.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-.config-grid label { display: flex; flex-direction: column; font-size: 0.9em; gap: 2px; }
-.config-grid input, .config-grid select { padding: 4px; border: 1px solid var(--border-color); border-radius: 4px; }
-.btn-run { padding: 8px 24px; background: #4a90d9; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
-.btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
-.results table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.results th, .results td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9em; }
-.formula { font-family: monospace; font-size: 0.85em; max-width: 300px; overflow-x: auto; }
-.btn-sm { padding: 2px 8px; font-size: 0.85em; cursor: pointer; }
+.alpha-mining-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--panel-padding);
+}
+
+.factor-pool { margin-bottom: var(--space-lg); }
+.factor-pool h4 { font-size: var(--font-sm); color: var(--color-text-secondary); margin: 0 0 var(--space-sm) 0; }
+
+.factor-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+
+.chip {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-subtle);
+  transition: all var(--transition-fast);
+}
+
+.chip:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+.chip.active {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent);
+}
+
+.gp-config { margin-bottom: var(--space-lg); }
+.gp-config h4 { font-size: var(--font-sm); color: var(--color-text-secondary); margin: 0 0 var(--space-sm) 0; }
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.config-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-sm);
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+}
+
+.config-grid input,
+.config-grid select {
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-size: var(--font-sm);
+  font-family: inherit;
+}
+
+.config-grid input:focus,
+.config-grid select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.btn-run {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-sm) var(--space-xl);
+  font-size: var(--font-base);
+}
+
+.results { flex: 1; }
+.results h4 { font-size: var(--font-sm); color: var(--color-text-secondary); margin: 0 0 var(--space-sm) 0; }
+
+.btn-sm {
+  padding: 2px 8px;
+  font-size: var(--font-xs);
+}
+
+.formula :deep(.td) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--font-xs);
+}
 </style>

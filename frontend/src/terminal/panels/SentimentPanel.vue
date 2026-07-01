@@ -110,7 +110,7 @@ function handleSymbolSubmit(e: Event) {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
+  color: var(--color-text, var(--color-border));
   background: var(--color-bg, var(--color-bg-panel));
 }
 .panel-header {
@@ -132,7 +132,7 @@ function handleSymbolSubmit(e: Event) {
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner {
   padding: 6px 10px; margin-bottom: 12px; border-radius: 4px;
-  background: #78350f; color: #fbbf24; font-size: 12px; text-align: center;
+  background: var(--color-accent-soft); color: var(--color-accent); font-size: 12px; text-align: center;
 }
 .sentiment-content { flex: 1; display: flex; flex-direction: column; gap: 16px; }
 .score-gauge { position: relative; text-align: center; }

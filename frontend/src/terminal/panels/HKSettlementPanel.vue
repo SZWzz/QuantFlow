@@ -258,8 +258,8 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -275,7 +275,7 @@ onMounted(() => {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.header-tabs .tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 
 .settlement-timeline {
   display: flex;
@@ -296,7 +296,7 @@ onMounted(() => {
 .timeline-label {
   font-size: 20px;
   font-weight: 700;
-  color: #60a5fa;
+  color: var(--color-accent);
 }
 .timeline-desc {
   font-size: 11px;
@@ -354,7 +354,7 @@ onMounted(() => {
 .rule-value {
   font-size: 16px;
   font-weight: 600;
-  color: #60a5fa;
+  color: var(--color-accent);
 }
 
 .description {
@@ -405,7 +405,7 @@ onMounted(() => {
 .total-amount {
   font-size: 16px;
   font-weight: 700;
-  color: #60a5fa;
+  color: var(--color-accent);
 }
 
 .calendar-controls {

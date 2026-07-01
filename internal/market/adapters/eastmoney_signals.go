@@ -213,80 +213,65 @@ func (a *EastMoneySignalsAdapter) FetchIPOCalendar(ctx context.Context, startDat
 // ── Industry Ranking ──────────────────────────────────────────────────
 
 // FetchIndustryRanks fetches industry ranking by daily change.
-// Retries up to 2 times on transient errors (eastmoney push2 API is occasionally flaky).
+// Tries once and returns immediately on failure — better to show empty
+// sector data than to block the market overview panel for 5+ seconds.
 func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, topN int) ([]IndustryRank, error) {
-	const maxRetries = 2
-	var lastErr error
+	a.limiter.Wait()
 
-	for attempt := 0; attempt <= maxRetries; attempt++ {
-		if attempt > 0 {
-			backoff := time.Duration(attempt) * 500 * time.Millisecond
-			time.Sleep(backoff)
-			slog.Debug("eastmoney_signals industry: retrying", "attempt", attempt)
-		}
+	url := "https://push2.eastmoney.com/api/qt/clist/get" +
+		"?pn=1&pz=100&po=1&np=1&fltt=2&invt=2" +
+		"&fs=m:90+t:2" +
+		"&fields=f2,f3,f4,f12,f13,f14,f104,f105,f128,f136,f140,f141,f207"
 
-		a.limiter.Wait()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req.Header.Set("Host", "push2.eastmoney.com")
+	req.Header.Set("User-Agent", emUA)
 
-		url := "https://push2.eastmoney.com/api/qt/clist/get" +
-			"?pn=1&pz=100&po=1&np=1&fltt=2&invt=2" +
-			"&fs=m:90+t:2" +
-			"&fields=f2,f3,f4,f12,f13,f14,f104,f105,f128,f136,f140,f141,f207"
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("eastmoney_signals industry: %w", err)
+	}
+	defer resp.Body.Close()
 
-		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		req.Header.Set("Host", "push2.eastmoney.com")
-		req.Header.Set("User-Agent", emUA)
-
-		resp, err := a.client.Do(req)
-		if err != nil {
-			lastErr = fmt.Errorf("eastmoney_signals industry: %w", err)
-			continue
-		}
-
-		var result struct {
-			Data struct {
-				Diff []struct {
-					F3   interface{} `json:"f3"`
-					F12  string      `json:"f12"`
-					F14  string      `json:"f14"`
-					F104 int         `json:"f104"`
-					F105 int         `json:"f105"`
-					F140 string      `json:"f140"`
-					F136 interface{} `json:"f136"`
-				} `json:"diff"`
-				Total int `json:"total"`
-			} `json:"data"`
-		}
-
-		decodeErr := json.NewDecoder(resp.Body).Decode(&result)
-		resp.Body.Close()
-		if decodeErr != nil {
-			lastErr = fmt.Errorf("eastmoney_signals industry: %w", decodeErr)
-			continue
-		}
-
-		ranks := make([]IndustryRank, 0, len(result.Data.Diff))
-		for i, d := range result.Data.Diff {
-			ranks = append(ranks, IndustryRank{
-				Rank:      i + 1,
-				Name:      d.F14,
-				Code:      d.F12,
-				ChangePct: toFloat(d.F3),
-				UpCount:   d.F104,
-				DownCount: d.F105,
-				Leader:    d.F140,
-				LeaderChg: toFloat(d.F136),
-			})
-		}
-
-		if topN > 0 && len(ranks) > topN {
-			ranks = ranks[:topN]
-		}
-
-		slog.Debug("eastmoney_signals industry fetched", "total", result.Data.Total, "returned", len(ranks))
-		return ranks, nil
+	var result struct {
+		Data struct {
+			Diff []struct {
+				F3   interface{} `json:"f3"`
+				F12  string      `json:"f12"`
+				F14  string      `json:"f14"`
+				F104 int         `json:"f104"`
+				F105 int         `json:"f105"`
+				F140 string      `json:"f140"`
+				F136 interface{} `json:"f136"`
+			} `json:"diff"`
+			Total int `json:"total"`
+		} `json:"data"`
 	}
 
-	return nil, lastErr
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("eastmoney_signals industry: %w", err)
+	}
+
+	ranks := make([]IndustryRank, 0, len(result.Data.Diff))
+	for i, d := range result.Data.Diff {
+		ranks = append(ranks, IndustryRank{
+			Rank:      i + 1,
+			Name:      d.F14,
+			Code:      d.F12,
+			ChangePct: toFloat(d.F3),
+			UpCount:   d.F104,
+			DownCount: d.F105,
+			Leader:    d.F140,
+			LeaderChg: toFloat(d.F136),
+		})
+	}
+
+	if topN > 0 && len(ranks) > topN {
+		ranks = ranks[:topN]
+	}
+
+	slog.Debug("eastmoney_signals industry fetched", "total", result.Data.Total, "returned", len(ranks))
+	return ranks, nil
 }
 
 // ── Datacenter query helpers ──────────────────────────────────────────

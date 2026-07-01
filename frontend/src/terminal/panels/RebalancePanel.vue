@@ -362,14 +362,14 @@ onMounted(async () => {
 .panel-title {
   font-size: 15px;
   font-weight: 700;
-  color: #f9fafb;
+  color: var(--color-bg-elevated);
   margin: 0 0 10px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--color-border-strong);
 }
 
 .section {
-  background: #1a1f2e;
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   padding: 10px;
@@ -460,11 +460,11 @@ onMounted(async () => {
 }
 
 .weight-summary.weight-warn {
-  color: #f59e0b;
+  color: var(--color-accent);
 }
 
 .warn-text {
-  color: #ef4444;
+  color: var(--color-up);
 }
 
 .target-table {
@@ -516,7 +516,7 @@ onMounted(async () => {
 }
 
 .target-input:focus {
-  border-color: #3b82f6;
+  border-color: var(--color-accent);
 }
 
 .text-input {
@@ -531,7 +531,7 @@ onMounted(async () => {
 .btn-delete {
   background: transparent;
   border: 1px solid var(--color-border-strong);
-  color: #ef4444;
+  color: var(--color-up);
   padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -556,8 +556,8 @@ onMounted(async () => {
 }
 
 .btn-add:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 /* --- Section C: 交易清单 --- */
@@ -613,7 +613,7 @@ onMounted(async () => {
 
 .trade-symbol {
   font-weight: 600;
-  color: #f9fafb;
+  color: var(--color-bg-elevated);
 }
 
 .market-badge {
@@ -630,19 +630,19 @@ onMounted(async () => {
 }
 
 .buy-tag {
-  color: #22c55e;
+  color: var(--color-down);
   background: rgba(34, 197, 94, 0.12);
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .sell-tag {
-  color: #ef4444;
+  color: var(--color-up);
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.up { color: #22c55e; }
-.down { color: #ef4444; }
+.up { color: var(--color-down); }
+.down { color: var(--color-up); }
 
 .empty-state {
   text-align: center;
@@ -653,9 +653,9 @@ onMounted(async () => {
 }
 
 .btn-generate {
-  background: #3b82f6;
+  background: var(--color-accent);
   border: none;
-  color: #fff;
+  color: var(--color-text-primary);
   padding: 8px 20px;
   border-radius: 4px;
   cursor: pointer;
@@ -666,7 +666,7 @@ onMounted(async () => {
 }
 
 .btn-generate:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--color-accent);
 }
 
 .btn-generate:disabled {

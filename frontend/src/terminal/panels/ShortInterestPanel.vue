@@ -132,7 +132,7 @@ onMounted(fetchData)
 <style scoped>
 .short-interest-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, #e5e7eb); background: var(--color-bg-panel, #1a1a2e); overflow: hidden;
+  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -144,8 +144,8 @@ onMounted(fetchData)
 .stat-card { padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: 8px; text-align: center; }
 .stat-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .stat-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.up { color: #dc2626; }
-.down { color: #16a34a; }
+.up { color: var(--color-up); }
+.down { color: var(--color-down); }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header { display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong); font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0; }
 .table-body { flex: 1; overflow-y: auto; font-size: 12px; }

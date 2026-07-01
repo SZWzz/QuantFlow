@@ -256,8 +256,8 @@ onMounted(loadData)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: auto;
 }
 .panel-header {
@@ -274,7 +274,7 @@ onMounted(loadData)
   padding: 2px 8px;
   border-radius: 4px;
   background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
+  color: var(--color-down);
   font-family: 'JetBrains Mono', monospace;
 }
 .refresh-btn {
@@ -337,10 +337,10 @@ onMounted(loadData)
   padding: 0 4px;
   border-radius: 2px;
   background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  color: var(--color-accent);
 }
-.trend-up { color: #f87171; }
-.trend-down { color: #4ade80; }
+.trend-up { color: var(--color-up); }
+.trend-down { color: var(--color-down); }
 
 /* ── Context bar ── */
 .context-bar {
@@ -350,7 +350,7 @@ onMounted(loadData)
   padding: 4px 10px;
   background: rgba(245, 158, 11, 0.06);
   border-radius: 4px;
-  border-left: 2px solid #f59e0b;
+  border-left: 2px solid var(--color-accent);
 }
 
 /* ── Chart ── */
@@ -446,17 +446,17 @@ onMounted(loadData)
 .scenario-conservative .scenario-badge,
 .scenario-conservative.scenario-badge {
   background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  color: var(--color-accent);
 }
 .scenario-baseline .scenario-badge,
 .scenario-baseline.scenario-badge {
   background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  color: var(--color-accent);
 }
 .scenario-optimistic .scenario-badge,
 .scenario-optimistic.scenario-badge {
   background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
+  color: var(--color-down);
 }
 .table-row.scenario-conservative {
   background: rgba(245, 158, 11, 0.03);

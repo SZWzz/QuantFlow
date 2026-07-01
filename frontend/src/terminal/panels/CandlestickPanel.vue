@@ -24,6 +24,7 @@ const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new
 const hasEcharts = computed(() => !!VChart)
 const topOverlay = ref<'none' | 'ma' | 'bb'>('none')
 const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr'>('volume')
+const minuteBottomMode = ref<'volume' | 'macd' | 'kdj'>('volume')
 
 // Color scheme: per-market (CN 红涨绿跌, others 绿涨红跌)
 function upColor() { return marketUpColor(symbol.value) }
@@ -57,6 +58,34 @@ function isTradingHours(): boolean {
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
+
+const WS_KEY = 'quantflow-watchlist'
+function getWatchlist(): string[] {
+  try {
+    const saved = localStorage.getItem(WS_KEY)
+    if (saved) { const arr = JSON.parse(saved); if (Array.isArray(arr)) return arr }
+  } catch {}
+  return []
+}
+function saveWatchlist(syms: string[]) {
+  localStorage.setItem(WS_KEY, JSON.stringify(syms))
+  window.dispatchEvent(new CustomEvent('watchlist-changed'))
+}
+const isInWatchlist = ref(false)
+watch(symbol, () => {
+  isInWatchlist.value = getWatchlist().includes(symbol.value)
+}, { immediate: true })
+function toggleWatchlist() {
+  const list = getWatchlist()
+  if (isInWatchlist.value) {
+    saveWatchlist(list.filter(s => s !== symbol.value))
+    isInWatchlist.value = false
+  } else {
+    list.push(symbol.value)
+    saveWatchlist(list)
+    isInWatchlist.value = true
+  }
+}
 const interval = ref(props.params?.interval || '1d')
 const ohlcvData = ref<(string | number)[][]>([])
 const loading = ref(false)
@@ -217,7 +246,7 @@ function startMinutePolling() {
       return
     }
     loadMinuteLine()
-  }, 10000)
+  }, 5000)
 }
 
 function stopMinutePolling() {
@@ -302,7 +331,7 @@ const option = computed(() => {
   const vdata = ohlcvData.value.map((d: any, i: number) => {
     const open = d[1] as number
     const cl = d[2] as number
-    return { value: d[5], itemStyle: { color: cl >= open ? upColor() : downColor() } }
+    return { value: (d[5] as number) / 10000, itemStyle: { color: cl >= open ? upColor() : downColor() } }
   })
 
   const theme = useChartTheme()
@@ -375,7 +404,9 @@ const option = computed(() => {
   }
 
   let bottomYAxis: any = { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } }
-  if (bottomMode.value === 'kdj' || bottomMode.value === 'rsi') {
+  if (bottomMode.value === 'volume') {
+    bottomYAxis = { ...bottomYAxis, axisLabel: { ...bottomYAxis.axisLabel, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) } }
+  } else if (bottomMode.value === 'kdj' || bottomMode.value === 'rsi') {
     bottomYAxis = { ...bottomYAxis, min: 0, max: 100 }
   } else if (bottomMode.value === 'wr') {
     bottomYAxis = { ...bottomYAxis, min: -100, max: 0 }
@@ -408,82 +439,65 @@ const minuteChartOption = computed(() => {
   if (!minuteTicks.value.length) return {}
   const times = minuteTicks.value.map(t => t.time)
   const prices = minuteTicks.value.map(t => t.price)
-  const volumes = minuteTicks.value.map(t => t.volume)
+  const volumes = minuteTicks.value.map(t => t.volume / 10000)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose.value
   const lineColor = isUp ? upColor() : downColor()
   const theme = useChartTheme()
 
+  const grid: any[] = []
+  const xAxis: any[] = []
+  const yAxis: any[] = []
+  const series: any[] = []
+
+  // Price grid (shared across all modes)
+  const priceBot = minuteBottomMode.value === 'volume' ? '78%' : '55%'
+  grid.push({ left: 60, right: 20, top: 10, height: minuteBottomMode.value === 'volume' ? '62%' : '40%' })
+  xAxis.push({ type: 'category', data: times, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } }, axisTick: { show: false } })
+  yAxis.push({ type: 'value', gridIndex: 0, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { lineStyle: { color: theme.bgColor } },
+    min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
+    max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
+  })
+  series.push(
+    { type: 'line', name: '价格', data: prices, xAxisIndex: 0, yAxisIndex: 0, smooth: false, symbol: 'none', lineStyle: { color: lineColor, width: 1.5 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [
+        { offset: 0, color: isUp ? upColor() + '40' : downColor() + '40' },
+        { offset: 1, color: 'rgba(0,0,0,0)' },
+      ]}},
+      markLine: prevClose.value > 0 ? { silent: true, symbol: 'none', lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 }, data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }] } : undefined,
+    },
+    { type: 'line', name: '均价', data: minuteTicks.value.map(t => t.avg_price), xAxisIndex: 0, yAxisIndex: 0, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' } },
+  )
+
+  // Bottom grid: volume or MACD/KDJ
+  const botGridIdx = 1
+  const botAxisIdx = 1
+  grid.push({ left: 60, right: 20, top: priceBot, height: minuteBottomMode.value === 'volume' ? '15%' : '35%' })
+  xAxis.push({ type: 'category', data: times, gridIndex: botGridIdx, axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 }, axisLine: { lineStyle: { color: theme.splitColor } } })
+
+  if (minuteBottomMode.value === 'volume') {
+    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) }, splitLine: { show: false } })
+    series.push({ type: 'bar', name: '成交量', data: volumes, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, itemStyle: { color: theme.splitColor }, barWidth: 1 })
+  } else if (minuteBottomMode.value === 'macd') {
+    const m = macd(prices)
+    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true })
+    series.push(
+      { type: 'line', name: 'DIF', data: m.dif, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
+      { type: 'line', name: 'DEA', data: m.dea, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
+      { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => v === null ? null : { value: v, itemStyle: { color: v >= 0 ? '#ef5350' : '#66bb6a' } }), xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx },
+    )
+  } else if (minuteBottomMode.value === 'kdj') {
+    const kd = kdj(prices, prices, prices)
+    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true })
+    series.push(
+      { type: 'line', name: 'K', data: kd.k, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
+      { type: 'line', name: 'D', data: kd.d, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
+      { type: 'line', name: 'J', data: kd.j, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ab47bc' } },
+    )
+  }
+
   return {
-    animation: false,
-    animationDurationUpdate: 0,
-    animationEasingUpdate: 'linear',
-    backgroundColor: 'transparent',
-    // Two separate grids: price chart on top (62%), volume bars below (15%)
-    grid: [
-      { left: 60, right: 20, top: 10, height: '62%' },
-      { left: 60, right: 20, top: '78%', height: '15%' },
-    ],
-    xAxis: [
-      {
-        type: 'category', data: times, gridIndex: 0,
-        axisLabel: { show: false },
-        axisLine: { lineStyle: { color: theme.splitColor } },
-        axisTick: { show: false },
-      },
-      {
-        type: 'category', data: times, gridIndex: 1,
-        axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 },
-        axisLine: { lineStyle: { color: theme.splitColor } },
-      },
-    ],
-    yAxis: [
-      {
-        type: 'value', gridIndex: 0, position: 'left',
-        axisLabel: { color: theme.axisColor, fontSize: 10 },
-        splitLine: { lineStyle: { color: theme.bgColor } },
-        min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
-        max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
-      },
-      {
-        type: 'value', gridIndex: 1, position: 'left',
-        axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
-        splitLine: { show: false },
-      },
-    ],
-    series: [
-      {
-        type: 'line', name: '价格', data: prices,
-        xAxisIndex: 0, yAxisIndex: 0,
-        smooth: false, symbol: 'none',
-        lineStyle: { color: lineColor, width: 1.5 },
-        areaStyle: {
-          color: {
-            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: isUp ? upColor() + '40' : downColor() + '40' },
-              { offset: 1, color: 'rgba(0,0,0,0)' }
-            ]
-          }
-        },
-        markLine: prevClose.value > 0 ? {
-          silent: true, symbol: 'none',
-          lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 },
-          data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }],
-        } : undefined,
-      },
-      {
-        type: 'line', name: '均价', data: minuteTicks.value.map(t => t.avg_price),
-        xAxisIndex: 0, yAxisIndex: 0,
-        smooth: true, symbol: 'none',
-        lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' },
-      },
-      {
-        type: 'bar', name: '成交量', data: volumes,
-        xAxisIndex: 1, yAxisIndex: 1,
-        itemStyle: { color: theme.splitColor },
-        barWidth: 1,
-      },
-    ],
+    animation: false, animationDurationUpdate: 0, animationEasingUpdate: 'linear',
+    backgroundColor: 'transparent', grid, xAxis, yAxis, series,
     tooltip: { trigger: 'axis' },
   }
 })
@@ -494,7 +508,7 @@ const multiDayChartOption = computed(() => {
   const ticks = day.ticks
   const times = ticks.map(t => t.time)
   const prices = ticks.map(t => t.price)
-  const volumes = ticks.map(t => t.volume)
+  const volumes = ticks.map(t => t.volume / 10000)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= day.prevClose
   const lineColor = isUp ? upColor() : downColor()
   const theme = useChartTheme()
@@ -531,7 +545,7 @@ const multiDayChartOption = computed(() => {
       },
       {
         type: 'value', gridIndex: 1, position: 'left',
-        axisLabel: { color: 'var(--color-text-tertiary)', fontSize: 10, formatter: (v: number) => v >= 1e4 ? (v / 1e4).toFixed(1) + '万' : String(v) },
+        axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + '万' : String(v) },
         splitLine: { show: false },
       },
     ],
@@ -597,6 +611,11 @@ onUnmounted(() => {
     <div class="chart-header">
       <div class="header-left">
         <span class="symbol-display">{{ symbol }} {{ name }}</span>
+        <button
+          class="watchlist-btn"
+          :class="{ inList: isInWatchlist }"
+          @click="toggleWatchlist"
+        >{{ isInWatchlist ? '取消自选' : '加入自选' }}</button>
         <div class="tab-btns">
           <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">{{ $t('kline.kline') }}</button>
           <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">{{ $t('kline.minute') }}</button>
@@ -625,8 +644,17 @@ onUnmounted(() => {
         <button :class="{ active: bottomMode === 'wr' }" class="indicator-btn" @click="bottomMode = 'wr'">WR</button>
       </div>
     </div>
+    <div v-if="activeTab === 'minute' || activeTab === 'multiDay'" class="indicator-bar">
+      <div class="indicator-group">
+        <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
+        <button :class="{ active: minuteBottomMode === 'volume' }" class="indicator-btn" @click="minuteBottomMode = 'volume'">{{ $t('kline.volume') }}</button>
+        <button :class="{ active: minuteBottomMode === 'macd' }" class="indicator-btn" @click="minuteBottomMode = 'macd'">MACD</button>
+        <button :class="{ active: minuteBottomMode === 'kdj' }" class="indicator-btn" @click="minuteBottomMode = 'kdj'">KDJ</button>
+      </div>
+    </div>
     <div class="chart-body">
-      <div v-if="loading || minuteLoading || multiDayLoading" class="chart-fallback">{{ $t('common.loading') }}</div>
+      <!-- Only show loading overlay on initial load (no data yet); skip during polling to avoid flashing the chart -->
+      <div v-if="(activeTab === 'kline' && loading && !ohlcvData.length) || (activeTab === 'minute' && minuteLoading && !minuteTicks.length) || (activeTab === 'multiDay' && multiDayLoading && !multiDayData.length)" class="chart-fallback">{{ $t('common.loading') }}</div>
       <template v-else-if="activeTab === 'multiDay'">
         <div v-if="multiDayData.length === 0" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
         <div v-else class="multi-day-chart-wrapper">
@@ -639,7 +667,7 @@ onUnmounted(() => {
         </div>
       </template>
       <VChart v-else-if="hasEcharts && activeTab === 'kline' && ohlcvData.length > 0" :key="`${symbol}-${interval}-${topOverlay}-${bottomMode}`" :option="option" autoresize class="kline-chart" />
-      <VChart v-else-if="hasEcharts && activeTab === 'minute'" :option="minuteChartOption" :update-options="{ notMerge: false }" autoresize class="minute-chart" />
+      <VChart v-else-if="hasEcharts && activeTab === 'minute'" :key="`${symbol}-${getTodayDateString()}`" :option="minuteChartOption" :update-options="{ notMerge: false }" autoresize class="minute-chart" />
       <div v-else-if="activeTab === 'minute' && !minuteTicks.length" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
       <div v-else class="chart-fallback">--</div>
     </div>
@@ -662,12 +690,20 @@ onUnmounted(() => {
   font-size: var(--font-lg); font-weight: 700;
   color: var(--color-brand);
 }
+.watchlist-btn {
+  padding: 2px 10px; border: 1px solid var(--color-accent); border-radius: 4px;
+  background: transparent; color: var(--color-accent); cursor: pointer;
+  font-size: 11px; white-space: nowrap; transition: all var(--transition-fast);
+}
+.watchlist-btn:hover { background: var(--color-accent); color: #fff; }
+.watchlist-btn.inList { border-color: var(--color-down); color: var(--color-down); }
+.watchlist-btn.inList:hover { background: var(--color-down); color: #fff; }
 .tab-btns { display: flex; gap: 4px; }
 .tab-btn {
   padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
 }
-.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: #534ab7; }
+.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: var(--color-accent); }
 .interval-btns { display: flex; gap: 2px; }
 .interval-btn {
   padding: 2px 8px; border: 1px solid var(--color-border);
@@ -678,7 +714,7 @@ onUnmounted(() => {
 }
 .interval-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .interval-btn.active {
-  background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
 }
 .chart-body { flex: 1; min-height: 0; padding: 8px; position: relative; }
 .kline-chart { width: 100%; height: 100%; }
@@ -715,6 +751,6 @@ onUnmounted(() => {
 }
 .indicator-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .indicator-btn.active {
-  background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+  background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
 }
 </style>

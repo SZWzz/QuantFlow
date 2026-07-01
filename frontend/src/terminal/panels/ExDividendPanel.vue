@@ -158,8 +158,8 @@ onMounted(fetchData)
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, #e5e7eb);
-  background: var(--color-bg-panel, #1a1a2e);
+  color: var(--color-text, var(--color-border));
+  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 .panel-header {
@@ -175,7 +175,7 @@ onMounted(fetchData)
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
-.header-tabs .tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+.header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .empty-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px; gap: 6px;
@@ -192,13 +192,13 @@ onMounted(fetchData)
 }
 .table-row:hover { background: var(--color-bg-elevated); }
 .col-code { width: 64px; }
-.col-code.clickable { cursor: pointer; color: #60a5fa; }
+.col-code.clickable { cursor: pointer; color: var(--color-accent); }
 .col-name { width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-date { width: 80px; }
 .col-bonus { width: 60px; text-align: right; }
 .col-transfer { width: 50px; text-align: right; }
 .col-bonus-ratio { width: 50px; text-align: right; }
 .col-yield { width: 60px; text-align: right; font-weight: 500; }
-.col-yield.highlight { color: #16a34a; }
+.col-yield.highlight { color: var(--color-down); }
 .col-plan { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-secondary); }
 </style>
