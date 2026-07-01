@@ -5,6 +5,8 @@ import { usePortfolioStore } from '@/stores/portfolio'
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const store = usePortfolioStore()
+const loading = ref(false)
+const loadError = ref('')
 
 // -- Go Trade type --
 interface GoTrade {
@@ -25,6 +27,7 @@ interface TradeEvent {
 const 个事件 = ref<TradeEvent[]>([])
 
 onMounted(async () => {
+  loading.value = true; loadError.value = ''
   try {
     await store.fetchTrades()
     const trades = (store.trades as unknown) as GoTrade[] | null
@@ -38,7 +41,10 @@ onMounted(async () => {
       }))
     }
   } catch (e) {
-    console.warn('[ActionCenter] fetch trades failed:', e)
+    loadError.value = (e as any)?.message || String(e)
+    个事件.value = []
+  } finally {
+    loading.value = false
   }
 })
 
@@ -75,41 +81,48 @@ function formatTime(iso: string): string {
       <span class="ac-count">{{ 个事件.length }} 个事件</span>
     </div>
 
-    <!-- Event feed -->
-    <div v-if="个事件.length > 0" class="event-feed">
-      <div
-        v-for="ev in sortedEvents"
-        :key="ev.id"
-        class="event-card border-info"
-      >
-        <div class="event-left">
-          <span class="event-icon">&#9679;</span>
-        </div>
-        <div class="event-body">
-          <div class="event-header">
-            <span class="event-type-label">{{ ev.title }}</span>
-            <span class="event-time">{{ formatTime(ev.time) }}</span>
+    <div v-if="loading" class="status">加载中...</div>
+    <div v-else-if="loadError" class="panel-error">{{ loadError }}</div>
+    <template v-else>
+      <!-- Event feed -->
+      <div v-if="个事件.length > 0" class="event-feed">
+        <div
+          v-for="ev in sortedEvents"
+          :key="ev.id"
+          class="event-card border-info"
+        >
+          <div class="event-left">
+            <span class="event-icon">&#9679;</span>
           </div>
-          <p class="event-message">{{ ev.detail }}</p>
-          <div class="event-actions">
-            <button class="evt-btn dismiss-btn" @click="dismissEvent(ev.id)">
-              忽略
-            </button>
+          <div class="event-body">
+            <div class="event-header">
+              <span class="event-type-label">{{ ev.title }}</span>
+              <span class="event-time">{{ formatTime(ev.time) }}</span>
+            </div>
+            <p class="event-message">{{ ev.detail }}</p>
+            <div class="event-actions">
+              <button class="evt-btn dismiss-btn" @click="dismissEvent(ev.id)">
+                忽略
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Empty state -->
-    <div v-else class="empty-state">
-      <p class="empty-icon">&#10003;</p>
-      <p class="empty-text">{{ $t('workflow.no_recent_trades') }}</p>
-      <p class="empty-sub">{{ $t('workflow.no_trades') }}</p>
-    </div>
+      <!-- Empty state -->
+      <div v-else class="empty-state">
+        <p class="empty-icon">&#10003;</p>
+        <p class="empty-text">{{ $t('workflow.no_recent_trades') }}</p>
+        <p class="empty-sub">{{ $t('workflow.no_trades') }}</p>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.status { display: flex; align-items: center; justify-content: center; padding: 20px; color: var(--muted); font-size: 13px; }
+.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; font-size: 12px; }
+
 .action-center {
   padding: 10px;
   background: var(--bg);

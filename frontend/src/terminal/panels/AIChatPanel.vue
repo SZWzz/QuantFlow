@@ -69,6 +69,8 @@ const availableModels = ref<string[]>([
 ])
 const messagesContainer = ref<HTMLElement | null>(null)
 const pythonConnected = ref(false)
+let _active = true
+onUnmounted(() => { _active = false })
 
 function scrollToBottom() {
   nextTick(() => {
@@ -136,7 +138,7 @@ async function simulateStreamingResponse(msg: Message, prompt: string) {
     research_assistant: `Research on: "${prompt}".\n\n## Key Findings\n\n1. **Industry**: Growing at 12% CAGR\n2. **Competitive Position**: Strong moat (brand + network effects)\n3. **Valuation**: P/E 22x vs industry 25x — slightly undervalued`,
   }
   const text = responses[selectedProfile.value] || responses.general
-  for (let i = 0; i < text.length; i += 3) {
+  for (let i = 0; i < text.length && _active; i += 3) {
     msg.content += text.slice(i, i + 3)
     await new Promise((r) => setTimeout(r, 20))
     scrollToBottom()

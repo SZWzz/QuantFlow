@@ -10,6 +10,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 const { name } = useStockName(symbol)
+const loadError = ref('')
 
 const estimates = computed(() => store.research?.estimates ?? [])
 
@@ -36,8 +37,15 @@ const consensusColor = computed(() => {
   return '#eab308'
 })
 
-watch(symbol, (newVal) => {
-  if (newVal) store.fetchStockResearch(newVal, ['estimates'])
+watch(symbol, async (newVal) => {
+  if (newVal) {
+    loadError.value = ''
+    try {
+      await store.fetchStockResearch(newVal, ['estimates'])
+    } catch (e: any) {
+      loadError.value = e?.message || String(e)
+    }
+  }
 }, { immediate: true })
 
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
@@ -46,7 +54,14 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   }
 })
 
-function refresh() { store.fetchStockResearch(symbol.value, ['estimates']) }
+async function refresh() {
+  loadError.value = ''
+  try {
+    await store.fetchStockResearch(symbol.value, ['estimates'])
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  }
+}
 
 function ratingColor(rating: string): string {
   const r = (rating ?? '').toLowerCase()
@@ -77,6 +92,7 @@ function handleSymbolSubmit(e: Event) {
       </div>
     </div>
 
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div v-if="store.loading" class="chart-fallback">{{ $t('common.loading') }}</div>
     <div v-else-if="estimates.length > 0" class="panel-content">
       <!-- Consensus Badge -->
@@ -116,13 +132,14 @@ function handleSymbolSubmit(e: Event) {
       </table>
     </div>
 
-    <div v-else class="empty-state">
+    <div v-else-if="!store.loading && !loadError" class="empty-state">
       <p>输入代码后按 ↵ 查看分析师预测</p>
     </div>
   </div>
 </template>
 
 <style scoped>
+.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; font-size: 12px; }
 .panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }

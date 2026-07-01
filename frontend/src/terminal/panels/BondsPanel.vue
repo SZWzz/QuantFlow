@@ -11,7 +11,7 @@ const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '')
 const { name } = useStockName(symbol)
 const { fetchWithCache } = usePanelCache()
 const loading = ref(false)
-const error = ref('')
+const loadError = ref('')
 const data = ref<any>(null)
 const searchQuery = ref('')
 
@@ -37,7 +37,7 @@ const filteredData = computed(() => {
 })
 
 async function loadData() {
-  loading.value = true; error.value = ''
+  loading.value = true; loadError.value = ''
   try {
     const w = (window as any)
     if (w?.go?.main?.App?.FetchData) {
@@ -45,9 +45,9 @@ async function loadData() {
         return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
       })
       if (result?.data) data.value = JSON.parse(result.data)
-      else if (result?.error) error.value = result.error
+      else if (result?.error) loadError.value = result.error
     }
-  } catch (e: any) { error.value = e.message || '加载失败' }
+  } catch (e: any) { loadError.value = e.message || '加载失败' }
   finally { loading.value = false }
 }
 
@@ -97,7 +97,7 @@ onMounted(loadData)
     </div>
     <div class="panel-body">
       <div v-if="loading" class="status">加载中...</div>
-      <div v-else-if="error" class="status error">{{ error }}</div>
+      <div v-else-if="loadError" class="status error">{{ loadError }}</div>
       <div v-else-if="!data || !data.success" class="status">{{ data?.error || '暂无数据' }}</div>
 
       <template v-else>

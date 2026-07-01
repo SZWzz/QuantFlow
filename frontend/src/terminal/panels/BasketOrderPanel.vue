@@ -15,9 +15,13 @@ interface 篮子Row {
 
 // -- Name resolution --
 const nameCache = ref<Record<string, string>>({})
+const resolvingNames = ref(false)
+let _resolveCount = 0
 
 async function resolveName(sym: string) {
   if (!sym || nameCache.value[sym] !== undefined) return
+  _resolveCount++
+  resolvingNames.value = true
   try {
     const app = (window as any).go?.main?.App
     if (!app) return
@@ -25,6 +29,10 @@ async function resolveName(sym: string) {
     const quote = Array.isArray(result) ? result[0] : result
     nameCache.value[sym] = quote?.name || ''
   } catch { nameCache.value[sym] = '' }
+  finally {
+    _resolveCount--
+    if (_resolveCount <= 0) resolvingNames.value = false
+  }
 }
 
 function getName(sym: string): string {
@@ -143,6 +151,7 @@ function statusDotClass(s: string): string {
       <!-- Left: 篮子 Rows -->
       <div class="col col-left">
         <h3 class="col-title">{{ $t('trade.basket') }}</h3>
+        <div v-if="resolvingNames" class="resolving-hint">正在解析名称...</div>
         <div class="row-list">
           <div v-for="row in rows" :key="row.id" class="basket-row">
             <input v-model="row.symbol" type="text" :placeholder="$t('quote.symbol')" class="cell-input cell-symbol" />
@@ -215,6 +224,8 @@ function statusDotClass(s: string): string {
 </template>
 
 <style scoped>
+.resolving-hint { font-size: 11px; color: var(--color-accent); padding: 4px 0; font-style: italic; }
+
 .basket-panel {
   padding: 10px;
   background: var(--bg);

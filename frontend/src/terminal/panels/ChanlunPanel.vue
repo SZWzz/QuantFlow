@@ -45,7 +45,7 @@ const loading = ref(false)
 
 const { fetchWithCache } = usePanelCache()
 
-const errMsg = ref('')
+const loadError = ref('')
 const fractals = ref<Fractal[]>([])
 const biSegments = ref<BiSegment[]>([])
 const zsBlocks = ref<ZSBlock[]>([])
@@ -75,7 +75,7 @@ const zsSummary = computed(() => {
 })
 
 async function processQuery() {
-  loading.value = true; errMsg.value = ''
+  loading.value = true; loadError.value = ''
   selectedSymbol.value = searchSymbol.value
 
   try {
@@ -84,15 +84,14 @@ async function processQuery() {
     const { data: result } = await fetchWithCache<any>('chanlun:' + selectedSymbol.value, () => app.GetChanlun(selectedSymbol.value))
     if (result) {
       if (result.available === false) {
-        errMsg.value = result.error || '缠论分析不可用（Python 侧未启动或模块缺失）'
+        loadError.value = result.error || '缠论分析不可用（Python 侧未启动或模块缺失）'
       }
       fractals.value = result.fractals || []
       biSegments.value = result.bi_list || []
       zsBlocks.value = result.zs_list || []
     }
   } catch (e: any) {
-    errMsg.value = e.message || '请求失败'
-    console.error('[Chanlun] fetch failed:', e)
+    loadError.value = e.message || '请求失败'
   } finally {
     loading.value = false
   }
@@ -125,8 +124,8 @@ function formatPct(v: number): string {
       </div>
     </div>
 
-    <div v-if="errMsg" class="error-msg">{{ errMsg }}</div>
-    <div v-if="selectedSymbol && !errMsg" class="analysis-content">
+    <div v-if="loadError" class="error-msg">{{ loadError }}</div>
+    <div v-if="selectedSymbol && !loadError" class="analysis-content">
       <!-- Tab bar -->
       <div class="tabs">
         <button

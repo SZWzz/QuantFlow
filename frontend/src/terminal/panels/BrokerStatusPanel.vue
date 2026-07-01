@@ -11,14 +11,15 @@ const { t } = useI18n()
 const { fetchWithCache } = usePanelCache()
 const brokers = ref<BrokerStatus[]>([])
 const loading = ref(false)
+const loadError = ref('')
 
 async function loadStatus() {
   // TODO: move to store
-  loading.value = true
+  loading.value = true; loadError.value = ''
   try {
     const { data: result } = await fetchWithCache('broker_status', () => (window as any).go.main.App.GetBrokerStatuses())
     brokers.value = Array.isArray(result) ? result : []
-  } catch(e) { console.error('[BrokerStatus] fetch:', e); brokers.value = [] }
+  } catch(e) { loadError.value = (e as any)?.message || String(e); brokers.value = [] }
   finally { loading.value = false }
 }
 
@@ -35,6 +36,7 @@ onMounted(loadStatus)
       <span class="header-title">{{ $t('broker.title') }}</span>
       <button class="refresh-btn" @click="loadStatus" :disabled="loading">{{ loading ? $t('broker.refreshing') : t('broker.refresh') }}</button>
     </div>
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div class="card-grid">
       <div v-for="b in brokers" :key="b.name" :class="['broker-card', { dimmed: !b.connected }]">
         <div class="card-header">
@@ -55,6 +57,7 @@ onMounted(loadStatus)
 </template>
 
 <style scoped>
+.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; font-size: 12px; }
 .broker-status { padding: 10px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; color: var(--color-text-primary); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .header-title { font-size: 13px; font-weight: 600; }

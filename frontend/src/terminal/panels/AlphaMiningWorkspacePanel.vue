@@ -11,6 +11,8 @@ const crossoverRate = ref(0.7)
 const mutationRate = ref(0.1)
 const topK = ref(20)
 const fitnessMetric = ref('ic')
+const miningLoading = ref(false)
+const miningError = ref('')
 
 const availableFactors = [
   'momentum_1m', 'momentum_3m', 'momentum_6m', 'momentum_12m', 'rsi_alpha',
@@ -27,10 +29,17 @@ function toggleFactor(name: string) {
 }
 
 async function runMining() {
-  await mlStore.runAlphaMining({
-    factorNames: 已选Factors.value, factorData: {}, returnsData: {},
-    populationSize: popSize.value, generations: generations.value, topK: topK.value,
-  })
+  miningLoading.value = true; miningError.value = ''
+  try {
+    await mlStore.runAlphaMining({
+      factorNames: 已选Factors.value, factorData: {}, returnsData: {},
+      populationSize: popSize.value, generations: generations.value, topK: topK.value,
+    })
+  } catch (e: any) {
+    miningError.value = e?.message || String(e)
+  } finally {
+    miningLoading.value = false
+  }
 }
 
 function registerFactor(factor: { formula: string }) {
@@ -86,11 +95,13 @@ const tableColumns = [
 
       <button
         @click="runMining"
-        :disabled="mlStore.miningRunning || 已选Factors.length < 2"
+        :disabled="miningLoading || mlStore.miningRunning || 已选Factors.length < 2"
         class="btn btn-primary btn-run"
       >
-        {{ mlStore.miningRunning ? '挖掘中...' : '开始挖掘' }}
+        {{ miningLoading ? '挖掘中...' : '开始挖掘' }}
       </button>
+
+      <div v-if="miningError" class="panel-error">{{ miningError }}</div>
 
       <div v-if="mlStore.discoveredFactors.length" class="results">
         <h4>{{ $t('ml.discovered_factors') }}</h4>
@@ -118,6 +129,8 @@ const tableColumns = [
 </template>
 
 <style scoped>
+.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; font-size: 12px; }
+
 .alpha-mining-panel {
   display: flex;
   flex-direction: column;
