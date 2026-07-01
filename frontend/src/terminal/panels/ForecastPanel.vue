@@ -9,6 +9,7 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useI18n } from 'vue-i18n'
 
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
@@ -23,6 +24,7 @@ const loading = ref(false)
 const error = ref('')
 const result = ref<any>(null)
 const chartTheme = useChartTheme()
+const { fetchWithCache } = usePanelCache()
 
 const forecastTable = computed(() => result.value?.forecast_table || [])
 const latestPeriod = computed(() => result.value?.latest_period || '')
@@ -141,10 +143,8 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const app = (window as any).go?.main?.App
-    if (!app?.GetForecast) return
-    const resp = await app.GetForecast(symbol.value)
-    result.value = resp?.data ? JSON.parse(resp.data) : resp
+    const { data } = await fetchWithCache<any>(`forecast:${symbol.value}`, () => (window as any).go?.main?.App?.GetForecast(symbol.value), 30 * 60 * 1000)
+    result.value = data?.data ? JSON.parse(data.data) : data
   } catch (e: any) {
     error.value = e.message || t('common.panel_error')
   } finally {

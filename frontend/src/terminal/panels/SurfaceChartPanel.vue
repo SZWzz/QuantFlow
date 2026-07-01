@@ -7,6 +7,7 @@ import { LineChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, GridComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 use([LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer])
 
@@ -16,6 +17,7 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const surfaceData = ref<number[][]>([])
+const { fetchWithCache } = usePanelCache()
 
 const hasEcharts = computed(() => { try { return typeof VChart !== 'undefined' } catch { return false } })
 
@@ -23,7 +25,7 @@ async function loadSurface() {
   const app = (window as any).go?.main?.App
   if (!app) return
   try {
-    const data = await app.GetVolatilitySurface(symbol.value)
+    const { data } = await fetchWithCache<any>(`vol_surface:${symbol.value}`, () => app.GetVolatilitySurface(symbol.value), 15 * 60 * 1000)
     surfaceData.value = data || []
   } catch(e) { console.error('[SurfaceChart] fetch:', e); surfaceData.value = [] }
 }

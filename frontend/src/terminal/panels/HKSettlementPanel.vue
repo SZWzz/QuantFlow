@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const { t } = useI18n()
-const app = window.go.main.App
+const { fetchWithCache } = usePanelCache()
+const app = (window as any).go?.main?.App
 
 interface HKSettlementInfo {
   market: string
@@ -47,7 +49,7 @@ async function fetchSettlementInfo() {
   if (!app?.GetHKSettlementInfo) return
   loading.value = true
   try {
-    const result = await app.GetHKSettlementInfo()
+    const { data: result } = await fetchWithCache('hk_settlement_info', () => app.GetHKSettlementInfo(), 30 * 60 * 1000)
     settlementInfo.value = result as HKSettlementInfo
   } catch (e) {
     console.error('[HKSettlement]', e)
@@ -61,7 +63,7 @@ async function fetchCalendar() {
   if (!app?.GetHKTradingCalendar) return
   calendarLoading.value = true
   try {
-    const result = await app.GetHKTradingCalendar(calendarYear.value)
+    const { data: result } = await fetchWithCache(`hk_trade_calendar:${calendarYear.value}`, () => app.GetHKTradingCalendar(calendarYear.value), 30 * 60 * 1000)
     const raw = result as CalendarResult
     calendarData.value = Array.isArray(raw.data) ? raw.data : []
   } catch (e) {

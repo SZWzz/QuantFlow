@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -35,6 +36,7 @@ const loading = ref(false)
 const historyLoading = ref(false)
 const expandedRow = ref<string | null>(null)
 const historySymbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
+const { fetchWithCache } = usePanelCache()
 
 watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (sym) => {
   if (sym && activeTab.value === 'history') {
@@ -48,7 +50,7 @@ async function fetchDaily() {
   if (!app?.GetDailyDragonTiger) return
   loading.value = true
   try {
-    const result = await app.GetDailyDragonTiger(date.value, minNetBuy.value)
+    const { data: result } = await fetchWithCache<any>(`dragon_tiger:${date.value}:${minNetBuy.value}`, () => app.GetDailyDragonTiger(date.value, minNetBuy.value), 5 * 60 * 1000)
     const raw = Array.isArray(result) ? result : (result?.stocks || [])
     stocks.value = raw.map((s: any) => ({
       code: s.code || '',
@@ -75,7 +77,7 @@ async function fetchHistory() {
   if (!app?.GetDragonTiger || !historySymbol.value) return
   historyLoading.value = true
   try {
-    const result = await app.GetDragonTiger(historySymbol.value, date.value, 20)
+    const { data: result } = await fetchWithCache<any>(`dragon_tiger_history:${historySymbol.value}:${date.value}`, () => app.GetDragonTiger(historySymbol.value, date.value, 20), 5 * 60 * 1000)
     const raw = Array.isArray(result) ? result : (result?.records || [])
     historyData.value = raw.map((s: any) => ({
       code: s.code || historySymbol.value,
