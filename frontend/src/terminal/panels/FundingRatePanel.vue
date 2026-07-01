@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -17,6 +18,7 @@ const sortDir = ref<number>(-1)
 const rates = ref<FundingRate[]>([])
 const loading = ref(false)
 const autoRefresh = ref(true)
+const { fetchWithCache } = usePanelCache()
 let timer: ReturnType<typeof setInterval> | null = null
 
 const sortedRates = computed(() => {
@@ -47,7 +49,7 @@ async function fetchRates() {
   if (!app?.GetCryptoFundingRates) return
   loading.value = true
   try {
-    const result = await app.GetCryptoFundingRates([])
+    const { data: result } = await fetchWithCache<any>('funding_rates', () => app.GetCryptoFundingRates([]), 60 * 1000)
     rates.value = (result || []).map((r: any) => ({
       symbol: r.symbol?.replace('USDT', '') || r.symbol || '',
       mark_price: r.mark_price || 0,

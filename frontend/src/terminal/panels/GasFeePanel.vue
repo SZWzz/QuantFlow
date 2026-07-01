@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const { fetchWithCache } = usePanelCache()
 
 interface GasData {
   SafeGasPrice: string
@@ -21,7 +23,7 @@ async function fetchData() {
   if (!app?.GetGasFees) return
   loading.value = true
   try {
-    const raw = await app.GetGasFees()
+    const { data: raw } = await fetchWithCache<any>('gas_fees', () => app.GetGasFees(), 60 * 1000)
     if (raw?.success === false) {
       gas.value = null
       return

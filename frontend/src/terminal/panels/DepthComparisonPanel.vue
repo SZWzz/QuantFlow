@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const { fetchWithCache } = usePanelCache()
 
 interface DepthLevel {
   price: number
@@ -39,7 +41,7 @@ async function fetchAll() {
   const results: Record<string, DepthData> = {}
   for (const ex of exchanges) {
     try {
-      const raw = await app.GetCryptoDepth(ex, symbol.value, limit.value)
+      const { data: raw } = await fetchWithCache<any>(`crypto_depth:${ex}:${symbol.value}:${limit.value}`, () => app.GetCryptoDepth(ex, symbol.value, limit.value), 60 * 1000)
       if (raw?.success === false) {
         throw new Error(raw.error || 'fetch failed')
       }

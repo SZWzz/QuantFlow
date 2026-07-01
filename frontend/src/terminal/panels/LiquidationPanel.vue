@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { usePanelCache } from '@/lib/composables/usePanelCache'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -19,6 +20,7 @@ const range = ref<'24h' | '7d'>('24h')
 const liquidations = ref<Liquidation[]>([])
 const loading = ref(false)
 const autoRefresh = ref(true)
+const { fetchWithCache } = usePanelCache()
 let timer: ReturnType<typeof setInterval> | null = null
 
 const stats = computed(() => {
@@ -40,7 +42,7 @@ async function fetchData() {
   if (!app?.GetCryptoLiquidations) return
   loading.value = true
   try {
-    const result = await app.GetCryptoLiquidations(symbol.value, 100)
+    const { data: result } = await fetchWithCache<any>(`liquidations:${symbol.value}:100`, () => app.GetCryptoLiquidations(symbol.value, 100), 60 * 1000)
     liquidations.value = (result || []).map((l: any) => ({
       symbol: l.symbol?.replace('USDT', '') || l.symbol || '',
       side: l.side || '',
