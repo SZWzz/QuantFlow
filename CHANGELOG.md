@@ -6,6 +6,16 @@
 
 ## [2026.7.1] - 2026-07-01
 
+### Added
+- [Frontend] **K 线增量轮询** — 30s 定时器仅拉取增量数据而非全量 250-450 根 K 线，合并去重（loadSeq 竞态守卫）
+- [Frontend] **数据加载错误提示** — CandlestickPanel 内联 err-toast（8s 自动消失）
+- [Frontend] **typed Wails bridge** — `useWailsApp()` 类型化桥接，覆盖 FetchOHLCV/GetMinuteLine/GetMultiDayMinute/GetAuditFindings/GetFinancialAnalysis/GetDelistingRisk
+- [Frontend] **createIndicatorCache** — 指标计算 memoization 工厂（getCached/clear/delete），2 单元测试通过
+
+### Changed
+- [Frontend] **CandlestickPanel 3 阶段重构** — 756 行 → ~383 行脚本，拆分为 KlineChart 组件(稳定 key)、buildChartOption 纯函数 3 个、useWailsApp 类型化桥接
+- [Frontend] **useChartTheme 缓存化** — MutationObserver 单次订阅 + 模块级 globalTheme 缓存，避免每次 computed 评估触发 7 次 getComputedStyle
+
 ### Fixed
 - [Frontend] **KDJ 改为递归加权平均（首值种子 50）** — `kdj()` 之前用 `sma()` 导致第一个 RSV 后还需等 6 个周期才有 K/D/J（分时 09:42 才出图），现改为通达信/同花顺风格递归平滑 `K[i]=2/3×K[i-1]+1/3×RSV[i]` 且 K/D 首值=50，09:30 RSV 出值即绘制三线
 - [Frontend] **AuditPanel 营收增长率改为同比（同周期类型）** — `growthRate()` 之前固定取 `periods[0]` vs `periods[3]`（混合不同周期类型如 Q1 vs 半年报），现在改为提取最新期的 month-day（如 `"03-31"`）在历史中匹配相同 month-day 的期进行对比，实现真正同比
