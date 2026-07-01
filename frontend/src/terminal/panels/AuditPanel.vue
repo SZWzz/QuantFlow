@@ -6,6 +6,7 @@ import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import VChart from 'vue-echarts'
+import { PanelTabs } from '@/terminal/components/panel'
 import 'echarts'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -18,9 +19,13 @@ const loading = ref(false)
 const error = ref('')
 const audit = ref<any>(null)
 const analysis = ref<any>(null)
+const activeTab = ref<'audit' | 'delist'>('audit')
 const showBreakdown = ref(true)
 const showTrend = ref(false)
 const showHistory = ref(false)
+const delisting = ref<Record<string, any> | null>(null)
+const delistingLoading = ref(false)
+const delistingError = ref('')
 const chartTheme = useChartTheme()
 
 const findings = computed(() => audit.value?.findings || [])
@@ -117,6 +122,19 @@ async function loadData() {
   }
 
   loading.value = false
+}
+
+async function loadDelistingRisk() {
+  const app = (window as any).go?.main?.App
+  if (!app?.GetDelistingRisk) return
+  delistingLoading.value = true
+  delistingError.value = ''
+  try {
+    delisting.value = await app.GetDelistingRisk(symbol.value)
+  } catch (e: any) {
+    delistingError.value = e.message || '退市风险数据加载失败'
+  }
+  delistingLoading.value = false
 }
 
 const allFindings = computed(() => {
@@ -248,7 +266,10 @@ watch(symbol, loadData)
 watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (n) => {
   if (n && n !== symbol.value) { symbol.value = n; loadData() }
 })
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  loadDelistingRisk()
+})
 </script>
 
 <template>
@@ -261,6 +282,15 @@ onMounted(loadData)
       </div>
     </div>
 
+    <!-- Tab bar -->
+    <PanelTabs
+      variant="pill"
+      :tabs="[{ key: 'audit', label: '审计异常' }, { key: 'delist', label: '退市风险' }]"
+      :active="activeTab"
+      @change="(k: string) => activeTab = k as 'audit' | 'delist'"
+    />
+
+    <template v-if="activeTab === 'audit'">
     <SkeletonPanel v-if="loading && !audit" type="card" :rows="3" />
     <div v-else-if="error && !audit" class="st err">{{ error }}</div>
     <template v-else>
@@ -421,6 +451,44 @@ onMounted(loadData)
         <div v-else-if="!periods.length && !loading" class="section-empty">暂无财务数据</div>
       </div>
     </template>
+    </template>
+
+    <template v-if="activeTab === 'delist'">
+      <SkeletonPanel v-if="delistingLoading && !delisting" type="card" :rows="4" />
+      <div v-else-if="delistingError && !delisting" class="st err">{{ delistingError }}</div>
+      <template v-else-if="delisting">
+        <!-- Overall Risk Badge -->
+        <div class="dr-overall">
+          <div class="dr-badge" :class="'dr-' + delisting.overall_risk">
+            <span class="dr-badge-label">{{ delisting.overall_risk === 'high' ? '高风险' : delisting.overall_risk === 'medium' ? '中风险' : '低风险' }}</span>
+            <span class="dr-board">{{ delisting.market }} · {{ delisting.board }}</span>
+            <span v-if="delisting.is_st" class="st-tag">ST</span>
+          </div>
+          <p class="dr-summary">{{ delisting.summary }}</p>
+        </div>
+
+        <!-- Category Cards -->
+        <div v-for="cat in delisting.categories" :key="cat.name" class="dr-category">
+          <div class="dr-cat-h">
+            <span class="dr-cat-dot" :class="'dot-' + cat.level"></span>
+            <span class="dr-cat-name">{{ cat.name }}</span>
+          </div>
+          <div class="dr-items">
+            <div v-for="item in cat.items" :key="item.indicator" class="dr-item" :class="'dr-item-' + item.status">
+              <div class="dr-item-left">
+                <span class="dr-dot" :class="'dot-' + (item.status === 'danger' ? 'red' : item.status === 'warn' ? 'yellow' : 'green')"></span>
+                <span class="dr-indicator">{{ item.indicator }}</span>
+              </div>
+              <div class="dr-item-right">
+                <span class="dr-current">{{ item.current }}</span>
+                <span class="dr-threshold">阈值: {{ item.threshold }}</span>
+              </div>
+              <div v-if="item.detail" class="dr-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </template>
   </div>
 </template>
 
@@ -500,4 +568,38 @@ onMounted(loadData)
 .hist-table td.period { font-family: 'JetBrains Mono', monospace; color: var(--color-text-secondary); }
 .hist-table tr:hover td { background: rgba(255,255,255,0.02); }
 .hist-table tr:last-child td { border-bottom: none; }
+
+/* Overall risk */
+.dr-overall { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.dr-badge { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; font-size: 13px; }
+.dr-badge.dr-high { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); }
+.dr-badge.dr-medium { background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.3); }
+.dr-badge.dr-low { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); }
+.dr-badge-label { font-weight: 600; font-size: 15px; }
+.dr-board { color: var(--color-text-secondary); font-size: 12px; }
+.st-tag { background: var(--color-accent); color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+.dr-summary { font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
+
+/* Category */
+.dr-category { margin-bottom: 14px; }
+.dr-cat-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.dr-cat-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-red { background: #ef4444; }
+.dot-yellow { background: #eab308; }
+.dot-green { background: #22c55e; }
+.dr-cat-name { font-weight: 600; font-size: 13px; }
+
+/* Items */
+.dr-items { display: flex; flex-direction: column; gap: 4px; }
+.dr-item { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px; font-size: 12px; background: var(--color-bg-subtle); }
+.dr-item-left { display: flex; align-items: center; gap: 6px; min-width: 140px; }
+.dr-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dr-indicator { font-weight: 500; white-space: nowrap; }
+.dr-item-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.dr-current { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.dr-threshold { color: var(--color-text-secondary); font-size: 11px; }
+.dr-detail { width: 100%; color: var(--color-text-secondary); font-size: 11px; padding-left: 18px; }
+.dr-item-danger { border-left: 3px solid #ef4444; }
+.dr-item-warn { border-left: 3px solid #eab308; }
+.dr-item-safe { border-left: 3px solid #22c55e; }
 </style>
