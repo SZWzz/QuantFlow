@@ -25,6 +25,8 @@
 - [Frontend] **KDJ 改为递归加权平均（首值种子 50）** — `kdj()` 之前用 `sma()` 导致第一个 RSV 后还需等 6 个周期才有 K/D/J（分时 09:42 才出图），现改为通达信/同花顺风格递归平滑 `K[i]=2/3×K[i-1]+1/3×RSV[i]` 且 K/D 首值=50，09:30 RSV 出值即绘制三线
 - [Frontend] **AuditPanel 营收增长率改为同比（同周期类型）** — `growthRate()` 之前固定取 `periods[0]` vs `periods[3]`（混合不同周期类型如 Q1 vs 半年报），现在改为提取最新期的 month-day（如 `"03-31"`）在历史中匹配相同 month-day 的期进行对比，实现真正同比
 - [Python] **analyzer 营收评分改为同比比较** — `analyze_report()` 同期比较逻辑从固定 `revs[0] vs revs[3]` 改为按 month-day 匹配同周期类型，修正之前混合 Q1/半年报/年报带来的评分偏差
+- [Frontend] **GovDataPanel 来源切换竞态修复** — `loadSignals()` 和 `loadIndicatorDetail()` 增加 `loadSeq` 请求序列号守卫，避免 BIS SDMX 慢请求返回后覆盖"中国宏观"数据
+- [Frontend] **BIS 全球数据中文名** — 新增 `bisCnNames` 翻译表（39 个 BIS 数据流 ID → 中文），BIS 卡片不再显示英文名称
 - [Frontend] **CandlestickPanel 分时图刷新闪烁** — 轮询刷新时因 `minuteLoading` 翻转导致 loading 层替换 VChart（DOM 卸载→重建），改为仅在首次加载（`!minuteTicks.length`）时显示 loading，后续轮询保持 VChart 持续渲染。同时移除 `minuteBottomMode` 在 `:key` 中的依赖，避免切换副图指标时全量销毁/重建 ECharts 实例
 - [Frontend] **MACD 改用首值种子 EMA（同花顺 MACDFS 风格）** — `ema()` 从 SMA 种子（等 N 个值才有第一个值）改为首值种子（第 1 个值就初始化 EMA），分时图 MACD 从 09:30 开盘即可绘制 DIF/DEA/HIST，不再需要等到 10:03。同步加回 `BAR=2×(DIFF-DEA)` 倍数
 - [Frontend] **分时图轮询 10s → 5s** — 提高实时性，配合后端 3s 冷却锁避免 mootdx 空转

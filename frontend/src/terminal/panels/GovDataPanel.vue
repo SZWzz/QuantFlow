@@ -83,9 +83,59 @@ const sourceCnLabels: Record<string, string> = {
   bis: 'BIS 国际清算银行',
 }
 
+// BIS dataflow IDs → Chinese display names. BIS SDMX API returns English-only
+// names; we translate the commonly-used ones here for a consistent CN experience.
+const bisCnNames: Record<string, string> = {
+  WS_EER: '有效汇率指数',
+  WS_EER_R: '实际有效汇率指数',
+  WS_CBPOL: '央行政策利率',
+  WS_DT1: '债务证券',
+  WS_LTINT: '长期利率',
+  WS_STINT: '短期利率',
+  WS_MON: '货币供应量',
+  WS_XRU: '汇率',
+  WS_CRD: '非金融部门信贷',
+  WS_HP: '房价指数',
+  WS_REER: '实际有效汇率',
+  WS_CUST: '海关与外汇管制',
+  WS_FDI: '外国直接投资',
+  WS_CUR: '官方外汇储备币种构成',
+  WS_LONG_CPI: '长期CPI预测',
+  WS_CBTA: '跨境银行债权',
+  WS_CREDIT_GAP: '信贷缺口',
+  WS_TC: '信贷总额',
+  WS_DSR: '偿债率',
+  WS_GLI: '全球流动性指标',
+  WS_SPP: '股票价格',
+  WS_CPP: '企业债务价格',
+  WS_DPP: '政府债务价格',
+  WS_CBS_PUB: '跨境银行统计',
+  WS_LBS_D_PUB: '地方银行业统计',
+  WS_DEBT_SEC2_PUB: '债务证券统计',
+  WS_NA_SEC_DSS: '国民账户/债务证券',
+  WS_OTC_DERIV2: '场外衍生品',
+  WS_DER_OTC_TOV: '场外衍生品交易量',
+  WS_XTD_DERIV: '交易所衍生品',
+  WS_CPMI_MACRO: '支付系统宏观统计',
+  WS_CPMI_CASHLESS: '非现金支付',
+  WS_CPMI_CT1: '支付系统1类',
+  WS_CPMI_CT2: '支付系统2类',
+  WS_CPMI_DEVICES: '支付终端设备',
+  WS_CPMI_INSTITUT: '支付机构',
+  WS_CPMI_PARTICIP: '支付系统参与方',
+  WS_CPMI_SYSTEMS: '支付系统',
+  DSI_CIVPART: '民间参与率',
+}
+
 const activeCategory = ref('all')
 
+// Request sequence counter: guards against stale responses when switching
+// sources mid-flight (e.g., BIS SDMX is slow, user taps "中国宏观" before it
+// resolves — without this guard the slow response would overwrite CN data).
+let loadSeq = 0
+
 async function loadSignals() {
+  const seq = ++loadSeq
   const cached = dataStore.getCached<MacroSignal[]>(signalsCacheKey.value)
   if (cached) {
     signals.value = cached
@@ -104,11 +154,13 @@ async function loadSignals() {
     if (activeSource.value === 'fred') {
       if (app?.GetEconomicIndicators) {
         const result = await app.GetEconomicIndicators()
+        if (seq !== loadSeq) return
         signals.value = result.signals || []
       }
       // Merge real-time commodity quotes (CL/NG) into the energy category
       if (app?.GetCommodityQuotes) {
         const result = await app.GetCommodityQuotes()
+        if (seq !== loadSeq) return
         const commodities = (result.commodities || []) as CommodityQuote[]
         for (const c of commodities) {
           signals.value.push({
@@ -134,6 +186,7 @@ async function loadSignals() {
     //    (polarity: positive/negative/inverse) are computed server-side. ──
     else if (activeSource.value === 'cn' && app?.FetchData) {
       const result = await app.FetchData('akshare', 'macro_cn_summary', ['CN'], '', '', {})
+      if (seq !== loadSeq) return
       if (result?.data) {
         try {
           const raw = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
@@ -172,6 +225,7 @@ async function loadSignals() {
     // parallel call, so cards show the latest data point immediately.
     else if (activeSource.value === 'bis' && app?.FetchData) {
       const result = await app.FetchData('macro', 'bis', [], '', '', { cmd: 'get_summary' })
+      if (seq !== loadSeq) return
       if (result?.data) {
         try {
           const raw = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
@@ -181,7 +235,7 @@ async function loadSignals() {
             .map((f: any) => ({
               indicator_id: `bis_${f.id}`,
               name: f.name || f.id,
-              name_cn: f.names?.en || f.name || f.id,
+              name_cn: bisCnNames[f.id] || f.names?.en || f.name || f.id,
               latest_value: f.latest_value,
               change: 0,
               direction: 'flat',
@@ -204,7 +258,10 @@ async function loadSignals() {
   loading.value = false
 }
 
+let detailSeq = 0
+
 async function loadIndicatorDetail(signal: MacroSignal) {
+  const seq = ++detailSeq
   selectedSignal.value = signal
   const detailKey = `gov:detail:${signal.indicator_id}`
   const cached = dataStore.getCached<IndicatorPoint[]>(detailKey)
@@ -227,6 +284,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
         try {
           if (app?.FetchOHLCV) {
             const result = await app.FetchOHLCV(detectMarket(tradingSymbol), tradingSymbol, '1D', start, end)
+            if (seq !== detailSeq) return
             const bars = Array.isArray(result) ? result[0] : result
             indicatorData.value = (bars || []).map((b: any) => ({
               date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date || b.Date).toISOString().slice(0, 10),
@@ -242,6 +300,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
       }
       if (app?.GetIndicatorData) {
         const result = await app.GetIndicatorData(signal.indicator_id, 12)
+        if (seq !== detailSeq) return
         indicatorData.value = result.data || []
       }
     }
@@ -257,6 +316,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
       } else {
         const sid = signal.indicator_id.replace(/^cn_/, '')
         const result = await app.FetchData('akshare', 'macro_cn_indicator', [sid], '', '', {})
+        if (seq !== detailSeq) return
         if (result?.data) {
           try {
             const d = JSON.parse(result.data)
@@ -278,6 +338,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
       params.dataset = sid
       // Pass country 'all' as second positional arg (macro_bis fetch uses it)
       const result = await app.FetchData('macro', 'bis', [sid, 'all'], '', '', params)
+      if (seq !== detailSeq) return
       if (result?.data) {
         try {
           const d = JSON.parse(result.data)
