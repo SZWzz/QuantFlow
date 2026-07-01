@@ -57,3 +57,4 @@ from src.llm.providers import ollama_provider  # noqa: F401, E402
 from src.llm.providers import openai_provider  # noqa: F401, E402
 from src.llm.providers import anthropic_provider  # noqa: F401, E402
 from src.llm.providers import deepseek_provider  # noqa: F401, E402
+from src.llm.providers import compatible_providers  # noqa: F401, E402
