@@ -17,6 +17,8 @@
 - [Frontend] **useChartTheme 缓存化** — MutationObserver 单次订阅 + 模块级 globalTheme 缓存，避免每次 computed 评估触发 7 次 getComputedStyle
 
 ### Fixed
+- [Backend] **多日分时 TDX MAC 服务器单点故障** — MacAdapter 从单地址改为 7 个已知 TDX 服务器轮询（119.147.212.81/168, 115.238.56.58, 123.125.104.230, 180.153.18.170, 61.152.107.247, 124.74.236.65），连接超时自动 fallback 下一地址
+- [Frontend] **多日分时数据解析错误** — `GetMultiDayMinute` 返回 `{symbol, days[]}` 结构，前端之前直接当数组处理导致 `days` 字段未解出，数据始终为空
 - [Frontend] **KDJ 改为递归加权平均（首值种子 50）** — `kdj()` 之前用 `sma()` 导致第一个 RSV 后还需等 6 个周期才有 K/D/J（分时 09:42 才出图），现改为通达信/同花顺风格递归平滑 `K[i]=2/3×K[i-1]+1/3×RSV[i]` 且 K/D 首值=50，09:30 RSV 出值即绘制三线
 - [Frontend] **AuditPanel 营收增长率改为同比（同周期类型）** — `growthRate()` 之前固定取 `periods[0]` vs `periods[3]`（混合不同周期类型如 Q1 vs 半年报），现在改为提取最新期的 month-day（如 `"03-31"`）在历史中匹配相同 month-day 的期进行对比，实现真正同比
 - [Python] **analyzer 营收评分改为同比比较** — `analyze_report()` 同期比较逻辑从固定 `revs[0] vs revs[3]` 改为按 month-day 匹配同周期类型，修正之前混合 Q1/半年报/年报带来的评分偏差

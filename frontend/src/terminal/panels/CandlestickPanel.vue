@@ -8,7 +8,7 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { buildKlineOption, buildMinuteOption, buildMultiDayOption, type KlineDataItem } from '@/lib/buildChartOption'
-import { useWailsApp, type OHLCVBar } from '@/lib/composables/useWailsApp'
+import { useWailsApp, type OHLCVBar, type MultiDayMinute } from '@/lib/composables/useWailsApp'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -145,11 +145,9 @@ async function loadOHLCV(sym: string, incremental = false) {
     }
     const app = useWailsApp()
     if (!app) { loading.value = false; return }
-    const result = await app.FetchOHLCV(detectMarket(sym), sym, iv, 'qfq', String(start), String(end))
+    const [rawBars] = await app.FetchOHLCV(detectMarket(sym), sym, iv, 'qfq', start, end)
     if (seq !== loadSeq) return
     const isIntraday = ['1m','5m','15m','30m','1h'].includes(iv)
-    const anyResult = result as any
-    const rawBars: OHLCVBar[] = Array.isArray(anyResult) && Array.isArray(anyResult[0]) ? anyResult[0] : Array.isArray(anyResult) ? anyResult : []
     if (!rawBars?.length && !incremental) { ohlcvData.value = []; loading.value = false; return }
     if (incremental && ohlcvData.value.length > 0) {
       if (rawBars?.length) {
@@ -237,16 +235,16 @@ async function fetchMultiDayMinute() {
   multiDayLoading.value = true
   try {
     const result = await app.GetMultiDayMinute(symbol.value, 3)
-    const days: any[] = Array.isArray(result) ? result : (result ? [result] : [])
-    multiDayData.value = days.map((d: any) => ({
-      date: d.date || '',
-      ticks: (d.ticks || []).map((t: any) => ({
+    const d = (result as MultiDayMinute)?.days || []
+    multiDayData.value = d.map((day: { date: string; ticks: MinuteTick[] }) => ({
+      date: day.date || '',
+      ticks: (day.ticks || []).map((t: MinuteTick) => ({
         time: t.time || '',
         price: t.price || 0,
         volume: t.volume || 0,
         avg_price: t.avg_price || 0,
       })),
-      prevClose: d.prev_close || d.prevClose || (d.ticks?.[0]?.price || 0),
+      prevClose: (day.ticks?.[0]?.price || 0),
     }))
     selectedDayIndex.value = 0
   } catch(e) {

@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	macDefaultAddr    = "119.147.212.81:7709"
 	macConnectTimeout = 5 * time.Second
 	macReadTimeout    = 10 * time.Second
 	macWriteTimeout   = 3 * time.Second
@@ -38,21 +37,33 @@ const (
 	respMagic      = 0x0074CBB1
 )
 
+// Known TDX MAC servers (port 7709). Tried in order; first reachable wins.
+var macFallbackAddrs = []string{
+	"119.147.212.81:7709",
+	"119.147.212.168:7709",
+	"115.238.56.58:7709",
+	"123.125.104.230:7709",
+	"180.153.18.170:7709",
+	"61.152.107.247:7709",
+	"124.74.236.65:7709",
+}
+
 // MacAdapter fetches TDX advanced data via direct MAC protocol TCP connection.
 // TCP connections are pooled and reused to avoid the cost of repeated
-// handshakes to the remote server (119.147.212.81:7709).
+// handshakes to the remote server. Falls back across known servers (macFallbackAddrs).
 type MacAdapter struct {
-	addr string
-	mu   sync.Mutex
-	conn net.Conn
+	addrs []string
+	idx   int
+	mu    sync.Mutex
+	conn  net.Conn
 }
 
 // NewMacAdapter creates a new MAC protocol adapter.
 func NewMacAdapter(addr string) *MacAdapter {
-	if addr == "" {
-		addr = macDefaultAddr
+	if addr != "" {
+		return &MacAdapter{addrs: []string{addr}}
 	}
-	return &MacAdapter{addr: addr}
+	return &MacAdapter{addrs: append([]string(nil), macFallbackAddrs...)}
 }
 
 func (a *MacAdapter) Name() string      { return "mac" }
@@ -72,18 +83,21 @@ func (a *MacAdapter) Close() error {
 }
 
 // getConn returns the pooled connection, dialing a new one if needed.
-// Caller must hold a.mu.
+// Caller must hold a.mu. Tries all fallback addresses in order on failure.
 func (a *MacAdapter) getConn() (net.Conn, error) {
 	if a.conn != nil {
-		// Quick liveness check: if a write fails, reconnect
 		return a.conn, nil
 	}
-	conn, err := net.DialTimeout("tcp", a.addr, macConnectTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("mac: dial %s: %w", a.addr, err)
+	for i := 0; i < len(a.addrs); i++ {
+		addr := a.addrs[(a.idx+i)%len(a.addrs)]
+		conn, err := net.DialTimeout("tcp", addr, macConnectTimeout)
+		if err == nil {
+			a.conn = conn
+			a.idx = (a.idx + i) % len(a.addrs)
+			return conn, nil
+		}
 	}
-	a.conn = conn
-	return conn, nil
+	return nil, fmt.Errorf("mac: all %d servers unreachable (tried %v)", len(a.addrs), a.addrs)
 }
 
 func (a *MacAdapter) IsAvailable(ctx context.Context) bool {
@@ -92,12 +106,14 @@ func (a *MacAdapter) IsAvailable(ctx context.Context) bool {
 	if a.conn != nil {
 		return true
 	}
-	conn, err := net.DialTimeout("tcp", a.addr, macConnectTimeout)
-	if err != nil {
-		return false
+	for _, addr := range a.addrs {
+		conn, err := net.DialTimeout("tcp", addr, macConnectTimeout)
+		if err == nil {
+			conn.Close()
+			return true
+		}
 	}
-	conn.Close()
-	return true
+	return false
 }
 
 // ── Protocol helpers ─────────────────────────────────────────────────────────
@@ -611,10 +627,12 @@ func describeUnusual(flag byte) string {
 
 // HealthCheck performs a basic connectivity test.
 func (a *MacAdapter) HealthCheck(ctx context.Context) error {
-	conn, err := net.DialTimeout("tcp", a.addr, macConnectTimeout)
-	if err != nil {
-		return fmt.Errorf("mac health: %w", err)
+	for _, addr := range a.addrs {
+		conn, err := net.DialTimeout("tcp", addr, macConnectTimeout)
+		if err == nil {
+			conn.Close()
+			return nil
+		}
 	}
-	conn.Close()
-	return nil
+	return fmt.Errorf("mac health: all %d servers unreachable", len(a.addrs))
 }
