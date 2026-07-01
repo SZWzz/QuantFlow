@@ -69,3 +69,140 @@ func TestExtractFinancialMetricsEmpty(t *testing.T) {
 		t.Error("expected error for empty financial data")
 	}
 }
+
+func TestAssessCN_Safe(t *testing.T) {
+	m := &FinancialMetrics{Revenue: 12.5e9, NetProfit: 3.2e9, NetAssets: 25e9}
+	cats := AssessCN(m, "主板", 15.0, 68e8, 5e6, 10e8)
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Status == "danger" {
+				t.Errorf("unexpected danger: %s/%s", cat.Name, it.Indicator)
+			}
+		}
+	}
+}
+
+func TestAssessCN_RevenueDanger(t *testing.T) {
+	m := &FinancialMetrics{Revenue: 2e8, NetProfit: -5e7, NetAssets: 10e8}
+	cats := AssessCN(m, "主板", 15.0, 68e8, 5e6, 10e8)
+	found := false
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Indicator == "营收+净利润组合" && it.Status == "danger" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("expected danger for revenue<3亿 + negative profit on main board")
+	}
+}
+
+func TestAssessCN_NetAssetsDanger(t *testing.T) {
+	m := &FinancialMetrics{Revenue: 12.5e9, NetProfit: 3.2e9, NetAssets: -1e8}
+	cats := AssessCN(m, "主板", 15.0, 68e8, 5e6, 10e8)
+	found := false
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Indicator == "净资产" && it.Status == "danger" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("expected danger for negative net assets")
+	}
+}
+
+func TestAssessCN_MarketCapDanger(t *testing.T) {
+	m := &FinancialMetrics{Revenue: 12.5e9, NetProfit: 3.2e9, NetAssets: 25e9}
+	cats := AssessCN(m, "主板", 15.0, 4e8, 5e6, 10e8)
+	found := false
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Indicator == "总市值" && it.Status == "danger" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("expected danger for market cap < 5亿 on main board")
+	}
+}
+
+func TestAssessCN_PriceWarn(t *testing.T) {
+	m := &FinancialMetrics{Revenue: 12.5e9, NetProfit: 3.2e9, NetAssets: 25e9}
+	cats := AssessCN(m, "主板", 1.15, 68e8, 5e6, 10e8)
+	found := false
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Indicator == "面值(收盘价)" && it.Status == "warn" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("expected warn for price near 1元")
+	}
+}
+
+func TestAssessCN_ChiNextThreshold(t *testing.T) {
+	m := &FinancialMetrics{Revenue: 5e7, NetProfit: -1e7, NetAssets: 5e8}
+	cats := AssessCN(m, "创业板", 10.0, 20e8, 1e6, 5e8)
+	found := false
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Indicator == "营收+净利润组合" && it.Status == "danger" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("expected danger for revenue<1亿 + negative profit on ChiNext")
+	}
+}
+
+func TestAssessHK_Danger(t *testing.T) {
+	cats := AssessHK(0.8, 4e8, 1e5, 10e8)
+	found := false
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Status == "warn" || it.Status == "danger" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("expected warning for HK penny stock + low market cap")
+	}
+}
+
+func TestAssessUS_Warn(t *testing.T) {
+	cats := AssessUS(0.9, 4e7)
+	found := false
+	for _, cat := range cats {
+		for _, it := range cat.Items {
+			if it.Status == "warn" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("expected warn for US sub-$1 + low market cap")
+	}
+}
+
+func TestAssessOverall(t *testing.T) {
+	g := AssessOverall([]DelistingCategory{{Level: "green", Items: []DelistingItem{{Status: "safe"}}}})
+	if g != "low" {
+		t.Errorf("green -> %q, want low", g)
+	}
+	y := AssessOverall([]DelistingCategory{{Level: "yellow", Items: []DelistingItem{{Status: "warn"}}}})
+	if y != "medium" {
+		t.Errorf("yellow -> %q, want medium", y)
+	}
+	r := AssessOverall([]DelistingCategory{{Level: "red", Items: []DelistingItem{{Status: "danger"}}}})
+	if r != "high" {
+		t.Errorf("red -> %q, want high", r)
+	}
+}
