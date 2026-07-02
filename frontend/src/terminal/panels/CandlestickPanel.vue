@@ -13,6 +13,8 @@ import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { buildKlineOption, buildMinuteOption, buildMultiDayOption, type KlineDataItem } from '@/lib/buildChartOption'
 import { useWailsApp, type OHLCVBar, type MultiDayMinute, type QuoteData } from '@/lib/composables/useWailsApp'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
+import { detectLimitUpDown } from '@/lib/chart/EventMarker'
+import type { EventMarker } from '@/lib/chart/EventMarker'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -116,6 +118,9 @@ const depthMaxSize = computed(() => {
 })
 
 const quoteData = ref<QuoteData | null>(null)
+const eventMarkers = ref<EventMarker[]>([])
+const indexOverlaySymbol = ref('')
+const indexOverlayData = ref<any>(null)
 
 async function loadQuote() {
   const app = useWailsApp()
@@ -401,6 +406,38 @@ watch(symbol, () => {
   loadQuote()
 })
 
+watch(ohlcvData, (data) => {
+  eventMarkers.value = data.length >= 2 ? detectLimitUpDown(data) : []
+}, { immediate: true })
+
+watch(indexOverlaySymbol, async (sym) => {
+  if (!sym) { indexOverlayData.value = null; return }
+  try {
+    const app = useWailsApp()
+    if (!app) return
+    const now = Math.floor(Date.now() / 1000)
+    const [bars] = await app.FetchOHLCV('CN', sym, '1d', 'qfq', now - 365 * 86400, now)
+    if (!bars?.length) return
+    const stockMin = Math.min(...ohlcvData.value.map(d => d.low))
+    const stockMax = Math.max(...ohlcvData.value.map(d => d.high))
+    const idxCloses = bars.map((b: any) => b.close)
+    const idxMin = Math.min(...idxCloses)
+    const idxMax = Math.max(...idxCloses)
+    const idxRange = idxMax - idxMin
+    if (idxRange === 0) return
+    const data = idxCloses.map((v: number, i: number) => [
+      i, stockMin + ((v - idxMin) / idxRange) * (stockMax - stockMin),
+    ])
+    indexOverlayData.value = {
+      symbol: sym,
+      name: sym === '000001' ? '上证' : sym === '399001' ? '深成' : '创业板',
+      data,
+    }
+  } catch (e) {
+    console.error('[Candlestick] loadIndex:', e)
+  }
+})
+
 // Regenerate data on interval change
 watch(interval, () => {
   loadOHLCV(symbol.value)
@@ -458,7 +495,7 @@ watch(interval, (iv) => {
 
 const option = computed(() => {
   if (!ohlcvData.value.length) return {} as ECBasicOption
-  return buildKlineOption(ohlcvData.value, topOverlay.value, bottomMode.value, theme, indicatorCache, symbol.value, interval.value)
+  return buildKlineOption(ohlcvData.value, topOverlay.value, bottomMode.value, theme, indicatorCache, symbol.value, interval.value, eventMarkers.value, indexOverlayData.value)
 })
 
 const minuteChartOption = computed(() => {
@@ -593,6 +630,15 @@ onUnmounted(() => {
         <button :class="{ active: bottomMode === 'wr' }" class="indicator-btn" @click="bottomMode = 'wr'">WR</button>
         <button :class="{ active: bottomMode === 'cci' }" class="indicator-btn" @click="bottomMode = 'cci'">CCI</button>
         <button :class="{ active: bottomMode === 'obv' }" class="indicator-btn" @click="bottomMode = 'obv'">OBV</button>
+      </div>
+      <div class="indicator-group">
+        <span class="indicator-label">叠加指数</span>
+        <select v-model="indexOverlaySymbol" class="toolbar-select">
+          <option value="">不叠加</option>
+          <option value="000001">上证指数</option>
+          <option value="399001">深证成指</option>
+          <option value="399006">创业板指</option>
+        </select>
       </div>
     </div>
     <div v-if="activeTab === 'minute' || activeTab === 'multiDay'" class="indicator-bar">
@@ -871,6 +917,20 @@ onUnmounted(() => {
   padding: 2px;
   cursor: pointer;
 }
+
+.toolbar-select {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-xs);
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+}
+.toolbar-select:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.toolbar-select option { background: var(--color-bg-elevated); color: var(--color-text-primary); }
 
 .drawing-btn {
   padding: 3px 8px;

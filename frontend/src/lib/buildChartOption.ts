@@ -1,6 +1,7 @@
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import type { ChartThemeColors } from '@/lib/composables/useChartTheme'
 import type { MinuteTick } from '@/lib/composables/useWailsApp'
+import type { EventMarker } from '@/lib/chart/EventMarker'
 import { sma, bb, macd, kdj, rsi, wr, ema, sar, cci, obv } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { i18n } from '@/lib/i18n'
@@ -48,6 +49,8 @@ export function buildKlineOption(
   cache: IndicatorCache,
   symbol: string,
   interval: string,
+  eventMarkers?: EventMarker[],
+  indexOverlay?: { name: string; symbol: string; data: any[] } | null,
 ): ECBasicOption {
   if (!data.length) return {} as ECBasicOption
 
@@ -161,6 +164,32 @@ export function buildKlineOption(
         { offset: 0, color: '#66bb6a30' },
         { offset: 1, color: 'rgba(0,0,0,0)' },
       ]}},
+    })
+  }
+
+  if (eventMarkers && eventMarkers.length > 0) {
+    series[0].markLine = {
+      silent: true,
+      symbol: 'none',
+      data: eventMarkers.map(m => ({
+        xAxis: m.dataIndex,
+        label: { formatter: m.label, color: m.color, fontSize: 10, fontWeight: 'bold' as const },
+        lineStyle: { color: m.color, type: 'dashed' as const, width: 1, opacity: 0.6 },
+      })),
+    }
+  }
+
+  if (indexOverlay) {
+    series.push({
+      type: 'line',
+      name: indexOverlay.name || indexOverlay.symbol,
+      data: indexOverlay.data,
+      smooth: true,
+      lineStyle: { width: 1, color: '#a78bfa' },
+      showSymbol: false,
+      xAxisIndex: 0,
+      yAxisIndex: 0,
+      z: 5,
     })
   }
 
