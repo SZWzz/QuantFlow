@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, inject, nextTick } from 'vue'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import InfoBar from '@/terminal/components/panel/InfoBar.vue'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
+import { DrawingController } from '@/lib/chart/DrawingController'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { useStockName } from '@/lib/composables/useStockName'
@@ -23,7 +24,11 @@ const topOverlay = ref<'none' | 'ma' | 'bb' | 'sar' | 'ema'>('none')
 const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr' | 'cci' | 'obv'>('volume')
 const minuteBottomMode = ref<'volume' | 'macd' | 'kdj'>('volume')
 
-
+const klineChartRef = ref<any>(null)
+const drawingCanvasRef = ref<HTMLCanvasElement | null>(null)
+const drawingMode = ref(false)
+const drawingColor = ref('#58a6ff')
+let dc: DrawingController | null = null
 
 // Market-aware trading hours check (polling guard).
 function isTradingHours(): boolean {
@@ -464,6 +469,32 @@ const multiDayChartOption = computed(() => {
   return buildMultiDayOption(day.ticks, day.prevClose, theme, symbol.value)
 })
 
+function onKeyDown(e: KeyboardEvent) {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+  if (e.key === 'd' && e.shiftKey) {
+    e.preventDefault()
+    drawingMode.value = !drawingMode.value
+    dc?.setMode(drawingMode.value ? 'trendline' : 'cursor')
+  }
+  if (e.key === 'Escape' && drawingMode.value) {
+    drawingMode.value = false
+    dc?.setMode('cursor')
+  }
+}
+
+function onDrawingMouseDown(e: MouseEvent) { dc?.onMouseDown(e) }
+function onDrawingMouseMove(e: MouseEvent) { dc?.onMouseMove(e) }
+function onDrawingMouseUp(e: MouseEvent) { dc?.onMouseUp(e) }
+
+function toggleDrawingMode() {
+  drawingMode.value = !drawingMode.value
+  dc?.setMode(drawingMode.value ? 'trendline' : 'cursor')
+}
+
+watch(option, () => {
+  nextTick(() => dc?.render())
+})
+
 onMounted(() => {
   const groupSym = ctx.getGroupSymbol(pg.groupId)
   if (groupSym && groupSym !== symbol.value) {
@@ -472,6 +503,17 @@ onMounted(() => {
   loadOHLCV(symbol.value)
   loadQuote()
   quoteTimer = setInterval(loadQuote, 30000)
+
+  // DrawingController initialization
+  nextTick(() => {
+    const echarts = klineChartRef.value?.getEchartsInstance?.()
+    if (echarts && drawingCanvasRef.value) {
+      dc = new DrawingController()
+      dc.mount(echarts, drawingCanvasRef.value, symbol.value)
+    }
+  })
+
+  window.addEventListener('keydown', onKeyDown)
 })
 
 onUnmounted(() => {
@@ -483,6 +525,8 @@ onUnmounted(() => {
     const cacheKey = `${symbol.value}:${getTodayDateString()}`
     minuteDataCache.set(cacheKey, minuteTicks.value)
   }
+  dc?.destroy()
+  window.removeEventListener('keydown', onKeyDown)
 })
 </script>
 
@@ -501,6 +545,9 @@ onUnmounted(() => {
           <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">{{ $t('kline.minute') }}</button>
           <button :class="{ active: activeTab === 'multiDay' }" class="tab-btn" @click="activeTab = 'multiDay'">{{ $t('kline.multi_day_minute') }}</button>
         </div>
+        <button class="drawing-btn" @click="toggleDrawingMode()" :class="{ active: drawingMode }" title="画线工具 (Shift+D)">
+          ✏️
+        </button>
       </div>
       <div v-if="activeTab === 'kline'" class="interval-btns">
         <button v-for="i in ['1m','5m','15m','30m','1h','1d','1w']" :key="i"
@@ -559,7 +606,31 @@ onUnmounted(() => {
           <KlineChart :symbol="`${symbol}-multi`" :option="multiDayChartOption" :loading="multiDayLoading && !multiDayData.length" />
         </div>
       </template>
-      <KlineChart v-else-if="activeTab === 'kline' && ohlcvData.length > 0" :symbol="symbol" :option="option" :loading="loading && !ohlcvData.length" />
+      <div v-else-if="activeTab === 'kline' && ohlcvData.length > 0" class="chart-area">
+        <KlineChart
+          ref="klineChartRef"
+          :option="option"
+          :symbol="symbol"
+          :loading="loading && !ohlcvData.length"
+        />
+        <canvas
+          ref="drawingCanvasRef"
+          class="canvas-overlay"
+          :class="{ 'drawing-mode': drawingMode }"
+          @mousedown="onDrawingMouseDown"
+          @mousemove="onDrawingMouseMove"
+          @mouseup="onDrawingMouseUp"
+        />
+        <div class="drawing-toolbar" v-if="drawingMode">
+          <button @click="dc?.setMode('cursor')" :class="{ active: dc?.mode === 'cursor' }" title="光标">↖</button>
+          <button @click="dc?.setMode('trendline')" :class="{ active: dc?.mode === 'trendline' }" title="趋势线">╱</button>
+          <button @click="dc?.setMode('horizontal')" :class="{ active: dc?.mode === 'horizontal' }" title="水平线">━</button>
+          <button @click="dc?.setMode('fibonacci')" :class="{ active: dc?.mode === 'fibonacci' }" title="斐波那契">F</button>
+          <button @click="dc?.setMode('text')" :class="{ active: dc?.mode === 'text' }" title="文字">T</button>
+          <input type="color" v-model="drawingColor" @input="dc?.setColor(drawingColor)" />
+          <button @click="dc?.clearAll()" title="全部清除">✕</button>
+        </div>
+      </div>
       <template v-else-if="activeTab === 'minute'">
         <div class="minute-layout">
           <div class="minute-chart-area">
@@ -698,4 +769,92 @@ onUnmounted(() => {
 .dp-ask-p { width: 48px; flex-shrink: 0; color: var(--color-up); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-ask-s { width: 52px; flex-shrink: 0; text-align: right; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-sim { font-size: 9px; color: var(--color-text-tertiary); text-align: center; padding: 1px; background: var(--color-border-strong); border-radius: 3px; }
+
+.chart-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.canvas-overlay.drawing-mode {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.drawing-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  z-index: 11;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.drawing-toolbar button {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.drawing-toolbar button:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.drawing-toolbar button.active {
+  border-color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--color-accent);
+}
+
+.drawing-toolbar input[type="color"] {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.drawing-btn {
+  padding: 3px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.drawing-btn:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.drawing-btn.active {
+  border-color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.15);
+}
 </style>
