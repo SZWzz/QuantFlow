@@ -63,8 +63,7 @@ async function fetchBlockRank() {
       amount: i.amount || 0,
     }))
   } catch(e: any) {
-    console.error('[MarketOverview] block rank:', e)
-    loadError.value = e?.message || String(e)
+    console.warn('[MarketOverview] block rank unavailable:', e?.message || e)
     blockRank.value = []
   } finally {
     blockRankLoading.value = false
@@ -169,6 +168,7 @@ const blockRankColumns = [
         :change="idx.changePct / 100"
         format="price"
         :sparkline="idx.sparkline"
+        :ohlcv="idx.ohlcv"
         clickable
         @click="onIndexClick(idx)"
       />

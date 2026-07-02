@@ -174,6 +174,7 @@ CREATE TABLE IF NOT EXISTS minute_cache (
     price     REAL    NOT NULL,
     volume    REAL    NOT NULL,
     avg_price REAL    NOT NULL DEFAULT 0,
+    amount    REAL    NOT NULL DEFAULT 0,
     PRIMARY KEY (symbol, date, tick_time)
 ) WITHOUT ROWID;
 
@@ -182,7 +183,7 @@ CREATE INDEX IF NOT EXISTS idx_minute_sym_date ON minute_cache(symbol, date);
 
 func (mc *MinuteCache) loadFromDB(symbol, date string) ([]MinuteTick, error) {
 	rows, err := mc.db.Query(
-		"SELECT tick_time, price, volume, avg_price FROM minute_cache WHERE symbol=? AND date=? ORDER BY tick_time",
+		"SELECT tick_time, price, volume, avg_price, amount FROM minute_cache WHERE symbol=? AND date=? ORDER BY tick_time",
 		symbol, date,
 	)
 	if err != nil {
@@ -193,7 +194,7 @@ func (mc *MinuteCache) loadFromDB(symbol, date string) ([]MinuteTick, error) {
 	var ticks []MinuteTick
 	for rows.Next() {
 		var t MinuteTick
-		if err := rows.Scan(&t.Time, &t.Price, &t.Volume, &t.AvgPrice); err != nil {
+		if err := rows.Scan(&t.Time, &t.Price, &t.Volume, &t.AvgPrice, &t.Amount); err != nil {
 			return nil, err
 		}
 		ticks = append(ticks, t)
@@ -209,7 +210,7 @@ func (mc *MinuteCache) saveToDB(symbol, date string, ticks []MinuteTick) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(
-		"INSERT OR IGNORE INTO minute_cache (symbol, date, tick_time, price, volume, avg_price) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT OR IGNORE INTO minute_cache (symbol, date, tick_time, price, volume, avg_price, amount) VALUES (?, ?, ?, ?, ?, ?, ?)",
 	)
 	if err != nil {
 		return err
@@ -217,7 +218,7 @@ func (mc *MinuteCache) saveToDB(symbol, date string, ticks []MinuteTick) error {
 	defer stmt.Close()
 
 	for _, t := range ticks {
-		if _, err := stmt.Exec(symbol, date, t.Time, t.Price, t.Volume, t.AvgPrice); err != nil {
+		if _, err := stmt.Exec(symbol, date, t.Time, t.Price, t.Volume, t.AvgPrice, t.Amount); err != nil {
 			slog.Warn("minute_cache: insert failed", "symbol", symbol, "time", t.Time, "err", err)
 			// Don't fail the whole batch.
 		}

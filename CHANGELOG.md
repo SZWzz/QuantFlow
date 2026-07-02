@@ -34,6 +34,13 @@
 - [Frontend] **Welcome 页面港股/美股/加密货币分类标签丢失** — i18n 语言文件缺少 `cat_hk`/`cat_us`/`cat_crypto` 三个 key，分别补充中英文翻译
 - [MarketData] **K 线 InfoBar 扩展字段全为 0** — `_fetch_mootdx_quote` 只返回 6 个基础字段，补充 rich quotes API（`client.quotes()`）获取昨收/bid/ask/内外盘/成交额；振幅 `(high-low)/prevClose`、均价 `amount/vol` 改为实时计算；`change = last-prevClose` 修复（之前错误地用了 `last-open`）。注：市盈率/市值/换手率/量比/涨跌停价 TDX 协议不提供，需后续通过 fundamental API 或 EastMoney 适配器补充
 
+- [MarketData] **多日分时数据修复** — (1) `GetMultiDayMinute` MAC 路径修复日期的 dayDate 解析（epoch 1990-12-19 标准 TDX 协议）和 `avg_price` 累计计算（之前硬编码 2026-06-25~27 且均价始终为 0）；(2) 新增 mootdx/Python sidecar fallback 路径，MAC TCP 不可达时自动降级使用 mootdx `client.minute(date=)` 逐日查询分时数据；(3) Python 侧 `_fetch_mootdx_multi_minute` 新增 `multi_minute` data_type 端点
+- [Frontend] **SAR 叠加报错修复** — `KlineChart.vue` 缺少 `ScatterChart` 注册（SAR 使用 scatter 系列渲染）；`sar()` 函数返回 `NaN` 替代 `null` 避免 ECharts scatter 内部 `s.get` 空指针
+- [Python] **分时均价线 VWAP 精度修复** — `_fetch_mootdx_minute` 改用 `cum_amount / cum_vol` 直接累计法替代迭代 VWAP，避免浮点误差传播；volume=0 的 tick 不再更新均价
+- [Terminal] **Market Overview 指数 K 线图** — `GetMarketOverview` 并行读取各指数近 90 天日 K OHLCV（60s 缓存），经 fallback 链 (EastMoney → mootdx → Tencent → Baidu → AKShare) 自动选择可用源；`PanelCard` 新增 `ohlcv` prop，SVG 原生渲染 30 根 mini candlestick（阴阳线实体+影线），替代原有折线 sparkline
+- [Terminal] **分时图专业增强** — (1) 十字线浮窗显示时间/价格/涨跌额/涨跌幅/均价/成交量/成交额；(2) 底部副图新增 RSI/OBV 指标；(3) `MinuteTick` 新增 `amount` 字段透传每分成交额，MinuteTick Go/Python/SQLite/frontend 全链路同步
+- [Terminal] **自选股面板全面升级** — (1) CSS Grid 表格布局，支持 13 列数据展示（代码/名称/价格/涨跌幅/涨跌额/涨速/量比/换手率/振幅/成交量/成交额/最高/最低），列可配置显隐；(2) 点击列 header 排序（asc/desc/none），箭头指示；(3) 空状态引导 + 首次加载 skeleton shimmer；(4) 按市场分组（A股/港股/美股/加密）可折叠 accordion；(5) 右键菜单（跳转K线/复制代码/删除）；(6) 拖拽排序；(7) 10 秒轮询，tab 隐藏时暂停；(8) 删除自选同步 CandlestickPanel 按钮状态；(9) 加入自选按钮改用 i18n
+
 ## [2026.7.1] - 2026-07-01
 
 ### Added

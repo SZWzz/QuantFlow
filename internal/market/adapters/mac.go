@@ -17,8 +17,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"quantflow/internal/market"
 )
 
 const (
@@ -137,6 +135,7 @@ func buildMACRequest(msgID uint16, body []byte, headFlag uint8) []byte {
 
 // sendMACRequest sends a request and reads the full response.
 // Uses the pooled connection; reconnects transparently on errors.
+// Retries once on transient read errors.
 func (a *MacAdapter) sendMACRequest(msgID uint16, body []byte, headFlag uint8) ([]byte, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -147,70 +146,80 @@ func (a *MacAdapter) sendMACRequest(msgID uint16, body []byte, headFlag uint8) (
 	}
 
 	req := buildMACRequest(msgID, body, headFlag)
-	conn.SetWriteDeadline(time.Now().Add(macWriteTimeout))
-	if _, err := conn.Write(req); err != nil {
-		// Write failed — reconnect once
-		conn.Close()
-		a.conn = nil
-		conn, err = a.getConn()
-		if err != nil {
-			return nil, err
+
+	for attempt := 0; attempt < 2; attempt++ {
+		if attempt > 0 {
+			// Reconnect on retry
+			if a.conn != nil {
+				a.conn.Close()
+				a.conn = nil
+			}
+			conn, err = a.getConn()
+			if err != nil {
+				return nil, err
+			}
+			time.Sleep(200 * time.Millisecond)
 		}
+
 		conn.SetWriteDeadline(time.Now().Add(macWriteTimeout))
 		if _, err := conn.Write(req); err != nil {
-			return nil, fmt.Errorf("mac: write (after reconnect): %w", err)
+			conn.Close()
+			a.conn = nil
+			continue
 		}
-	}
 
-	conn.SetReadDeadline(time.Now().Add(macReadTimeout))
+		conn.SetReadDeadline(time.Now().Add(macReadTimeout))
 
-	// Read 16-byte response header
-	respHdr := make([]byte, respHeaderSize)
-	if _, err := io.ReadFull(conn, respHdr); err != nil {
-		conn.Close()
-		a.conn = nil
-		return nil, fmt.Errorf("mac: read response header: %w", err)
-	}
-
-	u0 := binary.LittleEndian.Uint32(respHdr[0:])
-	if u0 != respMagic {
-		conn.Close()
-		a.conn = nil
-		return nil, fmt.Errorf("mac: invalid magic: got %#x, want %#x", u0, respMagic)
-	}
-	zipFlag := respHdr[4]
-	zipsize := int(binary.LittleEndian.Uint16(respHdr[12:]))
-	unzipsize := int(binary.LittleEndian.Uint16(respHdr[14:]))
-	if zipsize <= 0 || zipsize > 1<<24 {
-		return nil, fmt.Errorf("mac: invalid zipsize=%d", zipsize)
-	}
-
-	// Read body
-	rawBody := make([]byte, zipsize)
-	if _, err := io.ReadFull(conn, rawBody); err != nil {
-		conn.Close()
-		a.conn = nil
-		return nil, fmt.Errorf("mac: read body: %w", err)
-	}
-
-	// Decompress if needed (bit4=1 means zlib compressed)
-	if zipFlag&0x10 != 0 {
-		r, err := zlib.NewReader(bytes.NewReader(rawBody))
-		if err != nil {
-			return nil, fmt.Errorf("mac: zlib reader: %w", err)
+		// Read 16-byte response header
+		respHdr := make([]byte, respHeaderSize)
+		if _, err := io.ReadFull(conn, respHdr); err != nil {
+			conn.Close()
+			a.conn = nil
+			continue
 		}
-		defer r.Close()
-		var buf bytes.Buffer
-		if _, err := io.Copy(&buf, r); err != nil {
-			return nil, fmt.Errorf("mac: zlib decompress: %w", err)
+
+		u0 := binary.LittleEndian.Uint32(respHdr[0:])
+		if u0 != respMagic {
+			conn.Close()
+			a.conn = nil
+			continue
 		}
-		if buf.Len() != unzipsize {
-			return nil, fmt.Errorf("mac: decompressed size mismatch: got %d, want %d", buf.Len(), unzipsize)
+		zipFlag := respHdr[4]
+		zipsize := int(binary.LittleEndian.Uint16(respHdr[12:]))
+		unzipsize := int(binary.LittleEndian.Uint16(respHdr[14:]))
+		if zipsize <= 0 || zipsize > 1<<24 {
+			continue
 		}
-		return buf.Bytes(), nil
+
+		// Read body
+		rawBody := make([]byte, zipsize)
+		if _, err := io.ReadFull(conn, rawBody); err != nil {
+			conn.Close()
+			a.conn = nil
+			continue
+		}
+
+		// Decompress if needed (bit4=1 means zlib compressed)
+		if zipFlag&0x10 != 0 {
+			r, err := zlib.NewReader(bytes.NewReader(rawBody))
+			if err != nil {
+				return nil, err
+			}
+			defer r.Close()
+			var buf bytes.Buffer
+			if _, err := io.Copy(&buf, r); err != nil {
+				return nil, fmt.Errorf("mac: zlib decompress: %w", err)
+			}
+			if buf.Len() != unzipsize {
+				return nil, fmt.Errorf("mac: decompressed size mismatch: got %d, want %d", buf.Len(), unzipsize)
+			}
+			return buf.Bytes(), nil
+		}
+
+		return rawBody, nil
 	}
 
-	return rawBody, nil
+	return nil, err // last error from the loop
 }
 
 // ── Block Trade Ranking ───────────────────────────────────────────────────────
@@ -245,7 +254,7 @@ func (a *MacAdapter) GetBlockRank(market int, sortField int, count int) ([]Block
 
 	// Response: 2-byte count + N * 64-byte records
 	if len(resp) < 2 {
-		return nil, fmt.Errorf("mac: block rank response too short")
+		return []BlockRank{}, nil
 	}
 	n := int(binary.LittleEndian.Uint16(resp[0:]))
 	results := make([]BlockRank, 0, n)
@@ -433,91 +442,6 @@ func (a *MacAdapter) GetAbnormalStocks(market int) ([]AbnormalStock, error) {
 		results = append(results, r)
 	}
 	return results, nil
-}
-
-// ── Multi-Day Minute Line ─────────────────────────────────────────────────────
-
-// MultiDayMinute holds multi-day minute-level data.
-type MultiDayMinute struct {
-	Symbol string          `json:"symbol"`
-	Days   []MultiDayData `json:"days"`
-}
-
-// MultiDayData is one day of minute-level data.
-type MultiDayData struct {
-	Date  string            `json:"date"`
-	Ticks []market.MinuteTick `json:"ticks"`
-}
-
-// GetMultiDayMinute fetches multi-day minute-level data for a symbol.
-// 0x1235 command (TickCharts / symbol_tick_chart).
-func (a *MacAdapter) GetMultiDayMinute(symbol string, days int) (*MultiDayMinute, error) {
-	if days <= 0 {
-		days = 1
-	}
-	if days > 5 {
-		days = 5
-	}
-
-	mkt, code, err := parseSymbol(symbol)
-	if err != nil {
-		return nil, err
-	}
-
-	body := make([]byte, 2+22+2+4)
-	binary.LittleEndian.PutUint16(body[0:], uint16(mkt))
-	copy(body[2:24], padCode(code))
-	binary.LittleEndian.PutUint16(body[24:], uint16(days))
-	// start=0
-	binary.LittleEndian.PutUint32(body[26:], 0)
-
-	resp, err := a.sendMACRequest(0x1235, body, macHeadFlag)
-	if err != nil {
-		return nil, err
-	}
-
-	// Response: N days of minute ticks
-	// Each day: 2B date + 2B count + count * 4B ticks
-	result := &MultiDayMinute{Symbol: symbol}
-	offset := 0
-	for d := 0; d < days && offset+4 < len(resp); d++ {
-		dayDate := int(binary.LittleEndian.Uint16(resp[offset:]))
-		count := int(binary.LittleEndian.Uint16(resp[offset+2:]))
-		offset += 4
-
-		ticks := make([]market.MinuteTick, 0, count)
-		for i := 0; i < count; i++ {
-			if offset+4 > len(resp) {
-				break
-			}
-			// Each tick: H:minute, H:price (in fen), H:volume (in lots)
-			minute := int(binary.LittleEndian.Uint16(resp[offset:]))
-			price := float64(binary.LittleEndian.Uint16(resp[offset+2:])) / 100
-			vol := float64(binary.LittleEndian.Uint16(resp[offset+4:])) * 100
-			offset += 6
-			// Average for volume in minute bar is raw vol*100
-
-			h := minute / 60
-			m := minute % 60
-			ticks = append(ticks, market.MinuteTick{
-				Time:     fmt.Sprintf("%02d:%02d", h, m),
-				Price:    price,
-				Volume:   vol,
-				AvgPrice: 0, // computed separately
-			})
-		}
-		if len(ticks) > 0 {
-			result.Days = append(result.Days, MultiDayData{
-				Date:  fmt.Sprintf("%04d%02d%02d", 2026, 6, 26-1+d), // TODO: proper date parsing from dayDate
-				Ticks: ticks,
-			})
-		}
-		if d == 0 {
-			_ = dayDate
-		}
-	}
-
-	return result, nil
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

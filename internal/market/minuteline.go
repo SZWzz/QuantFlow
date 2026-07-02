@@ -7,6 +7,7 @@ type MinuteTick struct {
 	Price    float64 `json:"price"`     // 该分钟均价
 	Volume   float64 `json:"volume"`    // 该分钟成交量
 	AvgPrice float64 `json:"avg_price"` // 日内累计均价
+	Amount   float64 `json:"amount"`    // 该分钟成交额(元)
 }
 
 // MinuteLineProvider is implemented by adapters that can fetch intraday

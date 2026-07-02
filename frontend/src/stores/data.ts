@@ -33,6 +33,7 @@ export interface IndexSnapshot {
   last: number
   changePct: number
   sparkline: number[]
+  ohlcv?: { open: number; high: number; low: number; close: number }[]
 }
 
 export interface MarketBreadth {
@@ -149,6 +150,7 @@ export const useDataStore = defineStore('data', () => {
             last: idx.price,
             changePct: idx.change_pct,
             sparkline: [],
+            ohlcv: idx.ohlcv as { open: number; high: number; low: number; close: number }[] | undefined,
           }))
         }
         if (overviewResult.breadth) {

@@ -7,6 +7,7 @@ const props = withDefaults(defineProps<{
   change?: number
   format?: 'price' | 'percent' | 'volume' | 'number'
   sparkline?: number[]
+  ohlcv?: { open: number; high: number; low: number; close: number }[]
   clickable?: boolean
 }>(), {
   format: 'price',
@@ -52,6 +53,41 @@ const sparkPoints = computed(() => {
   const range = max - min || 1
   return d.map((v, i) => `${(i / (d.length - 1)) * 100},${30 - ((v - min) / range) * 30}`).join(' ')
 })
+
+interface CandleShape {
+  x: number; barW: number; top: number; bot: number
+  yHigh: number; yLow: number; isUp: boolean
+}
+
+const candles = computed(() => {
+  const d = props.ohlcv
+  if (!d?.length) return []
+  const data = d.slice(-30)
+  let minLow = Infinity, maxHigh = -Infinity
+  for (const c of data) {
+    if (c.low < minLow) minLow = c.low
+    if (c.high > maxHigh) maxHigh = c.high
+  }
+  const range = maxHigh - minLow || 1
+  const sw = 100 / data.length
+  const pad = sw * 0.15
+  const barW = Math.max(sw - pad * 2, 1)
+  const scaleH = 28
+  return data.map((c): CandleShape => {
+    const x = data.indexOf(c) * sw + pad
+    const yHigh = 30 - ((c.high - minLow) / range) * scaleH - 1
+    const yLow = 30 - ((c.low - minLow) / range) * scaleH - 1
+    const yOpen = 30 - ((c.open - minLow) / range) * scaleH - 1
+    const yClose = 30 - ((c.close - minLow) / range) * scaleH - 1
+    return {
+      x, barW,
+      top: Math.min(yOpen, yClose),
+      bot: Math.max(yOpen, yClose),
+      yHigh, yLow,
+      isUp: c.close >= c.open,
+    }
+  })
+})
 </script>
 
 <template>
@@ -70,7 +106,28 @@ const sparkPoints = computed(() => {
     </div>
     <div :class="['card-value', { 'number-changed': valueChanged }]">{{ formattedValue }}</div>
     <svg
-      v-if="sparkline?.length"
+      v-if="ohlcv?.length"
+      class="sparkline"
+      viewBox="0 0 100 30"
+      preserveAspectRatio="none"
+    >
+      <template v-for="(c, i) in candles" :key="i">
+        <line
+          :x1="c.x + c.barW / 2" :y1="c.yHigh"
+          :x2="c.x + c.barW / 2" :y2="c.yLow"
+          :stroke="c.isUp ? 'var(--color-up)' : 'var(--color-down)'"
+          stroke-width="0.6"
+        />
+        <rect
+          :x="c.x" :y="c.top"
+          :width="c.barW" :height="Math.max(c.bot - c.top, 1)"
+          :fill="c.isUp ? 'var(--color-up)' : 'var(--color-down)'"
+          :rx="0.5"
+        />
+      </template>
+    </svg>
+    <svg
+      v-else-if="sparkline?.length"
       class="sparkline"
       viewBox="0 0 100 30"
       preserveAspectRatio="none"

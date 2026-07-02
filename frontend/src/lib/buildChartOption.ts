@@ -266,6 +266,8 @@ export function buildMinuteOption(
   const times = ticks.map(t => t.time)
   const prices = ticks.map(t => t.price)
   const volumes = ticks.map(t => t.volume / 10000)
+  const rawVolumes = ticks.map(t => t.volume)
+  const amounts = ticks.map(t => t.amount ?? 0)
   const upCol = marketUpColor(symbol)
   const downCol = marketDownColor(symbol)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose
@@ -328,6 +330,18 @@ export function buildMinuteOption(
       { type: 'line', name: 'D', data: kd.d, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
       { type: 'line', name: 'J', data: kd.j, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ab47bc' } },
     )
+  } else if (bottomMode === 'rsi') {
+    const r = cache.getCached(`minute-rsi-${cacheKey}`, () => rsi(prices))
+    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true, min: 0, max: 100 })
+    series.push(
+      { type: 'line', name: 'RSI', data: r, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ab47bc' } },
+    )
+  } else if (bottomMode === 'obv') {
+    const o = cache.getCached(`minute-obv-${cacheKey}`, () => obv(prices, rawVolumes))
+    yAxis.push({ type: 'value', gridIndex: botGridIdx, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false }, scale: true })
+    series.push(
+      { type: 'line', name: 'OBV', data: o, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#42a5f5' } },
+    )
   }
 
   return {
@@ -335,118 +349,21 @@ export function buildMinuteOption(
     backgroundColor: 'transparent', grid, xAxis, yAxis, series,
     tooltip: { trigger: 'axis' as const, formatter: (ps: any[]) => {
       if (!ps?.length) return ''
-      const lines: string[] = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]
-      for (const p of ps) {
-        if (p.seriesType === 'bar') {
-          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(1) : '--'}</div>`)
-        } else {
-          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(2) : '--'}</div>`)
-        }
-      }
-      return lines.join('')
+      const idx = ps[0].dataIndex
+      const tick = ticks[idx]
+      if (!tick) return ''
+      const chg = tick.price - prevClose
+      const chgPct = prevClose > 0 ? (chg / prevClose * 100) : 0
+      const chgStr = (chg >= 0 ? '+' : '') + chg.toFixed(2)
+      const pctStr = (chgPct >= 0 ? '+' : '') + chgPct.toFixed(2) + '%'
+      const chgColor = chg >= 0 ? '#ef5350' : '#66bb6a'
+      return `<div style="font-size:12px;font-weight:600;margin-bottom:4px">${tick.time}</div>
+<div>${t('common.price')}: <b>${tick.price.toFixed(2)}</b> <span style="color:${chgColor}">${chgStr} ${pctStr}</span></div>
+<div>${t('kline.avg_price')}: ${tick.avg_price.toFixed(2)}</div>
+<div>${t('kline.volume')}: ${tick.volume.toFixed(0)}</div>
+${tick.amount ? `<div>${t('common.amount')}: ${(tick.amount / 10000).toFixed(2)}万</div>` : ''}`
     }},
   } as ECBasicOption
 }
 
-export function buildMultiDayOption(
-  ticks: MinuteTick[],
-  prevClose: number,
-  theme: ChartThemeColors,
-  symbol: string,
-): ECBasicOption {
-  if (!ticks.length) return {} as ECBasicOption
 
-  const t = i18n.global.t
-  const volUnit = '万'
-  const times = ticks.map(tick => tick.time)
-  const prices = ticks.map(tick => tick.price)
-  const volumes = ticks.map(tick => tick.volume / 10000)
-  const upCol = marketUpColor(symbol)
-  const downCol = marketDownColor(symbol)
-  const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose
-  const lineColor = isUp ? upCol : downCol
-
-  return {
-    animation: false,
-    animationDurationUpdate: 0,
-    animationEasingUpdate: 'linear',
-    backgroundColor: 'transparent',
-    grid: [
-      { left: 60, right: 20, top: 10, height: '62%' },
-      { left: 60, right: 20, top: '78%', height: '15%' },
-    ],
-    xAxis: [
-      {
-        type: 'category', data: times, gridIndex: 0,
-        axisLabel: { show: false },
-        axisLine: { lineStyle: { color: theme.splitColor } },
-        axisTick: { show: false },
-      },
-      {
-        type: 'category', data: times, gridIndex: 1,
-        axisLabel: { color: theme.axisColor, fontSize: 10, interval: 30 },
-        axisLine: { lineStyle: { color: theme.splitColor } },
-      },
-    ],
-    yAxis: [
-      {
-        type: 'value', gridIndex: 0, position: 'left',
-        axisLabel: { color: theme.axisColor, fontSize: 10 },
-        splitLine: { lineStyle: { color: theme.bgColor } },
-        min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
-        max: (val: { min: number; max: number }) => Math.ceil(val.max * 1.005 * 100) / 100,
-      },
-      {
-        type: 'value', gridIndex: 1, position: 'left',
-        axisLabel: { color: theme.axisColor, fontSize: 10, formatter: (v: number) => v >= 1 ? v.toFixed(1) + volUnit : String(v) },
-        splitLine: { show: false },
-      },
-    ],
-    series: [
-      {
-        type: 'line', name: t('common.price'), data: prices,
-        xAxisIndex: 0, yAxisIndex: 0,
-        smooth: false, symbol: 'none',
-        lineStyle: { color: lineColor, width: 1.5 },
-        areaStyle: {
-          color: {
-            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: isUp ? upCol + '40' : downCol + '40' },
-              { offset: 1, color: 'rgba(0,0,0,0)' },
-            ],
-          },
-        },
-        markLine: prevClose > 0 ? {
-          silent: true, symbol: 'none',
-          lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 },
-          data: [{ yAxis: prevClose, label: { formatter: `${t('kline.prev_close')} ${prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }],
-        } : undefined,
-      },
-      {
-        type: 'line', name: t('kline.avg_price'), data: ticks.map(tick => tick.avg_price),
-        xAxisIndex: 0, yAxisIndex: 0,
-        smooth: true, symbol: 'none',
-        lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' },
-      },
-      {
-        type: 'bar', name: t('kline.volume'), data: volumes,
-        xAxisIndex: 1, yAxisIndex: 1,
-        itemStyle: { color: theme.splitColor },
-        barWidth: 1,
-      },
-    ],
-    tooltip: { trigger: 'axis' as const, formatter: (ps: any[]) => {
-      if (!ps?.length) return ''
-      const lines: string[] = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]
-      for (const p of ps) {
-        if (p.seriesType === 'bar') {
-          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(1) : '--'}</div>`)
-        } else {
-          lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(2) : '--'}</div>`)
-        }
-      }
-      return lines.join('')
-    }},
-  } as ECBasicOption
-}

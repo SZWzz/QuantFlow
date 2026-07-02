@@ -85,7 +85,35 @@ func (c *marketOverviewCache) set(data map[string]interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.data = data
-		c.expires = time.Now().Add(60 * time.Second)
+	c.expires = time.Now().Add(60 * time.Second)
+}
+
+// indexOHLCVCache caches daily OHLCV bars per index code to avoid repeated fetches.
+type indexOHLCVCache struct {
+	mu    sync.Mutex
+	data  map[string][]market.OHLCVBar
+	expires map[string]time.Time
+}
+
+var indexOhlcvCache = &indexOHLCVCache{
+	data:    make(map[string][]market.OHLCVBar),
+	expires: make(map[string]time.Time),
+}
+
+func (c *indexOHLCVCache) get(code string) ([]market.OHLCVBar, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if bars, ok := c.data[code]; ok && time.Now().Before(c.expires[code]) {
+		return bars, true
+	}
+	return nil, false
+}
+
+func (c *indexOHLCVCache) set(code string, bars []market.OHLCVBar) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.data[code] = bars
+	c.expires[code] = time.Now().Add(60 * time.Second)
 }
 
 // registerMarketAdapters populates the adapter registry with every data source,
@@ -368,14 +396,19 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	}
 
 	type idxResult struct {
-		code string
-		snap *market.QuoteSnapshot
+		code  string
+		snap  *market.QuoteSnapshot
+		ohlcv []market.OHLCVBar
 	}
 	ch := make(chan idxResult, len(indices))
 	var wg sync.WaitGroup
 
 	sina := a.marketReg.Get("sina")
 	sinaAvail := mkt == "CN" && sina != nil && sina.IsAvailable(ctx)
+
+	now := time.Now()
+	start := now.AddDate(0, 0, -90).Unix()
+	end := now.Unix()
 
 	for _, idx := range indices {
 		wg.Add(1)
@@ -397,7 +430,17 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 				slog.Warn("GetMarketOverview: failed for", "code", idx.code, "error", err)
 				return
 			}
-			ch <- idxResult{idx.code, snap}
+
+			// Fetch daily OHLCV for mini K-line display (indices don't need fqfactor)
+			var ohlcv []market.OHLCVBar
+			if cached, ok := indexOhlcvCache.get(idx.code); ok {
+				ohlcv = cached
+			} else if bars, _, err2 := a.marketReg.FetchOHLCVWithFallback(ctx, marketName, idx.code, "1D", "", start, end); err2 == nil && len(bars) > 0 {
+				ohlcv = bars
+				indexOhlcvCache.set(idx.code, bars)
+			}
+
+			ch <- idxResult{idx.code, snap, ohlcv}
 		}(idx)
 	}
 	wg.Wait()
@@ -405,12 +448,22 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 
 	result := make([]map[string]interface{}, 0, len(indices))
 	for r := range ch {
+		ohlcvArr := make([]map[string]interface{}, 0, len(r.ohlcv))
+		for _, b := range r.ohlcv {
+			ohlcvArr = append(ohlcvArr, map[string]interface{}{
+				"open":  b.Open,
+				"high":  b.High,
+				"low":   b.Low,
+				"close": b.Close,
+			})
+		}
 		result = append(result, map[string]interface{}{
 			"code":       r.code,
 			"name":       getIndexName(r.code, indices),
 			"price":      r.snap.Last,
 			"change":     r.snap.Change,
 			"change_pct": r.snap.ChangePct,
+			"ohlcv":      ohlcvArr,
 		})
 	}
 

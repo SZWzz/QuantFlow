@@ -368,14 +368,6 @@ func (a *App) GetAbnormalStocks(market int) ([]adapters.AbnormalStock, error) {
 	return a.macAdpt.GetAbnormalStocks(market)
 }
 
-// GetMultiDayMinute fetches multi-day minute-line data for a symbol.
-func (a *App) GetMultiDayMinute(symbol string, days int) (*adapters.MultiDayMinute, error) {
-	if a.macAdpt == nil {
-		return nil, fmt.Errorf("MAC adapter not initialized")
-	}
-	return a.macAdpt.GetMultiDayMinute(symbol, days)
-}
-
 // GetIPOCalendar returns upcoming and recent IPO listing calendar.
 // startDate/endDate format: "YYYY-MM-DD". Uses EastMoney datacenter API.
 func (a *App) GetIPOCalendar(startDate, endDate string) ([]adapters.IPORecord, error) {

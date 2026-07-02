@@ -10,8 +10,8 @@ import { detectMarket } from '@/lib/wails'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
-import { buildKlineOption, buildMinuteOption, buildMultiDayOption, type KlineDataItem } from '@/lib/buildChartOption'
-import { useWailsApp, type OHLCVBar, type MultiDayMinute, type QuoteData } from '@/lib/composables/useWailsApp'
+import { buildKlineOption, buildMinuteOption, type KlineDataItem } from '@/lib/buildChartOption'
+import { useWailsApp, type OHLCVBar, type QuoteData } from '@/lib/composables/useWailsApp'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { detectLimitUpDown } from '@/lib/chart/EventMarker'
 import type { EventMarker } from '@/lib/chart/EventMarker'
@@ -26,7 +26,7 @@ const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new
 
 const topOverlay = ref<'none' | 'ma' | 'bb' | 'sar' | 'ema'>('none')
 const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr' | 'cci' | 'obv'>('volume')
-const minuteBottomMode = ref<'volume' | 'macd' | 'kdj'>('volume')
+const minuteBottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'obv'>('volume')
 
 const klineChartRef = ref<any>(null)
 const drawingCanvasRef = ref<HTMLCanvasElement | null>(null)
@@ -102,7 +102,7 @@ let loadSeq = 0
 const theme = useChartTheme()
 
 // Tab state
-const activeTab = ref<'kline' | 'minute' | 'multiDay'>('kline')
+const activeTab = ref<'kline' | 'minute'>('kline')
 
 // ── Depth sidebar (minute tab) ──
 const showDepth = ref(false)
@@ -200,27 +200,13 @@ function toggleDepth() {
   }
 }
 
-// Multi-day minute data
-interface DayMinute {
-  date: string
-  ticks: MinuteTick[]
-  prevClose: number
-}
-const multiDayData = ref<DayMinute[]>([])
-const multiDayLoading = ref(false)
-const selectedDayIndex = ref(0)
-
-const selectedDayDate = computed(() => {
-  if (multiDayData.value.length === 0) return ''
-  return multiDayData.value[selectedDayIndex.value]?.date || ''
-})
-
 // Minute chart data
 interface MinuteTick {
   time: string
   price: number
   volume: number
   avg_price: number
+  amount: number
 }
 const minuteTicks = ref<MinuteTick[]>([])
 const prevClose = ref(0)
@@ -343,32 +329,6 @@ async function loadMinuteLine() {
   }
 }
 
-async function fetchMultiDayMinute() {
-  const app = useWailsApp()
-  if (!app) return
-  multiDayLoading.value = true
-  try {
-    const result = await app.GetMultiDayMinute(symbol.value, 3)
-    const d = (result as MultiDayMinute)?.days || []
-    multiDayData.value = d.map((day: { date: string; ticks: MinuteTick[] }) => ({
-      date: day.date || '',
-      ticks: (day.ticks || []).map((t: MinuteTick) => ({
-        time: t.time || '',
-        price: t.price || 0,
-        volume: t.volume || 0,
-        avg_price: t.avg_price || 0,
-      })),
-      prevClose: (day.ticks?.[0]?.price || 0),
-    }))
-    selectedDayIndex.value = 0
-  } catch(e) {
-    console.error('[Candlestick] multi-day minute:', e)
-    multiDayData.value = []
-  } finally {
-    multiDayLoading.value = false
-  }
-}
-
 function startMinutePolling() {
   stopMinutePolling()
   // Always load once so the user can see today's chart, even after close.
@@ -480,8 +440,6 @@ watch(interval, () => {
 watch(activeTab, (tab) => {
   if (tab === 'minute') {
     startMinutePolling()
-  } else if (tab === 'multiDay') {
-    fetchMultiDayMinute()
   } else {
     stopMinutePolling()
   }
@@ -534,12 +492,6 @@ const option = computed(() => {
 const minuteChartOption = computed(() => {
   if (!minuteTicks.value.length) return {} as ECBasicOption
   return buildMinuteOption(minuteTicks.value, prevClose.value, minuteBottomMode.value, theme, indicatorCache, symbol.value)
-})
-
-const multiDayChartOption = computed(() => {
-  const day = multiDayData.value[selectedDayIndex.value]
-  if (!day || !day.ticks.length) return {} as ECBasicOption
-  return buildMultiDayOption(day.ticks, day.prevClose, theme, symbol.value)
 })
 
 function onKeyDown(e: KeyboardEvent) {
@@ -767,11 +719,10 @@ onUnmounted(() => {
           class="watchlist-btn"
           :class="{ inList: isInWatchlist }"
           @click="toggleWatchlist"
-        >{{ isInWatchlist ? '取消自选' : '加入自选' }}</button>
+        >{{ isInWatchlist ? $t('watchlist.remove') : $t('watchlist.add') }}</button>
         <div class="tab-btns">
           <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">{{ $t('kline.kline') }}</button>
           <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">{{ $t('kline.minute') }}</button>
-          <button :class="{ active: activeTab === 'multiDay' }" class="tab-btn" @click="activeTab = 'multiDay'">{{ $t('kline.multi_day_minute') }}</button>
         </div>
         <button class="drawing-btn" @click="toggleDrawingMode()" :class="{ active: drawingMode }" title="画线工具 (Shift+D)">
           ✏️
@@ -812,12 +763,14 @@ onUnmounted(() => {
         </select>
       </div>
     </div>
-    <div v-if="activeTab === 'minute' || activeTab === 'multiDay'" class="indicator-bar">
+    <div v-if="activeTab === 'minute'" class="indicator-bar">
       <div class="indicator-group">
         <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
         <button :class="{ active: minuteBottomMode === 'volume' }" class="indicator-btn" @click="minuteBottomMode = 'volume'">{{ $t('kline.volume') }}</button>
         <button :class="{ active: minuteBottomMode === 'macd' }" class="indicator-btn" @click="minuteBottomMode = 'macd'">MACD</button>
         <button :class="{ active: minuteBottomMode === 'kdj' }" class="indicator-btn" @click="minuteBottomMode = 'kdj'">KDJ</button>
+        <button :class="{ active: minuteBottomMode === 'rsi' }" class="indicator-btn" @click="minuteBottomMode = 'rsi'">RSI</button>
+        <button :class="{ active: minuteBottomMode === 'obv' }" class="indicator-btn" @click="minuteBottomMode = 'obv'">OBV</button>
       </div>
       <div v-if="activeTab === 'minute'" class="indicator-group">
         <button class="indicator-btn depth-toggle" :class="{ active: showDepth }" @click="toggleDepth">📊 {{ $t('misc.depth') }}</button>
@@ -831,18 +784,7 @@ onUnmounted(() => {
     />
     <div class="chart-body">
       <!-- Only show loading overlay on initial load (no data yet); skip during polling to avoid flashing the chart -->
-      <div v-if="(activeTab === 'kline' && loading && !ohlcvData.length) || (activeTab === 'minute' && minuteLoading && !minuteTicks.length) || (activeTab === 'multiDay' && multiDayLoading && !multiDayData.length)" class="chart-fallback">{{ $t('common.loading') }}</div>
-      <template v-else-if="activeTab === 'multiDay'">
-        <div v-if="multiDayData.length === 0" class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
-        <div v-else class="multi-day-chart-wrapper">
-          <div class="day-selector">
-            <select v-model="selectedDayIndex" class="day-select">
-              <option v-for="(d, i) in multiDayData" :key="i" :value="i">{{ d.date }}</option>
-            </select>
-          </div>
-          <KlineChart :symbol="`${symbol}-multi`" :option="multiDayChartOption" :loading="multiDayLoading && !multiDayData.length" />
-        </div>
-      </template>
+      <div v-if="(activeTab === 'kline' && loading && !ohlcvData.length) || (activeTab === 'minute' && minuteLoading && !minuteTicks.length)" class="chart-fallback">{{ $t('common.loading') }}</div>
       <div v-else-if="activeTab === 'kline' && ohlcvData.length > 0" class="chart-area" @contextmenu="onContextMenu">
         <KlineChart
           ref="klineChartRef"
@@ -971,18 +913,6 @@ onUnmounted(() => {
 .chart-fallback { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); }
 .no-data { color: var(--color-text-tertiary); padding: 40px; text-align: center; }
 
-/* Multi-Day Minute */
-.multi-day-chart-wrapper {
-  flex: 1; min-height: 0; display: flex; flex-direction: column;
-}
-.day-selector {
-  display: flex; justify-content: flex-end; padding: 4px 0; margin-bottom: 4px;
-}
-.day-select {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 12px;
-  cursor: pointer;
-}
 .minute-chart { width: 100%; flex: 1; }
 .indicator-bar {
   display: flex; gap: 16px; align-items: center;

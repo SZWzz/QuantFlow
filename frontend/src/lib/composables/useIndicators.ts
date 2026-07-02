@@ -134,9 +134,9 @@ export function wr(close: number[], high: number[], low: number[], period = 14):
 }
 
 /** Parabolic Stop and Reverse (SAR) */
-export function sar(high: number[], low: number[], close: number[], acceleration = 0.02, maxAcceleration = 0.2): (number | null)[] {
-  const result: (number | null)[] = []
-  if (high.length < 2) return high.map(() => null)
+export function sar(high: number[], low: number[], _close: number[], acceleration = 0.02, maxAcceleration = 0.2): number[] {
+  const result: number[] = []
+  if (high.length < 2) return high.map(() => NaN)
 
   let isLong = true
   let af = acceleration
@@ -150,7 +150,7 @@ export function sar(high: number[], low: number[], close: number[], acceleration
         isLong = false
         af = acceleration
         sarVal = ep = high[i]
-        result.push(null)
+        result.push(NaN)
         continue
       }
       if (high[i] > ep) {
@@ -163,7 +163,7 @@ export function sar(high: number[], low: number[], close: number[], acceleration
         isLong = true
         af = acceleration
         sarVal = ep = low[i]
-        result.push(null)
+        result.push(NaN)
         continue
       }
       if (low[i] < ep) {
@@ -175,7 +175,7 @@ export function sar(high: number[], low: number[], close: number[], acceleration
   }
 
   while (result.length < high.length) {
-    result.unshift(null)
+    result.unshift(NaN)
   }
 
   return result

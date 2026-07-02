@@ -42,6 +42,7 @@ export interface MinuteTick {
   price: number
   avg_price: number
   volume: number
+  amount: number
 }
 
 export interface GetMinuteLineResult {
@@ -49,20 +50,9 @@ export interface GetMinuteLineResult {
   last_time?: string
 }
 
-export interface MultiDayData {
-  date: string
-  ticks: MinuteTick[]
-}
-
-export interface MultiDayMinute {
-  symbol: string
-  days: MultiDayData[]
-}
-
 export interface WailsApp {
   FetchOHLCV(market: string, symbol: string, interval: string, fq: string, start: number, end: number): Promise<[OHLCVBar[], string]>
   GetMinuteLine(symbol: string, sinceTimestamp: number): Promise<GetMinuteLineResult>
-  GetMultiDayMinute(symbol: string, days: number): Promise<MultiDayMinute>
   GetQuote(market: string, symbol: string): Promise<[QuoteData, string]>
   GetAuditFindings(symbol: string): Promise<Record<string, any>>
   GetFinancialAnalysis(symbol: string): Promise<Record<string, any>>

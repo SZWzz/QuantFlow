@@ -48,6 +48,7 @@ func (a *MootdxAdapter) FetchMinuteLine(symbol string) ([]market.MinuteTick, err
 			Price:    r.Price,
 			Volume:   r.Volume,
 			AvgPrice: r.AvgPrice,
+			Amount:   r.Amount,
 		})
 	}
 	return ticks, nil
@@ -59,4 +60,5 @@ type rawMinuteTick struct {
 	Price    float64 `json:"price"`
 	Volume   float64 `json:"volume"`
 	AvgPrice float64 `json:"avg_price"`
+	Amount   float64 `json:"amount"`
 }
