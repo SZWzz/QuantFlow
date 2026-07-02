@@ -60,7 +60,7 @@ function closeTab(tabId: string) {
 </script>
 
 <template>
-  <div class="dock-tab">
+  <div :class="['dock-tab', { active: activeTab }]">
     <div class="tab-header" @dragover="onDragOver" @drop="onDrop">
       <div class="tab-list">
         <button
@@ -113,6 +113,7 @@ function closeTab(tabId: string) {
   height: 100%;
   background: var(--color-bg-panel);
   overflow: hidden;
+  position: relative;
 }
 
 .tab-header {
@@ -280,5 +281,23 @@ function closeTab(tabId: string) {
 .empty-icon :deep(svg) {
   width: 100%;
   height: 100%;
+}
+
+.dock-tab.active {
+  box-shadow: inset 0 0 0 1.5px var(--color-accent),
+              0 0 12px var(--color-accent-glow);
+  z-index: 5;
+}
+
+.dock-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  opacity: 0.6;
+  pointer-events: none;
 }
 </style>
