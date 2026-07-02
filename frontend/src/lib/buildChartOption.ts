@@ -193,6 +193,11 @@ export function buildKlineOption(
     })
   }
 
+  // Default zoom window: show last ~250 candles (~1 year for daily)
+  const totalPoints = data.length
+  const windowSize = Math.min(totalPoints, 250)
+  const startPct = totalPoints > windowSize ? ((totalPoints - windowSize) / totalPoints * 100) : 0
+
   const volUnit = i18n.global.locale.value === 'zh' ? '万' : 'K'
   let bottomYAxis: any = { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } }
   if (bottomMode === 'volume') {
@@ -240,8 +245,8 @@ export function buildKlineOption(
       },
     },
     dataZoom: [
-      { type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100 },
-      { type: 'slider', xAxisIndex: [0, 1], bottom: 0, height: 20 },
+      { type: 'inside', xAxisIndex: [0, 1], start: startPct, end: 100 },
+      { type: 'slider', xAxisIndex: [0, 1], start: startPct, end: 100, bottom: 0, height: 20 },
     ],
   } as ECBasicOption
 }
