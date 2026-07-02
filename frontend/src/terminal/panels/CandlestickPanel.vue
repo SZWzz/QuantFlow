@@ -254,7 +254,7 @@ async function loadOHLCV(sym: string, incremental = false) {
       const lastDate = ohlcvData.value[ohlcvData.value.length - 1].date
       start = Math.floor(new Date(lastDate.replace(' ', 'T')).getTime() / 1000)
     } else {
-      const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : iv === '1w' ? 450 : 365
+      const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : 9125  // ~25 years covering all A-share history
       start = end - lookbackDays * 86400
     }
     const app = useWailsApp()
@@ -448,7 +448,7 @@ watch(indexOverlaySymbol, async (sym) => {
     const app = useWailsApp()
     if (!app) return
     const now = Math.floor(Date.now() / 1000)
-    const [bars] = await app.FetchOHLCV('CN', sym, '1d', 'qfq', now - 365 * 86400, now)
+    const [bars] = await app.FetchOHLCV('CN', sym, '1d', 'qfq', now - 9125 * 86400, now)
     if (!bars?.length) return
     const stockMin = Math.min(...ohlcvData.value.map(d => d.low))
     const stockMax = Math.max(...ohlcvData.value.map(d => d.high))
@@ -704,7 +704,15 @@ watch(drawingMode, (mode) => {
 })
 
 watch(klineChartRef, (chart) => {
-  if (!chart || (dc && crosshair)) return
+  if (!chart) return
+  // Clean up old controllers before re-init (handles tab switch and initial mount)
+  if (dc || crosshair) {
+    dc?.saveDrawings()
+    dc?.destroy()
+    dc = null
+    crosshair?.destroy()
+    crosshair = null
+  }
   nextTick(() => initChartControllers())
 })
 
