@@ -81,8 +81,15 @@ const activeGroups = computed(() =>
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
-  opacity: 0.15;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(59, 130, 246, 0.2) 15%,
+    rgba(59, 130, 246, 0.5) 50%,
+    rgba(59, 130, 246, 0.2) 85%,
+    transparent 100%
+  );
+  opacity: 0.8;
 }
 
 .status-left, .status-center, .status-right { display: flex; gap: 10px; align-items: center; }

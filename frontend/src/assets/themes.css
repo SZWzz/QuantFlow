@@ -97,6 +97,8 @@ body {
   --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
   --gradient-accent: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
   --gradient-brand: linear-gradient(135deg, rgba(233, 69, 96, 0.15) 0%, rgba(233, 69, 96, 0.05) 100%);
+  --bg-grid: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+             linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
 }
 
 /* ── Light Theme ───────────────────────────────────────────────── */
@@ -281,6 +283,13 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'JetBrains Mono', monospace, sans-serif;
   font-size: var(--font-base); color: var(--color-text-primary); background: var(--color-bg-app);
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+
+body:not(.theme-light) {
+  background-image: var(--bg-grid);
+  background-size: 40px 40px;
+  background-position: center top;
+  background-attachment: fixed;
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────── */
