@@ -124,7 +124,7 @@ function fmt(n: number, dec = 2): string {
   flex: 1;
   overflow-y: auto;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 table {
@@ -174,7 +174,7 @@ td {
   align-items: center;
   padding: 8px 12px;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .load-count {
@@ -186,7 +186,7 @@ td {
   padding: 5px 14px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--accent);
   font-size: 11px;
   font-weight: 500;

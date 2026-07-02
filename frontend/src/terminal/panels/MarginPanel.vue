@@ -142,7 +142,7 @@ onMounted(loadData)
 .symbol-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgba(59,130,246,0.15);
   color: var(--color-accent);
   font-family: 'JetBrains Mono', monospace;
@@ -150,7 +150,7 @@ onMounted(loadData)
 .refresh-btn {
   padding: 4px 10px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;
@@ -177,7 +177,7 @@ onMounted(loadData)
   padding: 10px 14px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   gap: 4px;

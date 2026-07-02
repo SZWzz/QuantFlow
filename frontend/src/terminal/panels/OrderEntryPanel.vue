@@ -134,14 +134,14 @@ function placeOrder() {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .order-panel { padding: 12px; background: var(--bg); height: 100%; }
 .order-form { display: flex; flex-direction: column; gap: 10px; }
 
 .form-group { display: flex; flex-direction: column; gap: 3px; }
 .form-group label { font-size: var(--font-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .form-input {
-  padding: 6px 8px; background: var(--input); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 8px; background: var(--input); border: 1px solid var(--border); border-radius: var(--radius-sm);
   color: var(--color-text-primary); font-size: 13px; outline: none;
 }
 .form-input:focus { border-color: var(--accent); }
@@ -153,7 +153,7 @@ function placeOrder() {
   flex: 1; padding: 8px; border: 1px solid var(--border); background: var(--input); color: var(--muted);
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
 }
-.side-toggle button:first-child { border-radius: 4px 0 0 4px; }
+.side-toggle button:first-child { border-radius: var(--radius-sm) 0 0 4px; }
 .side-toggle button:last-child { border-radius: 0 4px 4px 0; }
 .side-toggle button.active.buy { background: var(--color-down); border-color: var(--up); color: var(--up); }
 .side-toggle button.active.sell { background: var(--color-up-bg, rgba(220,38,38,0.08)); border-color: var(--down); color: var(--down); }
@@ -162,7 +162,7 @@ function placeOrder() {
 .total-value { color: var(--text); font-weight: 600; }
 
 .place-order-btn {
-  padding: 10px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  padding: 10px; border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
 }
 .place-order-btn.buy { background: var(--up); color: #000; }
 .place-order-btn.sell { background: var(--down); color: var(--color-text-primary); }

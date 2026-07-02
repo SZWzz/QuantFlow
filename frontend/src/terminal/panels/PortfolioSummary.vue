@@ -326,7 +326,7 @@ function positionAllocPct(pos: PositionDetail): string {
 
 .kpi-card {
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 10px 8px;
   text-align: center;
 }
@@ -359,7 +359,7 @@ function positionAllocPct(pos: PositionDetail): string {
 
 .chart-box {
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -408,7 +408,7 @@ function positionAllocPct(pos: PositionDetail): string {
 /* --- 持仓 Table --- */
 .positions-section {
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 8px;
 }
 
@@ -481,7 +481,7 @@ function positionAllocPct(pos: PositionDetail): string {
 .market-badge {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: var(--font-xs);
   font-weight: 600;
 }

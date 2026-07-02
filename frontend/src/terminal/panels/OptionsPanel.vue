@@ -86,7 +86,7 @@ onMounted(loadData)
 .options-panel { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-panel); color: var(--color-text-primary); font-size: 13px; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
 .title { font-weight: 600; font-size: 14px; }
-.btn-sm { padding: 2px 8px; font-size: 11px; border: 1px solid var(--color-border); border-radius: 4px; background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+.btn-sm { padding: 2px 8px; font-size: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
 .btn-sm:hover { background: var(--color-bg-hover); }
 .panel-body { flex: 1; overflow: auto; padding: 12px; }
 .state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); font-size: 13px; }

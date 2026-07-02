@@ -176,8 +176,8 @@ function refresh() {
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .tab-bar { display: flex; gap: 2px; margin-bottom: 12px; border-bottom: 1px solid var(--color-border-strong); overflow-x: auto; }
 .tab-btn { padding: 6px 14px; border: none; background: none; color: var(--color-text-secondary); cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; white-space: nowrap; }
 .tab-btn.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }

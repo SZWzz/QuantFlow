@@ -70,8 +70,8 @@ onMounted(loadData)
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-right { display: flex; align-items: center; gap: 8px; }
-.s { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
-.r { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.s { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(99,102,241,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
+.r { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .st { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
 .err { color: var(--color-error); }
 .fcf { display: flex; gap: 8px; align-items: baseline; margin-bottom: 10px; }
@@ -80,11 +80,11 @@ onMounted(loadData)
 .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .sn { width: 32px; font-size: 11px; color: var(--color-text-secondary); }
 .cp { color: var(--color-accent); font-weight: 600; }
-.trk { flex: 1; height: 22px; background: var(--color-bg-subtle); border-radius: 4px; position: relative; overflow: hidden; }
-.fl { height: 100%; border-radius: 4px; opacity: 0.5; }
+.trk { flex: 1; height: 22px; background: var(--color-bg-subtle); border-radius: var(--radius-sm); position: relative; overflow: hidden; }
+.fl { height: 100%; border-radius: var(--radius-sm); opacity: 0.5; }
 .p { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 600; }
 .cpv { color: var(--color-accent); }
-.bs { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg-elevated); }
+.bs { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-elevated); }
 .bsv { font-size: 16px; font-weight: 700; }
 .bsp { font-size: 12px; color: var(--color-text-secondary); }
 .bsf { font-size: 12px; color: var(--color-text-tertiary); margin-left: auto; }

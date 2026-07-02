@@ -160,12 +160,12 @@ onUnmounted(() => {
 }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .auto-btn {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
 .auto-btn.active { color: var(--color-accent); border-color: var(--color-accent); }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
   margin-left: auto;
 }
@@ -175,7 +175,7 @@ onUnmounted(() => {
   color: var(--color-text-tertiary); font-size: 13px;
 }
 .alert-bar {
-  padding: 6px 10px; margin-bottom: 8px; border-radius: 4px;
+  padding: 6px 10px; margin-bottom: 8px; border-radius: var(--radius-sm);
   background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
   color: var(--color-accent); font-size: 11px; font-weight: 500;
 }

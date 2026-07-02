@@ -147,12 +147,12 @@ onMounted(async () => {
 .risk-dashboard-panel { padding: 12px; background: var(--color-bg-panel, var(--color-bg-panel)); height: 100%; overflow-y: auto; font-variant-numeric: tabular-nums; color: var(--color-text, var(--color-border)); }
 .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.exposure-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(240,136,62,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
+.exposure-badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(240,136,62,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
 .status { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; padding: 40px 0; }
 .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-.kpi-card { padding: 12px; background: var(--color-bg-elevated, var(--color-bg-panel)); border-radius: 8px; border: 1px solid var(--color-border-subtle); }
+.kpi-card { padding: 12px; background: var(--color-bg-elevated, var(--color-bg-panel)); border-radius: var(--radius-lg); border: 1px solid var(--color-border-subtle); }
 .kpi-label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 4px; }
 .kpi-value { font-size: 18px; font-weight: 700; }
-.chart-section { background: var(--color-bg-elevated, var(--color-bg-panel)); border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1px solid var(--color-border-subtle); }
+.chart-section { background: var(--color-bg-elevated, var(--color-bg-panel)); border-radius: var(--radius-lg); padding: 8px; margin-bottom: 8px; border: 1px solid var(--color-border-subtle); }
 .dd-info { text-align: center; font-size: 11px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
 </style>

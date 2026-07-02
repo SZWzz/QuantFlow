@@ -38,7 +38,7 @@ function saveConfig() { alert('Config saved: not yet wired to Go backend') }
 .broker-config-panel { padding: 12px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; }
 .form-group { margin-bottom: 10px; }
 .form-group label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 4px; }
-.form-input { width: 100%; padding: 6px 8px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: 4px; color: var(--color-text-primary); font-size: 13px; outline: none; box-sizing: border-box; }
+.form-input { width: 100%; padding: 6px 8px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: 13px; outline: none; box-sizing: border-box; }
 .form-input:focus { border-color: var(--color-accent); }
 .checkbox-group label { font-size: 12px; color: var(--color-text-primary); display: flex; align-items: center; gap: 6px; text-transform: none; }
 .config-section { margin-top: 12px; }
@@ -49,6 +49,6 @@ function saveConfig() { alert('Config saved: not yet wired to Go backend') }
 .status-dot.on { background: var(--color-down); } .status-dot.off { background: var(--color-text-tertiary); }
 .status-text { font-size: 11px; color: var(--color-text-tertiary); }
 .actions { display: flex; gap: 8px; margin-top: 16px; }
-.test-btn { flex: 1; padding: 8px; background: var(--color-accent-soft); border: none; border-radius: 4px; color: var(--color-accent); font-size: 13px; font-weight: 600; cursor: pointer; }
-.save-btn { flex: 1; padding: 8px; background: var(--color-down); border: none; border-radius: 4px; color: var(--color-down); font-size: 13px; font-weight: 600; cursor: pointer; }
+.test-btn { flex: 1; padding: 8px; background: var(--color-accent-soft); border: none; border-radius: var(--radius-sm); color: var(--color-accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+.save-btn { flex: 1; padding: 8px; background: var(--color-down); border: none; border-radius: var(--radius-sm); color: var(--color-down); font-size: 13px; font-weight: 600; cursor: pointer; }
 </style>

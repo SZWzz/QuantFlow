@@ -634,7 +634,7 @@ function changeClass(c: number): string {
   gap: 4px;
   font-size: 11px;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
 }
 
@@ -690,7 +690,7 @@ function changeClass(c: number): string {
   flex-direction: column;
   padding: var(--card-padding);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   min-width: 0;
@@ -782,7 +782,7 @@ function changeClass(c: number): string {
   margin-bottom: 12px;
   padding: var(--card-padding);
   background: var(--color-bg-subtle);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 .info-row {
   display: flex;
@@ -807,7 +807,7 @@ function changeClass(c: number): string {
 
 .trend-summary {
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
   font-size: 12px;
   line-height: 1.5;

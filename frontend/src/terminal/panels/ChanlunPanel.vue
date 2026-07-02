@@ -398,5 +398,5 @@ function formatPct(v: number): string {
 }
 .empty-state p { font-size: 14px; margin: 0; }
 .empty-state small { font-size: 11px; }
-.error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; color: var(--color-up); font-size: 12px; }
+.error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); color: var(--color-up); font-size: 12px; }
 </style>

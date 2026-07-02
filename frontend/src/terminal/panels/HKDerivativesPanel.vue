@@ -161,17 +161,17 @@ onMounted(() => fetchData())
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .header-tabs { display: flex; gap: 4px; }
 .header-tabs .tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px; white-space: nowrap;
 }
 .header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .header-controls { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 .count-badge {
-  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-lg);
   color: var(--color-accent); background: rgba(59,130,246,0.1);
 }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -180,7 +180,7 @@ onMounted(() => fetchData())
 }
 .error-text { color: var(--color-up); font-size: 12px; }
 .retry-btn {
-  padding: 4px 14px; border: 1px solid var(--color-up); border-radius: 4px;
+  padding: 4px 14px; border: 1px solid var(--color-up); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-up); cursor: pointer; font-size: 11px;
 }
 .retry-btn:hover { background: rgba(248,113,113,0.1); }

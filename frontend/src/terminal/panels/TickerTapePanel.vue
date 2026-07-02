@@ -101,7 +101,7 @@ onMounted(() => execute())
 }
 .market-tabs { display: flex; gap: 2px; flex-shrink: 0; }
 .mkt-tab {
-  padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: 3px;
+  padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; line-height: 1.2;
 }
 .mkt-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.15); }

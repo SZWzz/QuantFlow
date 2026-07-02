@@ -354,7 +354,7 @@ function formatTime(ts: number): string {
   padding: 2px 8px;
   font-size: 11px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -373,7 +373,7 @@ function formatTime(ts: number): string {
   padding: 3px 10px;
   font-size: 11px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -401,7 +401,7 @@ function formatTime(ts: number): string {
 
 .topic-card {
   border: 1px solid var(--color-border-subtle);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 10px;
   cursor: pointer;
   transition: background 0.15s;
@@ -428,7 +428,7 @@ function formatTime(ts: number): string {
   align-items: center;
   gap: 2px;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 600;
 }
@@ -461,7 +461,7 @@ function formatTime(ts: number): string {
 .asset-tag {
   font-size: 10px;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
 }
@@ -500,7 +500,7 @@ function formatTime(ts: number): string {
   flex-direction: column;
   align-items: center;
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
 }
 .summary-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; }

@@ -239,12 +239,12 @@ onUnmounted(() => {
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-tabs { display: flex; gap: 4px; }
 .header-tabs .tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
 .header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
   margin-left: auto;
 }
@@ -258,7 +258,7 @@ onUnmounted(() => {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
 }
 .stat-card {
-  padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: 8px; text-align: center;
+  padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center;
 }
 .stat-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .stat-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -286,8 +286,8 @@ onUnmounted(() => {
 }
 .quota-card { display: flex; flex-direction: column; gap: 6px; }
 .quota-label { font-size: 13px; font-weight: 600; }
-.quota-bar-track { height: 12px; background: var(--color-bg-elevated); border-radius: 6px; overflow: hidden; }
-.quota-bar-fill { height: 100%; border-radius: 6px; }
+.quota-bar-track { height: 12px; background: var(--color-bg-elevated); border-radius: var(--radius-md); overflow: hidden; }
+.quota-bar-fill { height: 100%; border-radius: var(--radius-md); }
 .sh-bar { background: var(--color-up); }
 .sz-bar { background: var(--color-down); }
 .quota-detail { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); }

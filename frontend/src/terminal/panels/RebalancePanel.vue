@@ -371,7 +371,7 @@ onMounted(async () => {
 .section {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 10px;
   margin-bottom: 10px;
 }
@@ -433,7 +433,7 @@ onMounted(async () => {
   flex: 1;
   height: 12px;
   background: var(--color-bg-elevated);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--color-border-strong);
 }
@@ -506,7 +506,7 @@ onMounted(async () => {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 4px 8px;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -533,7 +533,7 @@ onMounted(async () => {
   border: 1px solid var(--color-border-strong);
   color: var(--color-up);
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 10px;
   transition: background 0.15s;
@@ -548,7 +548,7 @@ onMounted(async () => {
   border: 1px dashed var(--color-border-strong);
   color: var(--color-text-secondary);
   padding: 5px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 11px;
   width: 100%;
@@ -624,7 +624,7 @@ onMounted(async () => {
 .action-tag {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 600;
 }
@@ -657,7 +657,7 @@ onMounted(async () => {
   border: none;
   color: var(--color-text-primary);
   padding: 8px 20px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;

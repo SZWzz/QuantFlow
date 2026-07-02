@@ -359,7 +359,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   color: var(--color-text-tertiary);
   padding: 1px 8px;
   background: var(--color-bg-subtle);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
 }
 
@@ -512,7 +512,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   align-items: center;
   padding: 4px 12px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
   font-size: 11px;
@@ -535,7 +535,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   padding: 8px 16px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 .snap-name {
   font-size: 12px;

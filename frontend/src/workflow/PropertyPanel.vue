@@ -150,7 +150,7 @@ function pinToTerminal() {
 .prop-label { color: var(--color-text-tertiary); }
 .prop-value { color: var(--color-text-primary); }
 .prop-value.mono { font-family: monospace; font-size: 11px; }
-.type-badge { padding: 1px 6px; background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: 3px; }
+.type-badge { padding: 1px 6px; background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
 
 .section-title {
   font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase;
@@ -161,7 +161,7 @@ function pinToTerminal() {
 .param-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
 .param-label { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; }
 .param-input {
-  padding: 4px 8px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: 3px;
+  padding: 4px 8px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
   color: var(--color-text-primary); font-size: 12px; outline: none;
 }
 .param-input:focus { border-color: #58a6ff; }
@@ -169,7 +169,7 @@ function pinToTerminal() {
 .port-item { font-size: 11px; color: var(--color-text-secondary); padding: 2px 0; }
 .port-dir { color: var(--color-text-tertiary); }
 
-.status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 600; }
 .status-badge.running { background: rgba(240,136,62,0.15); color: #f0883e; }
 .status-badge.success { background: rgba(63,185,80,0.15); color: #3fb950; }
 .status-badge.failed { background: rgba(248,81,73,0.15); color: #f85149; }
@@ -185,7 +185,7 @@ function pinToTerminal() {
 .pin-btn {
   width: 100%; padding: 4px 8px; margin-top: 6px;
   background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3);
-  color: #3fb950; border-radius: 4px; font-size: 11px; cursor: pointer;
+  color: #3fb950; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer;
 }
 .pin-btn:hover { background: rgba(63,185,80,0.2); }
 </style>

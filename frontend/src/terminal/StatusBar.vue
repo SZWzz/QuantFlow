@@ -101,7 +101,7 @@ const activeGroups = computed(() =>
   padding: 2px 8px;
   background: var(--color-success-soft);
   border: 1px solid var(--color-success);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-weight: 600;
   color: var(--color-success);
   font-size: 10px;
@@ -146,7 +146,7 @@ const activeGroups = computed(() =>
 
 .group-badge {
   display: flex; align-items: center; gap: 4px;
-  padding: 1px 7px; border: 1px solid; border-radius: 10px;
+  padding: 1px 7px; border: 1px solid; border-radius: var(--radius-lg);
   font-size: 10px; font-weight: 600;
   transition: all var(--transition-fast);
 }
@@ -159,7 +159,7 @@ const activeGroups = computed(() =>
   gap: 4px;
   font-variant-numeric: tabular-nums;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
 }
 
@@ -190,7 +190,7 @@ const activeGroups = computed(() =>
   padding: 2px 8px;
   background: var(--color-bg-subtle);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
 }

@@ -45,7 +45,7 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
   margin-bottom: 8px;
   padding: 8px 16px;
   border: 1px solid var(--color-accent);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: rgba(240, 136, 62, 0.1);
 }
 

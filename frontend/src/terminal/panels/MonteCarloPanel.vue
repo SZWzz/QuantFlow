@@ -373,7 +373,7 @@ async function runSimulation() {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   outline: none;
   font-variant-numeric: tabular-nums;
@@ -388,7 +388,7 @@ async function runSimulation() {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-accent);
   color: var(--color-accent);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
@@ -489,7 +489,7 @@ th {
   min-width: 100px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
   text-align: center;
 }

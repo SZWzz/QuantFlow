@@ -179,7 +179,7 @@ function fmtMoney(n: number): string {
   padding: 5px 6px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -190,7 +190,7 @@ function fmtMoney(n: number): string {
   padding: 5px 8px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -203,7 +203,7 @@ function fmtMoney(n: number): string {
   flex: 1;
   overflow-y: auto;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 table {
@@ -250,7 +250,7 @@ td {
 .badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: var(--font-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -267,7 +267,7 @@ td {
   padding: 2px 8px;
   background: var(--color-up-bg, rgba(220,38,38,0.08));
   border: 1px solid var(--down);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--down);
   font-size: 10px;
   font-weight: 600;
@@ -282,7 +282,7 @@ td {
   gap: 16px;
   padding: 8px 12px;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .stat-item {

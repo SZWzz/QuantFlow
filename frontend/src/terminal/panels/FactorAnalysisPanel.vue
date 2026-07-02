@@ -158,7 +158,7 @@ function categoryColor(cat: string): string {
   padding: 6px 10px;
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 12px;
   outline: none;
@@ -186,7 +186,7 @@ function categoryColor(cat: string): string {
   padding: 2px 8px;
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 10px;
   color: var(--color-text-tertiary);
   cursor: pointer;
@@ -266,7 +266,7 @@ function categoryColor(cat: string): string {
 .param-tag {
   padding: 1px 5px;
   background: var(--color-bg-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   color: var(--color-accent);
   font-family: 'SF Mono', monospace;

@@ -121,7 +121,7 @@ function formatTime(iso: string): string {
 
 <style scoped>
 .status { display: flex; align-items: center; justify-content: center; padding: 20px; color: var(--muted); font-size: 13px; }
-.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; font-size: 12px; }
+.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); font-size: 12px; }
 
 .action-center {
   padding: 10px;
@@ -153,7 +153,7 @@ function formatTime(iso: string): string {
   color: var(--muted);
   background: var(--card);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* -- Event feed -- */
@@ -171,7 +171,7 @@ function formatTime(iso: string): string {
   gap: 10px;
   padding: 10px;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border-left: 3px solid;
 }
 
@@ -226,7 +226,7 @@ function formatTime(iso: string): string {
 
 .evt-btn {
   padding: 3px 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 600;
   cursor: pointer;

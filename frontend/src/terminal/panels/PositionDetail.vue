@@ -98,14 +98,14 @@ onMounted(fetchPosition)
 .position-detail-panel { padding: 12px; background: var(--bg); height: 100%; overflow-y: auto; font-variant-numeric: tabular-nums; }
 .header { margin-bottom: 12px; }
 .symbol-name { font-size: 20px; font-weight: 700; color: var(--text); }
-.market-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; background: var(--input); border-radius: 3px; font-size: 11px; color: var(--accent); }
+.market-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; background: var(--input); border-radius: var(--radius-sm); font-size: 11px; color: var(--accent); }
 .currency { margin-left: 6px; font-size: var(--font-sm); color: var(--muted); }
 .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
-.kpi-item { padding: 8px; background: var(--card); border-radius: 4px; text-align: center; }
+.kpi-item { padding: 8px; background: var(--card); border-radius: var(--radius-sm); text-align: center; }
 .kpi-label { display: block; font-size: var(--font-xs); color: var(--muted); text-transform: uppercase; margin-bottom: 3px; }
 .kpi-value { font-size: 15px; font-weight: 600; color: var(--text); }
 .kpi-value.up { color: var(--up); } .kpi-value.down { color: var(--down); }
-.chart-section { background: var(--card); border-radius: 4px; padding: 8px; margin-bottom: 12px; }
+.chart-section { background: var(--card); border-radius: var(--radius-sm); padding: 8px; margin-bottom: 12px; }
 .chart-title { font-size: var(--font-xs); color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
 .pnl-summary { text-align: center; font-size: 18px; font-weight: 700; }
 .pnl-summary .up { color: var(--up); } .pnl-summary .down { color: var(--down); }

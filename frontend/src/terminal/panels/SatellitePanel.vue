@@ -346,7 +346,7 @@ function wildfireClass(count: number): string {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin: 8px 12px 0; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin: 8px 12px 0; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .satellite-panel {
   display: flex;
   flex-direction: column;
@@ -371,7 +371,7 @@ function wildfireClass(count: number): string {
 .summary-badge {
   font-size: 11px;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
 }
 .summary-badge.up { color: var(--color-down); }
@@ -382,7 +382,7 @@ function wildfireClass(count: number): string {
   padding: 2px 8px;
   font-size: 11px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -410,7 +410,7 @@ function wildfireClass(count: number): string {
   flex-direction: column;
   padding: 12px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   min-width: 0;
@@ -442,7 +442,7 @@ function wildfireClass(count: number): string {
 .trend-badge {
   font-size: 10px;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
   white-space: nowrap;
 }
@@ -481,7 +481,7 @@ function wildfireClass(count: number): string {
   margin-top: 8px;
   padding: 3px 8px;
   font-size: 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
   text-align: center;
@@ -527,7 +527,7 @@ function wildfireClass(count: number): string {
   margin-bottom: 12px;
   padding: 10px;
   background: var(--color-bg-subtle);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 .info-row {
   display: flex;
@@ -553,7 +553,7 @@ function wildfireClass(count: number): string {
 
 .trend-summary {
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
   font-size: 12px;
   line-height: 1.5;

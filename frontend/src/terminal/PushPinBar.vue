@@ -93,7 +93,7 @@ function getIconForType(type: string): string {
   align-items: center;
   gap: 5px;
   padding: 3px 8px 3px 6px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 11px;
   cursor: pointer;
   white-space: nowrap;

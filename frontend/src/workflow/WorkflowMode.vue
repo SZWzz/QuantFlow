@@ -320,7 +320,7 @@ function onKeydown(event: KeyboardEvent) {
   padding: 1px 5px;
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', monospace;
   margin-left: 2px;
 }

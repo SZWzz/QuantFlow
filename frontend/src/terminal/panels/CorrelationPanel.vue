@@ -294,7 +294,7 @@ onMounted(() => {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 6px 8px;
   font-size: 12px;
   font-family: 'Courier New', monospace;
@@ -320,7 +320,7 @@ onMounted(() => {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 4px 6px;
   font-size: 12px;
 }
@@ -328,7 +328,7 @@ onMounted(() => {
 .compute-btn {
   padding: 5px 14px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;

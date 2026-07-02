@@ -268,7 +268,7 @@ function changeClass(c: number): string {
 .signal-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
 }
 .signal-badge.buy { color: var(--color-down); }
@@ -278,7 +278,7 @@ function changeClass(c: number): string {
   padding: 2px 8px;
   font-size: 11px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -296,7 +296,7 @@ function changeClass(c: number): string {
   padding: 3px 10px;
   font-size: 11px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -323,7 +323,7 @@ tr.signal-row { border-left: 3px solid var(--color-accent); }
   display: inline-block;
   padding: 0 4px;
   font-size: 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
   margin-right: 4px;
 }
@@ -353,7 +353,7 @@ tr.signal-row { border-left: 3px solid var(--color-accent); }
 .outcomes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-bottom: 12px; }
 .outcome-card {
   display: flex; flex-direction: column; align-items: center;
-  padding: 8px; border-radius: 6px; background: var(--color-bg-subtle);
+  padding: 8px; border-radius: var(--radius-md); background: var(--color-bg-subtle);
 }
 .outcome-label { font-size: 11px; color: var(--color-text-secondary); }
 .outcome-price { font-size: 20px; font-weight: 700; }
