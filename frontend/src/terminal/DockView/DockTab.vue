@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue'
+import { computed, ref, watch, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
@@ -21,6 +21,13 @@ const emit = defineEmits<{
 
 const dragTabId = ref<string | null>(null)
 const dragOverTabId = ref<string | null>(null)
+const transitioning = ref(false)
+
+// Watch activeTab changes to trigger transition animation
+watch(() => props.activeTab, () => {
+  transitioning.value = true
+  setTimeout(() => { transitioning.value = false }, 200)
+})
 
 function onDragStart(e: DragEvent, tabId: string) {
   if (!e.dataTransfer) return
@@ -123,7 +130,7 @@ function closeTab(tabId: string) {
         </button>
       </div>
     </div>
-    <div class="tab-content" @dragover="onDragOver" @drop="onDrop">
+    <div class="tab-content" :class="{ transitioning }" @dragover="onDragOver" @drop="onDrop">
       <div v-if="tabs.length === 0" class="empty-content">
         <span class="empty-icon" v-html="getIcon('plus')" />
         Drop panels here
@@ -319,6 +326,20 @@ function closeTab(tabId: string) {
   flex: 1;
   overflow: auto;
   min-height: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tab-content.transitioning {
+  opacity: 0.5;
+}
+
+.tab-content.transitioning .panel-instance {
+  animation: panel-enter 0.2s ease-out;
+}
+
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .panel-instance {
