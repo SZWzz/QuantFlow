@@ -95,6 +95,16 @@ function onSplitRatio(containerId: string, index: number, ratios: number[]) {
   terminal.updateSplitRatios(containerId, ratios)
 }
 
+// Tab reorder: reorder tabs within the same leaf.
+function onTabReorder(leafId: string, tabId: string, toIndex: number) {
+  const leaf = findLeafById(terminal.layout, leafId)
+  if (!leaf || leaf.type !== 'tab' || !leaf.tabs) return
+  const fromIndex = leaf.tabs.findIndex(t => t.id === tabId)
+  if (fromIndex === -1 || fromIndex === toIndex) return
+  const [tab] = leaf.tabs.splice(fromIndex, 1)
+  leaf.tabs.splice(toIndex, 0, tab)
+}
+
 // Tab drag: move a tab from one leaf to another.
 function onTabDrag(fromLeafId: string, tabId: string, toLeafId: string) {
   // Find source leaf and remove tab
@@ -202,7 +212,8 @@ onUnmounted(() => { unwatch(); window.removeEventListener('keydown', onKeydown) 
         @select-tab="onSelectTab"
         @close-tab="onCloseTab"
         @split-ratio="onSplitRatio"
-        @tab-drag="onTabDrag"
+        @tab-drag="(a, b, c) => onTabDrag(a, b, c)"
+        @tab-reorder="(a, b, c) => onTabReorder(a, b, c)"
       />
     </div>
   </div>

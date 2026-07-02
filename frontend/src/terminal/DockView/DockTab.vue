@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
+import { computed, ref, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
@@ -17,20 +17,50 @@ const emit = defineEmits<{
   (e: 'select-tab', tabId: string): void
   (e: 'close-tab', tabId: string): void
   (e: 'tab-drag', fromLeafId: string, tabId: string, toLeafId: string): void
+  (e: 'tab-reorder', leafId: string, tabId: string, toIndex: number): void
 }>()
+
+const dragTabId = ref<string | null>(null)
 
 function onDragStart(e: DragEvent, tabId: string) {
   if (!e.dataTransfer) return
+  dragTabId.value = tabId
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('text/plain', JSON.stringify({ leafId: props.leafId, tabId }))
 }
+function onDragEnd() { dragTabId.value = null }
+
 function onDragOver(e: DragEvent) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move' }
+
+// Drop on tab header area: move tab from another leaf
 function onDrop(e: DragEvent) {
   e.preventDefault(); if (!e.dataTransfer) return
   try {
     const data = JSON.parse(e.dataTransfer.getData('text/plain'))
     if (data.leafId !== props.leafId) emit('tab-drag', data.leafId, data.tabId, props.leafId)
   } catch { /* ignore */ }
+  dragTabId.value = null
+}
+
+// Drop on a specific tab: reorder within the same leaf
+function onTabDragOver(e: DragEvent) {
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+}
+
+function onTabDrop(e: DragEvent, toIndex: number) {
+  e.preventDefault(); if (!e.dataTransfer) return
+  try {
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+    if (data.leafId === props.leafId) {
+      // Same leaf — reorder
+      emit('tab-reorder', props.leafId, data.tabId, toIndex)
+    } else {
+      // Different leaf — move
+      emit('tab-drag', data.leafId, data.tabId, props.leafId)
+    }
+  } catch { /* ignore */ }
+  dragTabId.value = null
 }
 
 const terminal = useTerminalStore()
@@ -64,11 +94,16 @@ function closeTab(tabId: string) {
     <div class="tab-header" @dragover="onDragOver" @drop="onDrop">
       <div class="tab-list">
         <button
-          v-for="tab in tabs"
+          v-for="(tab, idx) in tabs"
           :key="tab.id"
+          :draggable="true"
           class="tab-btn"
-          :class="{ active: tab.id === activeTab }"
+          :class="{ active: tab.id === activeTab, dragging: dragTabId === tab.id }"
           @click="emit('select-tab', tab.id)"
+          @dragstart="onDragStart($event, tab.id)"
+          @dragend="onDragEnd"
+          @dragover="onTabDragOver"
+          @drop="onTabDrop($event, idx)"
         >
           <span class="tab-icon" v-html="tab.icon" />
           <span
@@ -183,6 +218,11 @@ function closeTab(tabId: string) {
 
 .tab-btn:hover:not(.active)::after {
   opacity: 0.3;
+}
+
+.tab-btn.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
 }
 
 .tab-icon {

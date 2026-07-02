@@ -50,6 +50,9 @@ coverage.out
 # Superpowers plugin
 .superpowers/
 
+# Git worktrees
+.worktrees/
+
 # Project proposal (outdated after implementation)
 NEW_PROJECT_PROPOSAL.md
 

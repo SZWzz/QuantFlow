@@ -13,6 +13,7 @@ const emit = defineEmits<{
   (e: 'select-tab', leafId: string, tabId: string): void
   (e: 'close-tab', leafId: string, tabId: string): void
   (e: 'tab-drag', fromLeafId: string, tabId: string, toLeafId: string): void
+  (e: 'tab-reorder', leafId: string, tabId: string, toIndex: number): void
   (e: 'split-ratio', containerId: string, index: number, ratios: number[]): void
 }>()
 
@@ -58,6 +59,8 @@ function onChildSplitRatio(containerId: string, index: number, ratios: number[])
           @update-layout="emit('update-layout', $event)"
           @select-tab="onSelectTab"
           @close-tab="onCloseTab"
+          @tab-drag="(a, b, c) => emit('tab-drag', a, b, c)"
+          @tab-reorder="(a, b, c) => emit('tab-reorder', a, b, c)"
           @split-ratio="onChildSplitRatio"
         />
       </div>
@@ -69,7 +72,10 @@ function onChildSplitRatio(containerId: string, index: number, ratios: number[])
     :tabs="node.tabs || []"
     :active-tab="node.activeTab || ''"
     :leaf-id="node.id"
-    @select-tab="emit('select-tab', node.id, $event)" @close-tab="emit('close-tab', node.id, $event)" @tab-drag="emit('tab-drag', $event)"
+    @select-tab="emit('select-tab', node.id, $event)"
+    @close-tab="emit('close-tab', node.id, $event)"
+    @tab-drag="(a, b, c) => emit('tab-drag', a, b, c)"
+    @tab-reorder="(a, b, c) => emit('tab-reorder', a, b, c)"
   />
 </template>
 

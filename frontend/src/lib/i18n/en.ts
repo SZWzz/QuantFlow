@@ -245,7 +245,7 @@ export default {
     welcome: 'QuantFlow Terminal', panel_count: ' panels', welcome_subtitle: 'Dual-Mode Quant Terminal · Ctrl+K Search · ',
     cat_market: 'Market Data', cat_trading: 'Trading', cat_portfolio: 'Portfolio & Risk',
     cat_chart: 'Chart Analysis', cat_research: 'Research', cat_quant: 'Quant',
-    cat_altdata: 'Alt Data', cat_system: 'System',
+    cat_altdata: 'Alt Data', cat_hk: 'HK Stocks', cat_us: 'US Stocks', cat_crypto: 'Crypto', cat_system: 'System',
     echarts_missing: 'ECharts required for drawdown chart',
     recent_panels: 'Recent', market_snapshot: 'Market Snapshot',
     // Batch P1 panels

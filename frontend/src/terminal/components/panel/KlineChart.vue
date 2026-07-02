@@ -21,7 +21,7 @@ function refreshSize() {
   chartRef.value?.resize?.()
 }
 
-const getEchartsInstance = () => (chartRef.value as any)?.getEChartsInstance?.() ?? null
+const getEchartsInstance = () => (chartRef.value as any)?.chart ?? null
 defineExpose({ refreshSize, getEchartsInstance })
 </script>
 

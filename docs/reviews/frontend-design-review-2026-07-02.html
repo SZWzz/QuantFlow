@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantFlow 前端设计评审报告</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+.container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+header { text-align: center; margin-bottom: 48px; }
+header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+header .subtitle { color: #64748b; font-size: 15px; }
+.scores { display: flex; gap: 16px; justify-content: center; margin-bottom: 48px; flex-wrap: wrap; }
+.score-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px 32px; text-align: center; min-width: 140px; }
+.score-card .value { font-size: 42px; font-weight: 700; }
+.score-card .label { font-size: 14px; color: #64748b; margin-top: 4px; }
+.score-good { color: #059669; }
+.score-mid { color: #d97706; }
+.score-bad { color: #dc2626; }
+
+section { margin-bottom: 40px; }
+.section-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.badge { font-size: 12px; padding: 3px 12px; border-radius: 20px; font-weight: 500; }
+.badge-p0 { background: #fef2f2; color: #dc2626; }
+.badge-p1 { background: #fffbeb; color: #d97706; }
+.badge-p2 { background: #eff6ff; color: #2563eb; }
+.badge-good { background: #ecfdf5; color: #059669; }
+
+.issue { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; display: flex; gap: 14px; align-items: flex-start; }
+.issue-icon { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; }
+.icon-p0 { background: #dc2626; }
+.icon-p1 { background: #d97706; }
+.icon-p2 { background: #2563eb; }
+.icon-good { background: #059669; }
+.issue-content { flex: 1; }
+.issue-title { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.issue-desc { font-size: 14px; color: #64748b; line-height: 1.6; }
+.issue-file { font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; margin-top: 6px; }
+
+.recommendation { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; margin-top: 16px; }
+.recommendation h4 { font-size: 15px; font-weight: 600; color: #0369a1; margin-bottom: 10px; }
+.recommendation ul { margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 2; }
+
+footer { text-align: center; padding: 40px 0; color: #94a3b8; font-size: 13px; border-top: 1px solid #e2e8f0; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>QuantFlow 前端设计评审报告</h1>
+    <p class="subtitle">评审范围：90+ 面板组件、主题系统、布局组件、通用 UI 组件</p>
+  </header>
+
+  <div class="scores">
+    <div class="score-card">
+      <div class="value score-good">B+</div>
+      <div class="label">整体评分</div>
+    </div>
+    <div class="score-card">
+      <div class="value score-good">7.5</div>
+      <div class="label">视觉设计</div>
+    </div>
+    <div class="score-card">
+      <div class="value score-mid">6.5</div>
+      <div class="label">交互体验</div>
+    </div>
+    <div class="score-card">
+      <div class="value score-mid">6.0</div>
+      <div class="label">一致性</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-title">
+      <span>缺陷（Bug）</span>
+      <span class="badge badge-p0">P0</span>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p0">!</div>
+      <div class="issue-content">
+        <div class="issue-title">未定义的 CSS 变量</div>
+        <div class="issue-desc">StatusBar.vue 中引用了 <code>--color-success-soft</code> 和 <code>--color-danger-soft</code>，但 themes.css 中从未定义。这将导致离线/在线状态徽章背景色显示异常。</div>
+        <div class="issue-file">frontend/src/terminal/StatusBar.vue:95-107</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p0">!</div>
+      <div class="issue-content">
+        <div class="issue-title">WelcomePanel 缺少 category 颜色变量</div>
+        <div class="issue-desc">WelcomePanel 引用了 <code>--cat-market</code>、<code>--cat-trading</code> 等 11 个分类色变量，但 themes.css 中全部缺失。分类图标颜色无法渲染。</div>
+        <div class="issue-file">frontend/src/terminal/panels/WelcomePanel.vue:185-206</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p0">!</div>
+      <div class="issue-content">
+        <div class="issue-title">App.vue 的 body class 重复挂载</div>
+        <div class="issue-desc">App.vue 的 div.app 上同时绑定 theme-${session.ui.theme} 和 density-${session.ui.density}，但 theme store 已经在 body 上挂载了这些类。类名重复，可能导致样式冲突。</div>
+        <div class="issue-file">frontend/src/App.vue:40</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <span>颜色与对比度</span>
+      <span class="badge badge-p1">P1</span>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">1</div>
+      <div class="issue-content">
+        <div class="issue-title">深色主题面板层级糊在一起</div>
+        <div class="issue-desc">App 背景 #0b0f19 和面板背景 #121929 对比度仅 0.03，Dock 内的面板与面板之间几乎无法区分。缺乏微妙的阴影/边框来建立层级。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">2</div>
+      <div class="issue-content">
+        <div class="issue-title">边框颜色过浅</div>
+        <div class="issue-desc">深色模式下 --color-border: #1e2d4d 在 #121929 背景上几乎不可见。卡片、表格、输入框的边框失去了应有的视觉分隔作用。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">3</div>
+      <div class="issue-content">
+        <div class="issue-title">次要文字颜色层级不足</div>
+        <div class="issue-desc">--color-text-secondary: #94a3b8 和 --color-text-tertiary: #64748b 差异太小，在 13px 基础字号下难以区分标题和辅助信息。</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <span>排版与布局</span>
+      <span class="badge badge-p1">P1</span>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">1</div>
+      <div class="issue-content">
+        <div class="issue-title">字号偏小，桌面端可读性差</div>
+        <div class="issue-desc">基础字号 13px，表格表头 10px，badge 10px，在桌面大屏幕上显得拥挤。建议桌面端至少 14px 基础字号，表头 12px。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">2</div>
+      <div class="issue-content">
+        <div class="issue-title">中文表头不该 uppercase</div>
+        <div class="issue-desc">PanelTable 的表头设置了 text-transform: uppercase，中文无大小写概念，此样式无意义且可能导致部分字体渲染异常。</div>
+        <div class="issue-file">frontend/src/terminal/components/panel/PanelTable.vue:131</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">3</div>
+      <div class="issue-content">
+        <div class="issue-title">GovDataPanel 卡片硬编码样式</div>
+        <div class="issue-desc">indicator-card 使用了 border-radius: 8px 和 padding: var(--card-padding) 但未继承 PanelCard 组件的样式，导致卡片 hover 效果与其他面板不一致。</div>
+        <div class="issue-file">frontend/src/terminal/panels/GovDataPanel.vue:688-705</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <span>交互体验</span>
+      <span class="badge badge-p1">P1</span>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">1</div>
+      <div class="issue-content">
+        <div class="issue-title">面板聚焦态缺失</div>
+        <div class="issue-desc">Dock 内的多个面板同时显示时，用户无法直观知道哪个面板是"当前激活"的。没有聚焦边框、阴影或高亮效果。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">2</div>
+      <div class="issue-content">
+        <div class="issue-title">Tab 拖拽没有视觉反馈</div>
+        <div class="issue-desc">DockTab 的拖拽仅设置了 opacity: 0.4，缺少放置区域指示、拖拽占位符等更明确的反馈。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p1">3</div>
+      <div class="issue-content">
+        <div class="issue-title">空状态过于简陋</div>
+        <div class="issue-desc">EmptyState 组件只有图标+标题，缺少引导性操作（如"打开面板"、"刷新数据"）。对于金融终端来说，空状态应该提供下一步行动。</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <span>一致性</span>
+      <span class="badge badge-p2">P2</span>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p2">1</div>
+      <div class="issue-content">
+        <div class="issue-title">面板样式风格不一致</div>
+        <div class="issue-desc">MarketOverview 使用 PanelCard 组件，GovData 自己写卡片，Watchlist 使用 flex row。三个面板三种视觉风格，缺乏统一的设计语言。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-p2">2</div>
+      <div class="issue-content">
+        <div class="issue-title">border-radius 硬编码遍地</div>
+        <div class="issue-desc">GovDataPanel 中 border-radius: 8px、6px，WelcomePanel 中 border-radius: 12px，但 CSS 变量定义的是 4px/6px/10px。多处未使用设计令牌。</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">
+      <span>做得好的地方</span>
+      <span class="badge badge-good">亮点</span>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-good">+</div>
+      <div class="issue-content">
+        <div class="issue-title">主题系统设计完善</div>
+        <div class="issue-desc">Dark/Light + 3 密度级别 + CN/US 颜色方案，全部通过 CSS 变量实现，切换无闪烁。这是目前做得最好的部分。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-good">+</div>
+      <div class="issue-content">
+        <div class="issue-title">CommandBar 交互精致</div>
+        <div class="issue-desc">模糊背景、分类头、键盘导航、动画入场，设计水平明显高于其他组件。可以作为标杆组件。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-good">+</div>
+      <div class="issue-content">
+        <div class="issue-title">LoadingState 骨架屏有 shimmer 动画</div>
+        <div class="issue-desc">三种骨架类型（table/card/chart）都有 shimmer 加载动画，用户体验不错。</div>
+      </div>
+    </div>
+    <div class="issue">
+      <div class="issue-icon icon-good">+</div>
+      <div class="issue-content">
+        <div class="issue-title">SignalBadge 设计精致</div>
+        <div class="issue-desc">带发光效果的 dot + 文字标签，三种信号状态清晰，大小变体灵活。组件化程度高。</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">改进建议优先级</div>
+    <div class="recommendation">
+      <h4>Phase 1：修复缺陷（1-2天）</h4>
+      <ul>
+        <li>在 themes.css 中定义缺失的 --color-success-soft、--color-danger-soft、--cat-* 系列变量</li>
+        <li>修复 App.vue 的 body class 重复挂载</li>
+      </ul>
+    </div>
+    <div class="recommendation">
+      <h4>Phase 2：提升视觉层级（2-3天）</h4>
+      <ul>
+        <li>深色模式下面板背景增加与 app 背景的对比度（如 #0d1321 到 #151e32）</li>
+        <li>增强边框可见度，或使用更清晰的 box-shadow 分隔面板</li>
+        <li>为 Dock 激活面板添加聚焦态：2px accent 色边框或底部 glow 效果</li>
+        <li>统一所有面板卡片的样式，全部使用 PanelCard 组件</li>
+      </ul>
+    </div>
+    <div class="recommendation">
+      <h4>Phase 3：交互优化（2-3天）</h4>
+      <ul>
+        <li>Tab 拖拽时增加 drop indicator（占位符线）和 ghost preview</li>
+        <li>EmptyState 增加 action 引导（如"刷新数据"、"打开面板"按钮）</li>
+        <li>面板切换时添加微动画（fade/slide），避免内容"闪现"</li>
+        <li>PanelTable 表头取消 uppercase，优化中文排版</li>
+      </ul>
+    </div>
+    <div class="recommendation">
+      <h4>Phase 4：品牌化（可选，1-2天）</h4>
+      <ul>
+        <li>增加一个 subtle 的网格背景或噪点纹理，提升终端"专业感"</li>
+        <li>在 Header 和 StatusBar 添加更精致的渐变分隔线</li>
+        <li>为重要 KPI 数据添加数字变化动画（如 +1.23% 的计数滚动效果）</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p>评审日期：2026年7月2日 | 评审范围：frontend/src/ 下全部 Vue/CSS 组件</p>
+  </footer>
+</div>
+</body>
+</html>

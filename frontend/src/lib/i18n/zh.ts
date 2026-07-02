@@ -271,7 +271,7 @@ export default {
     welcome_subtitle: '双模式量化金融终端 · Ctrl+K 搜索面板 · 共',
     cat_market: '市场行情', cat_trading: '交易执行', cat_portfolio: '组合与风控',
     cat_chart: '图表分析', cat_research: '研究分析', cat_quant: '量化分析',
-    cat_altdata: '另类数据', cat_system: '系统',
+    cat_altdata: '另类数据', cat_hk: '港股', cat_us: '美股', cat_crypto: '加密货币', cat_system: '系统',
     echarts_missing: '回撤图需安装 ECharts',
     benchmark: '基准', nav: '净值', csv_export: 'CSV',
     pinned: '已固定', terminal_mode: '终端模式',

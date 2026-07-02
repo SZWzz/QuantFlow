@@ -22,6 +22,12 @@
 ### Removed
 - [Frontend] **独立 DrawingPanel** — 功能已合并到 CandlestickPanel 画线工具，删除 `DrawingPanel.vue`、`DrawingPanel.test.ts`、registry 注册
 
+### Fixed
+- [Frontend] **画线工具初始化失败（`echarts=false`）** — `KlineChart.getEchartsInstance()` 使用了 vue-echarts v7 不存在的 `getEChartsInstance` 方法，改为直接访问暴露的 `chart` Ref，修复画线工具/十字光标无法初始化的问题
+- [Frontend] **设置面板版本号不自动同步** — `version.ts` 硬编码版本改为 Vite `define` 在构建时从 `package.json` 注入 `__APP_VERSION__`，以后只需改 `package.json` 一处
+- [Frontend] **Tab 页签无法拖拽** — `DockTab.vue` 按钮缺少 `draggable` 属性和 `@dragstart` 绑定，补充后支持同 leaf 内重排序和跨 leaf 移动；修复 `DockContainer` 多参数事件 `$event` 只传第一个参数的 bug
+- [Frontend] **Welcome 页面港股/美股/加密货币分类标签丢失** — i18n 语言文件缺少 `cat_hk`/`cat_us`/`cat_crypto` 三个 key，分别补充中英文翻译
+
 ## [2026.7.1] - 2026-07-01
 
 ### Added
