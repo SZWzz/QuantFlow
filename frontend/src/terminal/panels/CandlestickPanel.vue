@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, inject, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, inject, nextTick, reactive } from 'vue'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import InfoBar from '@/terminal/components/panel/InfoBar.vue'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
@@ -92,6 +92,7 @@ function toggleWatchlist() {
   }
 }
 const interval = ref(props.params?.interval || '1d')
+const intervals = ['1m', '5m', '15m', '30m', '1h', '1d', '1w'] as const
 const ohlcvData = ref<KlineDataItem[]>([])
 const loading = ref(false)
 const indicatorCache = createIndicatorCache()
@@ -510,15 +511,43 @@ const multiDayChartOption = computed(() => {
 })
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-  if (e.key === 'd' && e.shiftKey) {
-    e.preventDefault()
-    drawingMode.value = !drawingMode.value
-    dc?.setMode(drawingMode.value ? 'trendline' : 'cursor')
-  }
-  if (e.key === 'Escape' && drawingMode.value) {
-    drawingMode.value = false
-    dc?.setMode('cursor')
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+
+  switch (e.key) {
+    case 'ArrowLeft':
+      e.preventDefault()
+      const idx = intervals.indexOf(interval as any)
+      if (idx > 0) interval.value = intervals[idx - 1]
+      break
+    case 'ArrowRight':
+      e.preventDefault()
+      const idx2 = intervals.indexOf(interval as any)
+      if (idx2 < intervals.length - 1) interval.value = intervals[idx2 + 1]
+      break
+    case 'g':
+    case 'G':
+      e.preventDefault()
+      jumpToDate()
+      break
+    case 'Escape':
+      if (drawingMode.value) {
+        drawingMode.value = false
+        dc?.setMode('cursor')
+      }
+      break
+    case 'Delete':
+    case 'Backspace':
+      if (drawingMode.value) {
+        dc?.clearAll()
+        e.preventDefault()
+      }
+      break
+    case 'D':
+      if (e.shiftKey) {
+        e.preventDefault()
+        toggleDrawingMode()
+      }
+      break
   }
 }
 
@@ -529,6 +558,60 @@ function onDrawingMouseUp(e: MouseEvent) { dc?.onMouseUp(e) }
 function toggleDrawingMode() {
   drawingMode.value = !drawingMode.value
   dc?.setMode(drawingMode.value ? 'trendline' : 'cursor')
+}
+
+function jumpToDate() {
+  const dateStr = prompt('跳转到日期 (YYYY-MM-DD):')
+  if (!dateStr) return
+  const target = new Date(dateStr).getTime()
+  if (isNaN(target)) return
+
+  const echarts = klineChartRef.value?.getEchartsInstance?.()
+  if (!echarts) return
+
+  const timestamps = ohlcvData.value.map(d => d[0])
+  let bestIdx = 0
+  let bestDiff = Infinity
+  for (let i = 0; i < timestamps.length; i++) {
+    const diff = Math.abs(timestamps[i] - target / 1000)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestIdx = i
+    }
+  }
+
+  const totalLen = ohlcvData.value.length
+  if (totalLen === 0) return
+  const center = bestIdx / totalLen
+  const range = 0.15
+  echarts.dispatchAction({
+    type: 'dataZoom',
+    start: Math.max(0, (center - range) * 100),
+    end: Math.min(100, (center + range) * 100),
+  })
+}
+
+const contextMenu = reactive({ visible: false, x: 0, y: 0 })
+
+function onContextMenu(e: MouseEvent) {
+  e.preventDefault()
+  contextMenu.x = e.clientX
+  contextMenu.y = e.clientY
+  contextMenu.visible = true
+}
+
+function closeContextMenu() {
+  contextMenu.visible = false
+}
+
+function switchInterval(s: string) {
+  interval.value = s
+  closeContextMenu()
+}
+
+function switchOverlay(o: string) {
+  topOverlay.value = o as any
+  closeContextMenu()
 }
 
 watch(option, () => {
@@ -569,6 +652,7 @@ onMounted(() => {
     }
   })
 
+  document.addEventListener('click', closeContextMenu)
   window.addEventListener('keydown', onKeyDown)
 })
 
@@ -583,6 +667,7 @@ onUnmounted(() => {
   }
   dc?.destroy()
   crosshair?.destroy()
+  document.removeEventListener('click', closeContextMenu)
   window.removeEventListener('keydown', onKeyDown)
 })
 </script>
@@ -672,7 +757,7 @@ onUnmounted(() => {
           <KlineChart :symbol="`${symbol}-multi`" :option="multiDayChartOption" :loading="multiDayLoading && !multiDayData.length" />
         </div>
       </template>
-      <div v-else-if="activeTab === 'kline' && ohlcvData.length > 0" class="chart-area">
+      <div v-else-if="activeTab === 'kline' && ohlcvData.length > 0" class="chart-area" @contextmenu="onContextMenu">
         <KlineChart
           ref="klineChartRef"
           :option="option"
@@ -730,6 +815,25 @@ onUnmounted(() => {
         </div>
       </template>
       <div v-else class="chart-fallback">--</div>
+    </div>
+    <div
+      v-if="contextMenu.visible"
+      class="context-menu"
+      :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+    >
+      <div class="menu-item" @click="switchInterval('1d')">日线</div>
+      <div class="menu-item" @click="switchInterval('1w')">周线</div>
+      <div class="menu-item" @click="switchInterval('1h')">60分钟</div>
+      <div class="menu-item" @click="switchInterval('30m')">30分钟</div>
+      <div class="menu-item" @click="switchInterval('15m')">15分钟</div>
+      <div class="menu-item" @click="switchInterval('5m')">5分钟</div>
+      <div class="menu-item" @click="switchInterval('1m')">1分钟</div>
+      <div class="menu-separator"></div>
+      <div class="menu-item" @click="switchOverlay('none')">清除叠加</div>
+      <div class="menu-item" @click="switchOverlay('ma')">叠加MA</div>
+      <div class="menu-item" @click="switchOverlay('bb')">叠加布林带</div>
+      <div class="menu-separator"></div>
+      <div class="menu-item danger" @click="dc?.clearAll(); closeContextMenu()">清除画线</div>
     </div>
   </div>
 </template>
@@ -950,5 +1054,39 @@ onUnmounted(() => {
 .drawing-btn.active {
   border-color: var(--color-accent);
   background: rgba(88, 166, 255, 0.15);
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 140px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.menu-item {
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: background 0.1s;
+}
+
+.menu-item:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.menu-item.danger:hover {
+  background: var(--color-up);
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--color-border-subtle);
 }
 </style>
