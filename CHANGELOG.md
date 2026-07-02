@@ -9,7 +9,18 @@
 ### Added
 - [Terminal] **InfoBar 组件** — K 线面板顶部实时报价条，展示最新价、涨跌幅、换手率、量比、振幅、均价、内外盘、流通市值、市盈率
 - [Backend] **GetQuote 返回字段扩展** — `QuoteSnapshot` 新增 `turnover_rate`/`volume_ratio`/`amplitude`/`avg_price`/`inside_volume`/`outside_volume`/`pe_ratio`/`limit_up`/`limit_down` 字段
+- [Frontend] **指标扩展** — SAR(抛物线止损)、EMA(12/26 指数均线)、CCI(20 周期顺势指标)、OBV(能量潮) 四项新指标，支持 K 线叠加和副图显示
+- [Frontend] **画线工具** — 从独立 DrawingPanel 提取为 DrawingController，集成到 K 线图 Canvas Overlay。支持趋势线/水平线/斐波那契回撤/文字标注，坐标使用数据空间(dataIndex, price)，缩放平移后位置正确，按 symbol 存入 localStorage
+- [Frontend] **自定义十字光标** — Canvas 自绘十字线 + 价格/时间侧边标尺 + O/H/L/C/Chg/Vol 浮动信息面板
+- [Frontend] **事件标记** — K 线图上自动标注涨停/跌停 markLine，支持除权除息事件
+- [Frontend] **大盘叠加** — 可选叠加上证/深证/创业板指数折线，归一化到主图价格区间
+- [Frontend] **快捷键** — ←→ 切换周期、G 跳转日期、Shift+D 画线模式、Esc 取消、Delete 清除画线
+- [Frontend] **右键菜单** — 图表区右键弹出周期切换/叠加指标/清除画线菜单
+- [Frontend] **useWebSocket composable** — 前端 WebSocket 连接管理，指数退避重连(1s→30s)，主题订阅，断连自动降级轮询
 - [Backend] **WebSocket Hub** — 基于 `github.com/coder/websocket` 的实时推送中心，支持 K 线(`KlineUpdate`)、逐笔(`Tick`)、深度(`DepthUpdate`)三种主题，客户端通过 `subscribe`/`unsubscribe` 消息管理订阅
+
+### Removed
+- [Frontend] **独立 DrawingPanel** — 功能已合并到 CandlestickPanel 画线工具，删除 `DrawingPanel.vue`、`DrawingPanel.test.ts`、registry 注册
 
 ## [2026.7.1] - 2026-07-01
 
