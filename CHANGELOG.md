@@ -4,6 +4,12 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.2] - 2026-07-02
+
+### Added
+- [Terminal] **InfoBar 组件** — K 线面板顶部实时报价条，展示最新价、涨跌幅、换手率、量比、振幅、均价、内外盘、流通市值、市盈率
+- [Backend] **GetQuote 返回字段扩展** — `QuoteSnapshot` 新增 `turnover_rate`/`volume_ratio`/`amplitude`/`avg_price`/`inside_volume`/`outside_volume`/`pe_ratio`/`limit_up`/`limit_down` 字段
+
 ## [2026.7.1] - 2026-07-01
 
 ### Added
