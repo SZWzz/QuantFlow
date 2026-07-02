@@ -4,6 +4,7 @@ import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import InfoBar from '@/terminal/components/panel/InfoBar.vue'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { DrawingController } from '@/lib/chart/DrawingController'
+import { Crosshair } from '@/lib/chart/Crosshair'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { useStockName } from '@/lib/composables/useStockName'
@@ -29,6 +30,8 @@ const drawingCanvasRef = ref<HTMLCanvasElement | null>(null)
 const drawingMode = ref(false)
 const drawingColor = ref('#58a6ff')
 let dc: DrawingController | null = null
+let crosshair: Crosshair | null = null
+const crosshairCanvasRef = ref<HTMLCanvasElement | null>(null)
 
 // Market-aware trading hours check (polling guard).
 function isTradingHours(): boolean {
@@ -495,6 +498,10 @@ watch(option, () => {
   nextTick(() => dc?.render())
 })
 
+watch(drawingMode, (mode) => {
+  if (mode) crosshair?.hide()
+})
+
 onMounted(() => {
   const groupSym = ctx.getGroupSymbol(pg.groupId)
   if (groupSym && groupSym !== symbol.value) {
@@ -511,6 +518,18 @@ onMounted(() => {
       dc = new DrawingController()
       dc.mount(echarts, drawingCanvasRef.value, symbol.value)
     }
+    if (echarts && crosshairCanvasRef.value) {
+      crosshair = new Crosshair()
+      crosshair.mount(echarts, crosshairCanvasRef.value)
+      echarts.on('mousemove', (params: any) => {
+        if (!drawingMode.value && params?.event) {
+          crosshair?.show(params.event.offsetX, params.event.offsetY)
+        }
+      })
+      echarts.on('mouseout', () => {
+        crosshair?.hide()
+      })
+    }
   })
 
   window.addEventListener('keydown', onKeyDown)
@@ -526,6 +545,7 @@ onUnmounted(() => {
     minuteDataCache.set(cacheKey, minuteTicks.value)
   }
   dc?.destroy()
+  crosshair?.destroy()
   window.removeEventListener('keydown', onKeyDown)
 })
 </script>
@@ -620,6 +640,10 @@ onUnmounted(() => {
           @mousedown="onDrawingMouseDown"
           @mousemove="onDrawingMouseMove"
           @mouseup="onDrawingMouseUp"
+        />
+        <canvas
+          ref="crosshairCanvasRef"
+          class="crosshair-overlay"
         />
         <div class="drawing-toolbar" v-if="drawingMode">
           <button @click="dc?.setMode('cursor')" :class="{ active: dc?.mode === 'cursor' }" title="光标">↖</button>
@@ -789,6 +813,16 @@ onUnmounted(() => {
 .canvas-overlay.drawing-mode {
   pointer-events: auto;
   cursor: crosshair;
+}
+
+.crosshair-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 11;
 }
 
 .drawing-toolbar {
