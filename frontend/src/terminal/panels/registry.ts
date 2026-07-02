@@ -53,7 +53,6 @@ register('equity-curve', () => import('./EquityCurvePanel.vue'), { label: '权�
 register('surface-chart', () => import('./SurfaceChartPanel.vue'), { label: '波动率曲面', category: '图表分析', description: '隐含波动率曲面' })
 register('correlation', () => import('./CorrelationPanel.vue'), { label: '相关性矩阵', category: '图表分析', description: '多标的相关性' })
 register('distribution', () => import('./DistributionPanel.vue'), { label: '收益分布', category: '图表分析', description: '收益率分布直方图' })
-register('drawing', () => import('./DrawingPanel.vue'), { label: '绘图工具', category: '图表分析', description: '自由绘图标注' })
 register('monte-carlo', () => import('./MonteCarloPanel.vue'), { label: '蒙特卡洛', category: '图表分析', description: '蒙特卡洛模拟' })
 register('trading-journal', () => import('./TradingJournalPanel.vue'), { label: '交易日志', category: '组合与风控', description: '逐日 P&L 归因与交易分析' })
 register('scenario-analysis', () => import('./ScenarioAnalysisPanel.vue'), { label: '情景分析', category: '组合与风控', description: '组合压力测试与情景模拟' })
