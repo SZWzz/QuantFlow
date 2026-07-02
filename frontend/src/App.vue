@@ -37,7 +37,7 @@ watch(() => route.path, (path) => {
 </script>
 
 <template>
-  <div class="app" :class="[`theme-${session.ui.theme}`, `density-${session.ui.density}`]">
+  <div class="app">
     <router-view />
   </div>
 </template>
