@@ -589,6 +589,15 @@ function onDrawingMouseUp(e: MouseEvent) { dc?.onMouseUp(e) }
 
 function toggleDrawingMode() {
   drawingMode.value = !drawingMode.value
+  if (drawingMode.value && !dc) {
+    initChartControllers()
+    if (!dc) {
+      setTimeout(() => {
+        initChartControllers()
+        dc?.setMode('trendline')
+      }, 120)
+    }
+  }
   dc?.setMode(drawingMode.value ? 'trendline' : 'cursor')
 }
 
@@ -646,12 +655,68 @@ function switchOverlay(o: string) {
   closeContextMenu()
 }
 
-watch(option, () => {
-  nextTick(() => dc?.render())
-})
+// Store echarts event handler refs for proper cleanup (prevents leak on re-init)
+let echartsMoveHandler: ((params: any) => void) | null = null
+let echartsOutHandler: (() => void) | null = null
+
+function initChartControllers() {
+  if (dc && crosshair) return
+
+  const chart = klineChartRef.value
+  const dCanvas = drawingCanvasRef.value
+  const cCanvas = crosshairCanvasRef.value
+  if (!chart || !dCanvas || !cCanvas) return
+  if (!ohlcvData.value.length) return
+  const echart = chart.getEchartsInstance?.()
+  if (!echart) {
+    setTimeout(() => initChartControllers(), 100)
+    return
+  }
+
+  if (dc) {
+    dc.saveDrawings()
+    dc.destroy()
+  }
+  crosshair?.destroy()
+
+  dc = new DrawingController()
+  dc.mount(echart, dCanvas, symbol.value)
+
+  crosshair = new Crosshair()
+  crosshair.mount(echart, cCanvas)
+
+  if (echartsMoveHandler) echart.off('mousemove', echartsMoveHandler)
+  if (echartsOutHandler) echart.off('mouseout', echartsOutHandler)
+  echartsMoveHandler = (params: any) => {
+    if (!drawingMode.value && params?.event) {
+      crosshair?.show(params.event.offsetX, params.event.offsetY)
+    }
+  }
+  echartsOutHandler = () => {
+    crosshair?.hide()
+  }
+  echart.on('mousemove', echartsMoveHandler)
+  echart.on('mouseout', echartsOutHandler)
+}
 
 watch(drawingMode, (mode) => {
   if (mode) crosshair?.hide()
+})
+
+watch(klineChartRef, (chart) => {
+  if (!chart || (dc && crosshair)) return
+  nextTick(() => initChartControllers())
+})
+
+watch(symbol, () => {
+  dc?.saveDrawings()
+  dc?.destroy()
+  dc = null
+  crosshair?.destroy()
+  crosshair = null
+  if (klineChartRef.value) {
+    nextTick(() => initChartControllers())
+  }
 })
 
 onMounted(() => {
@@ -663,27 +728,6 @@ onMounted(() => {
   loadQuote()
   initWebSocket()
   quoteTimer = setInterval(loadQuote, 30000)
-
-  // DrawingController initialization
-  nextTick(() => {
-    const echarts = klineChartRef.value?.getEchartsInstance?.()
-    if (echarts && drawingCanvasRef.value) {
-      dc = new DrawingController()
-      dc.mount(echarts, drawingCanvasRef.value, symbol.value)
-    }
-    if (echarts && crosshairCanvasRef.value) {
-      crosshair = new Crosshair()
-      crosshair.mount(echarts, crosshairCanvasRef.value)
-      echarts.on('mousemove', (params: any) => {
-        if (!drawingMode.value && params?.event) {
-          crosshair?.show(params.event.offsetX, params.event.offsetY)
-        }
-      })
-      echarts.on('mouseout', () => {
-        crosshair?.hide()
-      })
-    }
-  })
 
   document.addEventListener('click', closeContextMenu)
   window.addEventListener('keydown', onKeyDown)
@@ -698,7 +742,7 @@ onUnmounted(() => {
     const cacheKey = `${symbol.value}:${getTodayDateString()}`
     minuteDataCache.set(cacheKey, minuteTicks.value)
   }
-  dc?.destroy()
+  if (dc) { dc.saveDrawings(); dc.destroy() }
   crosshair?.destroy()
   if (symbolSubCleanup) symbolSubCleanup()
   document.removeEventListener('click', closeContextMenu)

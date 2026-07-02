@@ -37,6 +37,7 @@
 - [Frontend] **fetchWithCache 缓存接入 22 面板** — Forecast, HKSettlement, DragonTiger, SurfaceChart, PredictionMarket, Schedule, CBArbitrage, HKDerivatives, HKIPO, Geopolitics, Satellite, WhaleTracking, DeFiTVL, CryptoOverview, Futures, GasFee, DepthComparison, FundingRate, Liquidation, MarketDepth, MarketOverview, Watchlist 统一使用 fetchWithCache 封装。TTL 按数据类型分档（30min 慢变宏观 → 1min 实时加密货币/行情），减少冗余 Wails IPC 调用和 Python sidecar 负载
 
 ### Fixed
+- [Frontend] **画线工具无法使用** — (1) `watch(option)` 在每次 option 变更时销毁并重建 `DrawingController`/`Crosshair`，导致 echarts 事件处理器泄漏累积（只注册不清理），画线工具状态频繁归零；(2) 切换股票 symbol 时 VChart key 变化触发 echarts 实例重建，但 KlineChart 组件 ref 不变，`watch(klineChartRef)` 不会触发，旧 dc 引用已销毁的 echarts 实例；(3) 初始化自旋用 `nextTick` 无限重试导致 CPU 死循环卡死 UI。修复：移除 `watch(option)`，改为 `watch(klineChartRef)` 唯一初始化点 + `watch(symbol)` 处理切股后 VChart 重建重初始化；echarts 事件处理器改用引用存储 + `off()` 清理；初始化失败时改单次 `setTimeout(100ms)` 兜底而非无限微任务重试；`toggleDrawingMode` 按钮点击加 `setTimeout(120ms)` 兜底重试并自动设回画线模式
 - [Backend] **Sina 深度行情字段映射修正** — `parseSinaDepth` 之前使用错误的字段索引（`[11]` 被当作卖一量、`[12-27]` 按 price/vol 交替解析），实际 Sina 格式为：`[11]=买一价重复`、买盘 2-5 档 `[vol, price]` 对、卖盘 1-5 档 `[vol, price]` 从 `[20]` 起始；修正后 5 档买卖盘价格/数量正确
 - [Python] **宏观经济硬编码路径** — `fetcher.py:_handle_akshare` 中 `cwd` 写死了旧项目路径 `/Volumes/etx/coding/rebuild/quantflow/python`，改为从 `__file__` 动态推导，移动项目或打包后路径变化不再报错
 - [Backend] **多日分时 TDX MAC 服务器单点故障** — MacAdapter 从单地址改为 7 个已知 TDX 服务器轮询（119.147.212.81/168, 115.238.56.58, 123.125.104.230, 180.153.18.170, 61.152.107.247, 124.74.236.65），连接超时自动 fallback 下一地址
