@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
+import { computed, ref, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
@@ -19,12 +19,44 @@ const emit = defineEmits<{
   (e: 'tab-drag', fromLeafId: string, tabId: string, toLeafId: string): void
 }>()
 
+const dragTabId = ref<string | null>(null)
+const dragOverTabId = ref<string | null>(null)
+
 function onDragStart(e: DragEvent, tabId: string) {
   if (!e.dataTransfer) return
+  dragTabId.value = tabId
+  dragOverTabId.value = null
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('text/plain', JSON.stringify({ leafId: props.leafId, tabId }))
 }
+function onDragEnd() {
+  dragTabId.value = null
+  dragOverTabId.value = null
+}
 function onDragOver(e: DragEvent) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move' }
+function onTabDragOver(e: DragEvent, tabId?: string) {
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  if (tabId && dragTabId.value !== tabId) {
+    dragOverTabId.value = tabId
+  }
+}
+function onTabDrop(e: DragEvent, toIdx: number) {
+  e.preventDefault()
+  if (!e.dataTransfer) return
+  try {
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+    if (data.leafId === props.leafId) {
+      const fromIdx = props.tabs.findIndex((t) => t.id === data.tabId)
+      if (fromIdx !== -1 && fromIdx !== toIdx) {
+        terminal.moveTab(props.leafId, fromIdx, toIdx)
+      }
+    } else {
+      emit('tab-drag', data.leafId, data.tabId, props.leafId)
+    }
+  } catch { /* ignore */ }
+  dragOverTabId.value = null
+}
 function onDrop(e: DragEvent) {
   e.preventDefault(); if (!e.dataTransfer) return
   try {
@@ -64,11 +96,16 @@ function closeTab(tabId: string) {
     <div class="tab-header" @dragover="onDragOver" @drop="onDrop">
       <div class="tab-list">
         <button
-          v-for="tab in tabs"
+          v-for="(tab, idx) in tabs"
           :key="tab.id"
+          :draggable="true"
           class="tab-btn"
-          :class="{ active: tab.id === activeTab }"
+          :class="{ active: tab.id === activeTab, dragging: dragTabId === tab.id, 'drag-over': dragOverTabId === tab.id }"
           @click="emit('select-tab', tab.id)"
+          @dragstart="onDragStart($event, tab.id)"
+          @dragend="onDragEnd"
+          @dragover="onTabDragOver($event, tab.id)"
+          @drop="onTabDrop($event, idx)"
         >
           <span class="tab-icon" v-html="tab.icon" />
           <span
@@ -184,6 +221,35 @@ function closeTab(tabId: string) {
 
 .tab-btn:hover:not(.active)::after {
   opacity: 0.3;
+}
+
+.tab-btn.dragging {
+  opacity: 0.25;
+  transform: scale(0.92);
+  cursor: grabbing;
+  filter: grayscale(0.5);
+}
+
+.tab-btn.drag-over {
+  background: var(--color-bg-selected);
+  border-color: var(--color-accent);
+}
+
+/* Drop indicator line between tabs */
+.drop-indicator {
+  width: 2px;
+  height: 20px;
+  background: var(--color-accent);
+  border-radius: 1px;
+  box-shadow: 0 0 6px var(--color-accent-glow);
+  animation: drop-pulse 1.2s ease infinite;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+@keyframes drop-pulse {
+  0%, 100% { opacity: 0.6; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(1.2); }
 }
 
 .tab-icon {
