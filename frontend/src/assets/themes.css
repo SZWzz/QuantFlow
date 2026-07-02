@@ -101,23 +101,25 @@ body {
 
 /* ── Light Theme ───────────────────────────────────────────────── */
 body.theme-light {
-  --color-bg-app: #f0f4f8;
+  --color-bg-app: #f1f5f9;
   --color-bg-panel: #ffffff;
   --color-bg-subtle: #f8fafc;
-  --color-bg-elevated: #ffffff;
-  --color-bg-hover: rgba(0, 0, 0, 0.03);
-  --color-bg-active: rgba(0, 0, 0, 0.05);
-  --color-bg-selected: rgba(37, 99, 235, 0.08);
+  --color-bg-elevated: #f8fafc;
+  --color-bg-hover: rgba(0, 0, 0, 0.04);
+  --color-bg-active: rgba(0, 0, 0, 0.06);
+  --color-bg-selected: rgba(37, 99, 235, 0.10);
   --color-bg-input: #f1f5f9;
   --color-bg-glass: rgba(255, 255, 255, 0.85);
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-tertiary: #64748b;
   --color-text-inverse: #ffffff;
-  --color-border: #e2e8f0;
-  --color-border-subtle: #f1f5f9;
-  --color-border-strong: #cbd5e1;
-  --color-border-glow: rgba(37, 99, 235, 0.15);
+  --color-text-disabled: #94a3b8;
+  --color-border: #cbd5e1;
+  --color-border-subtle: #e2e8f0;
+  --color-border-strong: #94a3b8;
+  --color-border-hover: #64748b;
+  --color-border-glow: rgba(37, 99, 235, 0.20);
   --color-accent: #2563eb;
   --color-accent-hover: #3b82f6;
   --color-accent-soft: rgba(37, 99, 235, 0.1);
