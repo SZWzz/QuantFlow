@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/动态-2026.7.1-3b82f6?style=flat-square&label=版本" alt="Version"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/动态-2026.7.2-3b82f6?style=flat-square&label=版本" alt="Version"></a>
   <a href="#-项目状态"><img src="https://img.shields.io/badge/Phase_12_完成-22c55e?style=flat-square&label=阶段" alt="Phase"></a>
   <a href="#-项目状态"><img src="https://img.shields.io/badge/93-3b82f6?style=flat-square&label=节点" alt="Nodes"></a>
   <a href="#-项目状态"><img src="https://img.shields.io/badge/64-8b5cf6?style=flat-square&label=面板" alt="Panels"></a>

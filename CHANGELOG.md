@@ -9,6 +9,7 @@
 ### Added
 - [Terminal] **InfoBar 组件** — K 线面板顶部实时报价条，展示最新价、涨跌幅、换手率、量比、振幅、均价、内外盘、流通市值、市盈率
 - [Backend] **GetQuote 返回字段扩展** — `QuoteSnapshot` 新增 `turnover_rate`/`volume_ratio`/`amplitude`/`avg_price`/`inside_volume`/`outside_volume`/`pe_ratio`/`limit_up`/`limit_down` 字段
+- [Backend] **WebSocket Hub** — 基于 `github.com/coder/websocket` 的实时推送中心，支持 K 线(`KlineUpdate`)、逐笔(`Tick`)、深度(`DepthUpdate`)三种主题，客户端通过 `subscribe`/`unsubscribe` 消息管理订阅
 
 ## [2026.7.1] - 2026-07-01
 
