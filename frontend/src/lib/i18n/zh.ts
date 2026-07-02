@@ -27,6 +27,8 @@ export default {
     interval_1m: '1分', interval_5m: '5分', interval_15m: '15分',
     interval_30m: '30分', interval_1h: '1时', interval_1d: '日线', interval_1w: '周线',
     overlay: '叠加', bb: '布林带', sub_chart: '副图', volume: '成交量',
+    turnover: '换手', volume_ratio: '量比', amplitude: '振幅',
+    inside: '内盘', outside: '外盘', market_cap: '流通市值', pe: '市盈率',
   },
   quote: {
     symbol: '代码', last: '最新价', open: '开盘', high: '最高', low: '最低',

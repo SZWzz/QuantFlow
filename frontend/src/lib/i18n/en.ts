@@ -22,6 +22,8 @@ export default {
     interval_1m: '1m', interval_5m: '5m', interval_15m: '15m',
     interval_30m: '30m', interval_1h: '1h', interval_1d: 'Daily', interval_1w: 'Weekly',
     overlay: 'Overlay', bb: 'Bollinger', sub_chart: 'Sub Chart', volume: 'Volume',
+    turnover: 'Turnover', volume_ratio: 'Vol Ratio', amplitude: 'Amplitude',
+    inside: 'Inside', outside: 'Outside', market_cap: 'Mkt Cap', pe: 'P/E',
   },
   quote: {
     symbol: 'Symbol', last: 'Last', open: 'Open', high: 'High', low: 'Low',

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
+import InfoBar from '@/terminal/components/panel/InfoBar.vue'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
@@ -8,7 +9,7 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { buildKlineOption, buildMinuteOption, buildMultiDayOption, type KlineDataItem } from '@/lib/buildChartOption'
-import { useWailsApp, type OHLCVBar, type MultiDayMinute } from '@/lib/composables/useWailsApp'
+import { useWailsApp, type OHLCVBar, type MultiDayMinute, type QuoteData } from '@/lib/composables/useWailsApp'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -106,6 +107,25 @@ const depthMaxSize = computed(() => {
   return Math.max(...all.map(l => l.size), 1)
 })
 
+const quoteData = ref<QuoteData | null>(null)
+
+async function loadQuote() {
+  const app = useWailsApp()
+  if (!app) return
+  try {
+    const [snap] = await app.GetQuote(detectMarket(symbol.value), symbol.value)
+    quoteData.value = {
+      ...snap,
+      price: snap.last,
+      change_percent: snap.change_pct ?? snap.changePct,
+      market_cap: snap.marketCap,
+      pe_ratio: snap.pe_ratio ?? snap.pe,
+    }
+  } catch (e) {
+    console.error('[Candlestick] loadQuote:', e)
+  }
+}
+
 function formatSize(size: number): string {
   if (size >= 10000) return (size / 10000).toFixed(1) + '万'
   return size.toFixed(0)
@@ -192,6 +212,7 @@ const prevClose = ref(0)
 const minuteLoading = ref(false)
 let minuteTimer: ReturnType<typeof setInterval> | null = null
 let klineTimer: ReturnType<typeof setInterval> | null = null
+let quoteTimer: ReturnType<typeof setInterval> | null = null
 
 function getTodayDateString(): string {
   const d = new Date()
@@ -368,6 +389,10 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
   }
 })
 
+watch(symbol, () => {
+  loadQuote()
+})
+
 // Regenerate data on interval change
 watch(interval, () => {
   loadOHLCV(symbol.value)
@@ -445,11 +470,14 @@ onMounted(() => {
     symbol.value = groupSym
   }
   loadOHLCV(symbol.value)
+  loadQuote()
+  quoteTimer = setInterval(loadQuote, 30000)
 })
 
 onUnmounted(() => {
   stopMinutePolling()
   stopKlineRefresh()
+  if (quoteTimer) { clearInterval(quoteTimer); quoteTimer = null }
   // Save current data to shared cache so data survives component destruction
   if (symbol.value && minuteTicks.value.length > 0) {
     const cacheKey = `${symbol.value}:${getTodayDateString()}`
@@ -508,6 +536,11 @@ onUnmounted(() => {
       </div>
     </div>
     <div v-if="errorMsg" class="err-toast">{{ errorMsg }}</div>
+    <InfoBar
+      :quote="quoteData"
+      :symbol="symbol"
+      :name="name ?? ''"
+    />
     <div class="chart-body">
       <!-- Only show loading overlay on initial load (no data yet); skip during polling to avoid flashing the chart -->
       <div v-if="(activeTab === 'kline' && loading && !ohlcvData.length) || (activeTab === 'minute' && minuteLoading && !minuteTicks.length) || (activeTab === 'multiDay' && multiDayLoading && !multiDayData.length)" class="chart-fallback">{{ $t('common.loading') }}</div>
