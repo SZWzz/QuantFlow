@@ -122,13 +122,13 @@ const hasAction = computed(() => !!slots.action)
 
 .table-header-row {
   display: flex;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--color-border-strong);
+  padding: 6px 0;
+  border-bottom: 1.5px solid var(--color-border-strong);
   font-size: var(--table-header-size);
   color: var(--table-header-color);
   font-weight: var(--table-header-weight);
-  text-transform: uppercase;
   flex-shrink: 0;
+  letter-spacing: 0.01em;
 }
 
 .th,
@@ -136,7 +136,7 @@ const hasAction = computed(() => !!slots.action)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0 4px;
+  padding: 0 6px;
 }
 
 .th.left,
