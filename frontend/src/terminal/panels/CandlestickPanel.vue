@@ -19,8 +19,8 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 // Shared minute data cache from parent DockView
 const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new Map())
 
-const topOverlay = ref<'none' | 'ma' | 'bb'>('none')
-const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr'>('volume')
+const topOverlay = ref<'none' | 'ma' | 'bb' | 'sar' | 'ema'>('none')
+const bottomMode = ref<'volume' | 'macd' | 'kdj' | 'rsi' | 'wr' | 'cci' | 'obv'>('volume')
 const minuteBottomMode = ref<'volume' | 'macd' | 'kdj'>('volume')
 
 
@@ -514,6 +514,8 @@ onUnmounted(() => {
         <button :class="{ active: topOverlay === 'none' }" class="indicator-btn" @click="topOverlay = 'none'">无</button>
         <button :class="{ active: topOverlay === 'ma' }" class="indicator-btn" @click="topOverlay = 'ma'">MA</button>
         <button :class="{ active: topOverlay === 'bb' }" class="indicator-btn" @click="topOverlay = 'bb'">{{ $t('kline.bb') }}</button>
+        <button :class="{ active: topOverlay === 'sar' }" class="indicator-btn" @click="topOverlay = 'sar'">SAR</button>
+        <button :class="{ active: topOverlay === 'ema' }" class="indicator-btn" @click="topOverlay = 'ema'">EMA</button>
       </div>
       <div class="indicator-group">
         <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
@@ -522,6 +524,8 @@ onUnmounted(() => {
         <button :class="{ active: bottomMode === 'kdj' }" class="indicator-btn" @click="bottomMode = 'kdj'">KDJ</button>
         <button :class="{ active: bottomMode === 'rsi' }" class="indicator-btn" @click="bottomMode = 'rsi'">RSI</button>
         <button :class="{ active: bottomMode === 'wr' }" class="indicator-btn" @click="bottomMode = 'wr'">WR</button>
+        <button :class="{ active: bottomMode === 'cci' }" class="indicator-btn" @click="bottomMode = 'cci'">CCI</button>
+        <button :class="{ active: bottomMode === 'obv' }" class="indicator-btn" @click="bottomMode = 'obv'">OBV</button>
       </div>
     </div>
     <div v-if="activeTab === 'minute' || activeTab === 'multiDay'" class="indicator-bar">

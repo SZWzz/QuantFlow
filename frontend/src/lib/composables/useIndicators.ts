@@ -133,6 +133,88 @@ export function wr(close: number[], high: number[], low: number[], period = 14):
   return r
 }
 
+/** Parabolic Stop and Reverse (SAR) */
+export function sar(high: number[], low: number[], close: number[], acceleration = 0.02, maxAcceleration = 0.2): (number | null)[] {
+  const result: (number | null)[] = []
+  if (high.length < 2) return high.map(() => null)
+
+  let isLong = true
+  let af = acceleration
+  let ep = low[0]
+  let sarVal = high[0]
+
+  for (let i = 1; i < high.length; i++) {
+    if (isLong) {
+      sarVal = sarVal + af * (ep - sarVal)
+      if (sarVal > low[i]) {
+        isLong = false
+        af = acceleration
+        sarVal = ep = high[i]
+        result.push(null)
+        continue
+      }
+      if (high[i] > ep) {
+        ep = high[i]
+        af = Math.min(af + acceleration, maxAcceleration)
+      }
+    } else {
+      sarVal = sarVal + af * (ep - sarVal)
+      if (sarVal < high[i]) {
+        isLong = true
+        af = acceleration
+        sarVal = ep = low[i]
+        result.push(null)
+        continue
+      }
+      if (low[i] < ep) {
+        ep = low[i]
+        af = Math.min(af + acceleration, maxAcceleration)
+      }
+    }
+    result.push(sarVal)
+  }
+
+  while (result.length < high.length) {
+    result.unshift(null)
+  }
+
+  return result
+}
+
+/** Commodity Channel Index (CCI) */
+export function cci(high: number[], low: number[], close: number[], period = 20): (number | null)[] {
+  const tp = high.map((h, i) => (h + low[i] + close[i]) / 3)
+  const result: (number | null)[] = []
+
+  for (let i = 0; i < tp.length; i++) {
+    if (i < period - 1) {
+      result.push(null)
+      continue
+    }
+    const slice = tp.slice(i - period + 1, i + 1)
+    const mean = slice.reduce((a, b) => a + b, 0) / period
+    const mad = slice.reduce((sum, v) => sum + Math.abs(v - mean), 0) / period
+    result.push(mad === 0 ? 0 : (tp[i] - mean) / (0.015 * mad))
+  }
+  return result
+}
+
+/** On-Balance Volume (OBV) */
+export function obv(close: number[], volume: number[]): number[] {
+  if (!close.length || !volume.length) return []
+  const result: number[] = [volume[0]]
+  for (let i = 1; i < close.length; i++) {
+    if (close[i] > close[i - 1]) {
+      result.push(result[i - 1] + volume[i])
+    } else if (close[i] < close[i - 1]) {
+      result.push(result[i - 1] - volume[i])
+    } else {
+      result.push(result[i - 1])
+    }
+  }
+  return result
+}
+
 /** Memoization wrapper for indicator computations */
 export function createIndicatorCache() {
   const cache = new Map<string, any>()

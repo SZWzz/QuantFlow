@@ -1,7 +1,7 @@
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import type { ChartThemeColors } from '@/lib/composables/useChartTheme'
 import type { MinuteTick } from '@/lib/composables/useWailsApp'
-import { sma, bb, macd, kdj, rsi, wr } from '@/lib/composables/useIndicators'
+import { sma, bb, macd, kdj, rsi, wr, ema, sar, cci, obv } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { i18n } from '@/lib/i18n'
 
@@ -87,6 +87,19 @@ export function buildKlineOption(
     series.push({ type: 'line', name: 'BB上轨', data: b.upper, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
     series.push({ type: 'line', name: 'BB中轨', data: b.middle, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } })
     series.push({ type: 'line', name: 'BB下轨', data: b.lower, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#4caf50' } })
+  } else if (topOverlay === 'sar') {
+    const sarData = cache.getCached(`sar-${cacheKey}`, () => sar(high, low, close))
+    series.push({
+      type: 'scatter', name: 'SAR', data: sarData,
+      gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
+      symbol: 'circle', symbolSize: 4,
+      itemStyle: { color: '#f06292' },
+    })
+  } else if (topOverlay === 'ema') {
+    const ema12 = cache.getCached(`ema-${cacheKey}-12`, () => ema(close, 12))
+    const ema26 = cache.getCached(`ema-${cacheKey}-26`, () => ema(close, 26))
+    series.push({ type: 'line', name: 'EMA12', data: ema12, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#42a5f5' } })
+    series.push({ type: 'line', name: 'EMA26', data: ema26, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', lineStyle: { width: 1, color: '#ff7043' } })
   }
 
   if (bottomMode === 'volume') {
@@ -127,6 +140,27 @@ export function buildKlineOption(
         { yAxis: -20, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
         { yAxis: -80, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
       ]},
+    })
+  } else if (bottomMode === 'cci') {
+    const cciData = cache.getCached(`cci-${cacheKey}-20`, () => cci(high, low, close, 20))
+    series.push({
+      type: 'line', name: 'CCI', data: cciData, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
+      symbol: 'none', lineStyle: { width: 1, color: '#ce93d8' },
+      markLine: { silent: true, symbol: 'none', data: [
+        { yAxis: 100, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
+        { yAxis: -100, label: { show: false }, lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.2)' } },
+      ]},
+    })
+  } else if (bottomMode === 'obv') {
+    const vol = data.map(d => d.volume)
+    const obvData = cache.getCached(`obv-${cacheKey}`, () => obv(close, vol))
+    series.push({
+      type: 'line', name: 'OBV', data: obvData, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
+      symbol: 'none', lineStyle: { width: 1, color: '#66bb6a' },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [
+        { offset: 0, color: '#66bb6a30' },
+        { offset: 1, color: 'rgba(0,0,0,0)' },
+      ]}},
     })
   }
 
