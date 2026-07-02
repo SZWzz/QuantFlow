@@ -26,6 +26,7 @@
 - [Frontend] **独立 DrawingPanel** — 功能已合并到 CandlestickPanel 画线工具，删除 `DrawingPanel.vue`、`DrawingPanel.test.ts`、registry 注册
 
 ### Fixed
+- [MarketData] **东财 push2 stock/get 接口不可用** — `push2.eastmoney.com/api/qt/stock/get` 返回 EOF（疑似 IP 风控），`parseTencentQuote` 扩展提取 `MarketCap`（[44]×1e8）和 `Pe`（[39]）；`GetStockResearch` 和 `PeerComparisonService` 增加腾讯行情 fallback 链，确保 overview 市值和同业对比在东方财富不可用时仍能正常展示
 - [Frontend] **画线工具初始化失败（`echarts=false`）** — `KlineChart.getEchartsInstance()` 使用了 vue-echarts v7 不存在的 `getEChartsInstance` 方法，改为直接访问暴露的 `chart` Ref，修复画线工具/十字光标无法初始化的问题
 - [Frontend] **设置面板版本号不自动同步** — `version.ts` 硬编码版本改为 Vite `define` 在构建时从 `package.json` 注入 `__APP_VERSION__`，以后只需改 `package.json` 一处
 - [Frontend] **Tab 页签无法拖拽** — `DockTab.vue` 按钮缺少 `draggable` 属性和 `@dragstart` 绑定，补充后支持同 leaf 内重排序和跨 leaf 移动；修复 `DockContainer` 多参数事件 `$event` 只传第一个参数的 bug

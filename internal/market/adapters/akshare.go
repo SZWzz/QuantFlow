@@ -300,6 +300,18 @@ func parseTencentQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 		changePct = (change / prevClose) * 100
 	}
 
+	// Extract MarketCap and PE from Tencent response (available for CN stocks).
+	// Field mapping (validated 2026-07):
+	//   [44] = total market cap (亿, unit: 1e8 RMB)
+	//   [39] = PE (TTM)
+	var marketCap, pe float64
+	if len(fields) > 44 {
+		marketCap = parseFloatSafe(fields[44]) * 1e8 // 亿 → 元
+	}
+	if len(fields) > 39 {
+		pe = parseFloatSafe(fields[39])
+	}
+
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
 		Name:      cleanName(fields[1]),
@@ -312,6 +324,8 @@ func parseTencentQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 		Turnover:  turnover,
 		Change:    change,
 		ChangePct: changePct,
+		MarketCap: marketCap,
+		Pe:        pe,
 		Exchange:  "CN",
 		Timestamp: time.Now().UnixMilli(),
 	}, nil

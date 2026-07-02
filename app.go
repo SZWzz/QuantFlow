@@ -298,7 +298,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Info("sentiment engine initialized in mock mode (no Python bridge)")
 	}
 	nctx.FinancialsService = research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
-	nctx.PeerComparisonService = research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt, a.eastmoneyAdpt)
+	nctx.PeerComparisonService = research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt, a.eastmoneyAdpt, a.marketReg)
 	nctx.AnalystEstimatesService = research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt)
 	nctx.InsiderTradingService = research.NewInsiderTradingService(a.bridge)
 	nctx.CongressTradingService = research.NewCongressTradingService(a.congressAdpt)

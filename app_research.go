@@ -82,7 +82,7 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 	slog.Info("GetStockResearch called", "symbol", symbol, "tabs", tabs)
 	repo := research.NewResearchRepo(a.db)
 	finSvc := research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
-	peerSvc := research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt, a.eastmoneyAdpt)
+	peerSvc := research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt, a.eastmoneyAdpt, a.marketReg)
 	estSvc := research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt)
 	insSvc := research.NewInsiderTradingService(a.bridge)
 
@@ -108,6 +108,17 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 			result.Overview["price"] = info.Price
 		} else {
 			slog.Warn("eastmoney stock_info failed", "symbol", symbol, "error", err)
+			// Fallback: try quote pipeline (Tencent/Sina) for name, price, and market cap
+			if a.marketReg != nil {
+				if quote, _, qErr := a.marketReg.FetchQuoteWithFallback(context.Background(), "CN", symbol); qErr == nil && quote != nil {
+					result.Overview["name"] = quote.Name
+					result.Overview["price"] = quote.Last
+					if quote.MarketCap > 0 {
+						result.Overview["market_cap"] = fmt.Sprintf("%.0f亿", quote.MarketCap/1e8)
+					}
+					slog.Info("stock_info fallback via quote pipeline succeeded", "symbol", symbol)
+				}
+			}
 		}
 	} else {
 		slog.Warn("eastmoney adapter not initialized", "symbol", symbol)

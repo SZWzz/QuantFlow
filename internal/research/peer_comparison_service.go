@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
 )
 
@@ -15,6 +16,7 @@ type PeerComparisonService struct {
 	conceptAdapter   *adapters.EastMoneyConceptAdapter
 	signalsAdapter   *adapters.EastMoneySignalsAdapter
 	eastmoneyAdapter *adapters.EastMoneyAdapter
+	quoteReg         *market.AdapterRegistry // fallback for peer market caps when Eastmoney is down
 }
 
 // NewPeerComparisonService creates a new PeerComparisonService.
@@ -23,11 +25,13 @@ func NewPeerComparisonService(
 	concept *adapters.EastMoneyConceptAdapter,
 	signals *adapters.EastMoneySignalsAdapter,
 	eastmoney *adapters.EastMoneyAdapter,
+	quoteReg *market.AdapterRegistry,
 ) *PeerComparisonService {
 	return &PeerComparisonService{
 		conceptAdapter:   concept,
 		signalsAdapter:   signals,
 		eastmoneyAdapter: eastmoney,
+		quoteReg:         quoteReg,
 	}
 }
 
@@ -62,9 +66,18 @@ func (s *PeerComparisonService) GetPeers(ctx context.Context, symbol string) ([]
 		}
 
 		// Fill MarketCap from EastMoney stock info if adapter available.
+		// Falls back to quote registry (Tencent/Sina/etc.) when Eastmoney is down.
 		if s.eastmoneyAdapter != nil {
 			if info, err := s.eastmoneyAdapter.FetchStockInfo(ctx, b.LeadStockCode); err == nil && info != nil {
 				p.MarketCap = info.MarketCap
+			} else if s.quoteReg != nil {
+				if quote, _, qErr := s.quoteReg.FetchQuoteWithFallback(ctx, "CN", b.LeadStockCode); qErr == nil && quote != nil {
+					p.MarketCap = quote.MarketCap
+				}
+			}
+		} else if s.quoteReg != nil {
+			if quote, _, qErr := s.quoteReg.FetchQuoteWithFallback(ctx, "CN", b.LeadStockCode); qErr == nil && quote != nil {
+				p.MarketCap = quote.MarketCap
 			}
 		}
 
