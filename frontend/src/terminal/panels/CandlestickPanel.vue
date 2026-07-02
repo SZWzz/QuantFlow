@@ -15,6 +15,7 @@ import { useWailsApp, type OHLCVBar, type MultiDayMinute, type QuoteData } from 
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { detectLimitUpDown } from '@/lib/chart/EventMarker'
 import type { EventMarker } from '@/lib/chart/EventMarker'
+import { useWebSocket, type KlineUpdate } from '@/lib/composables/useWebSocket'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -227,6 +228,8 @@ const minuteLoading = ref(false)
 let minuteTimer: ReturnType<typeof setInterval> | null = null
 let klineTimer: ReturnType<typeof setInterval> | null = null
 let quoteTimer: ReturnType<typeof setInterval> | null = null
+const { connect: wsConnect, onMessage: wsOnMessage, connected: wsConnected } = useWebSocket()
+let symbolSubCleanup: (() => void) | null = null
 
 function getTodayDateString(): string {
   const d = new Date()
@@ -388,11 +391,38 @@ function stopMinutePolling() {
 function startKlineRefresh() {
   stopKlineRefresh()
   loadOHLCV(symbol.value, true)
+  if (wsConnected.value) return
   klineTimer = window.setInterval(() => loadOHLCV(symbol.value, true), 30000)
 }
 
 function stopKlineRefresh() {
   if (klineTimer) { clearInterval(klineTimer); klineTimer = null }
+}
+
+function initWebSocket() {
+  if (symbolSubCleanup) symbolSubCleanup()
+  const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+  wsConnect(wsUrl, [`kline:${symbol.value}:${interval.value}`])
+  symbolSubCleanup = wsOnMessage(`kline:${symbol.value}:${interval.value}`, (update: KlineUpdate) => {
+    mergeOHLCVUpdate(ohlcvData.value, update)
+  })
+}
+
+function mergeOHLCVUpdate(data: KlineDataItem[], update: KlineUpdate) {
+  if (!data.length) return
+  const d = new Date(update.time * 1000)
+  const isIntraday = ['1m', '5m', '15m', '30m', '1h'].includes(update.interval)
+  const updateDate = isIntraday
+    ? d.toISOString().slice(0, 16).replace('T', ' ')
+    : d.toISOString().slice(0, 10)
+  const last = data[data.length - 1]
+  if (last.date === updateDate) {
+    data[data.length - 1] = { ...last, open: update.open, high: update.high, low: update.low, close: update.close, volume: update.volume }
+    ohlcvData.value = [...data]
+  } else if (update.is_closed) {
+    data.push({ date: updateDate, open: update.open, high: update.high, low: update.low, close: update.close, volume: update.volume })
+    ohlcvData.value = [...data]
+  }
 }
 
 // Subscribe to symbol context via link group
@@ -405,6 +435,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
 
 watch(symbol, () => {
   loadQuote()
+  initWebSocket()
 })
 
 watch(ohlcvData, (data) => {
@@ -442,6 +473,7 @@ watch(indexOverlaySymbol, async (sym) => {
 // Regenerate data on interval change
 watch(interval, () => {
   loadOHLCV(symbol.value)
+  initWebSocket()
 })
 
 // Watch tab switch for minute polling
@@ -629,6 +661,7 @@ onMounted(() => {
   }
   loadOHLCV(symbol.value)
   loadQuote()
+  initWebSocket()
   quoteTimer = setInterval(loadQuote, 30000)
 
   // DrawingController initialization
@@ -667,6 +700,7 @@ onUnmounted(() => {
   }
   dc?.destroy()
   crosshair?.destroy()
+  if (symbolSubCleanup) symbolSubCleanup()
   document.removeEventListener('click', closeContextMenu)
   window.removeEventListener('keydown', onKeyDown)
 })
