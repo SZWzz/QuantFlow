@@ -88,8 +88,8 @@ function currencyForSymbol(symbol: string): string {
 
 function fmtMoney(n: number, symbol?: string): string {
   const c = symbol ? currencyForSymbol(symbol) : '$'
-  if (Math.abs(n) >= 1e6) return c + (n / 1e6).toFixed(2) + 'M'
-  if (Math.abs(n) >= 1e3) return c + (n / 1e3).toFixed(1) + 'K'
+  if (Math.abs(n) >= 1e8) return c + (n / 1e8).toFixed(2) + '亿'
+  if (Math.abs(n) >= 1e4) return c + (n / 1e4).toFixed(1) + '万'
   return c + n.toFixed(2)
 }
 

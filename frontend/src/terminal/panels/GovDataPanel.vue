@@ -457,8 +457,8 @@ const chartOption = computed(() => {
 function formatValue(v: number | null | undefined, unit: string): string {
   if (v == null) return 'N/A'
   if (unit === '%') return v.toFixed(2) + '%'
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (v >= 1_000) return (v / 1_000).toFixed(1) + 'K'
+  if (v >= 1e8) return (v / 1e8).toFixed(2) + '亿'
+  if (v >= 1e4) return (v / 1e4).toFixed(1) + '万'
   if (v >= 1) return v.toFixed(2)
   return v.toFixed(4)
 }

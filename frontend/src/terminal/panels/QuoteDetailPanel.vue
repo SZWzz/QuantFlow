@@ -130,8 +130,8 @@ function fmt(n: any, decimals = 2): string {
 }
 function fmtVolume(n: number): string {
   if (typeof n !== 'number') return '--'
-  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B'
-  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
+  if (n >= 1e8) return (n / 1e8).toFixed(2) + '亿'
+  if (n >= 1e4) return (n / 1e4).toFixed(2) + '万'
   return n.toLocaleString()
 }
 function fmtMarketCap(n: any): string {

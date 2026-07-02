@@ -169,8 +169,8 @@ function generateOrders() {
 function fmtMoney(n: number): string {
   const abs = Math.abs(n)
   const sign = n < 0 ? '-' : ''
-  if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(2) + 'M'
-  if (abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(1) + 'K'
+  if (abs >= 1e8) return sign + '$' + (abs / 1e8).toFixed(2) + '亿'
+  if (abs >= 1e4) return sign + '$' + (abs / 1e4).toFixed(1) + '万'
   return sign + '$' + abs.toFixed(2)
 }
 

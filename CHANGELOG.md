@@ -19,6 +19,9 @@
 - [Frontend] **useWebSocket composable** — 前端 WebSocket 连接管理，指数退避重连(1s→30s)，主题订阅，断连自动降级轮询
 - [Backend] **WebSocket Hub** — 基于 `github.com/coder/websocket` 的实时推送中心，支持 K 线(`KlineUpdate`)、逐笔(`Tick`)、深度(`DepthUpdate`)三种主题，客户端通过 `subscribe`/`unsubscribe` 消息管理订阅
 
+### Changed
+- [Frontend] **统一数字格式为亿/万** — 19 个面板和 `buildChartOption.ts` 中的美式缩写（B/M/K/T）统一替换为中文单位（亿/万/万亿），与 A 股为主的定位一致；保留 `$` 前缀用于美元计价面板
+
 ### Removed
 - [Frontend] **独立 DrawingPanel** — 功能已合并到 CandlestickPanel 画线工具，删除 `DrawingPanel.vue`、`DrawingPanel.test.ts`、registry 注册
 
@@ -27,6 +30,7 @@
 - [Frontend] **设置面板版本号不自动同步** — `version.ts` 硬编码版本改为 Vite `define` 在构建时从 `package.json` 注入 `__APP_VERSION__`，以后只需改 `package.json` 一处
 - [Frontend] **Tab 页签无法拖拽** — `DockTab.vue` 按钮缺少 `draggable` 属性和 `@dragstart` 绑定，补充后支持同 leaf 内重排序和跨 leaf 移动；修复 `DockContainer` 多参数事件 `$event` 只传第一个参数的 bug
 - [Frontend] **Welcome 页面港股/美股/加密货币分类标签丢失** — i18n 语言文件缺少 `cat_hk`/`cat_us`/`cat_crypto` 三个 key，分别补充中英文翻译
+- [MarketData] **K 线 InfoBar 扩展字段全为 0** — `_fetch_mootdx_quote` 只返回 6 个基础字段，补充 rich quotes API（`client.quotes()`）获取昨收/bid/ask/内外盘/成交额；振幅 `(high-low)/prevClose`、均价 `amount/vol` 改为实时计算；`change = last-prevClose` 修复（之前错误地用了 `last-open`）。注：市盈率/市值/换手率/量比/涨跌停价 TDX 协议不提供，需后续通过 fundamental API 或 EastMoney 适配器补充
 
 ## [2026.7.1] - 2026-07-01
 

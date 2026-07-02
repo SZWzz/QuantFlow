@@ -267,8 +267,8 @@ function showDetail(model: any) {
 
 function formatNumber(n: number): string {
   if (n == null) return '--'
-  if (n >= 1000000) return (n / 1000000).toFixed(0) + 'M'
-  if (n >= 1000) return (n / 1000).toFixed(0) + 'K'
+  if (n >= 1e8) return (n / 1e8).toFixed(0) + '亿'
+  if (n >= 1e4) return (n / 1e4).toFixed(0) + '万'
   return String(n)
 }
 

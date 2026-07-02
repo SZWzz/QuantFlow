@@ -198,7 +198,7 @@ export function buildKlineOption(
   const windowSize = Math.min(totalPoints, 250)
   const startPct = totalPoints > windowSize ? ((totalPoints - windowSize) / totalPoints * 100) : 0
 
-  const volUnit = i18n.global.locale.value === 'zh' ? '万' : 'K'
+  const volUnit = '万'
   let bottomYAxis: any = { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } }
   if (bottomMode === 'volume') {
     bottomYAxis = { ...bottomYAxis, axisLabel: { ...bottomYAxis.axisLabel, formatter: (v: number) => v >= 1 ? v.toFixed(1) + volUnit : String(v) } }
@@ -262,7 +262,7 @@ export function buildMinuteOption(
   if (!ticks.length) return {} as ECBasicOption
 
   const t = i18n.global.t
-  const volUnit = i18n.global.locale.value === 'zh' ? '万' : 'K'
+  const volUnit = '万'
   const times = ticks.map(t => t.time)
   const prices = ticks.map(t => t.price)
   const volumes = ticks.map(t => t.volume / 10000)
@@ -357,7 +357,7 @@ export function buildMultiDayOption(
   if (!ticks.length) return {} as ECBasicOption
 
   const t = i18n.global.t
-  const volUnit = i18n.global.locale.value === 'zh' ? '万' : 'K'
+  const volUnit = '万'
   const times = ticks.map(tick => tick.time)
   const prices = ticks.map(tick => tick.price)
   const volumes = ticks.map(tick => tick.volume / 10000)

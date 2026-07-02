@@ -64,8 +64,8 @@ async function fetchData() {
 }
 
 function formatAmount(v: number): string {
-  if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M'
-  if (v >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K'
+  if (v >= 1e8) return '$' + (v / 1e8).toFixed(1) + '亿'
+  if (v >= 1e4) return '$' + (v / 1e4).toFixed(0) + '万'
   return '$' + v.toFixed(0)
 }
 

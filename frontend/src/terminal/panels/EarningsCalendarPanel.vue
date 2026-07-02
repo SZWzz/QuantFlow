@@ -73,10 +73,10 @@ async function fetchData() {
 }
 
 function formatMoney(v: number): string {
-  if (v >= 1e12) return '$' + (v / 1e12).toFixed(2) + 'T'
-  if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B'
-  if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M'
-  return '$' + (v / 1e3).toFixed(0) + 'K'
+  if (v >= 1e12) return '$' + (v / 1e12).toFixed(2) + '万亿'
+  if (v >= 1e8) return '$' + (v / 1e8).toFixed(1) + '亿'
+  if (v >= 1e4) return '$' + (v / 1e4).toFixed(0) + '万'
+  return '$' + v.toFixed(0)
 }
 
 function hourLabel(h: string): string {
