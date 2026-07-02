@@ -119,9 +119,9 @@ const results = computed<CommandItem[]>(() => {
       label: q.toUpperCase(),
       description: '快速查看行情',
       category: 'Quick',
-      icon: getIcon('quote'),
+      icon: getIcon('candlestick'),
       action: () => {
-        emit('open-panel', 'quote-detail', { symbol: q.toUpperCase() })
+        emit('open-panel', 'candlestick', { symbol: q.toUpperCase() })
         close()
       },
     })

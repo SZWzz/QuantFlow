@@ -187,7 +187,6 @@ export function renderIcon(name: IconName, size = 16, color?: string): Component
 // Panel ID to icon name mapping
 export const PANEL_ICONS: Record<string, IconName> = {
   watchlist: 'watchlist',
-  'quote-detail': 'quote',
   candlestick: 'candlestick',
   'market-overview': 'market',
   heatmap: 'heatmap',

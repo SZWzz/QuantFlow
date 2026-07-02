@@ -126,7 +126,7 @@ graph TB
 
 | 类别 | 面板 |
 |------|------|
-| **行情** (6) | Watchlist, QuoteDetail, Candlestick, MarketOverview, MarketDepth, Heatmap |
+| **行情** (5) | Watchlist, Candlestick, MarketOverview, MarketDepth, Heatmap |
 | **滚动行情** (1) | TickerTape |
 | **交易** (8) | OrderEntry, OrderBlotter, Execution, BasketOrder, Position, PositionDetail, BrokerConfig, BrokerStatus |
 | **组合** (3) | PortfolioSummary, Rebalance, RiskDashboard |

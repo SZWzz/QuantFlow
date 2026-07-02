@@ -17,8 +17,7 @@ function register(id: string, loader: () => Promise<any>, meta: Omit<PanelMeta, 
 
 // ── 市场行情 ──
 register('watchlist', () => import('./WatchlistPanel.vue'), { label: '自选股', category: '市场行情', description: '自选股列表 + 实时报价' })
-register('quote-detail', () => import('./QuoteDetailPanel.vue'), { label: '行情详情', category: '市场行情', description: '单股详细报价' })
-register('candlestick', () => import('./CandlestickPanel.vue'), { label: 'K 线图', category: '市场行情', description: '历史 K 线图' })
+register('candlestick', () => import('./CandlestickPanel.vue'), { label: 'K 线图', category: '市场行情', description: 'K 线图 + 分时图' })
 register('market-overview', () => import('./MarketOverviewPanel.vue'), { label: '市场概况', category: '市场行情', description: '大盘指数概览' })
 register('heatmap', () => import('./HeatmapPanel.vue'), { label: '板块热力图', category: '市场行情', description: '行业板块涨跌热力' })
 

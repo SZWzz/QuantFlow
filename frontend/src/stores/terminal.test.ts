@@ -23,7 +23,7 @@ describe('useTerminalStore', () => {
 
   it('should pass params when opening panel', () => {
     const store = useTerminalStore()
-    store.openPanel('quote-detail', { symbol: '000001' })
+    store.openPanel('candlestick', { symbol: '000001' })
     expect(store.activePanels[0].params).toEqual({ symbol: '000001' })
   })
 

@@ -126,7 +126,7 @@ graph TB
 
 | Category | Panels |
 |----------|--------|
-| **Market** (6) | Watchlist, QuoteDetail, Candlestick, MarketOverview, MarketDepth, Heatmap |
+| **Market** (5) | Watchlist, Candlestick, MarketOverview, MarketDepth, Heatmap |
 | **Ticker** (1) | TickerTape |
 | **Trading** (8) | OrderEntry, OrderBlotter, Execution, BasketOrder, Position, PositionDetail, BrokerConfig, BrokerStatus |
 | **Portfolio** (3) | PortfolioSummary, Rebalance, RiskDashboard |

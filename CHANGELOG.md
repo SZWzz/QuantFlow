@@ -23,6 +23,7 @@
 - [Frontend] **统一数字格式为亿/万** — 19 个面板和 `buildChartOption.ts` 中的美式缩写（B/M/K/T）统一替换为中文单位（亿/万/万亿），与 A 股为主的定位一致；保留 `$` 前缀用于美元计价面板
 
 ### Removed
+- [Frontend] **QuoteDetailPanel（行情详情）** — 功能已被 CandlestickPanel 分时图完全覆盖，删除 `QuoteDetailPanel.vue`、`QuoteDetailPanel.test.ts`、registry 注册、icons 映射；CommandBar 输入代码改为直接打开 K 线面板
 - [Frontend] **独立 DrawingPanel** — 功能已合并到 CandlestickPanel 画线工具，删除 `DrawingPanel.vue`、`DrawingPanel.test.ts`、registry 注册
 
 ### Fixed
