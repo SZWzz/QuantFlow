@@ -124,7 +124,7 @@ onMounted(refresh)
 }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 
@@ -149,9 +149,9 @@ onMounted(refresh)
 }
 .dom-label { font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; }
 .dom-bar-track {
-  flex: 1; height: 8px; background: var(--color-bg-elevated); border-radius: 4px; overflow: hidden;
+  flex: 1; height: 8px; background: var(--color-bg-elevated); border-radius: var(--radius-sm); overflow: hidden;
 }
-.dom-bar-fill { height: 100%; border-radius: 4px; }
+.dom-bar-fill { height: 100%; border-radius: var(--radius-sm); }
 .btc-bar { background: var(--color-accent); }
 .eth-bar { background: var(--color-accent); }
 .dom-value { font-size: 12px; font-weight: 600; min-width: 44px; text-align: right; }

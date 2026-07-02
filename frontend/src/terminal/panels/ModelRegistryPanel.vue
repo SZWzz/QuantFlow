@@ -481,7 +481,7 @@ onMounted(loadFromStore)
   margin-bottom: 8px;
   padding: 4px 10px;
   background: rgba(59,130,246,0.1);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* ── Provider cards ── */
@@ -493,7 +493,7 @@ onMounted(loadFromStore)
 }
 .provider-card {
   border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-elevated);
   overflow: hidden;
 }
@@ -511,7 +511,7 @@ onMounted(loadFromStore)
   margin-left: auto;
   font-size: 10px;
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-weight: 400;
 }
 .test-badge.ok { background: rgba(34,197,94,0.15); color: var(--color-down); }
@@ -523,7 +523,7 @@ onMounted(loadFromStore)
   padding: 5px 8px;
   background: var(--color-bg-input);
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-text);
   font-size: 11px;
   font-family: 'SF Mono', monospace;
@@ -553,7 +553,7 @@ onMounted(loadFromStore)
   padding: 4px 8px;
   background: var(--color-bg-input);
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-text);
   font-size: 11px;
   outline: none;
@@ -577,7 +577,7 @@ onMounted(loadFromStore)
 .search-input {
   padding: 4px 8px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-input);
   color: var(--color-text);
   font-size: 11px;
@@ -608,14 +608,14 @@ onMounted(loadFromStore)
   padding: 20px;
   color: var(--color-text-tertiary);
 }
-.status-badge { padding: 2px 6px; border-radius: 3px; font-size: 11px; }
+.status-badge { padding: 2px 6px; border-radius: var(--radius-sm); font-size: 11px; }
 .status-ready { background: rgba(34,197,94,0.15); color: var(--color-down); }
 
 /* ── Buttons ── */
 .btn {
   padding: 5px 12px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text);
   cursor: pointer;
@@ -644,7 +644,7 @@ onMounted(loadFromStore)
 .detail-panel {
   background: var(--color-bg-panel);
   padding: 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   max-width: 400px;
   width: 90%;
   max-height: 80vh;

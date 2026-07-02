@@ -275,7 +275,7 @@ function onSwitchToWorkflow() {
   padding: 1px 4px;
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', monospace;
 }
 

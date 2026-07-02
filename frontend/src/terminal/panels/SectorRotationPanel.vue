@@ -187,22 +187,22 @@ onUnmounted(() => {
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .market-tabs, .lookback-tabs { display: flex; gap: 4px; }
 .mkt-tab, .lb-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
 .mkt-tab.active, .lb-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 
 .rrg-hint {
   display: flex; justify-content: space-around; margin-bottom: 4px; font-size: 10px;
 }
-.quadrant-label { padding: 2px 8px; border-radius: 4px; }
+.quadrant-label { padding: 2px 8px; border-radius: var(--radius-sm); }
 .quadrant-label.leading { color: var(--color-down); }
 .quadrant-label.weakening { color: var(--color-accent); }
 .quadrant-label.lagging { color: var(--color-up); }

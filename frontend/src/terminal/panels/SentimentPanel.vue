@@ -123,15 +123,15 @@ function handleSymbolSubmit(e: Event) {
 .header-controls { display: flex; gap: 8px; align-items: center; }
 .symbol-input {
   width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong);
-  border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px;
+  border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px;
 }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .mock-banner {
-  padding: 6px 10px; margin-bottom: 12px; border-radius: 4px;
+  padding: 6px 10px; margin-bottom: 12px; border-radius: var(--radius-sm);
   background: var(--color-accent-soft); color: var(--color-accent); font-size: 12px; text-align: center;
 }
 .sentiment-content { flex: 1; display: flex; flex-direction: column; gap: 16px; }
@@ -144,7 +144,7 @@ function handleSymbolSubmit(e: Event) {
 .keywords-section h4 { margin: 0 0 8px 0; font-size: 13px; color: var(--color-text-secondary); }
 .keyword-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .keyword-tag {
-  padding: 2px 10px; border-radius: 12px; font-size: 12px;
+  padding: 2px 10px; border-radius: var(--radius-lg); font-size: 12px;
   background: var(--color-bg-elevated); color: var(--color-text-primary); border: 1px solid var(--color-border-strong);
 }
 .no-data { color: var(--color-text-tertiary); font-size: 12px; }

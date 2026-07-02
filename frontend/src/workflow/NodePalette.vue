@@ -174,7 +174,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
   padding: 5px 8px;
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 11px;
   outline: none;
@@ -194,12 +194,12 @@ function onDragStart(event: DragEvent, nodeType: string) {
 
 .node-item {
   display: flex; align-items: center; gap: 8px; padding: 6px 8px;
-  border-radius: 4px; cursor: grab; transition: background 0.1s;
+  border-radius: var(--radius-sm); cursor: grab; transition: background 0.1s;
 }
 .node-item:hover { background: rgba(88,166,255,0.08); }
 .node-item:active { cursor: grabbing; }
 
-.node-icon { width: 24px; height: 24px; border: 1.5px solid var(--color-border); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.node-icon { width: 24px; height: 24px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 12px; }
 .node-name { font-size: 11px; color: var(--color-text-primary); }
 
 .no-results { padding: 16px; text-align: center; color: var(--color-text-tertiary); font-size: 12px; }
@@ -209,7 +209,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
 .templates-toggle:hover { color: var(--color-accent); }
 .toggle-arrow { font-size: 10px; }
 .templates-list { padding: 0 4px; }
-.template-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 4px; cursor: pointer; transition: background 0.1s; }
+.template-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.1s; }
 .template-item:hover { background: rgba(88,166,255,0.08); }
 .tpl-icon { font-size: 14px; flex-shrink: 0; }
 .tpl-body { display: flex; flex-direction: column; min-width: 0; }

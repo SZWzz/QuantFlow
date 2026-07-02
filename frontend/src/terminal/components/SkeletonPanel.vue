@@ -51,7 +51,7 @@ withDefaults(defineProps<{
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 @keyframes shimmer {
@@ -116,6 +116,6 @@ withDefaults(defineProps<{
 .skeleton-chart-area {
   width: 80%;
   height: 60%;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 </style>

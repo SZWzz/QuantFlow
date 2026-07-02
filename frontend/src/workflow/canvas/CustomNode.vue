@@ -122,7 +122,7 @@ const paramSummary = computed(() => {
 .custom-node {
   background: #1c2333;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   min-width: 150px;
   max-width: 220px;
   font-size: 12px;
@@ -155,7 +155,7 @@ const paramSummary = computed(() => {
 
 .node-header {
   padding: 6px 12px;
-  border-radius: 6px 6px 0 0;
+  border-radius: var(--radius-md) 6px 0 0;
   color: #fff;
   font-weight: 600;
   font-size: 12px;

@@ -71,7 +71,7 @@ onMounted(loadPositions)
 <style scoped>
 .position-panel { padding: 10px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; font-variant-numeric: tabular-nums; }
 .summary-row { display: flex; gap: 8px; margin-bottom: 10px; }
-.summary-item { flex: 1; padding: 8px; background: var(--color-bg-subtle); border-radius: 4px; text-align: center; }
+.summary-item { flex: 1; padding: 8px; background: var(--color-bg-subtle); border-radius: var(--radius-sm); text-align: center; }
 .s-label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; }
 .s-value { font-size: 16px; font-weight: 700; }
 .s-value.up { color: var(--color-down); } .s-value.down { color: var(--color-up); }

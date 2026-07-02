@@ -180,14 +180,14 @@ onMounted(fetchData)
 }
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.sym-input { padding: 2px 6px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); width: 70px; }
-.refresh-btn { margin-left: auto; padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.sym-input { padding: 2px 6px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 70px; }
+.refresh-btn { margin-left: auto; padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 
 .expiry-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-shrink: 0; }
 .expiry-label { font-size: 11px; color: var(--color-text-tertiary); }
-.expiry-select { padding: 2px 4px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); }
+.expiry-select { padding: 2px 4px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); }
 
 .chain-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow: hidden; }
 .chain-side { display: flex; flex-direction: column; overflow: hidden; }
@@ -211,5 +211,5 @@ onMounted(fetchData)
 
 .error-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
 .error-text { color: var(--color-up); font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.retry-btn { padding: 4px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 11px; }
+.retry-btn { padding: 4px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 11px; }
 </style>

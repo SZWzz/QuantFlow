@@ -144,12 +144,12 @@ onUnmounted(() => {
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .empty-state {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px; gap: 4px;
@@ -157,7 +157,7 @@ onUnmounted(() => {
 .hint { font-size: 11px; opacity: 0.6; }
 .gas-card-grid { display: flex; gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
 .gas-card {
-  flex: 1; border: 1px solid; border-radius: 8px; padding: 12px 8px; text-align: center;
+  flex: 1; border: 1px solid; border-radius: var(--radius-lg); padding: 12px 8px; text-align: center;
   background: var(--color-bg-elevated);
 }
 .gas-label { font-size: 10px; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }

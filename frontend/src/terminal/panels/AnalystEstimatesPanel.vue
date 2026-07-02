@@ -139,20 +139,20 @@ function handleSymbolSubmit(e: Event) {
 </template>
 
 <style scoped>
-.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; font-size: 12px; }
+.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); font-size: 12px; }
 .panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg, var(--color-bg-panel)); }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: var(--color-accent-soft); color: var(--color-accent); font-size: 12px; text-align: center; }
+.mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: var(--radius-sm); background: var(--color-accent-soft); color: var(--color-accent); font-size: 12px; text-align: center; }
 .panel-content { flex: 1; overflow-y: auto; }
-.consensus-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); }
-.consensus-badge { padding: 4px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.consensus-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
+.consensus-badge { padding: 4px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .consensus-breakdown { display: flex; gap: 8px; }
-.badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge { padding: 2px 10px; border-radius: var(--radius-lg); font-size: 11px; font-weight: 600; }
 .badge-buy { background: var(--color-down); color: var(--color-down); }
 .badge-hold { background: var(--color-accent); color: var(--color-accent); }
 .badge-sell { background: var(--color-up); color: var(--color-up); }
@@ -160,7 +160,7 @@ function handleSymbolSubmit(e: Event) {
 .estimates-table th { text-align: left; padding: 6px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); font-weight: 500; white-space: nowrap; }
 .estimates-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); }
 .firm-cell { color: var(--color-text-secondary); }
-.rating-pill { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.rating-pill { padding: 2px 10px; border-radius: var(--radius-lg); font-size: 11px; font-weight: 600; }
 .num-cell { font-variant-numeric: tabular-nums; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }

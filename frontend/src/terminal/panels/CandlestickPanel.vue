@@ -941,7 +941,7 @@ onUnmounted(() => {
   color: var(--color-brand);
 }
 .watchlist-btn {
-  padding: 2px 10px; border: 1px solid var(--color-accent); border-radius: 4px;
+  padding: 2px 10px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-accent); cursor: pointer;
   font-size: 11px; white-space: nowrap; transition: all var(--transition-fast);
 }
@@ -950,7 +950,7 @@ onUnmounted(() => {
 .watchlist-btn.inList:hover { background: var(--color-down); color: #fff; }
 .tab-btns { display: flex; gap: 4px; }
 .tab-btn {
-  padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
 }
 .tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: var(--color-accent); }
@@ -979,7 +979,7 @@ onUnmounted(() => {
   display: flex; justify-content: flex-end; padding: 4px 0; margin-bottom: 4px;
 }
 .day-select {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 12px;
   cursor: pointer;
 }
@@ -1002,13 +1002,13 @@ onUnmounted(() => {
 .indicator-btn.active {
   background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
 }
-.err-toast { padding: 6px 12px; background: rgba(239,68,68,0.15); color: #ef4444; font-size: 12px; border-radius: 4px; margin-bottom: 8px; }
+.err-toast { padding: 6px 12px; background: rgba(239,68,68,0.15); color: #ef4444; font-size: 12px; border-radius: var(--radius-sm); margin-bottom: 8px; }
 
 /* Depth sidebar */
 .depth-toggle { }
 .minute-layout { display: flex; flex: 1; min-height: 0; gap: 8px; }
 .minute-chart-area { flex: 1; min-width: 0; min-height: 0; display: flex; }
-.depth-sidebar { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 3px; padding: 6px; background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong); border-radius: 6px; overflow: hidden; }
+.depth-sidebar { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 3px; padding: 6px; background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); overflow: hidden; }
 .dp-last-price { display: flex; align-items: baseline; gap: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--color-border-strong); font-size: 12px; }
 .dp-name { font-size: 10px; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-val { font-size: 14px; font-weight: 700; }
@@ -1028,7 +1028,7 @@ onUnmounted(() => {
 .dp-bar.ask { background: var(--color-up); left: 0; }
 .dp-ask-p { width: 48px; flex-shrink: 0; color: var(--color-up); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-ask-s { width: 52px; flex-shrink: 0; text-align: right; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dp-sim { font-size: 9px; color: var(--color-text-tertiary); text-align: center; padding: 1px; background: var(--color-border-strong); border-radius: 3px; }
+.dp-sim { font-size: 9px; color: var(--color-text-tertiary); text-align: center; padding: 1px; background: var(--color-border-strong); border-radius: var(--radius-sm); }
 
 .chart-area {
   position: relative;
@@ -1070,7 +1070,7 @@ onUnmounted(() => {
   padding: 6px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   z-index: 11;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
@@ -1084,7 +1084,7 @@ onUnmounted(() => {
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 13px;
 }
@@ -1103,7 +1103,7 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 2px;
   cursor: pointer;
 }
@@ -1125,7 +1125,7 @@ onUnmounted(() => {
 .drawing-btn {
   padding: 3px 8px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
   font-size: 14px;
@@ -1147,7 +1147,7 @@ onUnmounted(() => {
   z-index: 1000;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 4px 0;
   min-width: 140px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);

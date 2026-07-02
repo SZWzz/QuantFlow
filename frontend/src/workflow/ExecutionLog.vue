@@ -118,7 +118,7 @@ function statusColor(s: string): string {
 
 .clear-btn {
   padding: 2px 8px; background: transparent; border: 1px solid var(--color-border);
-  color: var(--color-text-tertiary); border-radius: 3px; font-size: 10px; cursor: pointer;
+  color: var(--color-text-tertiary); border-radius: var(--radius-sm); font-size: 10px; cursor: pointer;
 }
 .clear-btn:hover { color: var(--color-text-primary); border-color: var(--color-border-strong); }
 

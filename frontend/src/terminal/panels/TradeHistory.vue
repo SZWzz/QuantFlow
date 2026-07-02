@@ -260,7 +260,7 @@ function exportData() {
   padding: 5px 8px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -272,7 +272,7 @@ function exportData() {
   padding: 5px 6px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -293,7 +293,7 @@ function exportData() {
   cursor: pointer;
   transition: all 0.15s;
 }
-.tab-switch button:first-child { border-radius: 4px 0 0 4px; }
+.tab-switch button:first-child { border-radius: var(--radius-sm) 0 0 4px; }
 .tab-switch button:last-child  { border-radius: 0 4px 4px 0; }
 .tab-switch button.active {
   background: var(--card);
@@ -306,7 +306,7 @@ function exportData() {
   padding: 5px 14px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--accent);
   font-size: 11px;
   font-weight: 500;
@@ -320,7 +320,7 @@ function exportData() {
   flex: 1;
   overflow-y: auto;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 table {
@@ -367,7 +367,7 @@ td {
 .badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: var(--font-xs);
   font-weight: 600;
   text-transform: uppercase;

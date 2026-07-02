@@ -709,7 +709,7 @@ function onExportData() {
   padding: 3px 10px;
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 12px;
   color: var(--color-text-secondary);

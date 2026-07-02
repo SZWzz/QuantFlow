@@ -129,7 +129,7 @@ const tableColumns = [
 </template>
 
 <style scoped>
-.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; font-size: 12px; }
+.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); font-size: 12px; }
 
 .alpha-mining-panel {
   display: flex;
@@ -152,7 +152,7 @@ const tableColumns = [
 .chip {
   padding: 2px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-size: var(--font-xs);
   color: var(--color-text-secondary);

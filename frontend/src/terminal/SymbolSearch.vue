@@ -198,7 +198,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   width: 100%;
   padding: 6px 28px 6px 10px;
   border: 1px solid #374151;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   font-size: 13px;
@@ -228,7 +228,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   padding: 4px 0;
   list-style: none;
   border: 1px solid #374151;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
@@ -264,7 +264,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
 .filter-tab {
   padding: 2px 8px;
   border: 1px solid #4b5563;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -283,7 +283,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
 }
 .market-badge {
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 600;
   color: #fff;

@@ -150,8 +150,8 @@ onMounted(loadData)
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-right { display: flex; align-items: center; gap: 8px; }
-.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .status { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
 .status.error { color: var(--color-error); }
 

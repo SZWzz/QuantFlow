@@ -162,16 +162,16 @@ function formatMoney(v: number): string {
 .params-section { margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
 .param-row { display: flex; align-items: center; gap: 8px; }
 .param-row label { font-size: 12px; color: var(--color-text-secondary); min-width: 60px; }
-.capital-input { padding: 4px 8px; font-size: 12px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); width: 120px; }
+.capital-input { padding: 4px 8px; font-size: 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 120px; }
 .scenario-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
 .sc-tab {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px;
 }
 .sc-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .scenario-desc { font-size: 11px; color: var(--color-text-tertiary); }
 .run-btn {
-  align-self: flex-start; padding: 6px 20px; border: none; border-radius: 4px;
+  align-self: flex-start; padding: 6px 20px; border: none; border-radius: var(--radius-sm);
   background: var(--color-accent); color: var(--color-text-primary); cursor: pointer; font-size: 12px; font-weight: 500;
 }
 .run-btn:hover { background: var(--color-accent); }
@@ -180,7 +180,7 @@ function formatMoney(v: number): string {
 
 .result-section { flex: 1; }
 .result-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.res-card { padding: 12px; border: 1px solid var(--color-border-subtle); border-radius: 8px; text-align: center; }
+.res-card { padding: 12px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center; }
 .res-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .res-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .up { color: var(--color-up); }

@@ -111,15 +111,15 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .loading-state { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-tertiary); font-size: 13px; }
 .prediction-dashboard { padding: var(--panel-padding); height: 100%; display: flex; flex-direction: column; }
 .controls { display: flex; gap: 8px; margin-bottom: 8px; }
-.search-input { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-panel); color: var(--color-text-primary); }
+.search-input { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-panel); color: var(--color-text-primary); }
 .filter-select { padding: 4px 8px; background: var(--color-bg-panel); border: 1px solid var(--color-border); color: var(--color-text-primary); }
-.btn { padding: 4px 12px; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; background: var(--color-bg-panel); color: var(--color-text-primary); }
+.btn { padding: 4px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; background: var(--color-bg-panel); color: var(--color-text-primary); }
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; }
-.chart-box { border: 1px solid var(--color-border); border-radius: 4px; padding: 8px; }
+.chart-box { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px; }
 .chart-box h4 { margin: 0 0 8px 0; font-size: 0.9em; color: var(--color-text-primary); }
 .histogram { display: flex; align-items: flex-end; height: 150px; gap: 1px; }
 .bar { flex: 1; background: var(--color-accent); min-height: 1px; border-radius: 1px 1px 0 0; }

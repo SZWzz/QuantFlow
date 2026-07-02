@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, ref } from 'vue'
 
 const props = withDefaults(defineProps<{
   title: string
@@ -15,6 +15,15 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   (e: 'click'): void
 }>()
+
+const valueChanged = ref(false)
+
+watch(() => props.value, (newVal, oldVal) => {
+  if (oldVal !== undefined && newVal !== oldVal) {
+    valueChanged.value = true
+    setTimeout(() => { valueChanged.value = false }, 600)
+  }
+})
 
 const formattedValue = computed(() => {
   const v = props.value
@@ -59,7 +68,7 @@ const sparkPoints = computed(() => {
         {{ change >= 0 ? '+' : '' }}{{ (change * 100).toFixed(2) }}%
       </span>
     </div>
-    <div class="card-value">{{ formattedValue }}</div>
+    <div :class="['card-value', { 'number-changed': valueChanged }]">{{ formattedValue }}</div>
     <svg
       v-if="sparkline?.length"
       class="sparkline"
@@ -127,5 +136,19 @@ const sparkPoints = computed(() => {
   width: 100%;
   height: 24px;
   opacity: 0.6;
+}
+.number-changed {
+  animation: number-flash 0.6s ease-out;
+}
+
+@keyframes number-flash {
+  0% {
+    color: var(--color-accent);
+    text-shadow: 0 0 8px var(--color-accent-glow);
+  }
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
 }
 </style>

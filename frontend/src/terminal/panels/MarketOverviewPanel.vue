@@ -278,7 +278,7 @@ const blockRankColumns = [
 .breadth-bar {
   display: flex;
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: var(--space-xs);
 }
@@ -406,7 +406,7 @@ const blockRankColumns = [
   font-weight: 600;
 }
 
-.panel-error { padding: 8px 12px; margin: 0 var(--panel-padding); border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin: 0 var(--panel-padding); border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .block-empty {
   font-size: var(--font-xs);
   color: var(--color-text-tertiary);

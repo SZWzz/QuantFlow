@@ -338,7 +338,7 @@ onMounted(() => {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 5px 8px;
   font-size: 12px;
   width: 120px;
@@ -349,7 +349,7 @@ onMounted(() => {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 5px 6px;
   font-size: 12px;
 }
@@ -357,7 +357,7 @@ onMounted(() => {
 .compute-btn {
   padding: 5px 16px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;
@@ -386,7 +386,7 @@ onMounted(() => {
   padding: 6px 12px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   min-width: 80px;
 }
 

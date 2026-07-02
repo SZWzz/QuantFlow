@@ -274,7 +274,7 @@ onMounted(() => {
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-tabs { display: flex; gap: 4px; }
 .header-tabs .tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
 .header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
@@ -286,7 +286,7 @@ onMounted(() => {
   padding: 16px;
   margin-bottom: 12px;
   background: var(--color-bg-elevated);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   flex-shrink: 0;
 }
 .timeline-item {
@@ -346,7 +346,7 @@ onMounted(() => {
   gap: 4px;
   padding: 10px;
   background: var(--color-bg-elevated);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 .rule-label {
   font-size: 10px;
@@ -385,7 +385,7 @@ onMounted(() => {
   padding: 4px 8px;
   font-size: 14px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   width: 160px;
@@ -421,7 +421,7 @@ onMounted(() => {
   padding: 2px 6px;
   font-size: 11px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   width: 70px;
@@ -430,14 +430,14 @@ onMounted(() => {
   padding: 2px 6px;
   font-size: 11px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
 }
 .refresh-btn {
   padding: 4px 10px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;

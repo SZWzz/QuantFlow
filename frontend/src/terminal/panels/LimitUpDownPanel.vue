@@ -220,7 +220,7 @@ const tableColumns = [
   overflow: hidden;
 }
 
-.panel-error { padding: 8px 12px; margin: 0 var(--panel-padding); border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin: 0 var(--panel-padding); border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .limit-up-down-panel :deep(.clickable) {
   cursor: pointer;
 }

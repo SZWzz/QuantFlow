@@ -275,7 +275,7 @@ onMounted(loadData)
 .symbol-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgba(34, 197, 94, 0.15);
   color: var(--color-down);
   font-family: 'JetBrains Mono', monospace;
@@ -283,7 +283,7 @@ onMounted(loadData)
 .refresh-btn {
   padding: 4px 10px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;
@@ -352,7 +352,7 @@ onMounted(loadData)
   margin-bottom: 6px;
   padding: 4px 10px;
   background: rgba(245, 158, 11, 0.06);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border-left: 2px solid var(--color-accent);
 }
 
@@ -361,7 +361,7 @@ onMounted(loadData)
   flex-shrink: 0;
   margin-bottom: 8px;
   background: var(--color-bg-elevated);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 4px;
 }
 
@@ -372,7 +372,7 @@ onMounted(loadData)
   margin-bottom: 10px;
   padding: 6px 10px;
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border-left: 2px solid var(--color-border-strong);
 }
 
@@ -443,7 +443,7 @@ onMounted(loadData)
   font-size: 10px;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
 }
 .scenario-conservative .scenario-badge,

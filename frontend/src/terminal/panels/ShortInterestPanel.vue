@@ -136,12 +136,12 @@ onMounted(fetchData)
 }
 .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.sym-input { padding: 2px 6px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); width: 70px; }
-.refresh-btn { margin-left: auto; padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.sym-input { padding: 2px 6px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 70px; }
+.refresh-btn { margin-left: auto; padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-.stat-card { padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: 8px; text-align: center; }
+.stat-card { padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center; }
 .stat-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .stat-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .up { color: var(--color-up); }

@@ -185,7 +185,7 @@ onMounted(loadFilings)
   width: 100px;
   padding: 4px 8px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   font-size: 13px;
@@ -193,7 +193,7 @@ onMounted(loadFilings)
 .refresh-btn {
   padding: 4px 10px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;
@@ -221,7 +221,7 @@ onMounted(loadFilings)
 .filter-btn {
   padding: 3px 10px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -247,7 +247,7 @@ onMounted(loadFilings)
 .retry-btn {
   padding: 4px 14px;
   border: 1px solid var(--color-up);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-up);
   cursor: pointer;
@@ -293,7 +293,7 @@ onMounted(loadFilings)
 .form-badge {
   display: inline-block;
   padding: 2px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -329,7 +329,7 @@ onMounted(loadFilings)
   white-space: nowrap;
   color: var(--color-text-secondary);
 }
-.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; margin-right: 8px; }
+.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; margin-right: 8px; }
 .panel-footer {
   flex-shrink: 0;
   padding-top: 8px;

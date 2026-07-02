@@ -114,7 +114,7 @@ onUnmounted(() => {
 }
 .market-tabs { display: flex; gap: 2px; flex-shrink: 0; }
 .mkt-tab {
-  padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: 3px;
+  padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; line-height: 1.2;
 }
 .mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.15); }

@@ -276,7 +276,7 @@ function statusDotClass(s: string): string {
   padding: 5px 6px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -295,7 +295,7 @@ function statusDotClass(s: string): string {
   padding: 4px 6px;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--muted);
   font-size: 10px;
   cursor: pointer;
@@ -315,7 +315,7 @@ function statusDotClass(s: string): string {
   padding: 4px 10px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--accent);
   font-size: 11px;
   font-weight: 500;
@@ -336,7 +336,7 @@ function statusDotClass(s: string): string {
   padding: 6px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 11px;
   font-family: monospace;
@@ -351,7 +351,7 @@ function statusDotClass(s: string): string {
   flex-direction: column;
   gap: 10px;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 10px;
 }
 
@@ -378,7 +378,7 @@ function statusDotClass(s: string): string {
   padding: 5px 6px;
   background: var(--input);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -389,7 +389,7 @@ function statusDotClass(s: string): string {
   padding: 10px;
   background: var(--accent);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: #000;
   font-size: 13px;
   font-weight: 600;
@@ -414,7 +414,7 @@ function statusDotClass(s: string): string {
   align-items: flex-start;
   padding: 6px 8px;
   background: var(--card);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .dot {

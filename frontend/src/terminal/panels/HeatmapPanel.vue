@@ -136,12 +136,12 @@ onMounted(() => {
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .market-tabs { display: flex; gap: 4px; }
 .mkt-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
 .mkt-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -163,7 +163,7 @@ onMounted(() => {
 }
 .heatmap-cell {
   min-width: 70px; min-height: 32px; padding: 6px 8px;
-  border-radius: 3px; display: flex; flex-wrap: wrap;
+  border-radius: var(--radius-sm); display: flex; flex-wrap: wrap;
   align-items: center; justify-content: space-between;
   font-size: 11px; transition: filter 0.15s; cursor: default;
 }

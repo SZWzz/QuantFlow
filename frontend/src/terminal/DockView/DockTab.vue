@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue'
+import { computed, ref, watch, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
@@ -21,18 +21,51 @@ const emit = defineEmits<{
 }>()
 
 const dragTabId = ref<string | null>(null)
+const dragOverTabId = ref<string | null>(null)
+const transitioning = ref(false)
+
+// Watch activeTab changes to trigger transition animation
+watch(() => props.activeTab, () => {
+  transitioning.value = true
+  setTimeout(() => { transitioning.value = false }, 200)
+})
 
 function onDragStart(e: DragEvent, tabId: string) {
   if (!e.dataTransfer) return
   dragTabId.value = tabId
+  dragOverTabId.value = null
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('text/plain', JSON.stringify({ leafId: props.leafId, tabId }))
 }
-function onDragEnd() { dragTabId.value = null }
-
+function onDragEnd() {
+  dragTabId.value = null
+  dragOverTabId.value = null
+}
 function onDragOver(e: DragEvent) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move' }
+function onTabDragOver(e: DragEvent, tabId?: string) {
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  if (tabId && dragTabId.value !== tabId) {
+    dragOverTabId.value = tabId
+  }
+}
+function onTabDrop(e: DragEvent, toIdx: number) {
+  e.preventDefault()
+  if (!e.dataTransfer) return
+  try {
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+    if (data.leafId === props.leafId) {
+      const fromIdx = props.tabs.findIndex((t) => t.id === data.tabId)
+      if (fromIdx !== -1 && fromIdx !== toIdx) {
+        terminal.moveTab(props.leafId, fromIdx, toIdx)
+      }
+    } else {
+      emit('tab-drag', data.leafId, data.tabId, props.leafId)
+    }
+  } catch { /* ignore */ }
+  dragOverTabId.value = null
+}
 
-// Drop on tab header area: move tab from another leaf
 function onDrop(e: DragEvent) {
   e.preventDefault(); if (!e.dataTransfer) return
   try {
@@ -40,27 +73,7 @@ function onDrop(e: DragEvent) {
     if (data.leafId !== props.leafId) emit('tab-drag', data.leafId, data.tabId, props.leafId)
   } catch { /* ignore */ }
   dragTabId.value = null
-}
-
-// Drop on a specific tab: reorder within the same leaf
-function onTabDragOver(e: DragEvent) {
-  e.preventDefault()
-  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
-}
-
-function onTabDrop(e: DragEvent, toIndex: number) {
-  e.preventDefault(); if (!e.dataTransfer) return
-  try {
-    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
-    if (data.leafId === props.leafId) {
-      // Same leaf — reorder
-      emit('tab-reorder', props.leafId, data.tabId, toIndex)
-    } else {
-      // Different leaf — move
-      emit('tab-drag', data.leafId, data.tabId, props.leafId)
-    }
-  } catch { /* ignore */ }
-  dragTabId.value = null
+  dragOverTabId.value = null
 }
 
 const terminal = useTerminalStore()
@@ -90,7 +103,7 @@ function closeTab(tabId: string) {
 </script>
 
 <template>
-  <div class="dock-tab">
+  <div :class="['dock-tab', { active: activeTab }]">
     <div class="tab-header" @dragover="onDragOver" @drop="onDrop">
       <div class="tab-list">
         <button
@@ -98,11 +111,11 @@ function closeTab(tabId: string) {
           :key="tab.id"
           :draggable="true"
           class="tab-btn"
-          :class="{ active: tab.id === activeTab, dragging: dragTabId === tab.id }"
+          :class="{ active: tab.id === activeTab, dragging: dragTabId === tab.id, 'drag-over': dragOverTabId === tab.id }"
           @click="emit('select-tab', tab.id)"
           @dragstart="onDragStart($event, tab.id)"
           @dragend="onDragEnd"
-          @dragover="onTabDragOver"
+          @dragover="onTabDragOver($event, tab.id)"
           @drop="onTabDrop($event, idx)"
         >
           <span class="tab-icon" v-html="tab.icon" />
@@ -121,7 +134,7 @@ function closeTab(tabId: string) {
         </button>
       </div>
     </div>
-    <div class="tab-content" @dragover="onDragOver" @drop="onDrop">
+    <div class="tab-content" :class="{ transitioning }" @dragover="onDragOver" @drop="onDrop">
       <div v-if="tabs.length === 0" class="empty-content">
         <span class="empty-icon" v-html="getIcon('plus')" />
         Drop panels here
@@ -148,6 +161,7 @@ function closeTab(tabId: string) {
   height: 100%;
   background: var(--color-bg-panel);
   overflow: hidden;
+  position: relative;
 }
 
 .tab-header {
@@ -221,8 +235,32 @@ function closeTab(tabId: string) {
 }
 
 .tab-btn.dragging {
-  opacity: 0.4;
+  opacity: 0.25;
+  transform: scale(0.92);
   cursor: grabbing;
+  filter: grayscale(0.5);
+}
+
+.tab-btn.drag-over {
+  background: var(--color-bg-selected);
+  border-color: var(--color-accent);
+}
+
+/* Drop indicator line between tabs */
+.drop-indicator {
+  width: 2px;
+  height: 20px;
+  background: var(--color-accent);
+  border-radius: 1px;
+  box-shadow: 0 0 6px var(--color-accent-glow);
+  animation: drop-pulse 1.2s ease infinite;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+@keyframes drop-pulse {
+  0%, 100% { opacity: 0.6; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(1.2); }
 }
 
 .tab-icon {
@@ -292,6 +330,20 @@ function closeTab(tabId: string) {
   flex: 1;
   overflow: auto;
   min-height: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tab-content.transitioning {
+  opacity: 0.5;
+}
+
+.tab-content.transitioning .panel-instance {
+  animation: panel-enter 0.2s ease-out;
+}
+
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .panel-instance {
@@ -320,5 +372,23 @@ function closeTab(tabId: string) {
 .empty-icon :deep(svg) {
   width: 100%;
   height: 100%;
+}
+
+.dock-tab.active {
+  box-shadow: inset 0 0 0 1.5px var(--color-accent),
+              0 0 12px var(--color-accent-glow);
+  z-index: 5;
+}
+
+.dock-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  opacity: 0.6;
+  pointer-events: none;
 }
 </style>

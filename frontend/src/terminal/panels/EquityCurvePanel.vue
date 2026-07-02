@@ -277,7 +277,7 @@ onMounted(() => {
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; align-items: center; }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 .refresh-btn:hover { background: var(--color-border-strong); }
@@ -348,7 +348,7 @@ onMounted(() => {
   flex: 1;
   min-width: 100px;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   display: flex;

@@ -102,13 +102,13 @@ onMounted(loadData)
 .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-right { display: flex; align-items: center; gap: 8px; }
-.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(30,144,255,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(30,144,255,0.15); color: var(--color-accent); font-family: 'JetBrains Mono', monospace; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .status { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
 .status.error { color: var(--color-error); }
 .sections-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.fin-section { background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle); border-radius: 8px; overflow: hidden; }
+.fin-section { background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
 .section-title { margin: 0; padding: 6px 12px; font-size: 10px; font-weight: 600; color: var(--color-text-secondary); background: var(--color-bg-subtle); border-bottom: 1px solid var(--color-border-subtle); text-transform: uppercase; letter-spacing: 0.5px; }
 .fin-table { padding: 2px 0; }
 .fin-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 12px; border-bottom: 1px solid var(--color-border-subtle); }

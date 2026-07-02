@@ -2,11 +2,17 @@
 import { getIcon } from '@/lib/icons'
 import type { IconName } from '@/lib/icons'
 
+interface EmptyAction {
+  label: string
+  primary?: boolean
+  handler: () => void
+}
+
 withDefaults(defineProps<{
   icon?: string
   title: string
   description?: string
-  action?: { label: string; handler: () => void }
+  actions?: EmptyAction[]
 }>(), {
   icon: 'inbox',
 })
@@ -17,9 +23,16 @@ withDefaults(defineProps<{
     <span class="empty-icon" v-html="getIcon(icon as IconName)" />
     <h4 class="empty-title">{{ title }}</h4>
     <p v-if="description" class="empty-desc">{{ description }}</p>
-    <button v-if="action" class="btn btn-primary" @click="action.handler">
-      {{ action.label }}
-    </button>
+    <div v-if="actions && actions.length" class="empty-actions">
+      <button
+        v-for="(act, idx) in actions"
+        :key="idx"
+        :class="['btn', act.primary ? 'btn-primary' : 'btn-ghost']"
+        @click="act.handler"
+      >
+        {{ act.label }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -33,6 +46,12 @@ withDefaults(defineProps<{
   gap: var(--space-md);
   padding: var(--space-xl);
   text-align: center;
+  animation: empty-enter 0.4s ease-out;
+}
+
+@keyframes empty-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .empty-icon {
@@ -61,5 +80,12 @@ withDefaults(defineProps<{
   margin: 0;
   max-width: 280px;
   line-height: 1.5;
+}
+
+.empty-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 </style>

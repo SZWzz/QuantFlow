@@ -169,12 +169,12 @@ onMounted(fetchData)
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .preset-scroll { display: flex; gap: 4px; overflow-x: auto; flex: 1; }
 .preset-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; white-space: nowrap;
 }
 .preset-tab.active { background: rgba(59,130,246,0.1); }
 .refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px;
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }

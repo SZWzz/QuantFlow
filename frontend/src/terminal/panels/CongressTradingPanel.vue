@@ -142,27 +142,27 @@ function amountColor(amount: string): string {
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
 .header-controls { display: flex; gap: 8px; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
+.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: 4px; background: var(--color-accent-soft); color: var(--color-accent); font-size: 12px; text-align: center; }
+.mock-banner { padding: 6px 10px; margin-bottom: 12px; border-radius: var(--radius-sm); background: var(--color-accent-soft); color: var(--color-accent); font-size: 12px; text-align: center; }
 .filter-bar { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 6px; }
 .filter-label { font-size: 11px; color: var(--color-text-primary); font-weight: 500; text-transform: uppercase; }
 .filter-buttons { display: flex; gap: 2px; }
-.filter-btn { padding: 3px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-secondary); cursor: pointer; font-size: 11px; }
+.filter-btn { padding: 3px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-secondary); cursor: pointer; font-size: 11px; }
 .filter-btn.active { background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent); }
-.summary-bar { display: flex; justify-content: space-between; padding: 6px 10px; margin-bottom: 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: var(--color-bg-elevated); font-size: 11px; color: var(--color-text-secondary); }
+.summary-bar { display: flex; justify-content: space-between; padding: 6px 10px; margin-bottom: 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); font-size: 11px; color: var(--color-text-secondary); }
 .panel-content { flex: 1; overflow-y: auto; }
 .congress-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .congress-table th { text-align: left; padding: 6px 8px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-strong); font-weight: 500; white-space: nowrap; }
 .congress-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-bg-elevated); color: var(--color-text-primary); }
 .name-cell { font-weight: 500; color: var(--color-text-primary); }
 .symbol-cell { font-weight: 600; color: var(--color-accent); }
-.party-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.party-badge { padding: 2px 8px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 600; }
 .party-badge.democrat { background: var(--color-accent-soft); color: var(--color-accent); }
 .party-badge.republican { background: var(--color-up-bg, rgba(239,68,68,0.08)); color: var(--color-up); }
 .party-badge.independent { background: var(--color-border-subtle); color: var(--color-text-secondary); }
-.type-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.type-badge { padding: 2px 10px; border-radius: var(--radius-lg); font-size: 11px; font-weight: 600; }
 .type-badge.buy { background: var(--color-down-bg, rgba(34,197,94,0.08)); color: var(--color-down); }
 .type-badge.sell { background: var(--color-up-bg, rgba(239,68,68,0.08)); color: var(--color-up); }
 .amount-cell { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--color-text-primary); }

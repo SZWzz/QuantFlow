@@ -200,12 +200,12 @@ onMounted(loadData)
 .stock-name { color: var(--color-text-secondary); font-size: 12px; }
 .badge {
   font-size: 10px; background: var(--color-accent); color: var(--color-text-primary);
-  padding: 2px 8px; border-radius: 10px;
+  padding: 2px 8px; border-radius: var(--radius-lg);
 }
 .latest-date { font-size: 11px; color: var(--color-text-tertiary); }
 .btn-sm {
   padding: 2px 8px; font-size: 11px;
-  border: 1px solid var(--color-border); border-radius: 4px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-secondary); cursor: pointer;
 }
 .btn-sm:hover { background: var(--color-bg-hover); }
@@ -220,7 +220,7 @@ onMounted(loadData)
 .summary-row {
   display: flex; align-items: center; gap: 12px;
   padding: 8px 12px; margin-bottom: 12px;
-  background: var(--color-bg-subtle); border-radius: 6px;
+  background: var(--color-bg-subtle); border-radius: var(--radius-md);
 }
 .summary-close { font-size: 15px; font-weight: 600; }
 .summary-change { font-size: 14px; font-weight: 600; }
@@ -233,7 +233,7 @@ onMounted(loadData)
 }
 .flow-card {
   padding: 12px; border: 1px solid var(--color-border-subtle);
-  border-radius: 8px; text-align: center;
+  border-radius: var(--radius-lg); text-align: center;
 }
 .card-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
 .card-amount { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 2px; }

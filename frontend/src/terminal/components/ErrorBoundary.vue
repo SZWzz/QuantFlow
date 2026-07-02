@@ -66,7 +66,7 @@ function retry() {
 .error-btn {
   padding: 6px 16px;
   border: 1px solid var(--color-border-strong, #374151);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated, #2a2a3e);
   color: var(--color-text-primary, #e5e7eb);
   cursor: pointer;

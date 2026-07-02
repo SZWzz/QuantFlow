@@ -137,7 +137,7 @@ function isNegative(v: any): boolean {
   width: 100px;
   padding: 4px 8px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   font-size: 13px;
@@ -146,7 +146,7 @@ function isNegative(v: any): boolean {
 .check-btn {
   padding: 4px 10px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;

@@ -119,10 +119,10 @@ onUnmounted(() => {
 .panel-container { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-panel); color: var(--color-text-primary); font-size: 13px; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
 .header-left { display: flex; align-items: center; gap: 8px; }
-.code-input { width: 80px; padding: 2px 6px; border: 1px solid var(--color-border-subtle); border-radius: 4px; background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; font-family: monospace; text-align: center; }
+.code-input { width: 80px; padding: 2px 6px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; font-family: monospace; text-align: center; }
 .index-name { font-weight: 500; font-size: 14px; }
-.badge { font-size: 11px; background: var(--color-primary); color: var(--color-text-primary); padding: 2px 8px; border-radius: 10px; }
-.btn-sm { padding: 2px 8px; font-size: 11px; border: 1px solid var(--color-border); border-radius: 4px; background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+.badge { font-size: 11px; background: var(--color-primary); color: var(--color-text-primary); padding: 2px 8px; border-radius: var(--radius-lg); }
+.btn-sm { padding: 2px 8px; font-size: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
 .btn-sm:hover { background: var(--color-bg-hover); }
 .panel-body { flex: 1; overflow: auto; padding: 12px; }
 .state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); font-size: 13px; }

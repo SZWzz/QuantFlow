@@ -258,7 +258,7 @@ function tableData() {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
 .scanner-panel {
   height: 100%;
   display: flex;

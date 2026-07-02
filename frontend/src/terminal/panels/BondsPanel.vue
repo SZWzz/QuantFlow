@@ -129,8 +129,8 @@ onMounted(loadData)
 .panel-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--color-border)}
 .title{font-weight:500}
 .header-actions{display:flex;gap:8px;align-items:center}
-.search-input{width:130px;padding:2px 6px;border:1px solid var(--color-border-subtle);border-radius:4px;background:var(--color-bg-elevated);color:var(--color-text-primary);font-size:12px}
-.btn-sm{padding:2px 8px;font-size:11px;border:1px solid var(--color-border);border-radius:4px;background:transparent;color:var(--color-text-secondary);cursor:pointer}
+.search-input{width:130px;padding:2px 6px;border:1px solid var(--color-border-subtle);border-radius: var(--radius-sm);background:var(--color-bg-elevated);color:var(--color-text-primary);font-size:12px}
+.btn-sm{padding:2px 8px;font-size:11px;border:1px solid var(--color-border);border-radius: var(--radius-sm);background:transparent;color:var(--color-text-secondary);cursor:pointer}
 .btn-sm:hover{background:var(--color-bg-hover)}
 .panel-body{flex:1;overflow:auto;padding:0 12px 12px}
 .status{display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-tertiary);font-size:13px}
