@@ -90,7 +90,7 @@ func (s *PeerComparisonService) GetPeers(ctx context.Context, symbol string) ([]
 }
 
 // GetIndustryRanks returns industry ranking data.
-func (s *PeerComparisonService) GetIndustryRanks(ctx context.Context, topN int) ([]adapters.IndustryRank, error) {
+func (s *PeerComparisonService) GetIndustryRanks(ctx context.Context, topN int) ([]market.IndustryRank, error) {
 	if s.signalsAdapter == nil {
 		return nil, fmt.Errorf("peer comparison: signals adapter not configured")
 	}

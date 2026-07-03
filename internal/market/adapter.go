@@ -31,3 +31,23 @@ type Adapter interface {
 	// HealthCheck checks if the adapter is operational.
 	HealthCheck(ctx context.Context) error
 }
+
+// IndustryRank represents a single industry/sector ranking entry.
+type IndustryRank struct {
+	Rank      int     `json:"rank"`
+	Name      string  `json:"name"`
+	Code      string  `json:"code"`
+	ChangePct float64 `json:"change_pct"`
+	UpCount   int     `json:"up_count"`
+	DownCount int     `json:"down_count"`
+	Leader    string  `json:"leader"`
+	LeaderChg float64 `json:"leader_change"`
+}
+
+// IndustryRankProvider is an optional interface for adapters that can provide
+// industry/sector ranking data (涨跌板块排名).
+type IndustryRankProvider interface {
+	// FetchIndustryRanks returns top N industry/sector rankings by change percent.
+	// market is "CN", "HK", or "US".
+	FetchIndustryRanks(ctx context.Context, market string, topN int) ([]IndustryRank, error)
+}

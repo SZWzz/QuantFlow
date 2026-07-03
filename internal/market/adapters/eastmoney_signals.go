@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"quantflow/internal/market"
 )
 
 // DragonTigerRecord represents a single stock's appearance on the 龙虎榜.
@@ -37,18 +39,6 @@ type LockupExpiry struct {
 	Type   string  `json:"type"`
 	Shares float64 `json:"shares"`
 	Ratio  float64 `json:"ratio"`
-}
-
-// IndustryRank represents a single industry's ranking entry.
-type IndustryRank struct {
-	Rank      int     `json:"rank"`
-	Name      string  `json:"name"`
-	Code      string  `json:"code"`
-	ChangePct float64 `json:"change_pct"`
-	UpCount   int     `json:"up_count"`
-	DownCount int     `json:"down_count"`
-	Leader    string  `json:"leader"`
-	LeaderChg float64 `json:"leader_change"`
 }
 
 // EastMoneySignalsAdapter provides dragon tiger board, lockup calendar,
@@ -215,7 +205,7 @@ func (a *EastMoneySignalsAdapter) FetchIPOCalendar(ctx context.Context, startDat
 // FetchIndustryRanks fetches industry ranking by daily change.
 // Tries once and returns immediately on failure — better to show empty
 // sector data than to block the market overview panel for 5+ seconds.
-func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, topN int) ([]IndustryRank, error) {
+func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, topN int) ([]market.IndustryRank, error) {
 	a.limiter.Wait()
 
 	url := "https://push2.eastmoney.com/api/qt/clist/get" +
@@ -252,9 +242,9 @@ func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, topN i
 		return nil, fmt.Errorf("eastmoney_signals industry: %w", err)
 	}
 
-	ranks := make([]IndustryRank, 0, len(result.Data.Diff))
+	ranks := make([]market.IndustryRank, 0, len(result.Data.Diff))
 	for i, d := range result.Data.Diff {
-		ranks = append(ranks, IndustryRank{
+		ranks = append(ranks, market.IndustryRank{
 			Rank:      i + 1,
 			Name:      d.F14,
 			Code:      d.F12,

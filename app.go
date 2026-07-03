@@ -819,9 +819,9 @@ func (a *App) GetLockupExpiry(symbol string) ([]adapters.LockupExpiry, error) {
 
 // GetIndustryRanks returns industry ranking by change percent.
 // Returns empty slice on error (eastmoney push2 API is frequently unavailable).
-func (a *App) GetIndustryRanks(topN int) ([]adapters.IndustryRank, error) {
+func (a *App) GetIndustryRanks(topN int) ([]market.IndustryRank, error) {
 	if a.signalsAdpt == nil {
-		return []adapters.IndustryRank{}, nil
+		return []market.IndustryRank{}, nil
 	}
 	if topN <= 0 {
 		topN = 20
@@ -829,7 +829,7 @@ func (a *App) GetIndustryRanks(topN int) ([]adapters.IndustryRank, error) {
 	ranks, err := a.signalsAdpt.FetchIndustryRanks(context.Background(), topN)
 	if err != nil {
 		slog.Warn("GetIndustryRanks failed, returning empty", "error", err)
-		return []adapters.IndustryRank{}, nil
+		return []market.IndustryRank{}, nil
 	}
 	return ranks, nil
 }
