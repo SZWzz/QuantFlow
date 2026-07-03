@@ -17,9 +17,13 @@ import (
 // idxDef describes a market index to query in GetMarketOverview.
 type idxDef struct{ code, name string }
 
-// marketOverviewCache caches the last market overview result with TTL.
+// marketOverviewCache caches market overview results per market with TTL.
 type marketOverviewCache struct {
 	mu      sync.Mutex
+	entries map[string]*marketCacheEntry
+}
+
+type marketCacheEntry struct {
 	data    map[string]interface{}
 	expires time.Time
 }
@@ -70,22 +74,30 @@ const (
 	fetchDataCacheMacroTTL   = 30 * time.Minute
 )
 
-var overviewCache = &marketOverviewCache{}
+var overviewCache = &marketOverviewCache{
+	entries: make(map[string]*marketCacheEntry),
+}
 
 func (c *marketOverviewCache) get(mkt string) (map[string]interface{}, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.data != nil && time.Now().Before(c.expires) {
-		return c.data, true
+	entry, ok := c.entries[mkt]
+	if !ok || time.Now().After(entry.expires) {
+		if ok {
+			delete(c.entries, mkt)
+		}
+		return nil, false
 	}
-	return nil, false
+	return entry.data, true
 }
 
-func (c *marketOverviewCache) set(data map[string]interface{}) {
+func (c *marketOverviewCache) set(mkt string, data map[string]interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.data = data
-	c.expires = time.Now().Add(60 * time.Second)
+	c.entries[mkt] = &marketCacheEntry{
+		data:    data,
+		expires: time.Now().Add(60 * time.Second),
+	}
 }
 
 // indexOHLCVCache caches daily OHLCV bars per index code to avoid repeated fetches.
@@ -471,7 +483,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 		"indices": result,
 		"breadth": map[string]int{"advancers": 0, "decliners": 0, "unchanged": 0},
 	}
-	overviewCache.set(out)
+	overviewCache.set(mkt, out)
 	return out, nil
 }
 
