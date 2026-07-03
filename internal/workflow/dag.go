@@ -1,5 +1,7 @@
 package workflow
 
+import "fmt"
+
 // Edge represents a directed connection between two node ports in a workflow DAG.
 type Edge struct {
 	FromNode string `json:"from_node"`
@@ -103,12 +105,85 @@ func TopoSort(wf *Workflow) ([]TopoLayer, error) {
 	return layers, nil
 }
 
+// TypesCompatible returns true if an output port type can connect to an input port type.
+func TypesCompatible(output, input PortType) bool {
+	if output == PortAny || input == PortAny {
+		return true
+	}
+	if output == input {
+		return true
+	}
+	// ohlcv is compatible with series
+	if output == PortOHLCV && input == PortSeries {
+		return true
+	}
+	// signal is compatible with number
+	if output == PortSignal && input == PortNumber {
+		return true
+	}
+	return false
+}
+
+// findNode returns a pointer to the node instance with the given ID, or nil.
+func findNode(nodes []NodeInstance, id string) *NodeInstance {
+	for i := range nodes {
+		if nodes[i].ID == id {
+			return &nodes[i]
+		}
+	}
+	return nil
+}
+
 // CycleError indicates a cycle was detected during topological sort.
 type CycleError struct {
 	Message string
 }
 
 func (e *CycleError) Error() string { return e.Message }
+
+// ValidateEdgeTypes checks that all edges connect compatible port types.
+// Requires a NodeRegistry to instantiate temporary nodes for port introspection.
+func ValidateEdgeTypes(wf *Workflow, registry *NodeRegistry) error {
+	if registry == nil {
+		return nil // skip if no registry
+	}
+	for _, edge := range wf.Edges {
+		srcNode := findNode(wf.Nodes, edge.FromNode)
+		dstNode := findNode(wf.Nodes, edge.ToNode)
+		if srcNode == nil || dstNode == nil {
+			continue // structural check already done by Validate()
+		}
+		srcImpl, err := registry.Create(srcNode.NodeType, "_val", nil)
+		if err != nil {
+			continue
+		}
+		dstImpl, err := registry.Create(dstNode.NodeType, "_val", nil)
+		if err != nil {
+			continue
+		}
+		var srcType PortType
+		for _, p := range srcImpl.OutputPorts() {
+			if p.Name == edge.FromPort {
+				srcType = p.Type
+				break
+			}
+		}
+		var dstType PortType
+		for _, p := range dstImpl.InputPorts() {
+			if p.Name == edge.ToPort {
+				dstType = p.Type
+				break
+			}
+		}
+		if srcType != "" && dstType != "" && !TypesCompatible(srcType, dstType) {
+			return &ValidationError{
+				Message: fmt.Sprintf("edge %s.%s → %s.%s: type mismatch %s → %s",
+					edge.FromNode, edge.FromPort, edge.ToNode, edge.ToPort, srcType, dstType),
+			}
+		}
+	}
+	return nil
+}
 
 // Validate checks a workflow for structural correctness:
 //   - workflow ID is present

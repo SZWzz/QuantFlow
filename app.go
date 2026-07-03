@@ -37,6 +37,7 @@ import (
 )
 
 var startTime = time.Now() // used by GetSystemStats for uptime
+var execQueue *workflow.ExecutionQueue
 
 // App is the Wails-bound application struct. All exported methods are
 // available to the frontend via the generated TypeScript bindings.
@@ -274,6 +275,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Info("credential manager initialized")
 	}
 
+	// Initialize async execution queue
+	execQueue = workflow.NewExecutionQueue(a.engine)
+
 	// Wire execution saver so every workflow run is recorded
 	a.engine.SetExecutionSaver(func(runID string, wf *workflow.Workflow, result *workflow.ExecutionResult) {
 		wfJSON, _ := json.Marshal(wf)
@@ -454,6 +458,9 @@ func (a *App) ValidateWorkflow(jsonDef string) (string, error) {
 	if err := workflow.Validate(&wf); err != nil {
 		return "", err
 	}
+	if err := workflow.ValidateEdgeTypes(&wf, a.registry); err != nil {
+		return "", err
+	}
 	return "valid", nil
 }
 
@@ -467,6 +474,34 @@ func (a *App) RunWorkflow(ctx context.Context, jsonDef string) (*workflow.Execut
 		return nil, fmt.Errorf("parse json: %w", err)
 	}
 	return a.engine.Execute(ctx, &wf)
+}
+
+// QueueWorkflow enqueues a workflow for asynchronous execution.
+// Returns immediately with a runID. Frontend polls GetExecutionStatus for progress.
+func (a *App) QueueWorkflow(jsonDef string) (string, error) {
+	if a.engine == nil {
+		return "", fmt.Errorf("engine not initialized")
+	}
+	var wf workflow.Workflow
+	if err := json.Unmarshal([]byte(jsonDef), &wf); err != nil {
+		return "", fmt.Errorf("parse json: %w", err)
+	}
+	return execQueue.Enqueue(&wf)
+}
+
+// GetExecutionStatus returns the current state of a queued/running/completed workflow.
+func (a *App) GetExecutionStatus(runID string) (*workflow.QueuedWorkflow, error) {
+	status := execQueue.GetStatus(runID)
+	if status == nil {
+		return nil, fmt.Errorf("run %q not found", runID)
+	}
+	return status, nil
+}
+
+// CancelExecution cancels a queued workflow execution.
+func (a *App) CancelExecution(runID string) error {
+	execQueue.Cancel(runID)
+	return nil
 }
 
 // GetExecutionHistory returns recent workflow execution records.

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ListNodes } from '@/lib/wails'
 import { useWorkflowStore } from '@/stores/workflow'
 import { TEMPLATES } from './templates'
@@ -7,6 +8,7 @@ import { nodeLabel } from './nodeLabels'
 
 interface NodeMeta { node_type: string; category: string }
 
+const { t } = useI18n()
 const workflow = useWorkflowStore()
 const showTemplates = ref(false)
 
@@ -62,12 +64,17 @@ const categories = computed(() => {
   return grouped
 })
 
-const categoryLabels: Record<string, string> = {
-  data: '数据', indicator: '指标', indicators: '通达信指标', signal: '信号', output: '输出', control: '控制',
-  alpha: 'Alpha', strategy: '策略', backtest: '回测', ai: 'AI',
-  trading: '交易', notify: '通知', schedule: '调度',
-  portfolio: '组合', risk: '风控', utility: '工具',
-  ml: '机器学习', research: '研究', alternative_data: '另类数据',
+const catLabels: Record<string, string> = {
+  data: t('workflow.cat_data'), indicator: t('workflow.cat_indicator'),
+  indicators: t('workflow.cat_indicators'), signal: t('workflow.cat_signal'),
+  output: t('workflow.cat_output'), control: t('workflow.cat_control'),
+  alpha: t('workflow.cat_alpha'), strategy: t('workflow.cat_strategy'),
+  backtest: t('workflow.cat_backtest'), ai: t('workflow.cat_ai'),
+  trading: t('workflow.cat_trading'), notify: t('workflow.cat_notify'),
+  schedule: t('workflow.cat_schedule'), portfolio: t('workflow.cat_portfolio'),
+  risk: t('workflow.cat_risk'), utility: t('workflow.cat_utility'),
+  ml: t('workflow.cat_ml'), research: t('workflow.cat_research'),
+  alternative_data: t('workflow.cat_alternative_data'),
 }
 
 const categoryColors: Record<string, string> = {
@@ -101,7 +108,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
     <div class="palette-list">
       <!-- Favorites -->
       <div v-if="workflow.favoriteTypes.size > 0 && !searchQuery" class="category-group">
-        <div class="category-label">⭐ 收藏</div>
+        <div class="category-label">⭐ {{ $t('workflow.favorites') }}</div>
         <div
           v-for="node in nodes.filter(n => workflow.favoriteTypes.has(n.node_type))"
           :key="'fav-' + node.node_type"
@@ -115,7 +122,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
 
       <!-- Recent -->
       <div v-if="workflow.recentTypes.length > 0 && !searchQuery" class="category-group">
-        <div class="category-label">🕐 最近使用</div>
+        <div class="category-label">🕐 {{ $t('workflow.recent') }}</div>
         <div
           v-for="rtype in workflow.recentTypes"
           :key="'rec-' + rtype"
@@ -130,7 +137,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
       <div v-for="(group, cat) in categories" :key="cat" class="category-group">
         <div class="category-label">
           <span class="cat-dot" :style="{ background: categoryColors[cat] || 'var(--color-text-tertiary)' }" />
-          {{ categoryLabels[cat] || cat }}
+          {{ catLabels[cat] || cat }}
         </div>
         <div
           v-for="node in group"
@@ -160,13 +167,28 @@ function onDragStart(event: DragEvent, nodeType: string) {
           <div
             v-for="tpl in TEMPLATES"
             :key="tpl.id"
-            class="template-item"
+            class="template-card"
             @click="insertTemplate(tpl)"
           >
-            <span class="tpl-icon">{{ tpl.icon }}</span>
-            <div class="tpl-body">
-              <span class="tpl-name">{{ tpl.name }}</span>
-              <span class="tpl-desc">{{ tpl.description }}</span>
+            <div class="tpl-header">
+              <span class="tpl-icon">{{ tpl.icon }}</span>
+              <div class="tpl-meta">
+                <span class="tpl-name">{{ tpl.name }}</span>
+                <span class="tpl-count">{{ tpl.nodes.length }}{{ $t('workflow.nodes_count') }}</span>
+              </div>
+            </div>
+            <p class="tpl-desc">{{ tpl.description }}</p>
+            <div class="tpl-flow">
+              <div
+                v-for="(step, si) in tpl.nodes"
+                :key="si"
+                class="flow-step"
+                :class="{ last: si === tpl.nodes.length - 1 }"
+              >
+                <div class="flow-dot" :title="step.node_type" />
+                <span class="flow-label">{{ nodeLabel(step.node_type) }}</span>
+                <span v-if="si < tpl.nodes.length - 1" class="flow-arrow">→</span>
+              </div>
             </div>
           </div>
         </div>
@@ -237,11 +259,41 @@ function onDragStart(event: DragEvent, nodeType: string) {
 .templates-toggle { display: flex; justify-content: space-between; align-items: center; padding: 6px; cursor: pointer; font-size: 11px; color: var(--color-text-secondary); }
 .templates-toggle:hover { color: var(--color-accent); }
 .toggle-arrow { font-size: 10px; }
-.templates-list { padding: 0 4px; }
-.template-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.1s; }
-.template-item:hover { background: rgba(88,166,255,0.08); }
-.tpl-icon { font-size: 14px; flex-shrink: 0; }
-.tpl-body { display: flex; flex-direction: column; min-width: 0; }
-.tpl-name { font-size: 11px; color: var(--color-text-primary); }
-.tpl-desc { font-size: 9px; color: var(--color-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.templates-list { padding: 0 4px; display: flex; flex-direction: column; gap: 8px; }
+
+.template-card {
+  background: var(--color-bg-subtle, #161b22);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.template-card:hover {
+  border-color: var(--color-accent, #58a6ff);
+  background: rgba(88,166,255,0.04);
+}
+
+.tpl-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tpl-icon { font-size: 18px; flex-shrink: 0; }
+.tpl-meta { display: flex; flex-direction: column; min-width: 0; }
+.tpl-name { font-size: 12px; font-weight: 600; color: var(--color-text-primary); }
+.tpl-count { font-size: 10px; color: var(--color-text-tertiary); }
+
+.tpl-desc { font-size: 10px; color: var(--color-text-secondary); line-height: 1.4; margin: 0 0 8px; }
+
+.tpl-flow {
+  display: flex; flex-wrap: wrap; gap: 3px 0;
+  padding: 6px 4px;
+  background: var(--color-bg-input, #0d1117);
+  border-radius: var(--radius-sm, 4px);
+}
+.flow-step { display: flex; align-items: center; gap: 4px; font-size: 0; }
+.flow-step.last .flow-arrow { display: none; }
+.flow-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-accent, #58a6ff); flex-shrink: 0;
+}
+.flow-label { font-size: 9px; color: var(--color-text-tertiary); white-space: nowrap; }
+.flow-arrow { font-size: 8px; color: var(--color-text-tertiary); margin: 0 2px; }
 </style>

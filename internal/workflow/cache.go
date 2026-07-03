@@ -2,22 +2,32 @@ package workflow
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 const defaultCacheSize = 256
 
+// CacheKey is a content-addressed hash that recursively includes ancestor inputs.
+type CacheKey string
+
+func (k CacheKey) String() string { return string(k) }
+
 // NodeCache provides an LRU cache for node execution results.
-// It avoids re-executing expensive nodes when the same inputs are seen again.
+// Cache keys are computed recursively: each node's key includes the hash
+// of its node type, params, and the cache keys of all upstream connected nodes.
+// This enables partial re-execution — only nodes whose transitive inputs changed
+// are re-executed.
 type NodeCache struct {
-	cache *lru.Cache[string, map[string]any]
+	inner    *lru.Cache[string, map[string]any]
+	nodeKeys map[string]CacheKey // nodeID → latest cache key
 }
 
 // NewNodeCache creates a new NodeCache with the given maximum size.
-// If size <= 0, defaultCacheSize (256) is used.
 func NewNodeCache(size int) (*NodeCache, error) {
 	if size <= 0 {
 		size = defaultCacheSize
@@ -26,34 +36,73 @@ func NewNodeCache(size int) (*NodeCache, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create lru cache: %w", err)
 	}
-	return &NodeCache{cache: c}, nil
+	return &NodeCache{inner: c, nodeKeys: make(map[string]CacheKey)}, nil
 }
 
-// CacheKey produces a deterministic cache key from a node ID and its inputs
-// via JSON serialization (which sorts map keys) followed by SHA-256 hashing.
-func CacheKey(nodeID string, inputs map[string]any) string {
-	b, err := json.Marshal(inputs)
-	if err != nil {
-		// Fallback to fmt for un-serializable types.
-		b = []byte(fmt.Sprintf("%+v", inputs))
+// ComputeKey produces a recursive cache key that includes:
+//   - node type (class)
+//   - all parameter values (sorted by key)
+//   - cache keys of all upstream nodes (via edges)
+//
+// The ancestors map should contain CacheKey values for upstream node IDs.
+// This is computed once per engine run and stored in nodeKeys.
+func ComputeKey(nodeType string, params map[string]any, ancestors map[string]CacheKey) CacheKey {
+	h := sha256.New()
+	h.Write([]byte(nodeType))
+
+	// hash params sorted by key for determinism
+	pkeys := make([]string, 0, len(params))
+	for k := range params {
+		pkeys = append(pkeys, k)
 	}
-	hash := sha256.Sum256(b)
-	return fmt.Sprintf("%s:%x", nodeID, hash[:16])
+	sort.Strings(pkeys)
+	for _, k := range pkeys {
+		h.Write([]byte(k))
+		b, err := json.Marshal(params[k])
+		if err != nil {
+			b = []byte(fmt.Sprintf("%v", params[k]))
+		}
+		h.Write(b)
+	}
+
+	// recursively include ancestor keys
+	akeys := make([]string, 0, len(ancestors))
+	for nid, ck := range ancestors {
+		akeys = append(akeys, nid+":"+string(ck))
+	}
+	sort.Strings(akeys)
+	for _, s := range akeys {
+		h.Write([]byte(s))
+	}
+
+	return CacheKey(hex.EncodeToString(h.Sum(nil)))
 }
 
-// Get retrieves cached outputs for the given key. The boolean return
-// value indicates whether the key was present.
-func (c *NodeCache) Get(key string) (map[string]any, bool) {
-	return c.cache.Get(key)
+// GetOrCompute returns cached outputs if the node's recursive key matches.
+// If cached and key unchanged: returns (outputs, true).
+// Otherwise: returns (nil, false).
+func (c *NodeCache) GetOrCompute(nodeID, nodeType string, params map[string]any, ancestors map[string]CacheKey) (map[string]any, bool) {
+	key := ComputeKey(nodeType, params, ancestors)
+	if existing, ok := c.nodeKeys[nodeID]; ok && existing == key {
+		if out, ok := c.inner.Get(string(key)); ok {
+			return out, true
+		}
+	}
+	return nil, false
 }
 
-// Put stores outputs under the given key, evicting the least-recently-used
-// entry if the cache is at capacity.
-func (c *NodeCache) Put(key string, outputs map[string]any) {
-	c.cache.Add(key, outputs)
+// Store caches node outputs and records the cache key for this node.
+func (c *NodeCache) Store(nodeID string, key CacheKey, outputs map[string]any) {
+	c.nodeKeys[nodeID] = key
+	c.inner.Add(string(key), outputs)
+}
+
+// GetNodeKey returns the recorded cache key for a node, or empty string.
+func (c *NodeCache) GetNodeKey(nodeID string) CacheKey {
+	return c.nodeKeys[nodeID]
 }
 
 // Len returns the current number of entries in the cache.
 func (c *NodeCache) Len() int {
-	return c.cache.Len()
+	return c.inner.Len()
 }

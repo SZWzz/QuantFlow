@@ -6,6 +6,21 @@
 
 ## [2026.7.3] - 2026-07-03
 
+### Added
+- [Workflow] Async execution queue with polling (`ExecutionQueue`, `QueueWorkflow`/`GetExecutionStatus`/`CancelExecution` bindings)
+- [Workflow] 右键菜单增强：编组/复制/克隆/全选/粘贴（ContextMenu.vue + store clipboard/groupNodes）
+- [Workflow] 键盘快捷键：Delete/Ctrl+C/V/A/Z/D+Enter/Escape（useCanvasShortcuts）
+- [Workflow] 服务端端口类型验证：TypesCompatible + ValidateEdgeTypes（dag.go）
+- [Workflow] 递归缓存签名：ComputeKey 包含上游节点 cache key（cache.go）
+- [Workflow] 子工作流双击展开：subWFStack 导航栈 + 面包屑返回栏
+
+### Changed
+- [Workflow] CustomNode 参数显示增强：背景分层、input `#1a2a3a` 高对比、hover 高亮 12%
+- [Workflow] PropertyPanel 参数编辑：visibleParams 从仅计算改为可编辑 input（之前完全不显示）
+- [Workflow] 模板卡片（NodePalette）从紧凑列表改为卡片式布局 + 流程预览（节点圆点+箭头）
+- [Workflow] 模板边端口名修正：对照实际注册节点 ports 重写 7 个模板的所有 edges
+- [Workflow] i18n 补齐：paramLabel 翻译 30+ 参数键、Category 标签 19 项、右键菜单/错误处理/提示文字 40+ 项（中英文）
+
 ### Removed
 - [Frontend] 移除 IndexPanel（指数成分股查询）— 功能薄弱，仅展示静态成分股列表，与 MarketOverview 重叠度高
 

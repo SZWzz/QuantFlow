@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useTerminalStore } from '@/stores/terminal'
+import { paramLabel } from '@/workflow/nodeLabels'
 
 const { t } = useI18n()
 const workflow = useWorkflowStore()
@@ -116,15 +117,15 @@ function pinToTerminal() {
 
       <!-- Error handling strategy -->
       <div class="prop-section">
-        <h4 class="section-title">错误处理</h4>
+        <h4 class="section-title">{{ t('workflow.error_handling') }}</h4>
         <div class="error-strategy-row">
           <select class="strategy-select" :value="errorStrategy" @change="setErrorStrategy(($event.target as HTMLSelectElement).value)">
-            <option value="stop">⏹ 停止</option>
-            <option value="skip">⏭ 跳过</option>
-            <option value="retry">🔄 重试</option>
+            <option value="stop">⏹ {{ t('workflow.error_stop') }}</option>
+            <option value="skip">⏭ {{ t('workflow.error_skip') }}</option>
+            <option value="retry">🔄 {{ t('workflow.error_retry') }}</option>
           </select>
           <div v-if="errorStrategy === 'retry'" class="retry-config">
-            <label class="retry-label">次数</label>
+            <label class="retry-label">{{ t('workflow.retry_count') }}</label>
             <input
               class="retry-input"
               type="number"
@@ -147,6 +148,19 @@ function pinToTerminal() {
         <h4 class="section-title">{{ t('workflow.output_ports') }}</h4>
         <div v-for="port in selectedNode.data.outputs" :key="port" class="port-item">
           <span class="port-dir">▶</span> {{ port }}
+        </div>
+      </div>
+
+      <div v-if="Object.keys(visibleParams).length" class="prop-section">
+        <h4 class="section-title">{{ t('workflow.parameters') }}</h4>
+        <div v-for="(val, key) in visibleParams" :key="key" class="param-row">
+          <label class="param-label">{{ paramLabel(key, t) }}</label>
+          <input
+            class="param-input"
+            :value="formatValue(val)"
+            @input="updateParam(key, ($event.target as HTMLInputElement).value)"
+            placeholder="—"
+          />
         </div>
       </div>
 

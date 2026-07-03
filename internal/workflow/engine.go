@@ -115,6 +115,11 @@ func (e *Engine) Execute(ctx context.Context, wf *Workflow) (*ExecutionResult, e
 		result.Error = err.Error()
 		return result, err
 	}
+	if err := ValidateEdgeTypes(wf, e.registry); err != nil {
+		result.Status = "failed"
+		result.Error = err.Error()
+		return result, err
+	}
 
 	layers, err := TopoSort(wf)
 	if err != nil {
@@ -234,13 +239,12 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 		nr.Outputs = pinned
 		nr.Duration = time.Since(start)
 		upstreamOutputs.Store(nodeID, pinned)
-		cacheKey := CacheKey(nodeID, nil)
-		e.cache.Put(cacheKey, pinned)
 		slog.Info("using pinned output", "node", nodeID)
 		return nil
 	}
 
 	inputs := make(map[string]any)
+	ancestors := make(map[string]CacheKey)
 	for _, edge := range wf.Edges {
 		if edge.ToNode == nodeID {
 			if val, ok := upstreamOutputs.Load(edge.FromNode); ok {
@@ -248,6 +252,9 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 				if v, ok := outputs[edge.FromPort]; ok {
 					inputs[edge.ToPort] = v
 				}
+			}
+			if ck := e.cache.GetNodeKey(edge.FromNode); ck != "" {
+				ancestors[edge.FromNode] = ck
 			}
 		}
 	}
@@ -262,8 +269,7 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 	}
 	nodeInstance.Params = resolvedParams
 
-	cacheKey := CacheKey(nodeID, inputs)
-	if cached, ok := e.cache.Get(cacheKey); ok {
+	if cached, ok := e.cache.GetOrCompute(nodeID, nodeInstance.NodeType, resolvedParams, ancestors); ok {
 		nr.Status = "completed"
 		nr.Outputs = cached
 		nr.Duration = time.Since(start)
@@ -300,7 +306,8 @@ func (e *Engine) executeNode(ctx context.Context, wf *Workflow, nodeID string, l
 			nr.Outputs = outputs
 			nr.Duration = time.Since(start)
 			upstreamOutputs.Store(nodeID, outputs)
-			e.cache.Put(cacheKey, outputs)
+			ck := ComputeKey(nodeInstance.NodeType, resolvedParams, ancestors)
+			e.cache.Store(nodeID, ck, outputs)
 			slog.Debug("node executed", "node", nodeID, "type", nodeInstance.NodeType, "duration", nr.Duration)
 			return nil
 		}

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Handle, Position } from '@vue-flow/core'
-import { nodeLabel } from '@/workflow/nodeLabels'
+import { nodeLabel, paramLabel } from '@/workflow/nodeLabels'
 
 const { t } = useI18n()
 
@@ -97,13 +97,13 @@ function portTop(idx: number): string {
 
     <!-- Inline editable params — click any param to edit directly on the card -->
     <div v-if="paramKeys.length > 0" class="node-params">
-      <div class="params-hint">点击参数编辑</div>
+      <div class="params-hint">{{ t('workflow.click_to_edit') }}</div>
       <div v-for="key in paramKeys" :key="key" class="param-row" @click.stop="startEdit(key)">
         <template v-if="editingParam === key">
           <input class="param-input" v-model="editValue" @keyup.enter="commitEdit" @keyup.escape="cancelEdit" @blur="commitEdit" autofocus @click.stop />
         </template>
         <template v-else>
-          <span class="param-key">{{ key }}</span>
+          <span class="param-key">{{ paramLabel(key, t) }}</span>
           <span class="param-val">{{ (data.params || {})[key] }}</span>
           <span class="edit-hint">✎</span>
         </template>
@@ -146,6 +146,12 @@ function portTop(idx: number): string {
       </div>
     </div>
 
+    <!-- Badges -->
+    <div class="node-badges">
+      <span v-if="(data as any).badges?.pin" class="badge pin-badge" :title="t('workflow.pinned_output')">📌</span>
+      <span v-if="(data as any).mode === 2" class="badge disabled-badge" :title="t('workflow.disabled')">⏸</span>
+    </div>
+
     <!-- Status -->
     <div v-if="data.status === 'running'" class="running-indicator" />
     <div v-if="data.status === 'success'" class="success-check">✓</div>
@@ -186,24 +192,29 @@ function portTop(idx: number): string {
 
 /* ── Inline params ── */
 .node-params {
-  padding: 2px 12px; border-bottom: 1px solid rgba(255,255,255,.06);
+  padding: 4px 12px; border-bottom: 1px solid rgba(255,255,255,.06);
+  background: rgba(0,0,0,.15);
 }
+
+/* ── Badges ── */
+.node-badges { position: absolute; top: -8px; right: -8px; display: flex; gap: 2px; z-index: 30; }
+.badge { font-size: 12px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
 .param-row { display: flex; align-items: center; gap: 6px; padding: 1px 0; cursor: pointer; }
 .param-row { position: relative; }
-.param-row:hover { background: rgba(88,166,255,.08); border-radius: 3px; }
+.param-row:hover { background: rgba(88,166,255,.12); border-radius: 3px; }
 .param-row:hover .edit-hint { opacity: 1; }
 .edit-hint {
   position: absolute; right: 4px; font-size: 9px; color: var(--color-accent);
   opacity: 0; transition: opacity .15s;
 }
 .params-hint {
-  font-size: 9px; color: var(--color-text-tertiary);
-  padding: 0 12px 2px; font-style: italic;
+  font-size: 9px; color: #6b7a8f;
+  padding: 0 0 3px; font-style: italic;
 }
-.param-key { font-size: 10px; color: var(--color-text-tertiary); flex-shrink: 0; }
-.param-key::after { content: ':'; }
-.param-val { font-size: 11px; color: var(--color-text-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.param-input { width: 100%; padding: 1px 4px; border: 1px solid var(--color-accent); border-radius: 3px; background: #0d1117; color: var(--color-text-primary); font-size: 11px; font-family: monospace; outline: none; }
+.param-key { font-size: 11px; color: #8b949e; flex-shrink: 0; }
+.param-key::after { content: ':'; margin-right: 1px; }
+.param-val { font-size: 12px; color: #e6edf3; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.param-input { width: 100%; padding: 2px 6px; border: 1px solid var(--color-accent); border-radius: 3px; background: #1a2a3a; color: #e6edf3; font-size: 11px; font-family: monospace; outline: none; }
 
 /* ── Port rows ── */
 .node-ports { padding: 4px 0; }

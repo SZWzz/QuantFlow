@@ -73,3 +73,15 @@ export const NODE_LABELS: Record<string, string> = {
 export function nodeLabel(type: string): string {
   return NODE_LABELS[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
+
+// Translate a parameter key using a provided i18n `t` function.
+// Looks up param.{key} first, falls back to common.{key}, then raw key.
+export function paramLabel(key: string, t?: (key: string) => string): string {
+  if (t) {
+    const p = t(`param.${key}`)
+    if (p !== `param.${key}`) return p
+    const c = t(`common.${key}`)
+    if (c !== `common.${key}`) return c
+  }
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}

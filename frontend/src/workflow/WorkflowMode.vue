@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useWorkflowStore } from '@/stores/workflow'
-import { RunWorkflow } from '@/lib/wails'
 import { useTerminalStore } from '@/stores/terminal'
 import WorkflowCanvas from './canvas/WorkflowCanvas.vue'
 import NodePalette from './NodePalette.vue'
@@ -25,43 +24,14 @@ const showLog = ref(false)
 const showWorkflowList = ref(false)
 
 async function onRun() {
-  workflow.resetExecution()
-  workflow.executionStatus = 'running'
-
-  const wfJSON = workflow.toWorkflowJSON()
-
-  try {
-    const result = await RunWorkflow(JSON.stringify(wfJSON))
-    workflow.executionStatus = result.status
-
-    // Update node statuses
-    if (result.node_results) {
-      for (const nr of result.node_results) {
-        workflow.nodeStatuses.set(nr.node_id, {
-          nodeId: nr.node_id,
-          status: nr.status,
-          duration: nr.duration,
-          error: nr.error,
-        })
-
-        // Update node data in canvas
-        const node = workflow.nodes.find((n) => n.id === nr.node_id)
-        if (node) {
-          node.data.status = nr.status
-          if (nr.error) node.data.error = nr.error
-        }
-      }
-    }
-
-    showLog.value = true
-    animateExecution()
-  } catch (err: any) {
-    workflow.executionStatus = 'failed'
-    console.error('Workflow execution failed:', err)
-  }
+  showLog.value = true
+  workflow.startAsyncRun()
 }
 
-// Staggered animation: each completed node pulses green, edges light up
+watch(() => workflow.executionStatus, (val) => {
+  if (val === 'completed' || val === 'failed') animateExecution()
+})
+
 async function animateExecution() {
   const statuses = workflow.nodeStatuses
   if (statuses.size === 0) return

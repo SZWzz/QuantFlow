@@ -16,7 +16,7 @@ export const TEMPLATES: TemplateDef[] = [
       T('sma', 350, 60, { period: 5 }), T('sma', 350, 180, { period: 20 }),
       T('cross_over', 600, 100, {}), T('entry_signal', 850, 100, {}),
     ],
-    edges: [E(0,'ohlcv',1,'input'),E(0,'ohlcv',2,'input'),E(1,'output',3,'fast'),E(2,'output',3,'slow'),E(3,'signal',4,'signal')],
+    edges: [E(0,'ohlcv',1,'input'),E(0,'ohlcv',2,'input'),E(1,'output',3,'fast'),E(2,'output',3,'slow'),E(3,'cross',4,'condition')],
   },
   {
     id: 'macd-divergence', name: 'MACD 底背离', description: '价格新低但 MACD DIF 不创新低 → 买入', icon: '📉',
@@ -25,7 +25,7 @@ export const TEMPLATES: TemplateDef[] = [
       T('macd', 350, 60, {}), T('rolling_maxmin', 350, 200, { period: 20, mode: 'min' }),
       T('compare', 600, 120, { op: 'divergence' }), T('entry_signal', 850, 120, {}),
     ],
-    edges: [E(0,'ohlcv',1,'input'),E(0,'ohlcv',2,'input'),E(1,'dif',3,'fast'),E(2,'output',3,'slow'),E(3,'result',4,'signal')],
+    edges: [E(0,'ohlcv',1,'prices'),E(0,'ohlcv',2,'values'),E(1,'macd_line',3,'a'),E(2,'result',3,'b'),E(3,'result',4,'condition')],
   },
   {
     id: 'multi-factor', name: '多因子打分', description: '动量+波动+成交量三因子等权打分排名', icon: '📊',
@@ -37,9 +37,9 @@ export const TEMPLATES: TemplateDef[] = [
       T('rank_select', 1100, 140, { top_n: 20 }),
     ],
     edges: [
-      E(0,'ohlcv',1,'input'),E(0,'ohlcv',2,'input'),E(0,'ohlcv',3,'input'),
-      E(1,'output',4,'input'),E(2,'output',5,'input'),E(3,'output',6,'input'),
-      E(4,'output',7,'a'),E(5,'output',7,'b'),E(6,'output',7,'c'),E(7,'output',8,'input'),
+      E(0,'ohlcv',1,'values'),E(0,'ohlcv',2,'values'),E(0,'ohlcv',3,'values'),
+      E(1,'result',4,'values'),E(2,'result',5,'values'),E(3,'result',6,'values'),
+      E(4,'result',7,'series_a'),E(5,'result',7,'series_b'),E(7,'merged',8,'factor_values'),
     ],
   },
   {
@@ -49,7 +49,7 @@ export const TEMPLATES: TemplateDef[] = [
       T('compare', 600, 30, { op: 'lt' }), T('compare', 600, 180, { op: 'gt' }),
       T('entry_signal', 850, 30, {}), T('exit_signal', 850, 180, {}),
     ],
-    edges: [E(0,'ohlcv',1,'input'),E(1,'lower',2,'fast'),E(1,'middle',2,'slow'),E(1,'upper',3,'fast'),E(1,'middle',3,'slow'),E(2,'result',4,'signal'),E(3,'result',5,'signal')],
+    edges: [E(0,'ohlcv',1,'prices'),E(1,'lower',2,'a'),E(1,'middle',2,'b'),E(1,'upper',3,'a'),E(1,'middle',3,'b'),E(2,'result',4,'condition'),E(3,'result',5,'condition')],
   },
   {
     id: 'rsi-oversold', name: 'RSI 超卖反弹', description: 'RSI<30 买入 + RSI>70 卖出', icon: '⚡',
@@ -59,7 +59,7 @@ export const TEMPLATES: TemplateDef[] = [
       T('threshold_signal', 600, 180, { threshold: 70, direction: 'above' }),
       T('entry_signal', 850, 40, {}), T('exit_signal', 850, 180, {}),
     ],
-    edges: [E(0,'ohlcv',1,'input'),E(1,'output',2,'input'),E(1,'output',3,'input'),E(2,'signal',4,'signal'),E(3,'signal',5,'signal')],
+    edges: [E(0,'ohlcv',1,'prices'),E(1,'rsi',2,'values'),E(1,'rsi',3,'values'),E(2,'signal',4,'condition'),E(3,'signal',5,'condition')],
   },
   {
     id: 'pair-trading', name: '均值回归配对', description: '价差突破 2σ → 做多/做空', icon: '🛡️',
@@ -71,7 +71,7 @@ export const TEMPLATES: TemplateDef[] = [
       T('threshold_signal', 850, 160, { threshold: -2, direction: 'below' }),
       T('entry_signal', 1100, 50, {}), T('entry_signal', 1100, 160, {}),
     ],
-    edges: [E(0,'ohlcv',2,'a'),E(1,'ohlcv',2,'b'),E(2,'output',3,'input'),E(2,'output',4,'input'),E(4,'output',6,'input'),E(3,'output',5,'input'),E(5,'signal',7,'signal'),E(6,'signal',8,'signal')],
+    edges: [E(0,'ohlcv',2,'a'),E(1,'ohlcv',2,'b'),E(2,'result',3,'values'),E(2,'result',4,'values'),E(4,'result',6,'values'),E(3,'result',5,'values'),E(5,'signal',7,'condition'),E(6,'signal',8,'condition')],
   },
   {
     id: 'macd-rsi-combo', name: 'MACD+RSI 共振', description: 'MACD 金叉 + RSI<50 → 过滤假信号', icon: '🧠',
@@ -81,6 +81,6 @@ export const TEMPLATES: TemplateDef[] = [
       T('cross_over', 600, 30, {}), T('threshold_signal', 600, 200, { threshold: 50, direction: 'below' }),
       T('signal_combine', 850, 110, { op: 'and' }), T('entry_signal', 1100, 110, {}),
     ],
-    edges: [E(0,'ohlcv',1,'input'),E(0,'ohlcv',2,'input'),E(1,'dif',3,'fast'),E(1,'dea',3,'slow'),E(2,'output',4,'input'),E(3,'signal',5,'a'),E(4,'signal',5,'b'),E(5,'output',6,'signal')],
+    edges: [E(0,'ohlcv',1,'prices'),E(0,'ohlcv',2,'prices'),E(1,'macd_line',3,'fast'),E(1,'signal_line',3,'slow'),E(2,'rsi',4,'values'),E(3,'cross',5,'signals'),E(4,'signal',5,'signals'),E(5,'combined',6,'condition')],
   },
 ]

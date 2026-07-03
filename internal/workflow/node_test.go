@@ -32,24 +32,33 @@ func TestPortDefinition(t *testing.T) {
 	}
 }
 
-func TestCacheKeyDeterministic(t *testing.T) {
-	inputsA := map[string]any{"fast": 5.0, "slow": 20.0}
-	inputsB := map[string]any{"slow": 20.0, "fast": 5.0}
-	keyA := CacheKey("test", inputsA)
-	keyB := CacheKey("test", inputsB)
+func TestComputeKeyDeterministic(t *testing.T) {
+	paramsA := map[string]any{"fast": 5.0, "slow": 20.0}
+	paramsB := map[string]any{"slow": 20.0, "fast": 5.0}
+	ancestors := map[string]CacheKey{"upstream": "abc123"}
+	keyA := ComputeKey("test", paramsA, ancestors)
+	keyB := ComputeKey("test", paramsB, ancestors)
 	if keyA != keyB {
-		t.Errorf("CacheKey not deterministic: %q != %q", keyA, keyB)
+		t.Errorf("ComputeKey not deterministic: %q != %q", keyA, keyB)
 	}
 	if keyA == "" {
-		t.Error("CacheKey returned empty string")
+		t.Error("ComputeKey returned empty string")
 	}
 }
 
-func TestCacheKeyDifferentInputs(t *testing.T) {
-	keyA := CacheKey("node", map[string]any{"period": 5})
-	keyB := CacheKey("node", map[string]any{"period": 10})
+func TestComputeKeyDifferentInputs(t *testing.T) {
+	keyA := ComputeKey("node", map[string]any{"period": 5}, nil)
+	keyB := ComputeKey("node", map[string]any{"period": 10}, nil)
 	if keyA == keyB {
-		t.Error("CacheKey should differ for different input values")
+		t.Error("ComputeKey should differ for different input values")
+	}
+}
+
+func TestComputeKeyIncludesAncestors(t *testing.T) {
+	keyNoAnc := ComputeKey("node", map[string]any{"period": 5}, nil)
+	keyWithAnc := ComputeKey("node", map[string]any{"period": 5}, map[string]CacheKey{"src": "xyz"})
+	if keyNoAnc == keyWithAnc {
+		t.Error("ComputeKey should differ when ancestors differ")
 	}
 }
 
