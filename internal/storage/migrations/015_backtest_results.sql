@@ -25,5 +25,6 @@ CREATE TABLE IF NOT EXISTS backtest_results (
     created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bt_results_run_id ON backtest_results(run_id);
 CREATE INDEX IF NOT EXISTS idx_bt_results_finished ON backtest_results(finished_at DESC);
 CREATE INDEX IF NOT EXISTS idx_bt_results_symbol ON backtest_results(symbol);

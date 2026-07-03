@@ -2,53 +2,30 @@ package storage
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
+func setupBacktestRepo(t *testing.T) *BacktestRepo {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:?_journal_mode=WAL&_busy_timeout=5000")
+	tmp := t.TempDir()
+	db, err := Open(tmp + "/test.db")
 	if err != nil {
-		t.Fatalf("open db: %v", err)
+		t.Fatalf("Open() error = %v", err)
 	}
 	t.Cleanup(func() { db.Close() })
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS backtest_results (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		run_id TEXT NOT NULL,
-		workflow_name TEXT NOT NULL DEFAULT '',
-		strategy_name TEXT NOT NULL DEFAULT '',
-		symbol TEXT NOT NULL DEFAULT '',
-		engine_type TEXT NOT NULL DEFAULT '',
-		total_return REAL NOT NULL DEFAULT 0,
-		cagr REAL NOT NULL DEFAULT 0,
-		max_drawdown REAL NOT NULL DEFAULT 0,
-		sharpe_ratio REAL NOT NULL DEFAULT 0,
-		sortino_ratio REAL NOT NULL DEFAULT 0,
-		calmar_ratio REAL NOT NULL DEFAULT 0,
-		win_rate REAL NOT NULL DEFAULT 0,
-		profit_factor REAL NOT NULL DEFAULT 0,
-		total_trades INTEGER NOT NULL DEFAULT 0,
-		config_json TEXT NOT NULL DEFAULT '{}',
-		equity_curve TEXT NOT NULL DEFAULT '[]',
-		trades_json TEXT NOT NULL DEFAULT '[]',
-		ohlcv_data TEXT NOT NULL DEFAULT '[]',
-		started_at TEXT NOT NULL,
-		finished_at TEXT NOT NULL,
-		created_at TEXT NOT NULL DEFAULT (datetime('now'))
-	)`)
+	migrations, err := BuiltinMigrations()
 	if err != nil {
-		t.Fatalf("create table: %v", err)
+		t.Fatalf("BuiltinMigrations() error = %v", err)
 	}
-	return db
+	if err := Run(db, migrations); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	return NewBacktestRepo(db)
 }
 
 func TestBacktestRepo_SaveAndGet(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewBacktestRepo(db)
+	repo := setupBacktestRepo(t)
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -151,8 +128,7 @@ func TestBacktestRepo_SaveAndGet(t *testing.T) {
 }
 
 func TestBacktestRepo_List(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewBacktestRepo(db)
+	repo := setupBacktestRepo(t)
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -196,9 +172,16 @@ func TestBacktestRepo_List(t *testing.T) {
 	}
 }
 
+func TestBacktestRepo_GetByID_NotFound(t *testing.T) {
+	repo := setupBacktestRepo(t)
+	_, err := repo.GetByID(context.Background(), 99999)
+	if err == nil {
+		t.Error("GetByID(99999): expected error, got nil")
+	}
+}
+
 func TestBacktestRepo_Delete(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewBacktestRepo(db)
+	repo := setupBacktestRepo(t)
 	ctx := context.Background()
 
 	now := time.Now().UTC()

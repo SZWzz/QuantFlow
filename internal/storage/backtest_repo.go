@@ -138,10 +138,15 @@ func (r *BacktestRepo) GetByID(ctx context.Context, id int) (*StoredBacktest, er
 }
 
 // Delete removes a backtest result by its primary key.
+// Returns an error if the record does not exist.
 func (r *BacktestRepo) Delete(ctx context.Context, id int) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM backtest_results WHERE id=?`, id)
+	res, err := r.db.ExecContext(ctx, `DELETE FROM backtest_results WHERE id=?`, id)
 	if err != nil {
 		return fmt.Errorf("delete backtest result %d: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("backtest result %d not found", id)
 	}
 	return nil
 }
