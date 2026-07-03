@@ -18,7 +18,20 @@ const workflow = useWorkflowStore()
 
 const storeId = computed(() => props.params?.storeId as number | undefined)
 const storedLoading = ref(false)
-const storedData = ref<any>(null) // transformed to match btOutput shape
+const storedData = ref<any>(null)
+const deleted = ref(false)
+
+async function deleteStoredResult() {
+  if (!storeId.value) return
+  if (!confirm('确定删除此回测记录？')) return
+  try {
+    await (window as any).go.main.App.DeleteBacktestResult(storeId.value)
+    deleted.value = true
+  } catch (e) {
+    console.error('DeleteBacktestResult failed:', e)
+    alert('删除失败，请重试')
+  }
+}
 
 function findBacktestOutput(): any {
   for (const [, outputs] of workflow.nodeOutputs) {
@@ -326,6 +339,12 @@ function sma(data: number[], period: number): number[] {
       <span class="empty-text">加载中...</span>
     </div>
 
+    <!-- deleted state -->
+    <div v-else-if="deleted" class="empty-state">
+      <span class="empty-text">已删除</span>
+      <span class="empty-desc">此回测记录已被删除。</span>
+    </div>
+
     <!-- empty state -->
     <div v-else-if="klineData.length === 0 && !btOutput" class="empty-state">
       <span class="empty-icon">📊</span>
@@ -335,6 +354,12 @@ function sma(data: number[], period: number): number[] {
     </div>
 
     <template v-else>
+      <!-- history mode toolbar -->
+      <div v-if="storeId && !deleted" class="history-toolbar">
+        <span class="history-label">历史回测</span>
+        <button class="btn btn-danger btn-sm" @click="deleteStoredResult">删除此记录</button>
+      </div>
+
       <!-- K-line chart with buy/sell markers -->
       <div v-if="klineData.length > 0" class="section">
         <div class="section-title">K线 + 买卖点</div>
@@ -405,6 +430,8 @@ function sma(data: number[], period: number): number[] {
 .sell { color: #3fb950; }
 .profit { color: #3fb950; }
 .loss { color: #f85149; }
+.history-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 4px 0; }
+.history-label { font-size: 12px; font-weight: 600; color: var(--color-text-tertiary); }
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 8px; }
 .empty-icon { font-size: 32px; }
 .empty-text { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
