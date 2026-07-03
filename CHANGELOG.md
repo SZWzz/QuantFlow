@@ -4,6 +4,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.4] - 2026-07-04
+
+### Added
+- [Storage] `backtest_results` SQLite 表（migration 015），含 run_id 唯一索引和指标列索引
+- [Storage] `BacktestRepo` — Save/List/GetByID/Delete 完整 CRUD
+- [Terminal] `BacktestHistoryPanel` — 历史回测浏览面板，支持按日期/收益率/Sharpe 排序、多选批量删除、单行删除
+- [Terminal] `BacktestResultPanel` 新增 `storeId` 参数支持，可从 SQLite 加载历史回测数据渲染完整 K 线图+买卖点+净值曲线
+- [Workflow] 执行完成后自动检测 backtest 节点输出，追踪上游 OHLCV 数据，持久化到 SQLite
+
+### Fixed
+- [Backtest] P0: Stop-loss/take-profit 前视偏差 — 止损/止盈触发后以 `bar.Close`（而非 `bar.Open`）成交，避免使用当日尚未发生的开盘价（涉及 runner/CN/HK/US 四个引擎）
+- [Backtest] P0: 先下单后风控 — 买入信号处理中 `CheckOrder` 风险检查移至 `PlaceOrder` 之前，不再依赖下单后撤销的竞态模式（涉及 runner/CN/HK/US 四个引擎的 processBuySignal）
+- [Backtest] P1: 买入佣金不计入成本基础 — `AvgPrice` 计算包含买入佣金（runner 佣金率 / CN 佣金率 / HK 含印花税+交易费 / US 佣金率），修复 PnL 系统性偏高问题
+- [Backtest] P1: 涨跌停检查使用有效成交价 — `CNEngine` 限价检查从 `bar.Close` 改为 `effectivePrice`（`bar.Open * slippage`），避免开盘未涨停但收盘涨停时错误允许买入
+- [Backtest] P2: Sortino 比率从 CAGR 改为算术年化超额收益 — `(meanReturn*252 - rf) / downsideStd`，与 Sharpe 比率计算方式一致
+
 ## [2026.7.3] - 2026-07-03
 
 ### Added
@@ -18,6 +34,13 @@
 - [Workflow] CustomNode 参数显示增强：背景分层、input `#1a2a3a` 高对比、hover 高亮 12%
 - [Workflow] PropertyPanel 参数编辑：visibleParams 从仅计算改为可编辑 input（之前完全不显示）
 - [Workflow] 模板卡片（NodePalette）从紧凑列表改为卡片式布局 + 流程预览（节点圆点+箭头）
+- [Workflow] 完整端到端工作流模板（数据→策略→回测→净值曲线+指标），6个模板全部覆盖 strategy + backtest + chart_data + log_output 节点
+
+### Fixed
+- [Workflow] 保存后重新打开工作流节点全部叠在一起 — `WorkflowJSON` 缺少 `position` 字段，序列化未保存节点位置，反序列化使用随机坐标导致
+- [Workflow] 工作流无法运行 — `startAsyncRun` 未从 Pinia store return 块导出，`asyncRunId` 与 `runId` 分离，导致 `workflow.startAsyncRun()` 为 `undefined`
+- [Engine] data_loader 缺少 mock 数据源，模板使用 CSV 且无 path 导致 `open csv: no such file` — 新增 `mock` source 生成合成 OHLCV 数据（随机游走，252 个交易日）
+- [Engine] data_loader 新增 `auto` source（默认），通过 NodeContext.MarketReg 接入 AdapterRegistry 真实数据源，根据 symbol 自动推断市场（CN/US/HK/CRYPTO）并使用对应 fallback 链（EastMoney/Yahoo/Binance 等）；新增 interval/start_date/end_date 参数
 - [Workflow] 模板边端口名修正：对照实际注册节点 ports 重写 7 个模板的所有 edges
 - [Workflow] i18n 补齐：paramLabel 翻译 30+ 参数键、Category 标签 19 项、右键菜单/错误处理/提示文字 40+ 项（中英文）
 
@@ -48,6 +71,14 @@
 - [MarketData] `IndustryRankProvider` 接口 — 便于未来扩展板块数据源
 - [MarketData] `FetchIndustryRanksWithFallback` — 注册中心按市场链式获取板块排名
 
+### Changed
+- [Engine] `IsAvailable()` 从硬门禁改为"尽力尝试"——`FetchQuoteWithFallback`/`FetchIndustryRanksWithFallback`/`FetchOHLCVWithFallback` 即使适配器探测失败也尝试实际数据请求，请求失败才跳过。修复从 macOS 等网络环境连国内财经 API 探测失败导致全部适配器被跳过的问题
+- [Frontend] ExecutionLog 图表渲染从 VChart（ECharts）切换为内联 SVG 折线图，直接从 `backtest` 节点 `equity_curve` 数组渲染净值曲线，不依赖第三方图表库
+
+### Fixed
+- [Engine] `FetchQuoteWithFallback` 修复变量名 `bars`→`quote`（前序重构引入的命名错误）
+- [Engine] `TestRegistry_FallbackSkipsUnavailable` 更新为匹配新的"不可用也尝试"行为
+
 ## [2026.7.2] - 2026-07-02
 
 ### Added
@@ -71,6 +102,9 @@
 - [Frontend] **独立 DrawingPanel** — 功能已合并到 CandlestickPanel 画线工具，删除 `DrawingPanel.vue`、`DrawingPanel.test.ts`、registry 注册
 
 ### Fixed
+- [Workflow] **Indicators fail with "input must be []float64, got []market.OHLCVBar"** — Root cause: data_loader `ohlcv` port outputs `[]market.OHLCVBar` but indicator nodes (sma, macd, rsi, etc.) expect `[]float64`. Added `floatutil.go:extractFloat64Slice()` using reflection to auto-detect any `[]struct` with `float64` `Close` field and extract Close prices (works for empty slices too via type-level reflection); both `toFloat64Slice` (sma.go) and `extractFloatSlice` (macd.go) delegate to it, fixing all 41 call sites. Templates updated to connect `data_loader:close` → indicator inputs instead of `data_loader:ohlcv`.
+- [Workflow] **Data source fallback chain silently skips Go-side adapters** — `FetchOHLCVWithFallback` skipped nil/unavailable adapters with no log at any level, making it invisible why fallbacks fail. Changed to `slog.Debug` so users can see which adapters are missing/unavailable. Also changed golden-cross and multi-factor templates from `symbol: '000300'` (CSI 300 index, which mootdx cannot fetch) to `symbol: '600519'` (贵州茅台 stock, which mootdx supports).
+- [Backtest] **ProfitFactor = +Inf breaks JSON serialization** — `computeTradeStats` set `profitFactor = math.Inf(1)` when there are no losing trades but profitable ones exist. Replaced with `999999.0` sentinel. Added `sanitizeMetrics` to guard all metric fields against NaN/Inf, preventing Wails `json: unsupported value` errors.
 - [MarketData] **东财 push2 stock/get 接口不可用** — `push2.eastmoney.com/api/qt/stock/get` 返回 EOF（疑似 IP 风控），`parseTencentQuote` 扩展提取 `MarketCap`（[44]×1e8）和 `Pe`（[39]）；`GetStockResearch` 和 `PeerComparisonService` 增加腾讯行情 fallback 链，确保 overview 市值和同业对比在东方财富不可用时仍能正常展示
 - [Frontend] **画线工具初始化失败（`echarts=false`）** — `KlineChart.getEchartsInstance()` 使用了 vue-echarts v7 不存在的 `getEChartsInstance` 方法，改为直接访问暴露的 `chart` Ref，修复画线工具/十字光标无法初始化的问题
 - [Frontend] **设置面板版本号不自动同步** — `version.ts` 硬编码版本改为 Vite `define` 在构建时从 `package.json` 注入 `__APP_VERSION__`，以后只需改 `package.json` 一处
