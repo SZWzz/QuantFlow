@@ -105,7 +105,11 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-else class="empty-state">{{ $t('misc.no_sector_data') }}</div>
+    <div v-else class="empty-state">
+      {{ activeMarket === 'HK' ? $t('misc.no_hk_sector_data') :
+         activeMarket === 'US' ? $t('misc.no_us_sector_data') :
+         $t('misc.no_sector_data') }}
+    </div>
 
     <div class="legend">
       <span class="legend-item"><span class="swatch" style="background:#dc2626"></span> +2%+</span>

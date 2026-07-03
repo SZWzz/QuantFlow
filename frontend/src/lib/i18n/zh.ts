@@ -265,6 +265,8 @@ export default {
     volatility_surface: '波动率期限结构',
     crypto_overview: '加密货币概览',
     heatmap: '板块热力图', no_sector_data: '暂无板块数据',
+    no_hk_sector_data: '港股板块数据暂不可用',
+    no_us_sector_data: '美股板块数据暂不可用',
     market_overview: '市场概览', market_breadth: '市场宽度',
     gainers: '涨幅榜', losers: '跌幅榜',
     depth: '市场深度', auction: '集合竞价', auction_time: '时间', matched: '已匹配', unmatched: '未匹配',
