@@ -3,6 +3,7 @@ package market
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -147,6 +148,100 @@ func TestRegistry_AllFailed(t *testing.T) {
 	defer func() { FallbackChains["CN"] = origChain }()
 
 	_, _, err := r.FetchQuoteWithFallback(context.Background(), "CN", "TEST")
+	if err == nil {
+		t.Fatal("expected error when all adapters fail")
+	}
+}
+
+// mockIndustryRankProvider implements Adapter + IndustryRankProvider for testing.
+type mockIndustryRankProvider struct {
+	name  string
+	fail  bool
+	ranks []IndustryRank
+}
+
+func (m *mockIndustryRankProvider) Name() string                         { return m.name }
+func (m *mockIndustryRankProvider) Markets() []string                    { return []string{"ZZ"} }
+func (m *mockIndustryRankProvider) RequiresAuth() bool                   { return false }
+func (m *mockIndustryRankProvider) IsAvailable(ctx context.Context) bool { return true }
+func (m *mockIndustryRankProvider) HealthCheck(ctx context.Context) error { return nil }
+func (m *mockIndustryRankProvider) FetchQuote(ctx context.Context, symbol string) (*QuoteSnapshot, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockIndustryRankProvider) FetchOHLCV(ctx context.Context, symbol, interval, fqfactor string, start, end int64) ([]OHLCVBar, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockIndustryRankProvider) FetchIndustryRanks(ctx context.Context, market string, topN int) ([]IndustryRank, error) {
+	if m.fail {
+		return nil, fmt.Errorf("mock: %s failed", m.name)
+	}
+	if m.ranks != nil {
+		return m.ranks, nil
+	}
+	return []IndustryRank{{Rank: 1, Name: "Mock", ChangePct: 1.0}}, nil
+}
+
+func TestFetchIndustryRanksWithFallback_UnknownMarket(t *testing.T) {
+	reg := NewAdapterRegistry()
+	reg.Register(&mockIndustryRankProvider{name: "test"})
+
+	ranks, err := reg.FetchIndustryRanksWithFallback(context.Background(), "ZZ", 10)
+	if err == nil {
+		t.Fatal("expected error for unknown market")
+	}
+	if ranks != nil {
+		t.Fatal("expected nil ranks for unknown market")
+	}
+}
+
+func TestFetchIndustryRanksWithFallback_Success(t *testing.T) {
+	reg := NewAdapterRegistry()
+	reg.Register(&mockIndustryRankProvider{name: "finnhub"})
+
+	origChain := IndustryRankChains["US"]
+	IndustryRankChains["US"] = []string{"finnhub"}
+	defer func() { IndustryRankChains["US"] = origChain }()
+
+	ranks, err := reg.FetchIndustryRanksWithFallback(context.Background(), "US", 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(ranks) == 0 {
+		t.Fatal("expected non-empty ranks")
+	}
+	if ranks[0].Name != "Mock" {
+		t.Errorf("ranks[0].Name = %q, want %q", ranks[0].Name, "Mock")
+	}
+}
+
+func TestFetchIndustryRanksWithFallback_FallbackOnFailure(t *testing.T) {
+	reg := NewAdapterRegistry()
+	reg.Register(&mockIndustryRankProvider{name: "a", fail: true})
+	reg.Register(&mockIndustryRankProvider{name: "b"})
+
+	origChain := IndustryRankChains["US"]
+	IndustryRankChains["US"] = []string{"a", "b"}
+	defer func() { IndustryRankChains["US"] = origChain }()
+
+	ranks, err := reg.FetchIndustryRanksWithFallback(context.Background(), "US", 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(ranks) == 0 {
+		t.Fatal("expected non-empty ranks from fallback")
+	}
+}
+
+func TestFetchIndustryRanksWithFallback_AllFailed(t *testing.T) {
+	reg := NewAdapterRegistry()
+	reg.Register(&mockIndustryRankProvider{name: "a", fail: true})
+	reg.Register(&mockIndustryRankProvider{name: "b", fail: true})
+
+	origChain := IndustryRankChains["US"]
+	IndustryRankChains["US"] = []string{"a", "b"}
+	defer func() { IndustryRankChains["US"] = origChain }()
+
+	_, err := reg.FetchIndustryRanksWithFallback(context.Background(), "US", 5)
 	if err == nil {
 		t.Fatal("expected error when all adapters fail")
 	}

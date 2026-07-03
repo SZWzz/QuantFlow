@@ -128,6 +128,60 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 	return nil, "", fmt.Errorf("no available adapter found for market %q symbol %q (chain: %v)", market, symbol, chain)
 }
 
+// IndustryRankChains defines the priority-ordered list of adapter names for
+// industry/sector ranking data for each market.
+var IndustryRankChains = map[string][]string{
+	"CN": {"eastmoney_signals"},
+	"HK": {"tencent"},
+	"US": {"finnhub"},
+}
+
+// FetchIndustryRanksWithFallback tries each adapter in the market's industry
+// rank chain until one succeeds. Returns the ranked list and any error.
+func (r *AdapterRegistry) FetchIndustryRanksWithFallback(ctx context.Context, market string, topN int) ([]IndustryRank, error) {
+	chain, ok := IndustryRankChains[market]
+	if !ok {
+		return nil, fmt.Errorf("no industry rank chain for market %q", market)
+	}
+
+	var lastErr error
+	for _, name := range chain {
+		adapter := r.Get(name)
+		if adapter == nil {
+			slog.Debug("adapter not registered, skipping", "name", name, "market", market)
+			continue
+		}
+		provider, ok := adapter.(IndustryRankProvider)
+		if !ok {
+			slog.Debug("adapter does not implement IndustryRankProvider", "name", name)
+			continue
+		}
+		if !adapter.IsAvailable(ctx) {
+			slog.Debug("adapter unavailable, skipping", "name", name, "market", market)
+			continue
+		}
+
+		ranks, err := RetryWithBudget(
+			func() ([]IndustryRank, error) { return provider.FetchIndustryRanks(ctx, market, topN) },
+			DefaultRetryConfig(name),
+		)
+		if err != nil {
+			slog.Warn("industry rank fetch failed, trying next", "name", name, "market", market, "error", err)
+			lastErr = err
+			continue
+		}
+
+		if len(ranks) > 0 {
+			return ranks, nil
+		}
+	}
+
+	if lastErr != nil {
+		return nil, fmt.Errorf("all industry rank adapters failed for market %q: %w", market, lastErr)
+	}
+	return nil, fmt.Errorf("no available industry rank adapter for market %q (chain: %v)", market, chain)
+}
+
 // FetchOHLCVWithFallback tries each adapter in the market's fallback chain
 // until one succeeds. Returns OHLCV bars, the adapter name, and any error.
 // fqfactor controls price adjustment: "" (不复权), "qfq" (前复权), "hfq" (后复权).
