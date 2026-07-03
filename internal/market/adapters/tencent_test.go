@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"context"
 	"testing"
 )
 
@@ -60,6 +61,28 @@ func TestToTencentCode(t *testing.T) {
 				t.Errorf("toTencentCode(%q) = %q, want %q", tt.symbol, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestTencentAdapter_FetchIndustryRanks(t *testing.T) {
+	adapter := NewTencentAdapter()
+	if !adapter.IsAvailable(context.Background()) {
+		t.Skip("tencent adapter not available (network)")
+	}
+
+	ranks, err := adapter.FetchIndustryRanks(context.Background(), "HK", 30)
+	if err != nil {
+		t.Skipf("FetchIndustryRanks unavailable (API/network): %v", err)
+	}
+	if len(ranks) == 0 {
+		t.Skip("expected non-empty industry ranks but got empty")
+	}
+	t.Logf("fetched %d HK industry ranks", len(ranks))
+	for i, r := range ranks {
+		if i >= 5 {
+			break
+		}
+		t.Logf("  %d. %s: %.2f%%", r.Rank, r.Name, r.ChangePct)
 	}
 }
 

@@ -219,6 +219,87 @@ func (a *TencentAdapter) HealthCheck(ctx context.Context) error {
 	return err
 }
 
+// ── Industry Ranks ──────────────────────────────────────────────────────────────
+
+const tencentHKRankingURL = "http://web.ifzq.gtimg.cn/appstock/app/HK/hkranking"
+
+// tencentHKBaseResp represents the common fields in a Tencent API response.
+type tencentHKBaseResp struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Data json.RawMessage `json:"data"`
+}
+
+// tencentHKIndustryItem represents a single industry ranking item.
+type tencentHKIndustryItem struct {
+	Name      string  `json:"name"`
+	ChangePct float64 `json:"change_pct"`
+	UpCount   int     `json:"up_count"`
+	DownCount int     `json:"down_count"`
+	Leader    string  `json:"leader"`
+}
+
+// FetchIndustryRanks returns HK industry rankings via Tencent Finance.
+// Only supports market="HK"; for other markets returns empty slice.
+func (a *TencentAdapter) FetchIndustryRanks(ctx context.Context, mkt string, topN int) ([]market.IndustryRank, error) {
+	if mkt != "HK" {
+		return []market.IndustryRank{}, nil
+	}
+	if topN <= 0 {
+		topN = 20
+	}
+
+	u := fmt.Sprintf("%s?type=industry", tencentHKRankingURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("tencent: create request: %w", err)
+	}
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("tencent: fetch HK ranking: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("tencent: HK ranking status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("tencent: read body: %w", err)
+	}
+
+	var base tencentHKBaseResp
+	if err := json.Unmarshal(body, &base); err != nil {
+		return nil, fmt.Errorf("tencent: parse HK ranking: %w", err)
+	}
+	if base.Code != 0 {
+		return nil, fmt.Errorf("tencent: HK ranking API error code=%d: %s", base.Code, base.Msg)
+	}
+
+	var items []tencentHKIndustryItem
+	if err := json.Unmarshal(base.Data, &items); err != nil {
+		return nil, fmt.Errorf("tencent: parse HK ranking data: %w", err)
+	}
+
+	ranks := make([]market.IndustryRank, 0, min(topN, len(items)))
+	for i, item := range items {
+		if i >= topN {
+			break
+		}
+		ranks = append(ranks, market.IndustryRank{
+			Rank:      i + 1,
+			Name:      item.Name,
+			ChangePct: item.ChangePct,
+			UpCount:   item.UpCount,
+			DownCount: item.DownCount,
+			Leader:    item.Leader,
+		})
+	}
+	return ranks, nil
+}
+
 // ── Response types ─────────────────────────────────────────────────────────────
 
 type tencentKlineResponse struct {
