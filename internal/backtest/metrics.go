@@ -70,7 +70,8 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord) Metrics {
 		sharpe = (meanReturn*252 - riskFreeRate) / annualVol
 	}
 
-	// Sortino ratio (downside deviation)
+	// Sortino ratio (downside deviation, arithmetic annualized return)
+	annualReturn := meanReturn * 252
 	downsideVariance := 0.0
 	downCount := 0
 	for _, r := range dailyReturns {
@@ -83,7 +84,7 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord) Metrics {
 	if downCount > 0 {
 		downStd := math.Sqrt(downsideVariance / float64(downCount)) * math.Sqrt(252)
 		if downStd > 0 {
-			sortino = cagr / downStd
+			sortino = (annualReturn - riskFreeRate) / downStd
 		}
 	}
 
@@ -97,9 +98,9 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord) Metrics {
 	}
 
 	// Trade statistics
-	winRate, profitFactor := computeTradeStats(trades)
+	winRate, profitFactor, closedTrades := computeTradeStats(trades)
 
-	return Metrics{
+	m := Metrics{
 		TotalReturn:      totalReturn,
 		CAGR:             cagr,
 		MaxDrawdown:      maxDD,
@@ -108,9 +109,24 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord) Metrics {
 		CalmarRatio:      calmar,
 		WinRate:          winRate,
 		ProfitFactor:     profitFactor,
-		TotalTrades:      len(trades),
+		TotalTrades:      closedTrades,
 		AnnualVolatility: annualVol,
 	}
+	sanitizeMetrics(&m)
+	return m
+}
+
+// sanitizeMetrics replaces NaN/Inf values with 0 so JSON serialization does not fail.
+func sanitizeMetrics(m *Metrics) {
+	if math.IsNaN(m.TotalReturn) || math.IsInf(m.TotalReturn, 0) { m.TotalReturn = 0 }
+	if math.IsNaN(m.CAGR) || math.IsInf(m.CAGR, 0) { m.CAGR = 0 }
+	if math.IsNaN(m.MaxDrawdown) || math.IsInf(m.MaxDrawdown, 0) { m.MaxDrawdown = 0 }
+	if math.IsNaN(m.SharpeRatio) || math.IsInf(m.SharpeRatio, 0) { m.SharpeRatio = 0 }
+	if math.IsNaN(m.SortinoRatio) || math.IsInf(m.SortinoRatio, 0) { m.SortinoRatio = 0 }
+	if math.IsNaN(m.CalmarRatio) || math.IsInf(m.CalmarRatio, 0) { m.CalmarRatio = 0 }
+	if math.IsNaN(m.WinRate) || math.IsInf(m.WinRate, 0) { m.WinRate = 0 }
+	if math.IsNaN(m.ProfitFactor) || math.IsInf(m.ProfitFactor, 0) { m.ProfitFactor = 0 }
+	if math.IsNaN(m.AnnualVolatility) || math.IsInf(m.AnnualVolatility, 0) { m.AnnualVolatility = 0 }
 }
 
 func mean(values []float64) float64 {
@@ -142,21 +158,20 @@ func computeMaxDrawdown(equityCurve []EquityPoint) float64 {
 	return maxDD
 }
 
-func computeTradeStats(trades []TradeRecord) (winRate, profitFactor float64) {
+func computeTradeStats(trades []TradeRecord) (winRate, profitFactor float64, closedTrades int) {
 	if len(trades) == 0 {
-		return 0, 0
+		return 0, 0, 0
 	}
 
-	// Group trades by symbol to compute P&L per round trip
-	// Simple approach: just count profitable vs losing trades
 	var wins, losses int
 	var grossProfit, grossLoss float64
 
-	// Sort by date
 	sorted := make([]TradeRecord, len(trades))
 	copy(sorted, trades)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Date < sorted[j].Date })
 
+	// Only sell trades carry PnL; buy trades have PnL=0 (omitted).
+	// Wins+losses = number of closed positions = consistent denominator.
 	for _, t := range sorted {
 		if t.PnL > 0 {
 			wins++
@@ -167,15 +182,15 @@ func computeTradeStats(trades []TradeRecord) (winRate, profitFactor float64) {
 		}
 	}
 
-	total := wins + losses
-	if total > 0 {
-		winRate = float64(wins) / float64(total)
+	closedTrades = wins + losses
+	if closedTrades > 0 {
+		winRate = float64(wins) / float64(closedTrades)
 	}
 	if grossLoss > 0 {
 		profitFactor = grossProfit / grossLoss
 	} else if grossProfit > 0 {
-		profitFactor = math.Inf(1)
+		profitFactor = 999999.0
 	}
 
-	return winRate, profitFactor
+	return winRate, profitFactor, closedTrades
 }

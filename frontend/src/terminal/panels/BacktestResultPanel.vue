@@ -300,7 +300,7 @@ const metricsList = computed(() => {
     { label: '索提诺比率', value: gn(m.sortino_ratio ?? m.SortinoRatio) },
     { label: '卡玛比率', value: gn(m.calmar_ratio ?? m.CalmarRatio) },
     { label: '胜率', value: gm(m.win_rate ?? m.WinRate) },
-    { label: '盈亏比', value: gn(m.profit_factor ?? m.ProfitFactor) },
+    { label: '盈亏比', value: (m.profit_factor ?? m.ProfitFactor) >= 999998 ? '∞' : gn(m.profit_factor ?? m.ProfitFactor) },
     { label: '年化波动率', value: gm(m.annual_volatility ?? m.AnnualVolatility) },
     { label: '总交易次数', value: String(m.total_trades ?? m.TotalTrades ?? '-') },
   ]
