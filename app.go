@@ -817,21 +817,17 @@ func (a *App) GetLockupExpiry(symbol string) ([]adapters.LockupExpiry, error) {
 	return a.signalsAdpt.FetchLockupExpiry(context.Background(), symbol)
 }
 
-// GetIndustryRanks returns industry ranking by change percent.
-// Returns empty slice on error (eastmoney push2 API is frequently unavailable).
-func (a *App) GetIndustryRanks(topN int) ([]market.IndustryRank, error) {
-	if a.signalsAdpt == nil {
-		return []market.IndustryRank{}, nil
-	}
+// GetIndustryRanks returns industry ranking by change percent for a given market.
+// Uses per-market fallback chains: CN→eastmoney_signals, HK→tencent, US→finnhub.
+func (a *App) GetIndustryRanks(mkt string, topN int) ([]market.IndustryRank, error) {
 	if topN <= 0 {
 		topN = 20
 	}
-	ranks, err := a.signalsAdpt.FetchIndustryRanks(context.Background(), topN)
-	if err != nil {
-		slog.Warn("GetIndustryRanks failed, returning empty", "error", err)
-		return []market.IndustryRank{}, nil
+	reg := a.getMarketReg()
+	if reg == nil {
+		return nil, fmt.Errorf("market registry not initialized")
 	}
-	return ranks, nil
+	return reg.FetchIndustryRanksWithFallback(context.Background(), mkt, topN)
 }
 
 // GetConceptBlocks returns the concept/industry/sector blocks a stock belongs to.
