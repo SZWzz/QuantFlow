@@ -4,6 +4,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.3] - 2026-07-03
+
+### Fixed
+- [Terminal] 板块热力图 CN 数据：东财 push2 增加 3 次重试 + 错误传播（不再静默返回空）
+- [Terminal] 板块热力图市场缓存修复：`marketOverviewCache` 改为 per-market 隔离（之前 HK/US 返回 CN 数据）
+- [MarketData] `GetIndustryRanks` 新增 market 参数，不再混合市场数据
+
+### Added
+- [MarketData] HK 板块排名数据源 — Tencent 财经适配器 (`web.ifzq.gtimg.cn`)
+- [MarketData] US 行业排名数据源 — Finnhub 适配器 (`/v1/sector` 接口)
+- [MarketData] `IndustryRankProvider` 接口 — 便于未来扩展板块数据源
+- [MarketData] `FetchIndustryRanksWithFallback` — 注册中心按市场链式获取板块排名
+
 ## [2026.7.2] - 2026-07-02
 
 ### Added
