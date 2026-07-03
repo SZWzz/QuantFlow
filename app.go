@@ -19,6 +19,7 @@ import (
 	"quantflow/internal/ai"
 	"quantflow/internal/ai/capabilities"
 	"quantflow/internal/auth"
+	"quantflow/internal/backtest"
 	"quantflow/internal/config"
 	"quantflow/internal/logging"
 	"quantflow/internal/market"
@@ -64,6 +65,7 @@ type App struct {
 	sched        *schedule.Scheduler
 	portfolioSvc *portfolio.Service
 	execRepo     *storage.ExecutionRepo
+	btRepo       *storage.BacktestRepo
 	credMgr      *auth.CredentialManager
 
 	// FetchData TTL cache (macro summaries, akshare endpoints, etc.).
@@ -191,6 +193,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.marketReg = market.NewAdapterRegistry()
 	a.registerMarketAdapters()
 	slog.Info("market adapter registry initialized", "count", a.marketReg.Count())
+	nctx.MarketReg = a.marketReg
 
 	// FetchData cache: prevents redundant Python sidecar calls for slow
 	// AKShare endpoints (macro_cn_summary takes 60-90s).
@@ -266,6 +269,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.execRepo = storage.NewExecutionRepo(a.db)
 	slog.Info("execution history repo initialized")
 
+	a.btRepo = storage.NewBacktestRepo(a.db)
+	slog.Info("backtest repo initialized")
+
 	// Credential manager
 	credMgr, err := auth.NewCredentialManager(a.db)
 	if err != nil {
@@ -294,6 +300,8 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		if err := a.execRepo.Complete(runID, status, nodeResults, result.FinishedAt, result.Error); err != nil {
 			slog.Warn("failed to complete execution record", "run_id", runID, "error", err)
 		}
+
+		persistBacktestResults(a, runID, wf, result)
 	})
 
 	// Start cron scheduler so scheduled tasks actually execute.
@@ -518,6 +526,33 @@ func (a *App) GetExecution(runID string) (*storage.ExecutionRecord, error) {
 		return nil, fmt.Errorf("execution history not initialized")
 	}
 	return a.execRepo.Get(runID)
+}
+
+// ListBacktestHistory returns recent backtest results with pagination.
+func (a *App) ListBacktestHistory(ctx context.Context, limit, offset int) ([]storage.StoredBacktestSummary, error) {
+	if a.btRepo == nil {
+		return nil, fmt.Errorf("backtest repo not initialized")
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	return a.btRepo.List(ctx, limit, offset)
+}
+
+// GetStoredBacktestResult returns a single backtest result by ID with full JSON blobs.
+func (a *App) GetStoredBacktestResult(ctx context.Context, id int) (*storage.StoredBacktest, error) {
+	if a.btRepo == nil {
+		return nil, fmt.Errorf("backtest repo not initialized")
+	}
+	return a.btRepo.GetByID(ctx, id)
+}
+
+// DeleteBacktestResult deletes a backtest result by ID.
+func (a *App) DeleteBacktestResult(ctx context.Context, id int) error {
+	if a.btRepo == nil {
+		return fmt.Errorf("backtest repo not initialized")
+	}
+	return a.btRepo.Delete(ctx, id)
 }
 
 // ── Credential Management ───────────────────────────────────────────
@@ -1201,4 +1236,100 @@ func (a *App) ServiceShutdown() error {
 	}
 	slog.Info("app shutdown complete")
 	return nil
+}
+
+// persistBacktestResults checks all node results for successful backtest nodes
+// and persists their outputs to the backtest_results table.
+func persistBacktestResults(a *App, runID string, wf *workflow.Workflow, result *workflow.ExecutionResult) {
+	if a.btRepo == nil {
+		return
+	}
+	for _, nr := range result.NodeResults {
+		if nr.NodeType != "backtest" || nr.Status != "success" {
+			continue
+		}
+		outputs := nr.Outputs
+		if outputs == nil {
+			continue
+		}
+
+		rawResult, ok := outputs["result"]
+		if !ok {
+			continue
+		}
+
+		jsonBytes, err := json.Marshal(rawResult)
+		if err != nil {
+			slog.Warn("persistBacktest: marshal result", "node", nr.NodeID, "error", err)
+			continue
+		}
+		var btResult backtest.Result
+		if err := json.Unmarshal(jsonBytes, &btResult); err != nil {
+			slog.Warn("persistBacktest: unmarshal result", "node", nr.NodeID, "error", err)
+			continue
+		}
+
+		ohlcvJSON := "[]"
+		ohlcv := findUpstreamOhlcv(wf, nr.NodeID, result.NodeResults)
+		if ohlcv != nil {
+			if b, err := json.Marshal(ohlcv); err == nil {
+				ohlcvJSON = string(b)
+			}
+		}
+
+		configJSON, _ := json.Marshal(btResult.Config)
+		equityJSON, _ := json.Marshal(btResult.EquityCurve)
+		tradesJSON, _ := json.Marshal(btResult.Trades)
+
+		bt := storage.StoredBacktest{
+			RunID:        runID,
+			WorkflowName: wf.Name,
+			StrategyName: extractStr(outputs, "strategy_name"),
+			Symbol:       extractStr(outputs, "symbol"),
+			EngineType:   extractStr(outputs, "engine_type"),
+			TotalReturn:  btResult.Metrics.TotalReturn,
+			CAGR:         btResult.Metrics.CAGR,
+			MaxDrawdown:  btResult.Metrics.MaxDrawdown,
+			SharpeRatio:  btResult.Metrics.SharpeRatio,
+			SortinoRatio: btResult.Metrics.SortinoRatio,
+			CalmarRatio:  btResult.Metrics.CalmarRatio,
+			WinRate:      btResult.Metrics.WinRate,
+			ProfitFactor: btResult.Metrics.ProfitFactor,
+			TotalTrades:  btResult.Metrics.TotalTrades,
+			ConfigJSON:   string(configJSON),
+			EquityCurve:  string(equityJSON),
+			TradesJSON:   string(tradesJSON),
+			OHLCVData:    ohlcvJSON,
+			StartedAt:    result.StartedAt.Format(time.RFC3339),
+			FinishedAt:   result.FinishedAt.Format(time.RFC3339),
+		}
+
+		if _, err := a.btRepo.Save(context.Background(), bt); err != nil {
+			slog.Error("persistBacktest: save failed", "node", nr.NodeID, "error", err)
+		}
+	}
+}
+
+func findUpstreamOhlcv(wf *workflow.Workflow, backtestNodeID string, nodeResults []workflow.NodeResult) any {
+	for _, edge := range wf.Edges {
+		if edge.ToNode == backtestNodeID && edge.ToPort == "ohlcv_data" {
+			for _, nr := range nodeResults {
+				if nr.NodeID == edge.FromNode {
+					if ohlcv, ok := nr.Outputs["ohlcv"]; ok {
+						return ohlcv
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func extractStr(outputs map[string]any, key string) string {
+	if v, ok := outputs[key]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
