@@ -40,7 +40,10 @@ async function fetchData() {
   try {
     const app = (window as any).go?.main?.App
     if (!app?.GetIndustryRanks) return
-    const { data: ranks } = await fetchWithCache<any>('industry_ranks', () => app.GetIndustryRanks(20))
+    const { data: ranks } = await fetchWithCache<any>(
+      `industry_ranks:${market.value}:${lookback.value}`,
+      () => app.GetIndustryRanks(market.value, lookback.value),
+    )
     if (ranks && ranks.length > 0) {
       const pcts = ranks.map((r: any) => r.changePct || 0)
       sectors.value = ranks.map((r: any) => {
@@ -106,6 +109,11 @@ function switchMarket(mkt: 'CN' | 'HK' | 'US') {
   fetchData()
 }
 
+function switchLookback(days: number) {
+  lookback.value = days
+  fetchData()
+}
+
 onMounted(fetchData)
 onUnmounted(() => {
   chartInstance?.dispose()
@@ -122,9 +130,9 @@ onUnmounted(() => {
         <button :class="['mkt-tab', { active: market === 'US' }]" @click="switchMarket('US')">US</button>
       </div>
       <div class="lookback-tabs">
-        <button :class="['lb-tab', { active: lookback === 5 }]" @click="lookback = 5">5d</button>
-        <button :class="['lb-tab', { active: lookback === 20 }]" @click="lookback = 20">20d</button>
-        <button :class="['lb-tab', { active: lookback === 60 }]" @click="lookback = 60">60d</button>
+        <button :class="['lb-tab', { active: lookback === 5 }]" @click="switchLookback(5)">5d</button>
+        <button :class="['lb-tab', { active: lookback === 20 }]" @click="switchLookback(20)">20d</button>
+        <button :class="['lb-tab', { active: lookback === 60 }]" @click="switchLookback(60)">60d</button>
       </div>
       <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
     </div>

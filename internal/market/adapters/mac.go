@@ -420,7 +420,7 @@ func (a *MacAdapter) GetAbnormalStocks(market int) ([]AbnormalStock, error) {
 
 	// Response: 2B count + N * records
 	if len(resp) < 2 {
-		return nil, fmt.Errorf("mac: abnormal response too short")
+		return []AbnormalStock{}, nil
 	}
 	count := int(binary.LittleEndian.Uint16(resp[0:]))
 	results := make([]AbnormalStock, 0, count)

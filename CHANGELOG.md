@@ -6,10 +6,26 @@
 
 ## [2026.7.3] - 2026-07-03
 
+### Removed
+- [Frontend] 移除 IndexPanel（指数成分股查询）— 功能薄弱，仅展示静态成分股列表，与 MarketOverview 重叠度高
+
+### Changed
+- [Frontend] Welcome 面板分类对齐：registry.ts 面板分类统一为 WelcomePanel 支持的 11 个标准分类
+- [Frontend] Welcome 面板分类重组：研究分析 20→14，图表分析 2→4（index/funds/futures/bonds/sector-rotation→市场行情，indicator/chanlun→图表分析，broker-config→交易执行，cross-asset-corr→量化分析，candlestick→市场行情，model-registry→系统）
+- [Workflow] CustomNode 重构：参数支持卡片上直接编辑（点击→输入→Enter 保存），端口圆点可视化增强（12px 彩色 + hover tooltip）
+- [Docs] 新增 Workflow 对标 n8n 能力提升路线图 spec（10 项优化）
+
 ### Fixed
 - [Terminal] 板块热力图 CN 数据：东财 push2 增加 3 次重试 + 错误传播（不再静默返回空）
 - [Terminal] 板块热力图市场缓存修复：`marketOverviewCache` 改为 per-market 隔离（之前 HK/US 返回 CN 数据）
 - [MarketData] `GetIndustryRanks` 新增 market 参数，不再混合市场数据
+- [MarketData] **严重修复**：`eastmoney_signals` 适配器未注册到注册中心，导致板块排名 fallback 链找不到适配器，CN 市场始终返回 "no available adapter"
+- [MarketData] `EastMoneySignalsAdapter` 补齐 `Adapter` 接口 (`Markets`/`RequiresAuth`/`FetchQuote`/`FetchOHLCV`/`HealthCheck`)，使其可通过注册中心使用
+- [MarketData] `MacAdapter.GetAbnormalStocks` 响应过短时返回空切片而非错误（MAC 服务器在非交易时段返回空响应）
+- [Frontend] `LimitUpDownPanel` 移除 symbol context 联动（涨跌停监控是全市场数据，不应参与联动）
+- [MarketData] `EastMoneySignalsAdapter` 新增 `FetchAbnormalStocks`（东财 push2 API 获取涨跌幅最大股票，作为 MAC `0x1237` 无效命令的 fallback）
+- [MarketData] `FetchAbnormalStocks` 增加 3 次重试 + backoff 应对东财 CDN 间歇性 EOF
+- [MarketData] `GetAbnormalStocks` 增加 fallback 链：MAC → EastMoney push2，MAC 返回空时自动使用东财数据
 
 ### Added
 - [MarketData] HK 板块排名数据源 — Tencent 财经适配器 (`web.ifzq.gtimg.cn`)

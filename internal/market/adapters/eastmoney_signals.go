@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"quantflow/internal/market"
@@ -47,6 +48,10 @@ type LockupExpiry struct {
 type EastMoneySignalsAdapter struct {
 	client  *http.Client
 	limiter *EastMoneyRateLimiter
+
+	availMu       sync.RWMutex
+	availResult   bool
+	availChecked time.Time
 }
 
 // NewEastMoneySignalsAdapter creates a new signals adapter.
@@ -59,9 +64,44 @@ func NewEastMoneySignalsAdapter() *EastMoneySignalsAdapter {
 
 func (a *EastMoneySignalsAdapter) Name() string { return "eastmoney_signals" }
 
+func (a *EastMoneySignalsAdapter) Markets() []string  { return []string{"CN"} }
+func (a *EastMoneySignalsAdapter) RequiresAuth() bool { return false }
+
 func (a *EastMoneySignalsAdapter) IsAvailable(ctx context.Context) bool {
+	// Cache availability result for 120s to avoid self-DOS on rate-limited APIs.
+	a.availMu.RLock()
+	if time.Since(a.availChecked) < 120*time.Second {
+		ok := a.availResult
+		a.availMu.RUnlock()
+		return ok
+	}
+	a.availMu.RUnlock()
+
+	a.availMu.Lock()
+	defer a.availMu.Unlock()
+	// Double-check after acquiring write lock
+	if time.Since(a.availChecked) < 120*time.Second {
+		return a.availResult
+	}
 	_, err := a.FetchIndustryRanks(ctx, "CN", 5)
-	return err == nil
+	a.availResult = err == nil
+	a.availChecked = time.Now()
+	return a.availResult
+}
+
+func (a *EastMoneySignalsAdapter) FetchQuote(ctx context.Context, symbol string) (*market.QuoteSnapshot, error) {
+	return nil, fmt.Errorf("eastmoney_signals: quote not supported, use eastmoney adapter instead")
+}
+
+func (a *EastMoneySignalsAdapter) FetchOHLCV(ctx context.Context, symbol, interval, fqfactor string, start, end int64) ([]market.OHLCVBar, error) {
+	return nil, fmt.Errorf("eastmoney_signals: OHLCV not supported, use eastmoney adapter instead")
+}
+
+func (a *EastMoneySignalsAdapter) HealthCheck(ctx context.Context) error {
+	if !a.IsAvailable(ctx) {
+		return fmt.Errorf("eastmoney_signals: not available")
+	}
+	return nil
 }
 
 // ── Dragon Tiger Board ────────────────────────────────────────────────
@@ -97,33 +137,50 @@ func (a *EastMoneySignalsAdapter) FetchDragonTigerStock(ctx context.Context, cod
 }
 
 // FetchDailyDragonTiger fetches the full market dragon tiger board for a date.
+// Falls back to up to 5 earlier calendar dates when the requested date has no data
+// (e.g. before market close on the current day).
 func (a *EastMoneySignalsAdapter) FetchDailyDragonTiger(ctx context.Context, tradeDate string, minNetBuy float64) ([]DragonTigerStock, error) {
-	filter := fmt.Sprintf(`(TRADE_DATE>='%s')(TRADE_DATE<='%s')`, tradeDate, tradeDate)
-
-	rows, err := a.queryDatacenter("RPT_DAILYBILLBOARD_DETAILSNEW", filter, 500, "BILLBOARD_NET_AMT", "-1")
+	var lastErr error
+	date, err := time.Parse("2006-01-02", tradeDate)
 	if err != nil {
-		return nil, err
+		date = time.Now()
 	}
 
-	stocks := make([]DragonTigerStock, 0, len(rows))
-	for _, r := range rows {
-		netBuy := floatval(r["BILLBOARD_NET_AMT"]) / 10000
-		if minNetBuy > 0 && netBuy < minNetBuy {
+	for attempt := 0; attempt < 5; attempt++ {
+		tryDate := date.Add(-time.Duration(attempt) * 24 * time.Hour).Format("2006-01-02")
+		filter := fmt.Sprintf(`(TRADE_DATE>='%s')(TRADE_DATE<='%s')`, tryDate, tryDate)
+
+		rows, err := a.queryDatacenter("RPT_DAILYBILLBOARD_DETAILSNEW", filter, 500, "BILLBOARD_NET_AMT", "-1")
+		if err != nil {
+			lastErr = err
 			continue
 		}
-		stocks = append(stocks, DragonTigerStock{
-			Code:      strval(r["SECURITY_CODE"]),
-			Name:      strval(r["SECURITY_NAME_ABBR"]),
-			Reason:    strval(r["EXPLANATION"]),
-			Close:     floatval(r["CLOSE_PRICE"]),
-			ChangePct: floatval(r["CHANGE_RATE"]),
-			NetBuyWan: netBuy,
-			BuyWan:    floatval(r["BILLBOARD_BUY_AMT"]) / 10000,
-			SellWan:   floatval(r["BILLBOARD_SELL_AMT"]) / 10000,
-			Turnover:  floatval(r["TURNOVERRATE"]),
-		})
+		if len(rows) == 0 {
+			lastErr = fmt.Errorf("datacenter RPT_DAILYBILLBOARD_DETAILSNEW: no data for %s", tryDate)
+			continue
+		}
+
+		stocks := make([]DragonTigerStock, 0, len(rows))
+		for _, r := range rows {
+			netBuy := floatval(r["BILLBOARD_NET_AMT"]) / 10000
+			if minNetBuy > 0 && netBuy < minNetBuy {
+				continue
+			}
+			stocks = append(stocks, DragonTigerStock{
+				Code:      strval(r["SECURITY_CODE"]),
+				Name:      strval(r["SECURITY_NAME_ABBR"]),
+				Reason:    strval(r["EXPLANATION"]),
+				Close:     floatval(r["CLOSE_PRICE"]),
+				ChangePct: floatval(r["CHANGE_RATE"]),
+				NetBuyWan: netBuy,
+				BuyWan:    floatval(r["BILLBOARD_BUY_AMT"]) / 10000,
+				SellWan:   floatval(r["BILLBOARD_SELL_AMT"]) / 10000,
+				Turnover:  floatval(r["TURNOVERRATE"]),
+			})
+		}
+		return stocks, nil
 	}
-	return stocks, nil
+	return nil, lastErr
 }
 
 // ── Lockup Expiry ─────────────────────────────────────────────────────
@@ -222,7 +279,7 @@ func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, mkt st
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("eastmoney_signals industry: %w", err)
+		return nil, market.NewTransientErrorf("eastmoney_signals industry: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -242,7 +299,7 @@ func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, mkt st
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("eastmoney_signals industry: %w", err)
+		return nil, market.NewTransientErrorf("eastmoney_signals industry: %w", err)
 	}
 
 	ranks := make([]market.IndustryRank, 0, len(result.Data.Diff))
@@ -265,6 +322,113 @@ func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, mkt st
 
 	slog.Debug("eastmoney_signals industry fetched", "total", result.Data.Total, "returned", len(ranks))
 	return ranks, nil
+}
+
+// ── Abnormal Stocks (涨跌停/异动) ─────────────────────────────────────
+
+// push2MarketFilter returns the EastMoney push2 fs parameter for stock lists.
+func push2MarketFilter(market string) string {
+	switch market {
+	case "SH":
+		return "m:0+t:6"
+	case "SZ":
+		return "m:0+t:7"
+	default:
+		return ""
+	}
+}
+
+// FetchAbnormalStocks fetches stocks with extreme change_pct via EastMoney push2.
+// Makes two requests: top N by change_pct descending (limit-up) and ascending
+// (limit-down), then merges and returns combined results.
+func (a *EastMoneySignalsAdapter) FetchAbnormalStocks(ctx context.Context, market string, topN int) ([]AbnormalStock, error) {
+	fs := push2MarketFilter(market)
+	if fs == "" {
+		return nil, fmt.Errorf("eastmoney_signals: unsupported market %q", market)
+	}
+	if topN <= 0 {
+		topN = 100
+	}
+
+	seen := make(map[string]bool)
+	var stocks []AbnormalStock
+
+	for _, ascending := range []bool{false, true} {
+		po := 1
+		if ascending {
+			po = 0
+		}
+		url := fmt.Sprintf(
+			"https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=%d&po=%d&np=1&fltt=2&invt=2&fs=%s&fields=f2,f3,f5,f6,f12,f14",
+			topN, po, fs,
+		)
+
+		// Retry loop: EastMoney CDN intermittently drops connections (EOF).
+		var result struct {
+			Data struct {
+				Diff []struct {
+					F2  interface{} `json:"f2"`
+					F3  interface{} `json:"f3"`
+					F5  interface{} `json:"f5"`
+					F6  interface{} `json:"f6"`
+					F12 string      `json:"f12"`
+					F14 string      `json:"f14"`
+				} `json:"diff"`
+			} `json:"data"`
+		}
+		retryErr := error(nil)
+		for attempt := 0; attempt < 3; attempt++ {
+			if attempt > 0 {
+				time.Sleep(time.Duration(500*attempt) * time.Millisecond)
+			}
+			a.limiter.Wait()
+			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+			req.Header.Set("Host", "push2.eastmoney.com")
+			req.Header.Set("User-Agent", emUA)
+
+			resp, err := a.client.Do(req)
+			if err != nil {
+				retryErr = fmt.Errorf("eastmoney_signals push2: %w", err)
+				continue
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+				resp.Body.Close()
+				retryErr = fmt.Errorf("eastmoney_signals push2: decode: %w", err)
+				continue
+			}
+			resp.Body.Close()
+			retryErr = nil
+			break
+		}
+		if retryErr != nil {
+			return nil, retryErr
+		}
+
+		for _, d := range result.Data.Diff {
+			if seen[d.F12] {
+				continue
+			}
+			seen[d.F12] = true
+			chg := toFloat(d.F3)
+			reason := ""
+			if chg >= 9.5 {
+				reason = "涨停"
+			} else if chg <= -9.5 {
+				reason = "跌停"
+			}
+			stocks = append(stocks, AbnormalStock{
+				Symbol:    d.F12,
+				Name:      d.F14,
+				Price:     toFloat(d.F2),
+				ChangePct: chg,
+				Reason:    reason,
+				Volume:    toFloat(d.F5),
+				Turnover:  toFloat(d.F6),
+			})
+		}
+	}
+
+	return stocks, nil
 }
 
 // ── Datacenter query helpers ──────────────────────────────────────────

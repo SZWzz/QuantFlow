@@ -24,6 +24,9 @@ type Workflow struct {
 	Description string         `json:"description,omitempty"`
 	Nodes       []NodeInstance `json:"nodes"`
 	Edges       []Edge         `json:"edges"`
+	// PinnedOutputs maps node ID → fixed outputs for pinned/debug nodes.
+	// When set, the engine skips execution of these nodes and uses the pinned data.
+	PinnedOutputs map[string]map[string]any `json:"pinned_outputs,omitempty"`
 }
 
 // Clone returns a deep copy of the workflow suitable for independent execution.

@@ -18,6 +18,7 @@ import (
 
 	"quantflow/internal/ai"
 	"quantflow/internal/ai/capabilities"
+	"quantflow/internal/auth"
 	"quantflow/internal/config"
 	"quantflow/internal/logging"
 	"quantflow/internal/market"
@@ -61,6 +62,8 @@ type App struct {
 	scheduleRepo *schedule.Repo
 	sched        *schedule.Scheduler
 	portfolioSvc *portfolio.Service
+	execRepo     *storage.ExecutionRepo
+	credMgr      *auth.CredentialManager
 
 	// FetchData TTL cache (macro summaries, akshare endpoints, etc.).
 	dataCache     *fetchDataCache
@@ -258,6 +261,37 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.scheduleRepo = schedule.NewRepo(a.db)
 	slog.Info("schedule task repo initialized")
 
+	// Execution history persistence
+	a.execRepo = storage.NewExecutionRepo(a.db)
+	slog.Info("execution history repo initialized")
+
+	// Credential manager
+	credMgr, err := auth.NewCredentialManager(a.db)
+	if err != nil {
+		slog.Warn("credential manager init failed", "error", err)
+	} else {
+		a.credMgr = credMgr
+		slog.Info("credential manager initialized")
+	}
+
+	// Wire execution saver so every workflow run is recorded
+	a.engine.SetExecutionSaver(func(runID string, wf *workflow.Workflow, result *workflow.ExecutionResult) {
+		wfJSON, _ := json.Marshal(wf)
+		nodeResults, _ := json.Marshal(result.NodeResults)
+		if err := a.execRepo.Save(runID, wf.ID, wf.Name, string(wfJSON), len(wf.Nodes), nodeResults, result.StartedAt, "manual"); err != nil {
+			slog.Warn("failed to save execution start", "run_id", runID, "error", err)
+			return
+		}
+		status := "completed"
+		if result.Error != "" {
+			status = "failed"
+		}
+		nodeResults, _ = json.Marshal(result.NodeResults)
+		if err := a.execRepo.Complete(runID, status, nodeResults, result.FinishedAt, result.Error); err != nil {
+			slog.Warn("failed to complete execution record", "run_id", runID, "error", err)
+		}
+	})
+
 	// Start cron scheduler so scheduled tasks actually execute.
 	a.sched = schedule.New(a.db, workflowExecutorAdapter{a: a}, nil)
 	if err := a.sched.Start(); err != nil {
@@ -273,6 +307,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	nctx.GlobalNewsAdapter = a.globalNewsAdpt
 	a.conceptAdpt = adapters.NewEastMoneyConceptAdapter()
 	a.signalsAdpt = adapters.NewEastMoneySignalsAdapter()
+	a.marketReg.Register(a.signalsAdpt) // register for industry rank fallback chain
 	a.capitalAdpt = adapters.NewEastMoneyCapitalAdapter()
 	a.fundFlowAdpt = adapters.NewEastMoneyFundFlowAdapter()
 	a.macAdpt = adapters.NewMacAdapter("")
@@ -332,6 +367,36 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.geopoliticsSvc = research.NewGeopoliticsService(a.geopoliticsAdpt)
 	nctx.GeopoliticsService = a.geopoliticsSvc
 	slog.Info("geopolitics service initialized")
+
+	// Wire sub-workflow runner: allows sub_workflow nodes to execute saved workflows
+	nctx.SubWorkflowRunner = func(ctx context.Context, wfID string, inputs map[string]any) (map[string]any, error) {
+		repo := storage.NewWorkflowRepo(a.db)
+		wf, err := repo.Load(wfID, nil)
+		if err != nil {
+			return nil, fmt.Errorf("sub_workflow: load %q: %w", wfID, err)
+		}
+		// Inject inputs into the child workflow's first node params
+		if len(wf.Nodes) > 0 && len(inputs) > 0 {
+			for k, v := range inputs {
+				wf.Nodes[0].Params[k] = v
+			}
+		}
+		result, err := a.engine.Execute(ctx, wf)
+		if err != nil {
+			return nil, fmt.Errorf("sub_workflow: execute %q: %w", wfID, err)
+		}
+		// Collect outputs from all completed nodes
+		outputs := make(map[string]any)
+		for _, nr := range result.NodeResults {
+			if nr.Status == "completed" {
+				for k, v := range nr.Outputs {
+					outputs[nr.NodeID+"."+k] = v
+				}
+			}
+		}
+		return outputs, nil
+	}
+	slog.Info("sub-workflow runner wired")
 
 	// Alternative data: govdata (FRED + SEC EDGAR)
 	a.govDataAdpt = adapters.NewGovDataAdapter()
@@ -402,6 +467,56 @@ func (a *App) RunWorkflow(ctx context.Context, jsonDef string) (*workflow.Execut
 		return nil, fmt.Errorf("parse json: %w", err)
 	}
 	return a.engine.Execute(ctx, &wf)
+}
+
+// GetExecutionHistory returns recent workflow execution records.
+func (a *App) GetExecutionHistory(limit int) ([]storage.ExecutionRecord, error) {
+	if a.execRepo == nil {
+		return nil, fmt.Errorf("execution history not initialized")
+	}
+	return a.execRepo.List(limit)
+}
+
+// GetExecution returns a single execution record by run ID.
+func (a *App) GetExecution(runID string) (*storage.ExecutionRecord, error) {
+	if a.execRepo == nil {
+		return nil, fmt.Errorf("execution history not initialized")
+	}
+	return a.execRepo.Get(runID)
+}
+
+// ── Credential Management ───────────────────────────────────────────
+
+// ListCredentials returns all stored credentials with decrypted keys.
+func (a *App) ListCredentials() ([]auth.Credential, error) {
+	if a.credMgr == nil {
+		return nil, fmt.Errorf("credential manager not initialized")
+	}
+	return a.credMgr.List()
+}
+
+// SaveCredential creates or updates a credential with encrypted storage.
+func (a *App) SaveCredential(name, credType string, keys map[string]string) error {
+	if a.credMgr == nil {
+		return fmt.Errorf("credential manager not initialized")
+	}
+	return a.credMgr.Save(name, credType, keys)
+}
+
+// DeleteCredential removes a credential by name.
+func (a *App) DeleteCredential(name string) error {
+	if a.credMgr == nil {
+		return fmt.Errorf("credential manager not initialized")
+	}
+	return a.credMgr.Delete(name)
+}
+
+// ListCredentialNames returns credential names for dropdown use.
+func (a *App) ListCredentialNames() ([]string, error) {
+	if a.credMgr == nil {
+		return []string{}, nil
+	}
+	return a.credMgr.Names()
 }
 
 // RunBacktestWorkflow executes a walk-forward backtest from a workflow JSON definition.

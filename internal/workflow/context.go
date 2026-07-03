@@ -1,5 +1,7 @@
 package workflow
 
+import "context"
+
 // NodeContext holds all shared service dependencies available to workflow nodes.
 // Services are stored as interface{} to avoid import cycles between the workflow
 // package and packages like trading, python, research, etc.
@@ -42,4 +44,8 @@ type NodeContext struct {
 	// Backtest window — set by ExecuteBacktest before each window
 	BacktestStart string
 	BacktestEnd   string
+
+	// SubWorkflowRunner executes a child workflow by ID with given inputs.
+	// Set by app.go to wire the engine's Execute into sub_workflow nodes.
+	SubWorkflowRunner func(ctx context.Context, workflowID string, inputs map[string]any) (map[string]any, error)
 }

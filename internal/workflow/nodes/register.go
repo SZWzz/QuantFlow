@@ -40,6 +40,7 @@ func RegisterAll(r *workflow.NodeRegistry) {
 	// Phase 5: Schedule
 	r.RegisterWithCategory("schedule", NewScheduleNode, "schedule")
 	r.RegisterWithCategory("wait", NewWaitNode, "schedule")
+	r.RegisterWithCategory("webhook_trigger", NewWebhookTriggerNode, "schedule")
 
 	// Phase 5: Portfolio/Risk
 	r.RegisterWithCategory("portfolio_summary", NewPortfolioSummaryNode, "portfolio")

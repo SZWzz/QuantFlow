@@ -140,12 +140,15 @@ function closeTab(tabId: string) {
         Drop panels here
       </div>
       <ErrorBoundary v-else-if="activeComponent" :panel-id="activePanel?.panelId || ''">
-        <component
-          :is="activeComponent"
-          :panel-id="activePanel?.panelId"
-          :params="activeParams"
-          class="panel-instance"
-        />
+        <KeepAlive :max="10">
+          <component
+            :is="activeComponent"
+            :key="activePanel?.id"
+            :panel-id="activePanel?.panelId"
+            :params="activeParams"
+            class="panel-instance"
+          />
+        </KeepAlive>
       </ErrorBoundary>
       <div v-else class="empty-content">
         Panel "{{ activePanel?.panelId }}" not registered

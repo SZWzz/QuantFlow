@@ -361,11 +361,29 @@ func (a *App) GetAuction(symbol string) ([]adapters.AuctionItem, error) {
 }
 
 // GetAbnormalStocks returns stocks with abnormal price/volume behavior.
-func (a *App) GetAbnormalStocks(market int) ([]adapters.AbnormalStock, error) {
-	if a.macAdpt == nil {
-		return nil, fmt.Errorf("MAC adapter not initialized")
+// market is "SH" or "SZ". Tries MAC adapter first; falls back to EastMoney
+// push2 API (which is more reliable on public MAC servers).
+func (a *App) GetAbnormalStocks(market string) ([]adapters.AbnormalStock, error) {
+	if a.macAdpt != nil {
+		var mkt int
+		switch market {
+		case "SH":
+			mkt = 1
+		case "SZ":
+			mkt = 0
+		default:
+			return nil, fmt.Errorf("invalid market: %q (expected SH or SZ)", market)
+		}
+		stocks, err := a.macAdpt.GetAbnormalStocks(mkt)
+		if err == nil && len(stocks) > 0 {
+			return stocks, nil
+		}
+		// MAC returned empty or error — fall through to EastMoney
 	}
-	return a.macAdpt.GetAbnormalStocks(market)
+	if a.signalsAdpt != nil {
+		return a.signalsAdpt.FetchAbnormalStocks(context.Background(), market, 100)
+	}
+	return nil, fmt.Errorf("no adapter available for abnormal stocks")
 }
 
 // GetIPOCalendar returns upcoming and recent IPO listing calendar.

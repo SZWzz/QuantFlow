@@ -54,10 +54,43 @@ async function onRun() {
     }
 
     showLog.value = true
+    animateExecution()
   } catch (err: any) {
     workflow.executionStatus = 'failed'
     console.error('Workflow execution failed:', err)
   }
+}
+
+// Staggered animation: each completed node pulses green, edges light up
+async function animateExecution() {
+  const statuses = workflow.nodeStatuses
+  if (statuses.size === 0) return
+
+  const completedNodes = workflow.nodes.filter(n =>
+    statuses.get(n.id)?.status === 'success'
+  )
+
+  // Reset all edges to default
+  for (const edge of workflow.edges as any[]) {
+    edge.style = { stroke: '#30363d', strokeWidth: 2 }
+    edge.animated = false
+  }
+
+  for (const node of completedNodes) {
+    node.data.status = 'running'
+    await delay(60)
+    node.data.status = 'success'
+    for (const edge of workflow.edges as any[]) {
+      if (edge.source === node.id) {
+        edge.style = { stroke: '#3fb950', strokeWidth: 2.5 }
+        edge.animated = true
+      }
+    }
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 function onSave() {

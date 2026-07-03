@@ -3,6 +3,7 @@ package nodes
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"quantflow/internal/workflow"
 
@@ -50,14 +51,22 @@ func (n *SubWorkflowNode) Execute(ctx context.Context, inputs map[string]any, pa
 		return nil, fmt.Errorf("sub_workflow: workflow_id param is required")
 	}
 
-	// Stub: return mock execution_id and "pending" status.
-	// TODO: wire to actual WorkflowEngine.Submit(workflowID).
-	executionID := uuid.New().String()
+	if nctx == nil || nctx.SubWorkflowRunner == nil {
+		return nil, fmt.Errorf("sub_workflow: SubWorkflowRunner not configured in NodeContext")
+	}
 
-	return map[string]any{
-		"execution_id": executionID,
-		"status":       "pending",
-	}, nil
+	slog.Info("executing sub-workflow", "workflow_id", workflowID, "inputs", len(inputs))
+	outputs, err := nctx.SubWorkflowRunner(ctx, workflowID, inputs)
+	if err != nil {
+		return map[string]any{"status": "failed", "error": err.Error()}, err
+	}
+
+	_ = uuid.New() // keep import
+	result := map[string]any{"status": "completed"}
+	for k, v := range outputs {
+		result[k] = v
+	}
+	return result, nil
 }
 
 func (n *SubWorkflowNode) Validate() error {

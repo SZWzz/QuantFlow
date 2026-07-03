@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ListNodes } from '@/lib/wails'
 import { useWorkflowStore } from '@/stores/workflow'
 import { TEMPLATES } from './templates'
+import { nodeLabel } from './nodeLabels'
 
 interface NodeMeta { node_type: string; category: string }
 
@@ -62,7 +63,7 @@ const categories = computed(() => {
 })
 
 const categoryLabels: Record<string, string> = {
-  data: '数据', indicator: '指标', signal: '信号', output: '输出', control: '控制',
+  data: '数据', indicator: '指标', indicators: '通达信指标', signal: '信号', output: '输出', control: '控制',
   alpha: 'Alpha', strategy: '策略', backtest: '回测', ai: 'AI',
   trading: '交易', notify: '通知', schedule: '调度',
   portfolio: '组合', risk: '风控', utility: '工具',
@@ -70,7 +71,7 @@ const categoryLabels: Record<string, string> = {
 }
 
 const categoryColors: Record<string, string> = {
-  data: '#58a6ff', indicator: '#3fb950', signal: '#f0883e', output: '#a371f7', control: '#e94560',
+  data: '#58a6ff', indicator: '#3fb950', indicators: '#22c55e', signal: '#f0883e', output: '#a371f7', control: '#e94560',
   alpha: '#f59e0b', strategy: '#06b6d4', backtest: '#8b5cf6', ai: '#ec4899',
   trading: '#22c55e', notify: '#f97316', schedule: '#6366f1',
   portfolio: '#14b8a6', risk: '#ef4444', utility: '#64748b',
@@ -98,6 +99,34 @@ function onDragStart(event: DragEvent, nodeType: string) {
     </div>
 
     <div class="palette-list">
+      <!-- Favorites -->
+      <div v-if="workflow.favoriteTypes.size > 0 && !searchQuery" class="category-group">
+        <div class="category-label">⭐ 收藏</div>
+        <div
+          v-for="node in nodes.filter(n => workflow.favoriteTypes.has(n.node_type))"
+          :key="'fav-' + node.node_type"
+          class="node-item"
+          draggable="true"
+          @dragstart="onDragStart($event, node.node_type)"
+        >
+          <span class="node-name">{{ nodeLabel(node.node_type) }}</span>
+        </div>
+      </div>
+
+      <!-- Recent -->
+      <div v-if="workflow.recentTypes.length > 0 && !searchQuery" class="category-group">
+        <div class="category-label">🕐 最近使用</div>
+        <div
+          v-for="rtype in workflow.recentTypes"
+          :key="'rec-' + rtype"
+          class="node-item"
+          draggable="true"
+          @dragstart="onDragStart($event, rtype)"
+        >
+          <span class="node-name">{{ nodeLabel(rtype) }}</span>
+        </div>
+      </div>
+
       <div v-for="(group, cat) in categories" :key="cat" class="category-group">
         <div class="category-label">
           <span class="cat-dot" :style="{ background: categoryColors[cat] || 'var(--color-text-tertiary)' }" />
@@ -113,7 +142,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
           <div class="node-icon" :style="{ borderColor: categoryColors[cat] || 'var(--color-text-tertiary)' }">
             <span :style="{ color: categoryColors[cat] || 'var(--color-text-tertiary)' }">⬡</span>
           </div>
-          <span class="node-name">{{ node.node_type }}</span>
+          <span class="node-name">{{ nodeLabel(node.node_type) }}</span>
         </div>
       </div>
 

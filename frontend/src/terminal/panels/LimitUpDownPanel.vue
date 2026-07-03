@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
-import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { PanelHeader, PanelTable, EmptyState, LoadingState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
-const ctx = useSymbolContext()
-const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 interface LimitStock {
   symbol: string
@@ -74,10 +70,6 @@ async function refresh() {
   } finally {
     loading.value = false
   }
-}
-
-function onSymbolClick(code: string) {
-  ctx.setGroupSymbol(pg.groupId, code)
 }
 
 function switchMarket(mkt: 'SH' | 'SZ') {
@@ -168,7 +160,6 @@ const tableColumns = [
       :data="filteredStocks"
       :striped="true"
       :loading="loading"
-      @row-click="(row) => onSymbolClick(row.symbol)"
     />
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useTerminalStore } from '@/stores/terminal'
@@ -7,6 +7,19 @@ import { useTerminalStore } from '@/stores/terminal'
 const { t } = useI18n()
 const workflow = useWorkflowStore()
 const terminal = useTerminalStore()
+
+const credentialNames = ref<string[]>([])
+onMounted(async () => {
+  try {
+    const app = (window as any).go?.main?.App
+    if (app?.ListCredentialNames) credentialNames.value = await app.ListCredentialNames()
+  } catch { /* ignore */ }
+})
+
+function isCredentialParam(key: string): boolean {
+  const lower = key.toLowerCase()
+  return lower.includes('api_key') || lower.includes('secret') || lower.includes('token') || lower === 'credential'
+}
 
 const selectedNode = computed(() => {
   if (!workflow.selectedNodeId) return null
@@ -39,6 +52,32 @@ function formatValue(value: unknown): string {
 function formatDuration(n: number | undefined): string {
   if (n === undefined) return ''
   return (n / 1000).toFixed(2) + 'µs'
+}
+
+const visibleParams = computed(() => {
+  if (!selectedNode.value?.data.params) return {}
+  const p: Record<string, any> = {}
+  for (const [k, v] of Object.entries(selectedNode.value.data.params)) {
+    if (!k.startsWith('_')) p[k] = v
+  }
+  return p
+})
+
+const errorStrategy = computed(() => selectedNode.value?.data.params?._onError || 'stop')
+const retryCount = computed(() => selectedNode.value?.data.params?._retryCount || 3)
+
+function setErrorStrategy(s: string) {
+  if (!selectedNode.value) return
+  if (!selectedNode.value.data.params) selectedNode.value.data.params = {}
+  if (s === 'stop') {
+    delete selectedNode.value.data.params._onError
+    delete selectedNode.value.data.params._retryCount
+  } else {
+    selectedNode.value.data.params._onError = s
+    if (s === 'retry' && !selectedNode.value.data.params._retryCount) {
+      selectedNode.value.data.params._retryCount = 3
+    }
+  }
 }
 
 function pinToTerminal() {
@@ -75,16 +114,25 @@ function pinToTerminal() {
         <button class="pin-btn" @click="pinToTerminal">{{ t('workflow.pin_terminal') }}</button>
       </div>
 
-      <div v-if="selectedNode.data.params && Object.keys(selectedNode.data.params).length > 0" class="prop-section">
-        <h4 class="section-title">{{ t('workflow.parameters') }}</h4>
-        <div v-for="(value, key) in selectedNode.data.params" :key="key" class="param-row">
-          <label class="param-label">{{ key }}</label>
-          <input
-            class="param-input"
-            :value="value"
-            @input="updateParam(String(key), ($event.target as HTMLInputElement).value)"
-            type="text"
-          />
+      <!-- Error handling strategy -->
+      <div class="prop-section">
+        <h4 class="section-title">错误处理</h4>
+        <div class="error-strategy-row">
+          <select class="strategy-select" :value="errorStrategy" @change="setErrorStrategy(($event.target as HTMLSelectElement).value)">
+            <option value="stop">⏹ 停止</option>
+            <option value="skip">⏭ 跳过</option>
+            <option value="retry">🔄 重试</option>
+          </select>
+          <div v-if="errorStrategy === 'retry'" class="retry-config">
+            <label class="retry-label">次数</label>
+            <input
+              class="retry-input"
+              type="number"
+              min="1" max="10"
+              :value="retryCount"
+              @input="updateParam('_retryCount', ($event.target as HTMLInputElement).value)"
+            />
+          </div>
         </div>
       </div>
 
@@ -188,4 +236,22 @@ function pinToTerminal() {
   color: #3fb950; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer;
 }
 .pin-btn:hover { background: rgba(63,185,80,0.2); }
+
+.error-strategy-row { display: flex; flex-direction: column; gap: 6px; }
+.strategy-select {
+  width: 100%; padding: 5px 8px; background: var(--color-bg-input);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  color: var(--color-text-primary); font-size: 12px; outline: none; cursor: pointer;
+}
+.strategy-select:focus { border-color: #58a6ff; }
+.retry-config { display: flex; align-items: center; gap: 8px; }
+.retry-label { font-size: 10px; color: var(--color-text-tertiary); }
+.retry-input {
+  width: 60px; padding: 4px 8px; background: var(--color-bg-input);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  color: var(--color-text-primary); font-size: 12px; outline: none;
+}
+.retry-input:focus { border-color: #58a6ff; }
+.cred-select { width: 100%; padding: 4px 8px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: 12px; outline: none; cursor: pointer; }
+.cred-select:focus { border-color: #58a6ff; }
 </style>

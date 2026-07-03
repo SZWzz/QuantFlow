@@ -122,7 +122,23 @@ export const useWorkflowStore = defineStore('workflow', () => {
     return ports.find(p => p.name === portName)?.type || null
   }
 
+  // Recent & favorite nodes
+  const recentTypes = ref<string[]>(loadRecentTypes())
+  const favoriteTypes = ref<Set<string>>(loadFavoriteTypes())
+
+  function loadRecentTypes(): string[] {
+    try { const raw = localStorage.getItem('qf-recent-nodes'); return raw ? JSON.parse(raw) : [] } catch { return [] }
+  }
+  function persistRecentTypes() { localStorage.setItem('qf-recent-nodes', JSON.stringify(recentTypes.value)) }
+  function loadFavoriteTypes(): Set<string> {
+    try { const raw = localStorage.getItem('qf-favorite-nodes'); return new Set(raw ? JSON.parse(raw) : []) } catch { return new Set() }
+  }
+  function persistFavoriteTypes() { localStorage.setItem('qf-favorite-nodes', JSON.stringify([...favoriteTypes.value])) }
+
   function addNode(type: string, position: { x: number; y: number }, params?: Record<string, any>) {
+    // Track recent
+    recentTypes.value = [type, ...recentTypes.value.filter(t => t !== type)].slice(0, 10)
+    persistRecentTypes()
     pushHistory()
     const id = `${type}-${Date.now()}`
     const ports = getNodePorts(type)
@@ -330,6 +346,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     toWorkflowJSON,
     fromWorkflowJSON,
     workflowList, saveWorkflow, loadWorkflow, deleteWorkflow, renameWorkflow,
+    recentTypes, favoriteTypes,
     undo,
     redo,
   }
