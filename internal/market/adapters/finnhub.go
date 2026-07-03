@@ -184,6 +184,67 @@ func (a *FinnhubAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 	return bars, nil
 }
 
+// finnhubSectorResp represents Finnhub's sector performance response.
+type finnhubSectorResp struct {
+	Data []struct {
+		Name      string  `json:"name"`
+		ChangePct float64 `json:"changePct"`
+	} `json:"sector"`
+}
+
+// FetchIndustryRanks returns US sector rankings via Finnhub.
+// Only supports market="US"; for other markets returns empty slice.
+func (a *FinnhubAdapter) FetchIndustryRanks(ctx context.Context, mkt string, topN int) ([]market.IndustryRank, error) {
+	if mkt != "US" {
+		return []market.IndustryRank{}, nil
+	}
+	if a.apiKey == "" {
+		return nil, fmt.Errorf("finnhub: API key not set")
+	}
+	if topN <= 0 {
+		topN = 20
+	}
+
+	u := fmt.Sprintf("%s/sector?token=%s", finnhubBaseURL, a.apiKey)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub: create request: %w", err)
+	}
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub: fetch sector: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("finnhub: sector status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("finnhub: read body: %w", err)
+	}
+
+	var apiResp finnhubSectorResp
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("finnhub: parse sector: %w", err)
+	}
+
+	ranks := make([]market.IndustryRank, 0, min(topN, len(apiResp.Data)))
+	for i, item := range apiResp.Data {
+		if i >= topN {
+			break
+		}
+		ranks = append(ranks, market.IndustryRank{
+			Rank:      i + 1,
+			Name:      item.Name,
+			ChangePct: item.ChangePct,
+		})
+	}
+	return ranks, nil
+}
+
 func (a *FinnhubAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "AAPL")
 	return err

@@ -54,6 +54,28 @@ func TestFinnhubAdapter_RequiresAuth(t *testing.T) {
 }
 
 // TestFinnhubAdapter_QuoteWithMock uses a test server to verify parsing.
+func TestFinnhubAdapter_FetchIndustryRanks(t *testing.T) {
+	adapter := NewFinnhubAdapter()
+	if !adapter.IsAvailable(context.Background()) {
+		t.Skip("finnhub not available (no API key or network)")
+	}
+
+	ranks, err := adapter.FetchIndustryRanks(context.Background(), "US", 30)
+	if err != nil {
+		t.Fatalf("FetchIndustryRanks failed: %v", err)
+	}
+	if len(ranks) == 0 {
+		t.Fatal("expected non-empty industry ranks")
+	}
+	t.Logf("fetched %d US industry ranks", len(ranks))
+	for i, r := range ranks {
+		if i >= 5 {
+			break
+		}
+		t.Logf("  %d. %s: %.2f%%", r.Rank, r.Name, r.ChangePct)
+	}
+}
+
 func TestFinnhubAdapter_QuoteWithMock(t *testing.T) {
 	server := setupFinnhubTestServer()
 	defer server.Close()
