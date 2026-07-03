@@ -74,22 +74,34 @@ func (a *MootdxAdapter) FetchQuote(ctx context.Context, symbol string) (*market.
 	}
 
 	q := quotes[0]
-	change := q.Last - q.Open
-	changePct := 0.0
-	if q.Open > 0 {
-		changePct = (change / q.Open) * 100
-	}
 
 	return &market.QuoteSnapshot{
-		Symbol:    q.Symbol,
-		Last:      q.Last,
-		Open:      q.Open,
-		High:      q.High,
-		Low:       q.Low,
-		Volume:    q.Volume,
-		Change:    change,
-		ChangePct: changePct,
-		Timestamp: time.Now().UnixMilli(),
+		Symbol:        q.Symbol,
+		Name:          q.Name,
+		Last:          q.Last,
+		Open:          q.Open,
+		High:          q.High,
+		Low:           q.Low,
+		PrevClose:     q.PrevClose,
+		Bid:           q.Bid,
+		Ask:           q.Ask,
+		Volume:        q.Volume,
+		Turnover:      q.Turnover,
+		Change:        q.Change,
+		ChangePct:     q.ChangePct,
+		MarketCap:     q.MarketCap,
+		Pe:            q.Pe,
+		Exchange:      q.Exchange,
+		Timestamp:     time.Now().UnixMilli(),
+		TurnoverRate:  q.TurnoverRate,
+		VolumeRatio:   q.VolumeRatio,
+		Amplitude:     q.Amplitude,
+		AvgPrice:      q.AvgPrice,
+		InsideVolume:  q.InsideVolume,
+		OutsideVolume: q.OutsideVolume,
+		PeRatio:       q.PeRatio,
+		LimitUp:       q.LimitUp,
+		LimitDown:     q.LimitDown,
 	}, nil
 }
 
@@ -282,12 +294,31 @@ func (a *MootdxAdapter) FetchF10(ctx context.Context, symbol, category string) (
 // ── Response types ─────────────────────────────────────────────────────────────
 
 type mootdxQuote struct {
-	Symbol string  `json:"symbol"`
-	Last   float64 `json:"last"`
-	Open   float64 `json:"open"`
-	High   float64 `json:"high"`
-	Low    float64 `json:"low"`
-	Volume float64 `json:"volume"`
+	Symbol        string  `json:"symbol"`
+	Name          string  `json:"name"`
+	Last          float64 `json:"last"`
+	Open          float64 `json:"open"`
+	High          float64 `json:"high"`
+	Low           float64 `json:"low"`
+	PrevClose     float64 `json:"prevClose"`
+	Bid           float64 `json:"bid"`
+	Ask           float64 `json:"ask"`
+	Volume        float64 `json:"volume"`
+	Turnover      float64 `json:"turnover"`
+	Change        float64 `json:"change"`
+	ChangePct     float64 `json:"change_pct"`
+	MarketCap     float64 `json:"marketCap"`
+	Pe            float64 `json:"pe"`
+	Exchange      string  `json:"exchange"`
+	TurnoverRate  float64 `json:"turnover_rate"`
+	VolumeRatio   float64 `json:"volume_ratio"`
+	Amplitude     float64 `json:"amplitude"`
+	AvgPrice      float64 `json:"avg_price"`
+	InsideVolume  float64 `json:"inside_volume"`
+	OutsideVolume float64 `json:"outside_volume"`
+	PeRatio       float64 `json:"pe_ratio"`
+	LimitUp       float64 `json:"limit_up"`
+	LimitDown     float64 `json:"limit_down"`
 }
 
 type mootdxOHLCVBar struct {

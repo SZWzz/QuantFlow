@@ -94,5 +94,5 @@ func (s *PeerComparisonService) GetIndustryRanks(ctx context.Context, topN int) 
 	if s.signalsAdapter == nil {
 		return nil, fmt.Errorf("peer comparison: signals adapter not configured")
 	}
-	return s.signalsAdapter.FetchIndustryRanks(ctx, topN)
+	return s.signalsAdapter.FetchIndustryRanks(ctx, "CN", topN)
 }

@@ -60,7 +60,7 @@ func NewEastMoneySignalsAdapter() *EastMoneySignalsAdapter {
 func (a *EastMoneySignalsAdapter) Name() string { return "eastmoney_signals" }
 
 func (a *EastMoneySignalsAdapter) IsAvailable(ctx context.Context) bool {
-	_, err := a.FetchIndustryRanks(ctx, 5)
+	_, err := a.FetchIndustryRanks(ctx, "CN", 5)
 	return err == nil
 }
 
@@ -205,7 +205,10 @@ func (a *EastMoneySignalsAdapter) FetchIPOCalendar(ctx context.Context, startDat
 // FetchIndustryRanks fetches industry ranking by daily change.
 // Tries once and returns immediately on failure — better to show empty
 // sector data than to block the market overview panel for 5+ seconds.
-func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, topN int) ([]market.IndustryRank, error) {
+func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, mkt string, topN int) ([]market.IndustryRank, error) {
+	if mkt != "CN" {
+		return []market.IndustryRank{}, nil
+	}
 	a.limiter.Wait()
 
 	url := "https://push2.eastmoney.com/api/qt/clist/get" +

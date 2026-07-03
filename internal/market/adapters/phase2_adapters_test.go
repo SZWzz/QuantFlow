@@ -112,7 +112,7 @@ func TestEastMoneyFundFlowAdapter_FetchDaily(t *testing.T) {
 
 func TestEastMoneySignalsAdapter_IndustryRanks(t *testing.T) {
 	a := NewEastMoneySignalsAdapter()
-	ranks, err := a.FetchIndustryRanks(context.Background(), 10)
+	ranks, err := a.FetchIndustryRanks(context.Background(), "CN", 10)
 	if err != nil {
 		t.Logf("industry ranks fetch failed (network): %v", err)
 		return

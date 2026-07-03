@@ -290,15 +290,54 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
 
 
 def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
-    """Fetch minute-line (分时图) for today via mootdx and extract quote summary.
+    """Fetch real-time quotes via mootdx minute-line + rich quotes API.
 
-    Returns a list of quote dicts with keys: symbol, last, open, high, low, volume.
+    Returns a list of quote dicts with all QuoteSnapshot fields:
+    symbol, name, last, open, high, low, prevClose, bid, ask, volume, turnover,
+    change, change_pct, marketCap, pe, exchange, turnover_rate, volume_ratio,
+    amplitude, avg_price, inside_volume, outside_volume, pe_ratio, limit_up, limit_down.
     """
     import pandas as pd
 
     client = _get_mootdx_client()
-    quotes: list[dict] = []
 
+    # Phase 1: try rich quotes API for bid/ask/prevClose/amount/内外盘.
+    # mootdx get_security_quotes returns these columns:
+    #   code, price, last_close, open, high, low, vol, amount,
+    #   s_vol (内盘), b_vol (外盘), bid1-5, ask1-5, bid_vol1-5, ask_vol1-5
+    # NOTE: TDX does NOT provide PE/市值/换手率/量比/涨跌停价/name in this API.
+    # Those fields require a separate fundamental-data call (not yet implemented).
+    rich: dict[str, dict] = {}
+    try:
+        plain_symbols = [_normalize_code(s) for s in symbols]
+        raw_quotes = client.quotes(symbol=plain_symbols)
+        if raw_quotes is not None and len(raw_quotes) > 0:
+            df_rich = pd.DataFrame(raw_quotes)
+            for _, row in df_rich.iterrows():
+                code = row.get("code")
+                if code is None:
+                    continue
+                code = str(code).zfill(6)
+                match_symbol = None
+                for s in symbols:
+                    if _normalize_code(s) == code:
+                        match_symbol = s
+                        break
+                if not match_symbol:
+                    continue
+                rich[match_symbol] = {
+                    "prevClose": float(row.get("last_close", 0) or 0),
+                    "bid": float(row.get("bid1", 0) or 0),
+                    "ask": float(row.get("ask1", 0) or 0),
+                    "inside_volume": float(row.get("s_vol", 0) or 0),
+                    "outside_volume": float(row.get("b_vol", 0) or 0),
+                    "turnover": float(row.get("amount", 0) or 0),
+                }
+    except Exception as exc:
+        logger.warning("mootdx rich quotes failed, falling back to basic: %s", exc)
+
+    # Phase 2: minute data for accurate OHLCV + computed fields (振幅, 均价)
+    quotes: list[dict] = []
     for symbol in symbols:
         plain = _normalize_code(symbol)
         try:
@@ -312,7 +351,6 @@ def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
             continue
 
         df = pd.DataFrame(raw)
-        # Deduplicate columns (mootdx may return duplicate column names)
         df = df.loc[:, ~df.columns.duplicated()]
         col_map = {}
         for c in df.columns:
@@ -332,10 +370,7 @@ def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
         if len(prices) == 0:
             continue
 
-        # Convert pandas scalars to Python native types — mootdx may return
-        # Series on duplicate indices, and float() chokes on a Series.
         def _to_float(val):
-            """Convert a pandas value to a Python float, handling Series/arrays."""
             if hasattr(val, 'item'):
                 try:
                     return float(val.item())
@@ -353,18 +388,59 @@ def _fetch_mootdx_quote(symbols: list[str]) -> list[dict]:
         high = _to_float(prices.max())
         low = _to_float(prices.min())
         vol = _to_float(df["volume"].sum()) if "volume" in df.columns else 0.0
+        amt = _to_float(df["amount"].sum()) if "amount" in df.columns else 0.0
+
+        # Get preclose: prefer rich quotes data, fallback to open
+        r = rich.get(symbol, {})
+        prev_close = r.get("prevClose", 0.0)
+        if prev_close == 0.0:
+            prev_close = open_p
+
+        change = last - prev_close
+        change_pct = (change / prev_close * 100) if prev_close > 0 else 0.0
+
+        # Computed fields
+        amplitude = ((high - low) / prev_close * 100) if prev_close > 0 else 0.0
+        # avg_price: prefer rich turnover/vol, then minute amount/vol, fallback to last
+        rich_turnover = r.get("turnover", 0.0)
+        avg_price = 0.0
+        if rich_turnover > 0 and vol > 0:
+            avg_price = rich_turnover / vol
+        elif amt > 0 and vol > 0:
+            avg_price = amt / vol
+        else:
+            avg_price = last
 
         quotes.append({
             "symbol": symbol,
+            "name": "",  # TDX quotes API doesn't provide name
             "last": last,
             "open": open_p,
             "high": high,
             "low": low,
+            "prevClose": prev_close,
+            "bid": r.get("bid", 0.0),
+            "ask": r.get("ask", 0.0),
             "volume": vol,
+            "turnover": max(rich_turnover, amt),
+            "change": round(change, 3),
+            "change_pct": round(change_pct, 2),
+            "marketCap": 0.0,    # requires fundamental data API
+            "pe": 0.0,           # requires fundamental data API
+            "exchange": "SH" if symbol.startswith(("6", "9")) else "SZ",
+            "turnover_rate": 0.0,    # requires fundamental data API
+            "volume_ratio": 0.0,     # requires fundamental data API
+            "amplitude": round(amplitude, 2),
+            "avg_price": round(avg_price, 3),
+            "inside_volume": r.get("inside_volume", 0.0),
+            "outside_volume": r.get("outside_volume", 0.0),
+            "pe_ratio": 0.0,         # requires fundamental data API
+            "limit_up": 0.0,         # requires fundamental data API
+            "limit_down": 0.0,       # requires fundamental data API
         })
 
     if not quotes:
-        return []  # no minute data (weekend/holiday), let fallback chain try next adapter
+        return []
 
     return quotes
 
