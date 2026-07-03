@@ -132,7 +132,7 @@ export const useDataStore = defineStore('data', () => {
           if (cachedSectors) return null
           if (!app.GetIndustryRanks) return null
           try {
-            return await app.GetIndustryRanks(30)
+            return await app.GetIndustryRanks(market, 30)
           } catch {
             return null
           }
