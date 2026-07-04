@@ -5,12 +5,15 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { PanelHeader } from '@/terminal/components/panel'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWebSocket } from '@/lib/composables/useWebSocket'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const { fetchWithCache } = usePanelCache()
+const ws = useWebSocket()
+const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
 
 const WS_KEY = 'quantflow-watchlist'
 const CONFIG_KEY = 'quantflow-watchlist-config'
@@ -212,6 +215,32 @@ async function refreshQuote(sym: string) {
   delete loading.value[sym]
 }
 
+function handleWSQuote(topic: string, data: any) {
+  const parts = topic.split(':')
+  const sym = parts[parts.length - 1]
+  if (!sym || !symbols.value.includes(sym)) return
+  const snap = Array.isArray(data) ? data[0] : data
+  if (!snap) return
+  const prev = quotes[sym]
+  quotes[sym] = {
+    symbol: snap.symbol ?? sym,
+    name: snap.name || prev?.name || sym,
+    last: snap.last ?? 0,
+    open: snap.open ?? 0,
+    high: snap.high ?? 0,
+    low: snap.low ?? 0,
+    change: snap.change ?? 0,
+    changePct: snap.change_pct ?? snap.changePct ?? 0,
+    volume: snap.volume ?? 0,
+    turnover: snap.turnover ?? 0,
+    turnoverRate: snap.turnover_rate ?? 0,
+    volumeRatio: snap.volume_ratio ?? 0,
+    amplitude: snap.amplitude ?? 0,
+    prevLast: prev?.last,
+  }
+  delete loading.value[sym]
+}
+
 function removeSymbol(sym: string) {
   symbols.value = symbols.value.filter(s => s !== sym)
   saveSymbols(symbols.value)
@@ -269,20 +298,10 @@ function onDrop(e: DragEvent, targetSym: string) {
   dragSymbol.value = null
 }
 
-// Polling
-let pollTimer: ReturnType<typeof setInterval> | null = null
-function startPolling() {
-  stopPolling()
-  pollingActive.value = true
-  pollTimer = setInterval(() => {
-    if (!document.hidden) refreshAll()
-  }, 10000)
-}
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-}
 function onVisibility() {
   pollingActive.value = !document.hidden
+  if (!pollingActive.value) return
+  refreshAll()
 }
 
 // Column settings
@@ -316,9 +335,18 @@ onMounted(async () => {
     }
   } catch { /* best-effort */ }
 
+  // Initial data fetch via Wails IPC (instant, not waiting for WS)
   await refreshAll()
   initialLoadDone.value = true
-  startPolling()
+
+  // Subscribe to real-time updates via WebSocket
+  ws.connect(wsUrl, symbols.value.map(sym => `market:quote:${detectMarket(sym)}:${sym}`))
+  ws.onMessage('*', (msg: any) => {
+    if (msg.topic?.startsWith('market:quote:')) {
+      handleWSQuote(msg.topic, msg.data)
+    }
+  })
+  pollingActive.value = true
   document.addEventListener('visibilitychange', onVisibility)
 })
 
@@ -326,7 +354,7 @@ onUnmounted(() => {
   window.removeEventListener('watchlist-changed', onWatchlistChanged)
   document.removeEventListener('click', closeContextMenu)
   document.removeEventListener('visibilitychange', onVisibility)
-  stopPolling()
+  ws.disconnect()
 })
 </script>
 
