@@ -205,6 +205,13 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	slog.Info("market adapter registry initialized", "count", a.marketReg.Count())
 	nctx.MarketReg = a.marketReg
 
+	// Load persisted last quotes (weekend/off-hours display).
+	lastQuotePath := filepath.Join(filepath.Dir(a.cfg.DBPath), "last_quote.json")
+	a.marketReg.SetLastQuotePath(lastQuotePath)
+	if err := a.marketReg.LoadLastQuotes(); err != nil {
+		slog.Warn("load last quotes", "error", err)
+	}
+
 	// FetchData cache: prevents redundant Python sidecar calls for slow
 	// AKShare endpoints (macro_cn_summary takes 60-90s).
 	a.dataCache = newFetchDataCache()

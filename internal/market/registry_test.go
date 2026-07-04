@@ -49,22 +49,22 @@ func TestRegistry_RegisterAndGet(t *testing.T) {
 func TestRegistry_FallbackChainSelectsFirstAvailable(t *testing.T) {
 	r := NewAdapterRegistry()
 
-	// Register two adapters for CN market
+	// Register two adapters — use a 24/7 market to avoid trading-hours gate
 	r.Register(&mockAdapter{
-		name: "a", markets: []string{"CN"}, available: true,
+		name: "a", markets: []string{"CRYPTO"}, available: true,
 		quoteResult: &QuoteSnapshot{Symbol: "TEST", Last: 100.0},
 	})
 	r.Register(&mockAdapter{
-		name: "b", markets: []string{"CN"}, available: true,
+		name: "b", markets: []string{"CRYPTO"}, available: true,
 		quoteResult: &QuoteSnapshot{Symbol: "TEST", Last: 200.0},
 	})
 
 	// Override fallback chain for testing
-	origChain := FallbackChains["CN"]
-	FallbackChains["CN"] = []string{"a", "b"}
-	defer func() { FallbackChains["CN"] = origChain }()
+	origChain := FallbackChains["CRYPTO"]
+	FallbackChains["CRYPTO"] = []string{"a", "b"}
+	defer func() { FallbackChains["CRYPTO"] = origChain }()
 
-	quote, source, err := r.FetchQuoteWithFallback(context.Background(), "CN", "TEST")
+	quote, source, err := r.FetchQuoteWithFallback(context.Background(), "CRYPTO", "TEST")
 	if err != nil {
 		t.Fatalf("FetchQuoteWithFallback error: %v", err)
 	}
@@ -80,19 +80,19 @@ func TestRegistry_FallbackSkipsUnavailable(t *testing.T) {
 	r := NewAdapterRegistry()
 
 	r.Register(&mockAdapter{
-		name: "a", markets: []string{"CN"}, available: false,
+		name: "a", markets: []string{"CRYPTO"}, available: false,
 		quoteErr: errors.New("fetch failed"),
 	})
 	r.Register(&mockAdapter{
-		name: "b", markets: []string{"CN"}, available: true,
+		name: "b", markets: []string{"CRYPTO"}, available: true,
 		quoteResult: &QuoteSnapshot{Symbol: "TEST", Last: 200.0},
 	})
 
-	origChain := FallbackChains["CN"]
-	FallbackChains["CN"] = []string{"a", "b"}
-	defer func() { FallbackChains["CN"] = origChain }()
+	origChain := FallbackChains["CRYPTO"]
+	FallbackChains["CRYPTO"] = []string{"a", "b"}
+	defer func() { FallbackChains["CRYPTO"] = origChain }()
 
-	quote, source, err := r.FetchQuoteWithFallback(context.Background(), "CN", "TEST")
+	quote, source, err := r.FetchQuoteWithFallback(context.Background(), "CRYPTO", "TEST")
 	if err != nil {
 		t.Fatalf("FetchQuoteWithFallback error: %v", err)
 	}
@@ -108,19 +108,19 @@ func TestRegistry_FallbackSkipsErrorAndTriesNext(t *testing.T) {
 	r := NewAdapterRegistry()
 
 	r.Register(&mockAdapter{
-		name: "a", markets: []string{"CN"}, available: true,
+		name: "a", markets: []string{"CRYPTO"}, available: true,
 		quoteErr: errors.New("network timeout"),
 	})
 	r.Register(&mockAdapter{
-		name: "b", markets: []string{"CN"}, available: true,
+		name: "b", markets: []string{"CRYPTO"}, available: true,
 		quoteResult: &QuoteSnapshot{Symbol: "TEST", Last: 300.0},
 	})
 
-	origChain := FallbackChains["CN"]
-	FallbackChains["CN"] = []string{"a", "b"}
-	defer func() { FallbackChains["CN"] = origChain }()
+	origChain := FallbackChains["CRYPTO"]
+	FallbackChains["CRYPTO"] = []string{"a", "b"}
+	defer func() { FallbackChains["CRYPTO"] = origChain }()
 
-	quote, source, err := r.FetchQuoteWithFallback(context.Background(), "CN", "TEST")
+	quote, source, err := r.FetchQuoteWithFallback(context.Background(), "CRYPTO", "TEST")
 	if err != nil {
 		t.Fatalf("FetchQuoteWithFallback error: %v", err)
 	}
@@ -136,19 +136,19 @@ func TestRegistry_AllFailed(t *testing.T) {
 	r := NewAdapterRegistry()
 
 	r.Register(&mockAdapter{
-		name: "a", markets: []string{"CN"}, available: true,
+		name: "a", markets: []string{"CRYPTO"}, available: true,
 		quoteErr: errors.New("fail a"),
 	})
 	r.Register(&mockAdapter{
-		name: "b", markets: []string{"CN"}, available: true,
+		name: "b", markets: []string{"CRYPTO"}, available: true,
 		quoteErr: errors.New("fail b"),
 	})
 
-	origChain := FallbackChains["CN"]
-	FallbackChains["CN"] = []string{"a", "b"}
-	defer func() { FallbackChains["CN"] = origChain }()
+	origChain := FallbackChains["CRYPTO"]
+	FallbackChains["CRYPTO"] = []string{"a", "b"}
+	defer func() { FallbackChains["CRYPTO"] = origChain }()
 
-	_, _, err := r.FetchQuoteWithFallback(context.Background(), "CN", "TEST")
+	_, _, err := r.FetchQuoteWithFallback(context.Background(), "CRYPTO", "TEST")
 	if err == nil {
 		t.Fatal("expected error when all adapters fail")
 	}
@@ -245,6 +245,52 @@ func TestFetchIndustryRanksWithFallback_AllFailed(t *testing.T) {
 	_, err := reg.FetchIndustryRanksWithFallback(context.Background(), "US", 5)
 	if err == nil {
 		t.Fatal("expected error when all adapters fail")
+	}
+}
+
+func TestRegistry_SaveLoadLastQuotes(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/last_quote.json"
+
+	r := NewAdapterRegistry()
+	r.SetLastQuotePath(path)
+
+	// Initially empty
+	if err := r.LoadLastQuotes(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Store a quote and save
+	r.lastQuote.Store("CN:600519", &QuoteSnapshot{Symbol: "600519", Last: 1880.5, Volume: 50000})
+	r.saveLastQuotes()
+
+	// File should exist and be valid JSON
+	r2 := NewAdapterRegistry()
+	r2.SetLastQuotePath(path)
+	if err := r2.LoadLastQuotes(); err != nil {
+		t.Fatal(err)
+	}
+	val, ok := r2.lastQuote.Load("CN:600519")
+	if !ok {
+		t.Fatal("expected loaded quote")
+	}
+	q := val.(*QuoteSnapshot)
+	if q.Last != 1880.5 {
+		t.Fatalf("expected Last=1880.5, got %f", q.Last)
+	}
+	if q.Volume != 50000 {
+		t.Fatalf("expected Volume=50000, got %f", q.Volume)
+	}
+}
+
+func TestRegistry_LoadLastQuotes_MissingFile(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/nonexistent.json"
+
+	r := NewAdapterRegistry()
+	r.SetLastQuotePath(path)
+	if err := r.LoadLastQuotes(); err != nil {
+		t.Fatalf("expected no error for missing file, got %v", err)
 	}
 }
 

@@ -2,8 +2,10 @@ package market
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 )
@@ -30,9 +32,74 @@ type quoteCacheEntry struct {
 // AdapterRegistry manages registered market data adapters and provides
 // fallback-based fetching.
 type AdapterRegistry struct {
-	mu         sync.RWMutex
-	adapters   map[string]Adapter // name → adapter
-	quoteCache map[string]*quoteCacheEntry
+	mu            sync.RWMutex
+	adapters      map[string]Adapter // name → adapter
+	quoteCache    map[string]*quoteCacheEntry
+	lastQuote     sync.Map // market:symbol → *QuoteSnapshot (last known value, survives TTL)
+	lastQuotePath string   // if set, last quotes are persisted to this JSON file
+	saveMu        sync.Mutex
+}
+
+// SetLastQuotePath sets a file path for persisting last known quotes.
+// Call before startup so that persisted quotes are loaded.
+func (r *AdapterRegistry) SetLastQuotePath(path string) {
+	r.lastQuotePath = path
+}
+
+// LoadLastQuotes reads persisted quotes from disk into the lastQuote map.
+// No-op if the file does not exist.
+func (r *AdapterRegistry) LoadLastQuotes() error {
+	if r.lastQuotePath == "" {
+		return nil
+	}
+	b, err := os.ReadFile(r.lastQuotePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("load last quotes: %w", err)
+	}
+	var data map[string]*QuoteSnapshot
+	if err := json.Unmarshal(b, &data); err != nil {
+		return fmt.Errorf("unmarshal last quotes: %w", err)
+	}
+	for k, v := range data {
+		r.lastQuote.Store(k, v)
+	}
+	slog.Info("loaded persisted last quotes", "count", len(data), "path", r.lastQuotePath)
+	return nil
+}
+
+// saveLastQuotes writes all lastQuote entries to disk atomically.
+func (r *AdapterRegistry) saveLastQuotes() {
+	if r.lastQuotePath == "" {
+		return
+	}
+	r.saveMu.Lock()
+	defer r.saveMu.Unlock()
+
+	data := make(map[string]*QuoteSnapshot)
+	r.lastQuote.Range(func(key, value any) bool {
+		data[key.(string)] = value.(*QuoteSnapshot)
+		return true
+	})
+	if len(data) == 0 {
+		return
+	}
+	b, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		slog.Warn("marshal last quotes", "error", err)
+		return
+	}
+	tmpPath := r.lastQuotePath + ".tmp"
+	if err := os.WriteFile(tmpPath, b, 0644); err != nil {
+		slog.Warn("write last quotes tmp", "error", err)
+		return
+	}
+	if err := os.Rename(tmpPath, r.lastQuotePath); err != nil {
+		slog.Warn("rename last quotes", "error", err)
+	}
+	slog.Debug("saved last quotes", "count", len(data), "path", r.lastQuotePath)
 }
 
 // NewAdapterRegistry creates an empty AdapterRegistry.
@@ -87,6 +154,15 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 	}
 	r.mu.RUnlock()
 
+	// Skip fetch outside trading hours — no adapter can return real-time data.
+	// Return the last known value instead, so watchlists show previous day's data.
+	if !IsTradingHours(market) {
+		if last, ok := r.lastQuote.Load(cacheKey); ok {
+			return last.(*QuoteSnapshot), "cache", nil
+		}
+		return nil, "", fmt.Errorf("market %q is currently closed (outside trading hours)", market)
+	}
+
 	chain, ok := FallbackChains[market]
 	if !ok {
 		return nil, "", fmt.Errorf("unknown market: %q", market)
@@ -114,10 +190,12 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 		}
 
 		slog.Debug("quote fetched", "adapter", name, "symbol", symbol, "price", quote.Last)
-		// Cache the result
+		// Cache the result (short TTL) and persist last known value (no expiry)
 		r.mu.Lock()
 		r.quoteCache[cacheKey] = &quoteCacheEntry{snapshot: quote, source: name, expires: time.Now().Add(quoteCacheTTL)}
 		r.mu.Unlock()
+		r.lastQuote.Store(cacheKey, quote)
+		go r.saveLastQuotes()
 		return quote, name, nil
 	}
 
