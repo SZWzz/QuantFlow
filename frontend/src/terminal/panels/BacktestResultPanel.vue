@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, ref, watch, onMounted } from 'vue'
+import { computed, shallowRef, ref, watch } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { CandlestickChart, BarChart, LineChart } from 'echarts/charts'
@@ -16,16 +16,38 @@ const workflow = useWorkflowStore()
 
 /* ── dual-mode: runtime (workflow.nodeOutputs) vs history (storeId) ── */
 
-const storeId = computed(() => props.params?.storeId as number | undefined)
+/* ── dual-mode: runtime (workflow.nodeOutputs) vs history (storeId) ── */
+
+const explicitStoreId = computed(() => props.params?.storeId as number | undefined)
 const storedLoading = ref(false)
 const storedData = ref<any>(null)
 const deleted = ref(false)
+// In runtime mode (no explicit storeId), the resolved id from a run_id lookup
+const runtimeStoreId = ref<number | undefined>(undefined)
+const resolvingRunId = ref(false)
+
+const effectiveStoreId = computed(() => explicitStoreId.value ?? runtimeStoreId.value)
+
+async function lookupStoredByRunID(runID: string) {
+  resolvingRunId.value = true
+  try {
+    const summary = await (window as any).go.main.App.GetStoredBacktestByRunID(runID)
+    if (summary?.id) {
+      runtimeStoreId.value = summary.id
+    }
+  } catch (e) {
+    console.error('GetStoredBacktestByRunID failed:', e)
+  } finally {
+    resolvingRunId.value = false
+  }
+}
 
 async function deleteStoredResult() {
-  if (!storeId.value) return
+  const id = effectiveStoreId.value
+  if (!id) return
   if (!confirm('确定删除此回测记录？')) return
   try {
-    await (window as any).go.main.App.DeleteBacktestResult(storeId.value)
+    await (window as any).go.main.App.DeleteBacktestResult(id)
     deleted.value = true
   } catch (e) {
     console.error('DeleteBacktestResult failed:', e)
@@ -38,6 +60,13 @@ function findBacktestOutput(): any {
     if (outputs && outputs.equity_curve) return outputs
   }
   return null
+}
+
+function findBacktestRunID(): string | undefined {
+  for (const [, outputs] of workflow.nodeOutputs) {
+    if (outputs && outputs.run_id) return outputs.run_id
+  }
+  return undefined
 }
 
 function findDataLoaderOhlcv(): any[] | null {
@@ -86,14 +115,22 @@ function safeParseJSON(s: string | undefined, fallback: any): any {
   try { return JSON.parse(s) } catch { return fallback }
 }
 
-watch(storeId, (id) => {
+watch(explicitStoreId, (id) => {
   if (id) { storedData.value = null; loadStoredResult(id) }
+}, { immediate: true })
+
+// In runtime mode, look up stored record by run_id from backtest node outputs
+watch(() => workflow.nodeOutputs.size, () => {
+  if (!explicitStoreId.value) {
+    const runID = findBacktestRunID()
+    if (runID) { lookupStoredByRunID(runID) }
+  }
 }, { immediate: true })
 
 /* ── reactive state ── */
 
-const btOutput = computed(() => (storeId.value ? storedData.value : findBacktestOutput()))
-const ohlcvBars = computed(() => (storeId.value ? storedData.value?.ohlcv ?? null : findDataLoaderOhlcv()))
+const btOutput = computed(() => (explicitStoreId.value ? storedData.value : findBacktestOutput()))
+const ohlcvBars = computed(() => (explicitStoreId.value ? storedData.value?.ohlcv ?? null : findDataLoaderOhlcv()))
 const trades = computed<any[] | null>(() => btOutput.value?.trades ?? null)
 const btMetrics = computed<any>(() => btOutput.value?.metrics ?? null)
 const equityCurve = computed<number[] | null>(() => btOutput.value?.equity_curve ?? null)
@@ -334,6 +371,12 @@ function sma(data: number[], period: number): number[] {
 
 <template>
   <div class="bt-panel">
+    <!-- history mode toolbar (visible when stored record is linked) -->
+    <div v-if="effectiveStoreId && !deleted" class="history-toolbar">
+      <span class="history-label">历史回测</span>
+      <button class="btn btn-danger btn-sm" @click="deleteStoredResult">删除此记录</button>
+    </div>
+
     <!-- loading state (history mode) -->
     <div v-if="storedLoading" class="empty-state">
       <span class="empty-text">加载中...</span>
@@ -349,16 +392,11 @@ function sma(data: number[], period: number): number[] {
     <div v-else-if="klineData.length === 0 && !btOutput" class="empty-state">
       <span class="empty-icon">📊</span>
       <span class="empty-text">暂无回测结果</span>
-      <span class="empty-desc" v-if="!storeId">在 Workflow Editor 中运行回测工作流后，结果将在此显示。</span>
+      <span class="empty-desc" v-if="!explicitStoreId">在 Workflow Editor 中运行回测工作流后，结果将在此显示。</span>
       <span class="empty-desc" v-else>历史回测数据加载失败或数据不完整。</span>
     </div>
 
     <template v-else>
-      <!-- history mode toolbar -->
-      <div v-if="storeId && !deleted" class="history-toolbar">
-        <span class="history-label">历史回测</span>
-        <button class="btn btn-danger btn-sm" @click="deleteStoredResult">删除此记录</button>
-      </div>
 
       <!-- K-line chart with buy/sell markers -->
       <div v-if="klineData.length > 0" class="section">

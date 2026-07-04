@@ -101,36 +101,10 @@ func sma(data []float64, period int) []float64 {
 	return result
 }
 
-// toFloat64Slice attempts to convert an any to []float64.
+// toFloat64Slice attempts to convert any to []float64.
 func toFloat64Slice(raw any) ([]float64, bool) {
-	switch v := raw.(type) {
-	case []float64:
-		return v, true
-	case []any:
-		result := make([]float64, len(v))
-		for i, elem := range v {
-			f, ok := toFloat64(elem)
-			if !ok {
-				return nil, false
-			}
-			result[i] = f
-		}
-		return result, true
-	default:
-		return nil, false
-	}
+	result := extractFloat64Slice(raw)
+	return result, result != nil
 }
 
-// toFloat64 attempts to convert an any to float64.
-func toFloat64(v any) (float64, bool) {
-	switch val := v.(type) {
-	case float64:
-		return val, true
-	case int:
-		return float64(val), true
-	case int64:
-		return float64(val), true
-	default:
-		return 0, false
-	}
-}
+

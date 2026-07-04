@@ -110,19 +110,18 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		availableQty := e.oms.GetT1Available(bar.Symbol, heldQty)
 
 		// 1. Check stop-loss/take-profit (only on available shares)
+		// P0: Fill at bar.Close — stop was triggered at close, so open has already passed.
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && availableQty > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) || e.risk.CheckTakeProfit(pos, bar.Close) {
-				// P0-2: 跌停封板时止损/止盈单无法成交（A 股无买盘）。
-				// 所有卖出路径都必须经过涨跌停校验，含止损/止盈。
 				rule := PriceLimitFor(bar.Symbol)
 				if !rule.CanSell(bar.Close, e.prevClose[bar.Symbol]) {
 					goto recordEquityCN
 				}
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, availableQty, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, availableQty, bar.Open)
+					e.oms.FillOrder(order.ID, availableQty, bar.Close)
 					portfolio.Cash = e.oms.GetCashBalance()
-					revenue := bar.Open*availableQty - e.stampDuty(bar.Open*availableQty) - bar.Open*availableQty*e.config.Commission
+					revenue := bar.Close*availableQty - e.stampDuty(bar.Close*availableQty) - bar.Close*availableQty*e.config.Commission
 					pnl := revenue - pos.AvgPrice*availableQty
 
 					newQty := heldQty - availableQty
@@ -134,7 +133,7 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 					}
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: availableQty, Price: bar.Open, PnL: pnl,
+						Quantity: availableQty, Price: bar.Close, PnL: pnl,
 					})
 				}
 				goto recordEquityCN
@@ -183,52 +182,56 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 }
 
 func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Signal, portfolio *Portfolio, trades *[]TradeRecord) {
-	rule := PriceLimitFor(bar.Symbol)
-	if !rule.CanBuy(bar.Close, e.prevClose[bar.Symbol]) {
-		// 涨停封板，买不进
-		return
-	}
 	qty := signal.Quantity
 	if qty <= 0 {
 		qty = 100
 	}
-	// Round to lot size (multiples of 100)
 	qty = float64(int(qty/100)) * 100
 	if qty <= 0 {
 		return
 	}
 
-	// Compute slippage via model if available, fall back to config.Slippage
 	slippage := e.config.Slippage
 	if e.slippageModel != nil {
 		mockOrder := trading.Order{Symbol: bar.Symbol, Side: trading.SideBuy, Quantity: qty}
 		slippage = e.slippageModel.Apply(mockOrder, bar) / bar.Close
 	}
 	effectivePrice := bar.Open * (1 + slippage)
-	cost := effectivePrice*qty + effectivePrice*qty*e.config.Commission
 
+	// P1: Limit check with effectivePrice, not bar.Close
+	rule := PriceLimitFor(bar.Symbol)
+	if !rule.CanBuy(effectivePrice, e.prevClose[bar.Symbol]) {
+		return
+	}
+
+	cost := effectivePrice*qty + effectivePrice*qty*e.config.Commission
 	if cost > portfolio.Cash {
 		log.Printf("backtest: %s buy signal skipped: insufficient cash (need %.2f, have %.2f)", bar.Symbol, cost, portfolio.Cash)
 		return
 	}
 
-	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
-	if err != nil {
-		log.Printf("backtest: %s buy signal order failed: %v", bar.Symbol, err)
-		return
-	}
-
-	// Risk check
+	// P0: Risk check before PlaceOrder
 	pos := e.oms.GetPosition(bar.Symbol)
 	portfolioValue := portfolio.Cash
 	for sym, q := range portfolio.Positions {
 		portfolioValue += q * bar.Close
 		_ = sym
 	}
-	order.Price = effectivePrice
-	if err := e.risk.CheckOrder(order, pos, portfolioValue); err != nil {
+	mockOrder := &trading.Order{
+		Symbol:   bar.Symbol,
+		Side:     trading.SideBuy,
+		OrderType: trading.TypeMarket,
+		Quantity: qty,
+		Price:    effectivePrice,
+	}
+	if err := e.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
 		log.Printf("backtest: %s buy signal risk rejected: %v", bar.Symbol, err)
-		e.oms.CancelOrder(order.ID)
+		return
+	}
+
+	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	if err != nil {
+		log.Printf("backtest: %s buy signal order failed: %v", bar.Symbol, err)
 		return
 	}
 
@@ -243,7 +246,9 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 	newQty := oldQty + qty
 	portfolio.Positions[bar.Symbol] = newQty
 	if newQty > 0 {
-		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + qty*effectivePrice) / newQty
+		// P1: Include commission in cost basis
+		totalCost := qty*effectivePrice + qty*effectivePrice*e.config.Commission
+		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + totalCost) / newQty
 	}
 
 	*trades = append(*trades, TradeRecord{

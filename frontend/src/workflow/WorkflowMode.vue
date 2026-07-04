@@ -92,6 +92,7 @@ function pinToTerminal() {
     cross_signal: 'order-entry',
     log_output: 'system-monitor',
     loop: 'watchlist',
+    backtest: 'backtest-result',
   }
   const panelId = panelMap[node.data.nodeType] || 'system-monitor'
   const instanceId = terminal.openPanel(panelId, {

@@ -23,7 +23,7 @@ export interface WorkflowJSON {
   id: string
   name: string
   description?: string
-  nodes: { id: string; node_type: string; params: Record<string, any> }[]
+  nodes: { id: string; node_type: string; params: Record<string, any>; position?: { x: number; y: number } }[]
   edges: { from_node: string; from_port: string; to_node: string; to_port: string }[]
 }
 
@@ -38,6 +38,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const viewport = ref<ViewportTransform>({ x: 0, y: 0, zoom: 1 })
   const executionStatus = ref<ExecutionStatus>('idle')
   const nodeStatuses = ref<Map<string, NodeExecStatus>>(new Map())
+  const nodeOutputs = ref<Map<string, any>>(new Map())
   const runId = ref<string | null>(null)
   const selectedNodeId = ref<string | null>(null)
 
@@ -305,6 +306,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   function resetExecution() {
     executionStatus.value = 'idle'
     nodeStatuses.value = new Map()
+    nodeOutputs.value = new Map()
     runId.value = null
     stopPolling()
     for (const node of nodes.value as VFNode[]) {
@@ -314,7 +316,6 @@ export const useWorkflowStore = defineStore('workflow', () => {
   }
 
   // ── Async execution with polling ──
-  const asyncRunId = ref<string | null>(null)
   const queuePosition = ref<number>(0)
   let pollTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -329,6 +330,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
     if (!results) return
     for (const nr of results) {
       if (!nr.node_id) continue
+      // Store outputs for terminal/display nodes
+      if (nr.outputs && Object.keys(nr.outputs).length > 0) {
+        nodeOutputs.value.set(nr.node_id, nr.outputs)
+      }
       const existing = nodeStatuses.value.get(nr.node_id)
       if (existing?.status !== nr.status) {
         nodeStatuses.value.set(nr.node_id, {
@@ -368,21 +373,23 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
 
     try {
-      const runId = await app.QueueWorkflow(JSON.stringify(wfJSON))
-      asyncRunId.value = runId
-      pollExecution(runId)
+      const id = await app.QueueWorkflow(JSON.stringify(wfJSON))
+      if (!id) { executionStatus.value = 'failed'; return }
+      runId.value = id
+      pollExecution(id)
     } catch {
       executionStatus.value = 'failed'
     }
   }
 
-  function pollExecution(runId: string) {
+  function pollExecution(execId: string) {
     const app = (window as any).go?.main?.App
     if (!app?.GetExecutionStatus) return
+    const id = execId
 
     const poll = async () => {
       try {
-        const status = await app.GetExecutionStatus(runId)
+        const status = await app.GetExecutionStatus(id)
         if (!status) { stopPolling(); executionStatus.value = 'failed'; return }
 
         queuePosition.value = status.queue_position ?? 0
@@ -390,7 +397,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
         if (status.status === 'completed' || status.status === 'failed') {
           executionStatus.value = status.status
-          asyncRunId.value = null
+          runId.value = null
           if (status.error) console.error('workflow failed:', status.error)
           stopPolling()
           return
@@ -413,6 +420,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
         id: n.id,
         node_type: n.data.nodeType,
         params: n.data.params || {},
+        position: n.position ? { x: n.position.x, y: n.position.y } : undefined,
       })),
       edges: (edges.value as VFEdge[]).map((e) => ({
         from_node: e.source,
@@ -439,7 +447,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
       ;(nodes.value as VFNode[]).push({
         id: newId,
         type: 'custom',
-        position: { x: 100 + Math.random() * 300, y: 100 + Math.random() * 200 },
+        position: n.position || { x: 100 + Math.random() * 300, y: 100 + Math.random() * 200 },
         data: {
           nodeType: n.node_type,
           category: ports.category,
@@ -538,6 +546,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     viewport,
     executionStatus,
     nodeStatuses,
+    nodeOutputs,
     runId,
     selectedNodeId,
     history,
@@ -549,6 +558,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     removeEdge,
     selectNode,
     resetExecution,
+    startAsyncRun,
     toWorkflowJSON,
     fromWorkflowJSON,
     workflowList, saveWorkflow, loadWorkflow, deleteWorkflow, renameWorkflow,

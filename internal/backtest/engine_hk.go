@@ -64,16 +64,17 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		latestPrices[bar.Symbol] = bar.Close
 
 		// 1. Check stop-loss/take-profit on existing positions
+		// P0: Fill at bar.Close — stop was triggered at close, so open has already passed.
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) || e.risk.CheckTakeProfit(pos, bar.Close) {
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, pos.Quantity, bar.Open)
-					revenue := bar.Open*pos.Quantity - e.stampDuty(bar.Open*pos.Quantity) - e.tradeFee(bar.Open*pos.Quantity) - bar.Open*pos.Quantity*e.config.Commission
+					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
+					revenue := bar.Close*pos.Quantity - e.stampDuty(bar.Close*pos.Quantity) - e.tradeFee(bar.Close*pos.Quantity) - bar.Close*pos.Quantity*e.config.Commission
 					pnl := revenue - pos.AvgPrice*pos.Quantity
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Open, PnL: pnl,
+						Quantity: pos.Quantity, Price: bar.Close, PnL: pnl,
 					})
 				}
 				portfolio.Cash = e.oms.GetCashBalance()
@@ -128,34 +129,38 @@ func (e *HKEngine) processHKBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 	if qty <= 0 {
 		qty = float64(e.lotSize)
 	}
-	// Round to lot size
 	qty = float64(int(qty/float64(e.lotSize))) * float64(e.lotSize)
 	if qty <= 0 {
 		return
 	}
 
 	effectivePrice := bar.Open * (1 + e.config.Slippage)
-	// Buy cost includes commission + stamp duty + trading fee
 	cost := effectivePrice*qty + effectivePrice*qty*e.config.Commission + e.stampDuty(effectivePrice*qty) + e.tradeFee(effectivePrice*qty)
 
 	if cost > portfolio.Cash {
 		return
 	}
 
-	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
-	if err != nil {
-		return
-	}
-
+	// P0: Risk check before PlaceOrder
 	pos := e.oms.GetPosition(bar.Symbol)
 	portfolioValue := portfolio.Cash
 	for sym, q := range portfolio.Positions {
 		portfolioValue += q * bar.Close
 		_ = sym
 	}
-	order.Price = effectivePrice
-	if err := e.risk.CheckOrder(order, pos, portfolioValue); err != nil {
-		e.oms.CancelOrder(order.ID)
+	mockOrder := &trading.Order{
+		Symbol:   bar.Symbol,
+		Side:     trading.SideBuy,
+		OrderType: trading.TypeMarket,
+		Quantity: qty,
+		Price:    effectivePrice,
+	}
+	if err := e.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
+		return
+	}
+
+	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	if err != nil {
 		return
 	}
 
@@ -169,7 +174,9 @@ func (e *HKEngine) processHKBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 	newQty := oldQty + qty
 	portfolio.Positions[bar.Symbol] = newQty
 	if newQty > 0 {
-		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + qty*effectivePrice) / newQty
+		// P1: Include all buy-side costs (commission + stamp duty + trading fee) in cost basis
+		buyCost := qty*effectivePrice + qty*effectivePrice*e.config.Commission + e.stampDuty(qty*effectivePrice) + e.tradeFee(qty*effectivePrice)
+		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + buyCost) / newQty
 	}
 
 	*trades = append(*trades, TradeRecord{

@@ -151,6 +151,32 @@ func (r *BacktestRepo) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
+// GetByRunID returns the summary for the stored backtest with the given run ID.
+// Returns nil without error if not found.
+func (r *BacktestRepo) GetByRunID(ctx context.Context, runID string) (*StoredBacktestSummary, error) {
+	row := r.db.QueryRowContext(ctx,
+		`SELECT id, run_id, workflow_name, strategy_name, symbol, engine_type,
+			total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio,
+			calmar_ratio, win_rate, profit_factor, total_trades,
+			started_at, finished_at, created_at
+		 FROM backtest_results WHERE run_id=?`, runID,
+	)
+	s := &StoredBacktestSummary{}
+	err := row.Scan(
+		&s.ID, &s.RunID, &s.WorkflowName, &s.StrategyName, &s.Symbol, &s.EngineType,
+		&s.TotalReturn, &s.CAGR, &s.MaxDrawdown, &s.SharpeRatio, &s.SortinoRatio,
+		&s.CalmarRatio, &s.WinRate, &s.ProfitFactor, &s.TotalTrades,
+		&s.StartedAt, &s.FinishedAt, &s.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get backtest by run_id %s: %w", runID, err)
+	}
+	return s, nil
+}
+
 // scanBacktestSummaries scans all rows from a summary query.
 func scanBacktestSummaries(rows *sql.Rows) ([]StoredBacktestSummary, error) {
 	var summaries []StoredBacktestSummary

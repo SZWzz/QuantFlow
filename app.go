@@ -547,6 +547,15 @@ func (a *App) GetStoredBacktestResult(ctx context.Context, id int) (*storage.Sto
 	return a.btRepo.GetByID(ctx, id)
 }
 
+// GetStoredBacktestByRunID returns the summary for a stored backtest by run ID.
+// Returns nil (not error) if not found.
+func (a *App) GetStoredBacktestByRunID(ctx context.Context, runID string) (*storage.StoredBacktestSummary, error) {
+	if a.btRepo == nil {
+		return nil, nil
+	}
+	return a.btRepo.GetByRunID(ctx, runID)
+}
+
 // DeleteBacktestResult deletes a backtest result by ID.
 func (a *App) DeleteBacktestResult(ctx context.Context, id int) error {
 	if a.btRepo == nil {

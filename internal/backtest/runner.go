@@ -68,18 +68,17 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 		latestPrices[bar.Symbol] = bar.Close
 
 		// 1. Check stop-loss/take-profit on existing positions
+		// P0: Fill at bar.Close (stop was triggered at close, so open has already passed).
 		if pos := r.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			if r.risk.CheckStopLoss(pos, bar.Close) {
-				// Close position at market
 				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
-					r.oms.FillOrder(order.ID, pos.Quantity, bar.Open)
+					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Open,
+						Quantity: pos.Quantity, Price: bar.Close,
 					})
 				}
-				// Update portfolio
 				portfolio.Cash = r.oms.GetCashBalance()
 				delete(portfolio.Positions, bar.Symbol)
 				delete(portfolio.AvgPrice, bar.Symbol)
@@ -88,11 +87,11 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 			if r.risk.CheckTakeProfit(pos, bar.Close) {
 				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
-					r.oms.FillOrder(order.ID, pos.Quantity, bar.Open)
+					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Open,
-						PnL:      (bar.Open - pos.AvgPrice) * pos.Quantity,
+						Quantity: pos.Quantity, Price: bar.Close,
+						PnL:      (bar.Close - pos.AvgPrice) * pos.Quantity,
 					})
 				}
 				portfolio.Cash = r.oms.GetCashBalance()
@@ -136,32 +135,36 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 func (r *Runner) processBuySignal(bar trading.OHLCVBar, signal *trading.Signal, portfolio *Portfolio, trades *[]TradeRecord) {
 	qty := signal.Quantity
 	if qty <= 0 {
-		qty = 100 // Default: 100 shares
+		qty = 100
 	}
 
 	effectivePrice := bar.Open * (1 + r.config.Slippage)
 	cost := effectivePrice*qty + effectivePrice*qty*r.config.Commission
 
 	if cost > portfolio.Cash {
-		return // insufficient funds
-	}
-
-	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
-	if err != nil {
 		return
 	}
 
-	// Risk check
+	// P0: Risk check before PlaceOrder, not after
 	pos := r.oms.GetPosition(bar.Symbol)
 	portfolioValue := portfolio.Cash
 	for sym, q := range portfolio.Positions {
 		portfolioValue += q * bar.Close
 		_ = sym
 	}
-	// Temporarily set order price for risk check
-	order.Price = effectivePrice
-	if err := r.risk.CheckOrder(order, pos, portfolioValue); err != nil {
-		r.oms.CancelOrder(order.ID)
+	mockOrder := &trading.Order{
+		Symbol:   bar.Symbol,
+		Side:     trading.SideBuy,
+		OrderType: trading.TypeMarket,
+		Quantity: qty,
+		Price:    effectivePrice,
+	}
+	if err := r.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
+		return
+	}
+
+	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	if err != nil {
 		return
 	}
 
@@ -175,7 +178,9 @@ func (r *Runner) processBuySignal(bar trading.OHLCVBar, signal *trading.Signal, 
 	newQty := oldQty + qty
 	portfolio.Positions[bar.Symbol] = newQty
 	if newQty > 0 {
-		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + qty*effectivePrice) / newQty
+		// P1: Include commission in cost basis
+		totalCost := qty*effectivePrice + qty*effectivePrice*r.config.Commission
+		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + totalCost) / newQty
 	}
 
 	*trades = append(*trades, TradeRecord{

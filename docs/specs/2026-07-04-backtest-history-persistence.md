@@ -81,6 +81,7 @@ type StoredBacktest struct {
 func (r *BacktestRepo) Save(ctx context.Context, result *StoredBacktest) error
 func (r *BacktestRepo) List(ctx context.Context, limit, offset int) ([]StoredBacktestSummary, error)
 func (r *BacktestRepo) GetByID(ctx context.Context, id int) (*StoredBacktest, error)
+func (r *BacktestRepo) Delete(ctx context.Context, id int) error
 ```
 
 `StoredBacktestSummary` is a lighter struct with only metadata + metrics (no JSON blobs) for list display.
@@ -92,6 +93,7 @@ func (r *BacktestRepo) GetByID(ctx context.Context, id int) (*StoredBacktest, er
 3. New bindings:
    - `ListBacktestHistory(limit, offset)` → `[]StoredBacktestSummary`
    - `GetStoredBacktestResult(id)` → `*StoredBacktest`
+   - `DeleteBacktestResult(id)` → error (204 on success)
 
 #### `internal/storage/migrate.go`
 
@@ -105,6 +107,8 @@ Add `015_backtest_results.sql` to embedded migrations.
 - Default sort: `finished_at DESC`
 - Clickable column headers for sorting
 - Each row clickable → opens `BacktestResultPanel` with `{ storeId: row.id }`
+- Row right-click context menu: **删除** (确认弹窗后调用 `DeleteBacktestResult(id)`)
+- Multi-select support: Ctrl+点击多选后批量删除
 
 #### `BacktestResultPanel.vue` (modified)
 
@@ -140,6 +144,8 @@ If no data_loader OHLCV found (e.g. signals came from a different path), `ohlcv_
 - [ ] 工作流运行包含 backtest 节点时，回测结果自动持久化到 SQLite
 - [ ] 终端模式下「回测历史」面板列出所有历史回测（日期/策略/标的/收益率/Sharpe），支持按列排序
 - [ ] 点击历史行打开 `BacktestResultPanel`，显示完整的 K 线图 + 买卖点 + 净值曲线 + 指标网格 + 交易记录
+- [ ] 支持单行删除（右键菜单 → 删除，确认后移除）和批量删除（多选 → 删除按钮或右键）
+- [ ] 删除后从列表消失，详情面板关闭
 - [ ] 数据在应用重启后仍可查看（SQLite 持久化）
 - [ ] 旧有运行时 `BacktestResultPanel` 不受影响（兼容模式）
 

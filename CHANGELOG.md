@@ -7,6 +7,9 @@
 ## [2026.7.4] - 2026-07-04
 
 ### Added
+- [Terminal] BacktestResultPanel 运行时也能删除历史回测 — 自动通过 run_id 查找对应存储记录并显示删除按钮
+- [Workflow] NodeContext.RunID — 引擎将工作流执行 runID 注入节点上下文，backtest 节点输出包含 run_id
+- [Storage] BacktestRepo.GetByRunID — 通过 run_id 查询存储回测记录
 - [Storage] `backtest_results` SQLite 表（migration 015），含 run_id 唯一索引和指标列索引
 - [Storage] `BacktestRepo` — Save/List/GetByID/Delete 完整 CRUD
 - [Terminal] `BacktestHistoryPanel` — 历史回测浏览面板，支持按日期/收益率/Sharpe 排序、多选批量删除、单行删除

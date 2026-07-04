@@ -100,8 +100,7 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 			continue
 		}
 		if !adapter.IsAvailable(ctx) {
-			slog.Debug("adapter unavailable, skipping", "name", name, "market", market)
-			continue
+			slog.Debug("adapter unavailable (probe failed), trying anyway", "name", name, "market", market)
 		}
 
 		quote, err := RetryWithBudget(
@@ -197,10 +196,11 @@ func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, sy
 	for _, name := range chain {
 		adapter := r.Get(name)
 		if adapter == nil {
+			slog.Debug("adapter not registered, skipping", "name", name, "market", market)
 			continue
 		}
 		if !adapter.IsAvailable(ctx) {
-			continue
+			slog.Debug("adapter unavailable (probe failed), trying anyway", "name", name, "market", market)
 		}
 
 		bars, err := RetryWithBudget(

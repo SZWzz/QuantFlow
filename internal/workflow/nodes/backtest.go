@@ -159,12 +159,16 @@ func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, param
 		equityValues[i] = p.Equity
 	}
 
-	return map[string]any{
+	outputs := map[string]any{
 		"result":       result,
 		"equity_curve": equityValues,
-		"metrics":       result.Metrics,
-		"trades":        result.Trades,
-	}, nil
+		"metrics":      result.Metrics,
+		"trades":       result.Trades,
+	}
+	if nctx != nil && nctx.RunID != "" {
+		outputs["run_id"] = nctx.RunID
+	}
+	return outputs, nil
 }
 
 func (n *BacktestNode) Validate() error {

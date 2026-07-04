@@ -130,6 +130,11 @@ func (e *Engine) Execute(ctx context.Context, wf *Workflow) (*ExecutionResult, e
 
 	slog.Info("executing workflow", "id", wf.ID, "name", wf.Name, "layers", len(layers), "nodes", len(wf.Nodes))
 
+	// Inject runID into NodeContext so nodes can include it in their outputs
+	if e.nctx != nil {
+		e.nctx.RunID = runID
+	}
+
 	upstreamOutputs := &sync.Map{}
 	nodeResults := make([]NodeResult, len(wf.Nodes))
 	nodeResultByID := make(map[string]*NodeResult)

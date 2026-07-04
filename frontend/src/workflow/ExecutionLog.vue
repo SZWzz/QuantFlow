@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
-import { useWorkflowStore, type NodeExecStatus } from '@/stores/workflow'
+import { useWorkflowStore } from '@/stores/workflow'
 
 const workflow = useWorkflowStore()
 const logContainer = ref<HTMLElement | null>(null)
 
 const entries = computed(() => {
-  const result: { id: string; type: string; status: string; duration?: number; error?: string }[] = []
-
-  // Group by status
+  const result: { id: string; type: string; status: string; duration?: number; error?: string; output?: any }[] = []
   for (const [nodeId, status] of workflow.nodeStatuses) {
     result.push({
       id: nodeId,
@@ -16,17 +14,82 @@ const entries = computed(() => {
       status: status.status,
       duration: status.duration,
       error: status.error,
+      output: workflow.nodeOutputs.get(nodeId),
     })
   }
-
   return result
+})
+
+function outputNodeType(id: string): string {
+  const node = (workflow.nodes as any[]).find((n: any) => n.id === id)
+  return node?.data?.nodeType || ''
+}
+
+function getBacktestEquityCurve(): number[] {
+  for (const entry of entries.value) {
+    if (outputNodeType(entry.id) === 'backtest' && entry.output?.equity_curve) {
+      return entry.output.equity_curve
+    }
+  }
+  return []
+}
+
+function getChartDataEquity(): number[] {
+  for (const entry of entries.value) {
+    if (outputNodeType(entry.id) === 'chart_data' && entry.output?.chart_json) {
+      try {
+        const opt = JSON.parse(typeof entry.output.chart_json === 'string' ? entry.output.chart_json : JSON.stringify(entry.output.chart_json))
+        if (opt.series?.[0]?.data) return opt.series[0].data
+      } catch { /* fall through */ }
+    }
+  }
+  return []
+}
+
+const equityData = computed(() => {
+  const data = getBacktestEquityCurve()
+  if (data.length > 0) return data
+  return getChartDataEquity()
+})
+
+function fmtPrice(v: number): string {
+  if (v >= 1e6) return (v / 1e4).toFixed(0) + '万'
+  if (v >= 1e4) return (v / 1e4).toFixed(2) + '万'
+  return v.toFixed(2)
+}
+
+const chartInfo = computed(() => {
+  if (equityData.value.length < 2) return null
+  const data = equityData.value
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const w = 400, h = 180
+  const padL = 52, padR = 8, padT = 8, padB = 16
+  const pw = w - padL - padR
+  const ph = h - padT - padB
+
+  const points = data.map((v, i) => {
+    const x = padL + (i / (data.length - 1)) * pw
+    const y = padT + ph - ((v - min) / range) * ph
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+
+  const nLabels = 5
+  const labels: { y: number; label: string }[] = []
+  for (let i = 0; i < nLabels; i++) {
+    const pct = i / (nLabels - 1)
+    const val = min + (max - min) * (1 - pct)
+    const y = padT + ph * pct
+    labels.push({ y, label: fmtPrice(val) })
+  }
+  return { polyline: points, labels, w, h }
 })
 
 function clearLog() {
   workflow.resetExecution()
 }
 
-// Auto-scroll to bottom when new entries appear
 watch(
   () => entries.value.length,
   () => {
@@ -57,6 +120,14 @@ function statusColor(s: string): string {
   }
   return '#5a6380'
 }
+
+function formatOutput(key: any, val: any): string {
+  if (typeof val === 'number') return val.toFixed(6)
+  if (typeof val === 'string') return val.length > 300 ? val.slice(0, 300) + '…' : val
+  if (Array.isArray(val)) return `[${val.length} items]`
+  if (typeof val === 'object' && val !== null) return JSON.stringify(val).slice(0, 200)
+  return String(val)
+}
 </script>
 
 <template>
@@ -76,6 +147,18 @@ function statusColor(s: string): string {
         Run a workflow to see execution output
       </div>
 
+      <!-- inline equity curve chart with axes -->
+      <div v-if="chartInfo" class="chart-output">
+        <div class="chart-label">📈 净值曲线 ({{ equityData.length }} bars)</div>
+        <svg :viewBox="`0 0 ${chartInfo.w} ${chartInfo.h}`" class="equity-svg" preserveAspectRatio="xMidYMid meet">
+          <g v-for="(l, i) in chartInfo.labels" :key="'g'+i">
+            <line x1="52" :x2="chartInfo.w-8" :y1="l.y" :y2="l.y" stroke="#2a2a3a" stroke-width="0.5" stroke-dasharray="3,3" />
+            <text x="50" :y="l.y+3" text-anchor="end" fill="#8b8ba0" font-size="9">{{ l.label }}</text>
+          </g>
+          <polyline :points="chartInfo.polyline" fill="none" stroke="#3fb950" stroke-width="1.5" />
+        </svg>
+      </div>
+
       <div v-for="entry in entries" :key="entry.id" class="log-entry">
         <span class="entry-icon" :style="{ color: statusColor(entry.status) }">
           {{ statusIcon(entry.status) }}
@@ -84,6 +167,28 @@ function statusColor(s: string): string {
         <span class="entry-status" :style="{ color: statusColor(entry.status) }">{{ entry.status }}</span>
         <span v-if="entry.duration" class="entry-time">{{ (entry.duration / 1000).toFixed(2) }}µs</span>
         <span v-if="entry.error" class="entry-error">{{ entry.error }}</span>
+      </div>
+
+      <!-- log_output: structured display -->
+      <div v-for="entry in entries.filter(e => e.output && outputNodeType(e.id) === 'log_output')" :key="'log-'+entry.id" class="chart-output">
+        <div class="chart-label">📋 {{ entry.id }}</div>
+        <div class="chart-inline">
+          <div v-for="(val, key) in entry.output" :key="key" class="output-row">
+            <span class="output-key">{{ key }}:</span>
+            <span class="output-val">{{ formatOutput(key, val) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- other node outputs -->
+      <div v-for="entry in entries.filter(e => e.output && outputNodeType(e.id) !== 'chart_data' && outputNodeType(e.id) !== 'log_output')" :key="'out-'+entry.id" class="chart-output">
+        <div class="chart-label">📦 {{ entry.id }} output</div>
+        <div class="chart-inline">
+          <div v-for="(val, key) in entry.output" :key="key" class="output-row">
+            <span class="output-key">{{ key }}:</span>
+            <span class="output-val">{{ formatOutput(key, val) }}</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -95,7 +200,7 @@ function statusColor(s: string): string {
   border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  max-height: 180px;
+  max-height: 500px;
   flex-shrink: 0;
 }
 
@@ -132,4 +237,17 @@ function statusColor(s: string): string {
 .entry-status { font-weight: 500; }
 .entry-time { color: var(--color-text-tertiary); margin-left: auto; }
 .entry-error { color: #f85149; font-size: 10px; }
+
+.chart-output { padding: 4px 8px; margin: 2px 0; background: var(--color-bg-canvas); border-radius: var(--radius-sm); }
+.chart-label { font-size: 10px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 2px; }
+.chart-inline { display: flex; flex-direction: column; gap: 1px; }
+.output-row { font-size: 10px; color: var(--color-text-primary); }
+.output-key { color: var(--color-text-tertiary); margin-right: 4px; }
+.output-val { word-break: break-all; }
+
+.equity-svg {
+  width: 100%;
+  height: auto;
+  max-height: 160px;
+}
 </style>

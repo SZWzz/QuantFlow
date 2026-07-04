@@ -81,6 +81,7 @@ func TestRegistry_FallbackSkipsUnavailable(t *testing.T) {
 
 	r.Register(&mockAdapter{
 		name: "a", markets: []string{"CN"}, available: false,
+		quoteErr: errors.New("fetch failed"),
 	})
 	r.Register(&mockAdapter{
 		name: "b", markets: []string{"CN"}, available: true,
@@ -96,7 +97,7 @@ func TestRegistry_FallbackSkipsUnavailable(t *testing.T) {
 		t.Fatalf("FetchQuoteWithFallback error: %v", err)
 	}
 	if source != "b" {
-		t.Errorf("source = %q, want %q (should skip unavailable a)", source, "b")
+		t.Errorf("source = %q, want %q (should try unavailable a then fallback to b)", source, "b")
 	}
 	if quote.Last != 200.0 {
 		t.Errorf("Last = %f", quote.Last)

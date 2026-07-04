@@ -26,6 +26,7 @@ func (n *StrategyNode) Category() string { return "strategy" }
 func (n *StrategyNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
 		{Name: "factor_signals", Type: workflow.PortSeries, Required: false},
+		{Name: "exit_signals", Type: workflow.PortSeries, Required: false},
 		{Name: "constraints", Type: workflow.PortSeries, Required: false},
 	}
 }
@@ -66,9 +67,29 @@ func (n *StrategyNode) Execute(ctx context.Context, inputs map[string]any, param
 		"position_size":  getFloatParam(params, "position_size", 1000),
 	}
 
+	entry := extractFloatSlice(inputs["factor_signals"])
+	exit := extractFloatSlice(inputs["exit_signals"])
+
+	var merged []float64
+	if len(entry) > 0 || len(exit) > 0 {
+		maxLen := len(entry)
+		if len(exit) > maxLen {
+			maxLen = len(exit)
+		}
+		merged = make([]float64, maxLen)
+		for i := range merged {
+			if i < len(entry) {
+				merged[i] += entry[i]
+			}
+			if i < len(exit) {
+				merged[i] += exit[i]
+			}
+		}
+	}
+
 	return map[string]any{
 		"strategy_config": strategyConfig,
-		"signals":         nil,
+		"signals":         merged,
 	}, nil
 }
 

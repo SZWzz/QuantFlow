@@ -2,6 +2,13 @@ import type { ECBasicOption } from 'echarts/types/dist/shared'
 import type { ChartThemeColors } from '@/lib/composables/useChartTheme'
 import type { MinuteTick } from '@/lib/composables/useWailsApp'
 import type { EventMarker } from '@/lib/chart/EventMarker'
+
+export interface TradeSignal {
+  dataIndex: number
+  direction: 'buy' | 'sell'
+  price: number
+  label?: string
+}
 import { sma, bb, macd, kdj, rsi, wr, ema, sar, cci, obv } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { i18n } from '@/lib/i18n'
@@ -51,6 +58,7 @@ export function buildKlineOption(
   interval: string,
   eventMarkers?: EventMarker[],
   indexOverlay?: { name: string; symbol: string; data: any[] } | null,
+  tradeSignals?: TradeSignal[],
 ): ECBasicOption {
   if (!data.length) return {} as ECBasicOption
 
@@ -175,6 +183,21 @@ export function buildKlineOption(
         xAxis: m.dataIndex,
         label: { formatter: m.label, color: m.color, fontSize: 10, fontWeight: 'bold' as const },
         lineStyle: { color: m.color, type: 'dashed' as const, width: 1, opacity: 0.6 },
+      })),
+    }
+  }
+
+  if (tradeSignals && tradeSignals.length > 0) {
+    series[0].markPoint = {
+      silent: true,
+      symbolSize: 28,
+      data: tradeSignals.map(t => ({
+        name: t.label || (t.direction === 'buy' ? 'B' : 'S'),
+        coord: [t.dataIndex, t.price],
+        itemStyle: { color: t.direction === 'buy' ? '#f85149' : '#3fb950' },
+        symbol: t.direction === 'buy' ? 'pin' : 'pin',
+        symbolRotate: t.direction === 'buy' ? 180 : 0,
+        label: { formatter: t.direction === 'buy' ? 'B' : 'S', color: '#fff', fontSize: 10, fontWeight: 'bold' as const },
       })),
     }
   }

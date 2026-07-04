@@ -22,6 +22,7 @@ type NodeContext struct {
 	ModelRegistry interface{} // *ml.ModelRegistry
 
 	// Market adapters
+	MarketReg         interface{} // *market.AdapterRegistry — real OHLCV/quote fetching
 	NewsAdapter       interface{} // adapters.NewsAdapter
 	GlobalNewsAdapter interface{} // adapters.GlobalNewsAdapter
 
@@ -44,6 +45,10 @@ type NodeContext struct {
 	// Backtest window — set by ExecuteBacktest before each window
 	BacktestStart string
 	BacktestEnd   string
+
+	// RunID is the current workflow execution run identifier, set by Engine.Execute
+	// before executing nodes. Nodes can include this in their outputs for traceability.
+	RunID string
 
 	// SubWorkflowRunner executes a child workflow by ID with given inputs.
 	// Set by app.go to wire the engine's Execute into sub_workflow nodes.

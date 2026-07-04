@@ -99,16 +99,16 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		currentEquity := portfolio.Equity(latestPrices)
 
 		// 1. Check stop-loss/take-profit on existing positions
+		// P0: Fill at bar.Close — stop was triggered at close, so open has already passed.
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) {
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, pos.Quantity, bar.Open)
+					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Open,
+						Quantity: pos.Quantity, Price: bar.Close,
 					})
-					// Record day trade if we bought and sold same symbol today
 					if dailyBuys[bar.Symbol] {
 						barDate, _ := time.Parse("2006-01-02", bar.Date)
 						if !barDate.IsZero() {
@@ -124,11 +124,11 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 			if e.risk.CheckTakeProfit(pos, bar.Close) {
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, pos.Quantity, bar.Open)
+					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Open,
-						PnL:      (bar.Open - pos.AvgPrice) * pos.Quantity,
+						Quantity: pos.Quantity, Price: bar.Close,
+						PnL:      (bar.Close - pos.AvgPrice) * pos.Quantity,
 					})
 					if dailyBuys[bar.Symbol] {
 						barDate, _ := time.Parse("2006-01-02", bar.Date)
@@ -196,20 +196,26 @@ func (e *USEngine) processUSBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		return
 	}
 
-	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
-	if err != nil {
-		return
-	}
-
+	// P0: Risk check before PlaceOrder
 	pos := e.oms.GetPosition(bar.Symbol)
 	portfolioValue := portfolio.Cash
 	for sym, q := range portfolio.Positions {
 		portfolioValue += q * bar.Close
 		_ = sym
 	}
-	order.Price = effectivePrice
-	if err := e.risk.CheckOrder(order, pos, portfolioValue); err != nil {
-		e.oms.CancelOrder(order.ID)
+	mockOrder := &trading.Order{
+		Symbol:   bar.Symbol,
+		Side:     trading.SideBuy,
+		OrderType: trading.TypeMarket,
+		Quantity: qty,
+		Price:    effectivePrice,
+	}
+	if err := e.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
+		return
+	}
+
+	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	if err != nil {
 		return
 	}
 
@@ -223,7 +229,9 @@ func (e *USEngine) processUSBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 	newQty := oldQty + qty
 	portfolio.Positions[bar.Symbol] = newQty
 	if newQty > 0 {
-		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + qty*effectivePrice) / newQty
+		// P1: Include commission in cost basis
+		totalCost := qty*effectivePrice + qty*effectivePrice*e.config.Commission
+		portfolio.AvgPrice[bar.Symbol] = (oldQty*oldAvg + totalCost) / newQty
 	}
 
 	(*dailyBuys)[bar.Symbol] = true

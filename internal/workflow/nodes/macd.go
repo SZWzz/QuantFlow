@@ -78,22 +78,5 @@ func ema(data []float64, period int) []float64 {
 }
 
 func extractFloatSlice(val any) []float64 {
-	if val == nil { return nil }
-	switch v := val.(type) {
-	case []float64: return v
-	case []any:
-		result := make([]float64, len(v))
-		for i, x := range v {
-			switch f := x.(type) {
-			case float64: result[i] = f
-			case int: result[i] = float64(f)
-			default:
-				if _, err := fmt.Sscanf(fmt.Sprintf("%v", f), "%f", &result[i]); err != nil {
-					result[i] = float64(0) // explicitly zero on parse failure
-				}
-			}
-		}
-		return result
-	}
-	return nil
+	return extractFloat64Slice(val)
 }
