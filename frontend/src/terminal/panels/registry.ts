@@ -94,8 +94,7 @@ register('earnings-calendar', () => import('./EarningsCalendarPanel.vue'), { lab
 register('cross-asset-corr', () => import('./CrossAssetCorrelationPanel.vue'), { label: '跨资产相关性', category: '量化分析', description: '多资产类别相关系数矩阵' })
 
 // ── 量化分析 ──
-register('backtest-result', () => import('./BacktestResultPanel.vue'), { label: '回测结果', category: '量化分析', description: '策略回测绩效' })
-register('backtest-history', () => import('./BacktestHistoryPanel.vue'), { label: '回测历史', category: '量化分析', description: '浏览和管理历史回测记录' })
+register('backtest', () => import('./BacktestPanel.vue'), { label: '回测分析', category: '量化分析', description: '回测历史列表与详情（K线/净值/指标/交易记录）' })
 register('factor-analysis', () => import('./FactorAnalysisPanel.vue'), { label: '因子分析', category: '量化分析', description: '多因子分析' })
 register('model-registry', () => import('./ModelRegistryPanel.vue'), { label: '模型注册', category: '系统', description: 'ML 模型管理' })
 register('prediction-dashboard', () => import('./PredictionDashboardPanel.vue'), { label: '预测面板', category: '量化分析', description: '模型预测结果' })

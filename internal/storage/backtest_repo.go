@@ -137,6 +137,12 @@ func (r *BacktestRepo) GetByID(ctx context.Context, id int) (*StoredBacktest, er
 	return bt, nil
 }
 
+// ClearAll deletes ALL backtest results.
+func (r *BacktestRepo) ClearAll(ctx context.Context) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM backtest_results`)
+	return err
+}
+
 // Delete removes a backtest result by its primary key.
 // Returns an error if the record does not exist.
 func (r *BacktestRepo) Delete(ctx context.Context, id int) error {

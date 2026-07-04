@@ -117,12 +117,13 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 				if !rule.CanSell(bar.Close, e.prevClose[bar.Symbol]) {
 					goto recordEquityCN
 				}
+				avgPrice := pos.AvgPrice // capture before FillOrder clears it
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, availableQty, 0)
 				if err == nil {
 					e.oms.FillOrder(order.ID, availableQty, bar.Close)
 					portfolio.Cash = e.oms.GetCashBalance()
 					revenue := bar.Close*availableQty - e.stampDuty(bar.Close*availableQty) - bar.Close*availableQty*e.config.Commission
-					pnl := revenue - pos.AvgPrice*availableQty
+					pnl := revenue - avgPrice*availableQty
 
 					newQty := heldQty - availableQty
 					if newQty <= 0 {

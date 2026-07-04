@@ -70,6 +70,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 		// 1. Check stop-loss/take-profit on existing positions
 		// P0: Fill at bar.Close (stop was triggered at close, so open has already passed).
 		if pos := r.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
+			avgPrice := pos.AvgPrice // capture before FillOrder clears it
 			if r.risk.CheckStopLoss(pos, bar.Close) {
 				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
@@ -77,6 +78,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
 						Quantity: pos.Quantity, Price: bar.Close,
+						PnL:      (bar.Close - avgPrice) * pos.Quantity,
 					})
 				}
 				portfolio.Cash = r.oms.GetCashBalance()
@@ -91,7 +93,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
 						Quantity: pos.Quantity, Price: bar.Close,
-						PnL:      (bar.Close - pos.AvgPrice) * pos.Quantity,
+						PnL:      (bar.Close - avgPrice) * pos.Quantity,
 					})
 				}
 				portfolio.Cash = r.oms.GetCashBalance()

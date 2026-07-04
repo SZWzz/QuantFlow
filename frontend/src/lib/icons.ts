@@ -219,6 +219,7 @@ export const PANEL_ICONS: Record<string, IconName> = {
   'insider-trading': 'insider',
   'congress-trading': 'congress',
   sentiment: 'sentiment',
+  'backtest': 'backtest',
   'backtest-result': 'backtest',
   'factor-analysis': 'factor',
   'model-registry': 'model',

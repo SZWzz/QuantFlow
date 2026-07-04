@@ -564,6 +564,14 @@ func (a *App) DeleteBacktestResult(ctx context.Context, id int) error {
 	return a.btRepo.Delete(ctx, id)
 }
 
+// ClearBacktestResults deletes ALL backtest results from the database.
+func (a *App) ClearBacktestResults(ctx context.Context) error {
+	if a.btRepo == nil {
+		return fmt.Errorf("backtest repo not initialized")
+	}
+	return a.btRepo.ClearAll(ctx)
+}
+
 // ── Credential Management ───────────────────────────────────────────
 
 // ListCredentials returns all stored credentials with decrypted keys.
@@ -1254,7 +1262,7 @@ func persistBacktestResults(a *App, runID string, wf *workflow.Workflow, result 
 		return
 	}
 	for _, nr := range result.NodeResults {
-		if nr.NodeType != "backtest" || nr.Status != "success" {
+		if nr.NodeType != "backtest" || nr.Status != "completed" {
 			continue
 		}
 		outputs := nr.Outputs

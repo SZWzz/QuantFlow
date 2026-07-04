@@ -67,11 +67,12 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		// P0: Fill at bar.Close — stop was triggered at close, so open has already passed.
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) || e.risk.CheckTakeProfit(pos, bar.Close) {
+				avgPrice := pos.AvgPrice // capture before FillOrder clears it
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
 					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					revenue := bar.Close*pos.Quantity - e.stampDuty(bar.Close*pos.Quantity) - e.tradeFee(bar.Close*pos.Quantity) - bar.Close*pos.Quantity*e.config.Commission
-					pnl := revenue - pos.AvgPrice*pos.Quantity
+					pnl := revenue - avgPrice*pos.Quantity
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
 						Quantity: pos.Quantity, Price: bar.Close, PnL: pnl,

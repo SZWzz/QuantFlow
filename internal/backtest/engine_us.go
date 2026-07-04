@@ -101,6 +101,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		// 1. Check stop-loss/take-profit on existing positions
 		// P0: Fill at bar.Close — stop was triggered at close, so open has already passed.
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
+			avgPrice := pos.AvgPrice // capture before FillOrder clears it
 			if e.risk.CheckStopLoss(pos, bar.Close) {
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
 				if err == nil {
@@ -108,6 +109,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
 						Quantity: pos.Quantity, Price: bar.Close,
+						PnL:      (bar.Close - avgPrice) * pos.Quantity,
 					})
 					if dailyBuys[bar.Symbol] {
 						barDate, _ := time.Parse("2006-01-02", bar.Date)
@@ -128,7 +130,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 					tradeRecords = append(tradeRecords, TradeRecord{
 						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
 						Quantity: pos.Quantity, Price: bar.Close,
-						PnL:      (bar.Close - pos.AvgPrice) * pos.Quantity,
+						PnL:      (bar.Close - avgPrice) * pos.Quantity,
 					})
 					if dailyBuys[bar.Symbol] {
 						barDate, _ := time.Parse("2006-01-02", bar.Date)

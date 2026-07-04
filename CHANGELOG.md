@@ -7,16 +7,27 @@
 ## [2026.7.4] - 2026-07-04
 
 ### Added
+- [Terminal] `BacktestPanel` — 合并回测历史与回测详情为单一面板，支持列表 ➔ 详情双视图：历史列表（PanelTable）、K 线+买卖点、净值曲线、指标卡片网格（PanelCard）、交易记录表（PanelTable）
 - [Terminal] BacktestResultPanel 运行时也能删除历史回测 — 自动通过 run_id 查找对应存储记录并显示删除按钮
 - [Workflow] NodeContext.RunID — 引擎将工作流执行 runID 注入节点上下文，backtest 节点输出包含 run_id
 - [Storage] BacktestRepo.GetByRunID — 通过 run_id 查询存储回测记录
 - [Storage] `backtest_results` SQLite 表（migration 015），含 run_id 唯一索引和指标列索引
 - [Storage] `BacktestRepo` — Save/List/GetByID/Delete 完整 CRUD
-- [Terminal] `BacktestHistoryPanel` — 历史回测浏览面板，支持按日期/收益率/Sharpe 排序、多选批量删除、单行删除
 - [Terminal] `BacktestResultPanel` 新增 `storeId` 参数支持，可从 SQLite 加载历史回测数据渲染完整 K 线图+买卖点+净值曲线
 - [Workflow] 执行完成后自动检测 backtest 节点输出，追踪上游 OHLCV 数据，持久化到 SQLite
+- [Storage] `BacktestRepo.ClearAll` — 批量清空全部回测记录，为前端清空按钮提供原子化支持
 
 ### Fixed
+- [Storage] P0: `persistBacktestResults` 状态判断错误 — 引擎使用 `"completed"` 但持久化函数检查 `"success"`，导致所有回测结果从未被写入 SQLite，回测历史面板始终为空
+- [Backtest] P0: Stop-loss/take-profit PnL 计算错误 — 所有引擎在止损/止盈自动平仓路径中，`pos.AvgPrice` 在 `oms.FillOrder` 后被清零，导致 PnL = revenue - 0 = revenue（错误地等于卖出金额）。修复：在 `FillOrder` 前捕获 `avgPrice`（涉及 engine_cn/engine_us/engine_hk/runner 四个引擎）
+- [Terminal] PanelCard 数字格式修复 — `Infinity` 显示为 `∞`（而非 `999999`），整数不显示多余小数位
+- [Terminal] BacktestPanel trade 表列 key 修复 — `direction` → `side`（TradeRecord JSON 字段为 `side`）
+- [Terminal] BacktestPanel 详情返回按钮修复 — 使用 `label` 替代不存在的 `arrow-left` icon，返回时自动刷新列表
+- [Terminal] BacktestPanel 指标网格布局修复 — `minmax(140px,1fr)` → `minmax(min(200px,100%),1fr)` 防止卡片重叠
+
+### Removed
+- [Terminal] `BacktestHistoryPanel` — 功能合并至 `BacktestPanel`
+- [Terminal] `BacktestResultPanel` — 功能合并至 `BacktestPanel`
 - [Backtest] P0: Stop-loss/take-profit 前视偏差 — 止损/止盈触发后以 `bar.Close`（而非 `bar.Open`）成交，避免使用当日尚未发生的开盘价（涉及 runner/CN/HK/US 四个引擎）
 - [Backtest] P0: 先下单后风控 — 买入信号处理中 `CheckOrder` 风险检查移至 `PlaceOrder` 之前，不再依赖下单后撤销的竞态模式（涉及 runner/CN/HK/US 四个引擎的 processBuySignal）
 - [Backtest] P1: 买入佣金不计入成本基础 — `AvgPrice` 计算包含买入佣金（runner 佣金率 / CN 佣金率 / HK 含印花税+交易费 / US 佣金率），修复 PnL 系统性偏高问题

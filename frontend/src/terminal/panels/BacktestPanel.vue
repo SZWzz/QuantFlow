@@ -1,0 +1,501 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, shallowRef, watch } from 'vue'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { CandlestickChart, BarChart, LineChart } from 'echarts/charts'
+import { TooltipComponent, GridComponent, DataZoomComponent, MarkPointComponent } from 'echarts/components'
+import VChart from 'vue-echarts'
+import type { ECBasicOption } from 'echarts/types/dist/shared'
+import { PanelHeader, PanelTable, PanelCard, EmptyState, LoadingState } from '@/terminal/components/panel'
+import type { TradeSignal, KlineDataItem } from '@/lib/buildChartOption'
+
+use([CanvasRenderer, CandlestickChart, BarChart, LineChart, TooltipComponent, GridComponent, DataZoomComponent, MarkPointComponent])
+
+interface BacktestSummary {
+  id: number
+  run_id: string
+  workflow_name: string
+  strategy_name: string
+  symbol: string
+  engine_type: string
+  total_return: number
+  cagr: number
+  max_drawdown: number
+  sharpe_ratio: number
+  sortino_ratio: number
+  calmar_ratio: number
+  win_rate: number
+  profit_factor: number
+  total_trades: number
+  started_at: string
+  finished_at: string
+  created_at: string
+}
+
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+// ── View ──
+type ViewMode = 'list' | 'detail'
+const view = ref<ViewMode>('list')
+const detailId = ref<number | null>(null)
+const deleted = ref(false)
+
+watch(() => props.params?.storeId, (id) => {
+  if (id) { detailId.value = id; view.value = 'detail'; loadStoredResult(id) }
+}, { immediate: true })
+
+function goBack() { view.value = 'list'; detailId.value = null; loadList() }
+
+// ── List state ──
+const items = ref<BacktestSummary[]>([])
+const loading = ref(false)
+
+const columns = computed(() => [
+  { key: 'finished_at', label: '日期', width: 90, formatter: (v: string) => v?.slice(0, 10) || '-' },
+  { key: 'workflow_name', label: '工作流', flex: 1 },
+  { key: 'strategy_name', label: '策略', width: 90 },
+  { key: 'symbol', label: '标的', width: 70 },
+  { key: 'total_return', label: '收益率', width: 80, align: 'right' as const, format: 'percent' as const, colorize: true },
+  { key: 'sharpe_ratio', label: 'Sharpe', width: 70, align: 'right' as const, format: 'number' as const },
+  { key: 'total_trades', label: '交易', width: 50, align: 'right' as const },
+])
+
+async function loadList() {
+  loading.value = true
+  try {
+    const res = await (window as any).go.main.App.ListBacktestHistory(100, 0)
+    items.value = res || []
+  } catch (e) {
+    console.error('ListBacktestHistory failed:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+function openRow(row: any) {
+  detailId.value = row.id
+  view.value = 'detail'
+  loadStoredResult(row.id)
+}
+
+async function deleteAllRecords() {
+  if (!items.value.length) return
+  if (!confirm(`确定删除全部 ${items.value.length} 条回测记录？此操作不可撤销。`)) return
+  try {
+    await (window as any).go.main.App.ClearBacktestResults()
+    await loadList()
+  } catch (e: any) {
+    console.error('ClearBacktestResults failed:', e)
+    alert(`删除失败: ${e.message || e}`)
+  }
+}
+
+async function deleteSingleList(id: number) {
+  if (!confirm('确定删除此回测记录？')) return
+  try {
+    await (window as any).go.main.App.DeleteBacktestResult(id)
+    await loadList()
+  } catch (e: any) {
+    console.error('DeleteBacktestResult failed:', e)
+    alert(`删除失败: ${e.message || e}`)
+  }
+}
+
+// ── Detail state ──
+const storedLoading = ref(false)
+const storedData = ref<any>(null)
+
+async function loadStoredResult(id: number) {
+  storedLoading.value = true
+  storedData.value = null
+  deleted.value = false
+  try {
+    const res = await (window as any).go.main.App.GetStoredBacktestResult(id)
+    if (!res) return
+    storedData.value = {
+      equity_curve: safeParseJSON(res.equity_curve, []).map((p: any) => p.equity ?? p),
+      trades: safeParseJSON(res.trades_json, []),
+      ohlcv: safeParseJSON(res.ohlcv_data, []),
+      metrics: {
+        total_return: res.total_return,
+        cagr: res.cagr,
+        max_drawdown: res.max_drawdown,
+        sharpe_ratio: res.sharpe_ratio,
+        sortino_ratio: res.sortino_ratio,
+        calmar_ratio: res.calmar_ratio,
+        win_rate: res.win_rate,
+        profit_factor: res.profit_factor,
+        total_trades: res.total_trades,
+      },
+      workflow_name: res.workflow_name,
+      strategy_name: res.strategy_name,
+      symbol: res.symbol,
+    }
+  } catch (e) {
+    console.error('GetStoredBacktestResult failed:', e)
+  } finally {
+    storedLoading.value = false
+  }
+}
+
+function safeParseJSON(s: string | undefined, fallback: any): any {
+  if (!s) return fallback
+  try { return JSON.parse(s) } catch { return fallback }
+}
+
+async function deleteDetail() {
+  if (!detailId.value) return
+  if (!confirm('确定删除此回测记录？')) return
+  try {
+    await (window as any).go.main.App.DeleteBacktestResult(detailId.value)
+    deleted.value = true
+  } catch (e) {
+    console.error('DeleteBacktestResult failed:', e)
+    alert('删除失败，请重试')
+  }
+}
+
+// ── K-line ──
+const klineData = computed<KlineDataItem[]>(() => {
+  const bars = storedData.value?.ohlcv
+  if (!bars || bars.length === 0) return []
+  return bars.map((b: any) => ({
+    date: b.Date || b.date || '',
+    open: b.Open ?? b.open ?? 0,
+    high: b.High ?? b.high ?? 0,
+    low: b.Low ?? b.low ?? 0,
+    close: b.Close ?? b.close ?? 0,
+    volume: b.Volume ?? b.volume ?? 0,
+  }))
+})
+
+function findCandleIndex(dateStr: string): number {
+  return klineData.value.findIndex(d => d.date === dateStr)
+}
+
+const tradeSignals = computed<TradeSignal[]>(() => {
+  const ts = storedData.value?.trades
+  if (!ts || klineData.value.length === 0) return []
+  const signals: TradeSignal[] = []
+  for (const t of ts) {
+    const dataIndex = t.date ? findCandleIndex(t.date) : -1
+    if (dataIndex < 0 && t.price) {
+      signals.push({ dataIndex: -1, direction: t.direction || t.side, price: t.price, label: t.direction === 'buy' ? 'B' : 'S' })
+    } else if (dataIndex >= 0) {
+      signals.push({ dataIndex, direction: t.direction || t.side, price: t.price ?? klineData.value[dataIndex].close, label: t.direction === 'buy' ? 'B' : 'S' })
+    }
+  }
+  return signals
+})
+
+const chartOption = shallowRef<ECBasicOption>({} as ECBasicOption)
+
+function buildOption(): ECBasicOption {
+  const kd = klineData.value
+  if (kd.length === 0) return {} as ECBasicOption
+  const dates = kd.map(d => d.date)
+  const kdata = kd.map(d => [d.open, d.close, d.low, d.high])
+  const close = kd.map(d => d.close)
+  const upCol = '#ef5350'
+  const downCol = '#26a69a'
+  const volData = kd.map(d => ({ value: d.volume / 10000, itemStyle: { color: d.close >= d.open ? upCol : downCol } }))
+  const signals = tradeSignals.value
+  const hasValidSignals = signals.some(s => s.dataIndex >= 0)
+  const series: any[] = [
+    {
+      type: 'candlestick', data: kdata,
+      itemStyle: { color: upCol, color0: downCol, borderColor: upCol, borderColor0: downCol },
+      markPoint: hasValidSignals ? {
+        silent: true, symbolSize: 28,
+        data: signals.filter(s => s.dataIndex >= 0).map(s => ({
+          coord: [s.dataIndex, s.price],
+          itemStyle: { color: s.direction === 'buy' ? '#f85149' : '#3fb950' },
+          symbol: 'pin', symbolRotate: s.direction === 'buy' ? 180 : 0,
+          label: { formatter: s.direction === 'buy' ? 'B' : 'S', color: '#fff', fontSize: 10, fontWeight: 'bold' as const },
+        })),
+      } : undefined,
+    },
+    { type: 'line', name: 'SMA5', data: sma(close, 5), symbol: 'none', lineStyle: { width: 1, color: '#f59e0b' } },
+    { type: 'line', name: 'SMA20', data: sma(close, 20), symbol: 'none', lineStyle: { width: 1, color: '#8b5cf6' } },
+    { type: 'bar', name: '成交量', data: volData, xAxisIndex: 1, yAxisIndex: 1 },
+  ]
+  const totalPoints = kd.length
+  const windowSize = Math.min(totalPoints, 250)
+  const startPct = totalPoints > windowSize ? ((totalPoints - windowSize) / totalPoints * 100) : 0
+  return {
+    backgroundColor: 'transparent', animation: false,
+    grid: [{ left: 54, right: 10, top: 8, height: '52%' }, { left: 54, right: 10, top: '68%', height: '26%' }],
+    xAxis: [
+      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#2a2a3a' } } },
+      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#2a2a3a' } } },
+    ],
+    yAxis: [
+      { type: 'value', gridIndex: 0, scale: true, axisLabel: { color: '#8b8ba0', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+      { type: 'value', gridIndex: 1, scale: true, axisLabel: { color: '#8b8ba0', fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { show: false } },
+    ],
+    series,
+    tooltip: {
+      trigger: 'axis',
+      formatter: (ps: any[]) => {
+        if (!ps?.length) return ''
+        const lines: string[] = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]
+        for (const p of ps) {
+          if (p.seriesType === 'candlestick' && Array.isArray(p.data)) {
+            lines.push(`<div style="margin-top:4px">开: ${p.data[0].toFixed(2)}</div>`)
+            lines.push(`<div>收: ${p.data[1].toFixed(2)}</div>`)
+            lines.push(`<div>低: ${p.data[2].toFixed(2)}</div>`)
+            lines.push(`<div>高: ${p.data[3].toFixed(2)}</div>`)
+          } else if (p.seriesType === 'bar') {
+            const raw = kd[p.dataIndex]?.volume ?? 0
+            lines.push(`<div>成交量: ${(raw / 10000).toFixed(1)}万</div>`)
+          } else {
+            lines.push(`<div>${p.seriesName}: ${p.value?.toFixed(2) ?? ''}</div>`)
+          }
+        }
+        return lines.join('')
+      },
+    },
+    dataZoom: [
+      { type: 'inside', xAxisIndex: [0, 1], start: startPct, end: 100 },
+      { type: 'slider', xAxisIndex: [0, 1], start: startPct, end: 100, bottom: 0, height: 18 },
+    ],
+  } as ECBasicOption
+}
+
+watch(() => klineData.value.length, () => { chartOption.value = buildOption() }, { immediate: true })
+
+function sma(data: number[], period: number): number[] {
+  const r: number[] = []
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - period + 1)
+    let sum = 0
+    for (let j = start; j <= i; j++) sum += data[j]
+    r.push(sum / (i - start + 1))
+  }
+  return r
+}
+
+// ── Equity curve ──
+const equityOption = computed<ECBasicOption>(() => {
+  const eq = storedData.value?.equity_curve
+  if (!eq || eq.length < 2) return {} as ECBasicOption
+  const min = Math.min(...eq)
+  const max = Math.max(...eq)
+  const upColor = eq[eq.length - 1] >= eq[0] ? '#ef5350' : '#26a69a'
+  return {
+    backgroundColor: 'transparent', animation: false,
+    grid: { left: 54, right: 16, top: 10, bottom: 20 },
+    xAxis: { type: 'category', show: false, axisLine: { lineStyle: { color: '#2a2a3a' } } },
+    yAxis: { type: 'value', scale: true, axisLabel: { color: '#8b8ba0', fontSize: 10, formatter: (v: number) => (v / 10000).toFixed(2) + '万' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }, min, max },
+    series: [{ type: 'line', data: eq, smooth: true, symbol: 'none', lineStyle: { color: upColor, width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: upColor + '40' }, { offset: 1, color: 'rgba(0,0,0,0)' }] } } }],
+    tooltip: { trigger: 'axis', formatter: (ps: any[]) => ps?.[0] ? `<div style="font-size:12px">净值: ${Number(ps[0].value).toFixed(2)}</div>` : '' },
+  } as ECBasicOption
+})
+
+// ── Metrics ──
+function gm(v: number | undefined | null): string {
+  if (v == null) return '-'
+  return (v * 100).toFixed(2) + '%'
+}
+function gn(v: number | undefined | null): string {
+  if (v == null) return '-'
+  return v.toFixed(2)
+}
+
+const metricsCards = computed(() => {
+  const m = storedData.value?.metrics
+  if (!m) return []
+  return [
+    { label: '总收益率', value: m.total_return, format: 'percent' as const, color: true },
+    { label: '年化收益率', value: m.cagr, format: 'percent' as const, color: true },
+    { label: '最大回撤', value: m.max_drawdown, format: 'percent' as const, color: true },
+    { label: '夏普比率', value: m.sharpe_ratio, format: 'number' as const },
+    { label: '索提诺比率', value: m.sortino_ratio, format: 'number' as const },
+    { label: '卡玛比率', value: m.calmar_ratio, format: 'number' as const },
+    { label: '胜率', value: m.win_rate, format: 'percent' as const, color: true },
+    { label: '盈亏比', value: m.profit_factor >= 999998 ? Infinity : m.profit_factor, format: 'number' as const },
+    { label: '总交易次数', value: m.total_trades, format: 'number' as const },
+  ]
+})
+
+// ── Trades table ──
+const tradeColumns = [
+  { key: 'date', label: '日期', width: 100 },
+  { key: 'symbol', label: '标的', width: 70 },
+  { key: 'side', label: '方向', width: 50, formatter: (v: string) => v === 'buy' ? '买入' : v === 'sell' ? '卖出' : v ?? '-' },
+  { key: 'quantity', label: '数量', width: 60, align: 'right' as const },
+  { key: 'price', label: '价格', width: 70, align: 'right' as const, format: 'price' as const },
+  { key: 'pnl', label: '盈亏', width: 80, align: 'right' as const, format: 'price' as const, colorize: true },
+]
+
+onMounted(() => {
+  if (!props.params?.storeId) loadList()
+})
+</script>
+
+<template>
+  <div class="backtest-panel">
+    <!-- ── List View ── -->
+    <template v-if="view === 'list'">
+      <PanelHeader
+        title="回测历史"
+        :subtitle="`${items.length} 条记录`"
+        :controls="[
+          { icon: 'refresh', title: '刷新', action: loadList, loading: loading },
+          { icon: 'delete', title: '清空全部记录', action: deleteAllRecords },
+        ]"
+      />
+      <div class="panel-body">
+        <LoadingState v-if="loading && items.length === 0" type="table" :rows="5" :cols="7" />
+        <EmptyState
+          v-else-if="items.length === 0 && !loading"
+          icon="inbox"
+          title="暂无回测记录"
+          description="在 Workflow Editor 中运行回测工作流后，结果将在此显示。"
+        />
+        <PanelTable
+          v-else
+          :columns="columns"
+          :data="items"
+          :loading="loading"
+          clickable
+          @rowClick="openRow"
+        >
+          <template #action="{ row }">
+            <button class="btn-icon-sm" title="删除" @click.stop="deleteSingleList(row.id)">✕</button>
+          </template>
+        </PanelTable>
+      </div>
+    </template>
+
+    <!-- ── Detail View ── -->
+    <template v-else>
+      <PanelHeader
+        :title="storedData?.strategy_name || '回测详情'"
+        :subtitle="storedData ? `${storedData.symbol}` : ''"
+        :controls="[
+          { label: '← 返回列表', action: goBack },
+          { label: '删除', action: deleteDetail },
+        ]"
+      />
+
+      <div class="panel-body scrollable">
+        <LoadingState v-if="storedLoading" type="chart" />
+        <LoadingState v-else-if="storedLoading" type="card" :rows="3" />
+
+        <EmptyState
+          v-else-if="deleted"
+          icon="inbox"
+          title="已删除"
+          description="此回测记录已被删除。"
+        />
+
+        <EmptyState
+          v-else-if="!storedData"
+          icon="chart"
+          title="暂无回测结果"
+          description="历史回测数据加载失败或数据不完整。"
+        />
+
+        <template v-else>
+          <!-- K-line chart -->
+          <div v-if="klineData.length > 0" class="chart-section">
+            <div class="section-label">K 线 + 买卖点</div>
+            <VChart :option="chartOption" autoresize class="kline-chart" />
+          </div>
+
+          <!-- Equity curve -->
+          <div v-if="storedData.equity_curve?.length >= 2" class="chart-section">
+            <div class="section-label">净值曲线</div>
+            <VChart :option="equityOption" autoresize class="equity-chart" />
+          </div>
+
+          <!-- Metrics cards -->
+          <div v-if="metricsCards.length" class="section">
+            <div class="section-label">回测指标</div>
+            <div class="metrics-grid">
+              <PanelCard
+                v-for="m in metricsCards"
+                :key="m.label"
+                :title="m.label"
+                :value="m.value"
+                :format="m.format"
+              />
+            </div>
+          </div>
+
+          <!-- Trades -->
+          <div v-if="storedData.trades?.length" class="section">
+            <div class="section-label">交易记录 ({{ storedData.trades.length }})</div>
+            <PanelTable
+              :columns="tradeColumns"
+              :data="storedData.trades.slice(0, 50)"
+              :striped="true"
+            />
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.backtest-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg-panel);
+  position: relative;
+}
+.panel-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm);
+}
+.panel-body.scrollable {
+  overflow-y: auto;
+}
+.chart-section {
+  margin-bottom: var(--space-lg);
+}
+.section-label {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.section {
+  margin-bottom: var(--space-lg);
+}
+.kline-chart {
+  height: 360px;
+  width: 100%;
+}
+.equity-chart {
+  height: 200px;
+  width: 100%;
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+  gap: var(--card-gap);
+}
+.btn-icon-sm {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.btn-icon-sm:hover {
+  color: var(--color-down);
+  background: var(--color-down-soft);
+}
+</style>

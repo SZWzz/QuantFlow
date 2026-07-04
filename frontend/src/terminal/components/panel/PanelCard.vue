@@ -39,7 +39,8 @@ const formattedValue = computed(() => {
       if (v >= 1e4) return (v / 1e4).toFixed(1) + '万'
       return String(v)
     case 'number':
-      return v.toFixed(4)
+      if (!isFinite(v)) return '∞'
+      return Number.isInteger(v) ? v.toFixed(0) : v.toFixed(4)
     default:
       return String(v)
   }
