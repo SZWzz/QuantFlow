@@ -35,6 +35,7 @@ import (
 	"quantflow/internal/trading/brokers"
 	"quantflow/internal/workflow"
 	"quantflow/internal/workflow/nodes"
+	"quantflow/internal/ws"
 )
 
 var startTime = time.Now() // used by GetSystemStats for uptime
@@ -73,6 +74,15 @@ type App struct {
 
 	// Market data: adapter registry + fallback chains (wired in startup).
 	marketReg     *market.AdapterRegistry
+
+	// Market data hub for in-process pub/sub.
+	marketHub     *market.MarketDataHub
+
+	// WebSocket service wrapper (set during ServiceStartup, registered in main.go).
+	wsSvc         *ws.MarketWSService
+
+	// QuotePoller for periodic quote fetch + WebSocket broadcast.
+	quotePoller   *market.QuotePoller
 	newsAdpt      adapters.NewsAdapter // news source for sentiment analysis
 	globalNewsAdpt *adapters.EastMoneyGlobalNewsAdapter
 	conceptAdpt   *adapters.EastMoneyConceptAdapter
@@ -201,8 +211,24 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 
 	// Initialize MarketDataHub for real-time pub/sub (audit fix M7).
 	// Currently a stub — full topic broker activation pending per-symbol subscription UI.
-	_ = market.NewHub() // hub created, topic subscriptions deferred
+	a.marketHub = market.NewHub()
 	slog.Info("market data hub initialized")
+
+	// Create and start the WebSocket hub for real-time market data push.
+	wsHub := ws.NewHub()
+	go wsHub.Run()
+
+	// Wire the WebSocket hub into the MarketWSService (registered in main.go)
+	// so the /ws/market endpoint can upgrade connections.
+	if a.wsSvc != nil {
+		a.wsSvc.Hub = wsHub
+	}
+
+	// Start the QuotePoller: subscribes/unsubscribes based on frontend WS topics,
+	// periodically fetches quotes and broadcasts via wsHub.
+	a.quotePoller = market.NewQuotePoller(a.marketReg, a.marketHub, wsHub)
+	go a.quotePoller.Run(ctx)
+	slog.Info("quote poller started on ws hub")
 
 	// Initialize CapabilityRegistry
 	a.capRegistry = ai.NewCapabilityRegistry()
@@ -556,18 +582,21 @@ func (a *App) GetStoredBacktestByRunID(ctx context.Context, runID string) (*stor
 	return a.btRepo.GetByRunID(ctx, runID)
 }
 
-// DeleteBacktestResult deletes a backtest result by ID.
-func (a *App) DeleteBacktestResult(ctx context.Context, id int) error {
+// DeleteBacktestResult deletes a backtest result by ID. Returns true on success.
+func (a *App) DeleteBacktestResult(ctx context.Context, id int) (bool, error) {
 	if a.btRepo == nil {
-		return fmt.Errorf("backtest repo not initialized")
+		return false, fmt.Errorf("backtest repo not initialized")
 	}
-	return a.btRepo.Delete(ctx, id)
+	if err := a.btRepo.Delete(ctx, id); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
-// ClearBacktestResults deletes ALL backtest results from the database.
-func (a *App) ClearBacktestResults(ctx context.Context) error {
+// ClearBacktestResults deletes ALL backtest results from the database. Returns the count of deleted records.
+func (a *App) ClearBacktestResults(ctx context.Context) (int64, error) {
 	if a.btRepo == nil {
-		return fmt.Errorf("backtest repo not initialized")
+		return 0, fmt.Errorf("backtest repo not initialized")
 	}
 	return a.btRepo.ClearAll(ctx)
 }
@@ -1299,26 +1328,28 @@ func persistBacktestResults(a *App, runID string, wf *workflow.Workflow, result 
 		tradesJSON, _ := json.Marshal(btResult.Trades)
 
 		bt := storage.StoredBacktest{
-			RunID:        runID,
-			WorkflowName: wf.Name,
-			StrategyName: extractStr(outputs, "strategy_name"),
-			Symbol:       extractStr(outputs, "symbol"),
-			EngineType:   extractStr(outputs, "engine_type"),
-			TotalReturn:  btResult.Metrics.TotalReturn,
-			CAGR:         btResult.Metrics.CAGR,
-			MaxDrawdown:  btResult.Metrics.MaxDrawdown,
-			SharpeRatio:  btResult.Metrics.SharpeRatio,
-			SortinoRatio: btResult.Metrics.SortinoRatio,
-			CalmarRatio:  btResult.Metrics.CalmarRatio,
-			WinRate:      btResult.Metrics.WinRate,
-			ProfitFactor: btResult.Metrics.ProfitFactor,
-			TotalTrades:  btResult.Metrics.TotalTrades,
-			ConfigJSON:   string(configJSON),
-			EquityCurve:  string(equityJSON),
-			TradesJSON:   string(tradesJSON),
-			OHLCVData:    ohlcvJSON,
-			StartedAt:    result.StartedAt.Format(time.RFC3339),
-			FinishedAt:   result.FinishedAt.Format(time.RFC3339),
+			RunID:         runID,
+			WorkflowName:  wf.Name,
+			StrategyName:  extractStr(outputs, "strategy_name"),
+			Symbol:        extractStr(outputs, "symbol"),
+			EngineType:    extractStr(outputs, "engine_type"),
+			TotalReturn:   btResult.Metrics.TotalReturn,
+			CAGR:          btResult.Metrics.CAGR,
+			MaxDrawdown:   btResult.Metrics.MaxDrawdown,
+			SharpeRatio:   btResult.Metrics.SharpeRatio,
+			SortinoRatio:  btResult.Metrics.SortinoRatio,
+			CalmarRatio:   btResult.Metrics.CalmarRatio,
+			WinRate:       btResult.Metrics.WinRate,
+			ProfitFactor:  btResult.Metrics.ProfitFactor,
+			TotalTrades:   btResult.Metrics.TotalTrades,
+			ConfigJSON:    string(configJSON),
+			EquityCurve:   string(equityJSON),
+			TradesJSON:    string(tradesJSON),
+			OHLCVData:     ohlcvJSON,
+			BacktestStart: extractStr(outputs, "backtest_start"),
+			BacktestEnd:   extractStr(outputs, "backtest_end"),
+			StartedAt:     result.StartedAt.Format(time.RFC3339),
+			FinishedAt:    result.FinishedAt.Format(time.RFC3339),
 		}
 
 		if _, err := a.btRepo.Save(context.Background(), bt); err != nil {
