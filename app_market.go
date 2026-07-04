@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -199,6 +202,28 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 
 	adpt := a.getMootdxAdapter()
 
+	// Outside trading hours: skip mootdx live fetch (always fails / produces
+	// warnings).  Serve the most recent cached trading day's data instead.
+	if sinceTimestamp == 0 && !market.IsTradingHours("CN") {
+		if len(ticks) > 0 {
+			return ticks, "cache", nil
+		}
+		recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 10)
+		if err != nil {
+			slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)
+		}
+		if len(recentTicks) > 0 {
+			slog.Info("minute_cache: using off-hours data", "symbol", symbol, "date", recentDate)
+			return recentTicks, "cache", nil
+		}
+		// Final fallback: try JSON-persisted ticks from last trading day.
+		if persisted := a.loadLastMinuteTicks(symbol); len(persisted) > 0 {
+			slog.Info("minute_cache: using persisted off-hours data", "symbol", symbol)
+			return persisted, "cache", nil
+		}
+		return nil, "unavailable", fmt.Errorf("no minute data available for %s (market closed)", symbol)
+	}
+
 	// Incremental request (sinceTimestamp > 0): if cache already has new data,
 	// return it fast. Otherwise try live fetch to refresh the cache, then re-query.
 	if sinceTimestamp > 0 {
@@ -210,6 +235,8 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 				today := time.Now().Format("2006-01-02")
 				if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
 					slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
+				} else {
+					a.saveLastMinuteTicks(symbol, liveTicks)
 				}
 				freshTicks, _ := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
 				return freshTicks, "mootdx", nil
@@ -218,12 +245,12 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		return ticks, "cache", nil
 	}
 
-	// Initial load (sinceTimestamp == 0): serve from cache if available.
+	// Initial load (sinceTimestamp == 0, during trading hours): serve from
+	// cache if available, otherwise live-fetch via mootdx.
 	if len(ticks) > 0 {
 		return ticks, "cache", nil
 	}
 
-	// Live fetch via mootdx.
 	if adpt == nil {
 		return nil, "unavailable", fmt.Errorf("mootdx adapter not available")
 	}
@@ -236,11 +263,13 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		today := time.Now().Format("2006-01-02")
 		if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
 			slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
+		} else {
+			a.saveLastMinuteTicks(symbol, liveTicks)
 		}
 		return liveTicks, "mootdx", nil
 	}
 
-	recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 5)
+	recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 10)
 	if err != nil {
 		slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)
 	}
@@ -370,6 +399,53 @@ func (a *App) getMootdxAdapter() *adapters.MootdxAdapter {
 // getMarketReg returns the market adapter registry or nil.
 func (a *App) getMarketReg() *market.AdapterRegistry {
 	return a.marketReg
+}
+
+// lastMinutePath returns the file path for persisting minute ticks.
+func (a *App) lastMinutePath() string {
+	return filepath.Join(filepath.Dir(a.cfg.DBPath), "last_minute_ticks.json")
+}
+
+// saveLastMinuteTicks persists the latest batch of minute ticks for a symbol
+// to disk, so weekend/off-hours requests can return last trading day data.
+func (a *App) saveLastMinuteTicks(symbol string, ticks []market.MinuteTick) {
+	if len(ticks) == 0 {
+		return
+	}
+	path := a.lastMinutePath()
+	data := make(map[string][]market.MinuteTick)
+
+	// Merge with existing persisted data (other symbols).
+	if b, err := os.ReadFile(path); err == nil {
+		json.Unmarshal(b, &data)
+	}
+	data[symbol] = ticks
+
+	b, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		slog.Warn("marshal last minute ticks", "symbol", symbol, "error", err)
+		return
+	}
+	tmpPath := path + ".tmp"
+	if err := os.WriteFile(tmpPath, b, 0644); err != nil {
+		slog.Warn("write last minute ticks tmp", "symbol", symbol, "error", err)
+		return
+	}
+	os.Rename(tmpPath, path)
+}
+
+// loadLastMinuteTicks returns persisted minute ticks for a symbol, or nil.
+func (a *App) loadLastMinuteTicks(symbol string) []market.MinuteTick {
+	path := a.lastMinutePath()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var data map[string][]market.MinuteTick
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil
+	}
+	return data[symbol]
 }
 
 // GetMarketOverview returns major market indices for the given market.

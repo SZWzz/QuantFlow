@@ -43,6 +43,7 @@
 - [App] `MarketDataHub` 实例从丢弃（`_ = market.NewHub()`）改为存入 `App.marketHub`，供 QuotePoller 使用
 - [App] `ServiceStartup` 创建 ws.Hub、启动 QuotePoller，实现端到端行情推送链路
 - [MarketData] `lastQuote` 持久化 — 交易日成功拉取的行情自动写入 `data/last_quote.json`，重启后加载，周末/休市自选股显示上一交易日数据
+- [MarketData] 分时线持久化 — 交易日成功拉取的分时数据自动写入 `data/last_minute_ticks.json`（原子写入），周末分时图显示上一交易日完整分时曲线
 
 ### Removed
 - [Terminal] `BacktestHistoryPanel` — 功能合并至 `BacktestPanel`
