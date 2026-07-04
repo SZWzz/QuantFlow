@@ -24,6 +24,24 @@
 - [Terminal] BacktestPanel trade 表列 key 修复 — `direction` → `side`（TradeRecord JSON 字段为 `side`）
 - [Terminal] BacktestPanel 详情返回按钮修复 — 使用 `label` 替代不存在的 `arrow-left` icon，返回时自动刷新列表
 - [Terminal] BacktestPanel 指标网格布局修复 — `minmax(140px,1fr)` → `minmax(min(200px,100%),1fr)` 防止卡片重叠
+- [Workflow] BacktestNode 输出 `strategy_name`、`symbol`、`engine_type`，修复历史列表策略/标的显示为 `--` 的问题
+- [Terminal] BacktestPanel 列表增加「开始 / 结束」双列显示回测起止时间；策略/标的使用 formatter 显示 `-` 而非 `--` 处理空值
+- [Storage] 新增 `backtest_start` / `backtest_end` 字段存储回测周期起止日期（migration 016），列表替换执行时间为回测周期时间
+- [Terminal] BacktestPanel 详情页删除后自动返回列表，修复删除后需手动点击返回的问题
+- [Workflow] BacktestNode 输出 `backtest_start` / `backtest_end`，支持回测周期日期持久化
+
+### Added
+- [MarketData] 交易时段门禁 (`IsTradingHours`) — `FetchQuoteWithFallback` 在非交易时段跳过整个适配器链，消除 mootdx/tencent 等适配器反复报 "no quote data" WARN 日志；仅影响实时行情请求，历史 K 线 (`FetchOHLCVWithFallback`) 不受限
+- [MarketData] 分时图周末回退 — `GetMinuteLine` 在非交易时段跳过 mootdx 实时拉取，直接返回最近交易日的缓存分时数据（`GetRecentTicks` 回溯天数从 5→10 天），周末仍可查看上一交易日分时
+- [MarketData] QuotePoller — 后台 goroutine 按订阅列表周期性拉取行情，同时发布到 MarketDataHub 缓存和 ws.Hub WebSocket 推送
+- [MarketData] MarketWSService — Wails 服务包装器，在 `/ws/market` HTTP 路径暴露 WebSocket 端点实现实时行情推送
+- [Frontend] WatchlistPanel 改用 WebSocket 订阅实时行情推送，移除 10s setInterval 轮询
+
+### Changed
+- [WS] `internal/ws/handler.go` — 移除全局 `DefaultHub` 和 `init()`，`ServeWS` 显式接受 `*Hub` 参数
+- [WS] 新增 `MarketWSService`（`http.Handler`），通过 Wails v3 `ServiceOptions.Route` 挂载到内置 HTTP 服务器
+- [App] `MarketDataHub` 实例从丢弃（`_ = market.NewHub()`）改为存入 `App.marketHub`，供 QuotePoller 使用
+- [App] `ServiceStartup` 创建 ws.Hub、启动 QuotePoller，实现端到端行情推送链路
 
 ### Removed
 - [Terminal] `BacktestHistoryPanel` — 功能合并至 `BacktestPanel`
