@@ -153,6 +153,12 @@ func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, param
 		}, nil
 	}
 
+	// Extract symbol and strategy name for persistence
+	symbol := ""
+	if len(tradingBars) > 0 {
+		symbol = tradingBars[0].Symbol
+	}
+
 	// Extract equity values for series output
 	equityValues := make([]float64, len(result.EquityCurve))
 	for i, p := range result.EquityCurve {
@@ -160,10 +166,15 @@ func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, param
 	}
 
 	outputs := map[string]any{
-		"result":       result,
-		"equity_curve": equityValues,
-		"metrics":      result.Metrics,
-		"trades":       result.Trades,
+		"result":          result,
+		"equity_curve":    equityValues,
+		"metrics":         result.Metrics,
+		"trades":          result.Trades,
+		"strategy_name":   strategy.Name,
+		"symbol":          symbol,
+		"engine_type":     marketName,
+		"backtest_start":  startDate,
+		"backtest_end":    endDate,
 	}
 	if nctx != nil && nctx.RunID != "" {
 		outputs["run_id"] = nctx.RunID

@@ -9,51 +9,55 @@ import (
 // StoredBacktest represents a persisted backtest run with full data including
 // JSON blobs for config, equity curve, trades, and OHLCV data.
 type StoredBacktest struct {
-	ID           int     `json:"id"`
-	RunID        string  `json:"run_id"`
-	WorkflowName string  `json:"workflow_name"`
-	StrategyName string  `json:"strategy_name"`
-	Symbol       string  `json:"symbol"`
-	EngineType   string  `json:"engine_type"`
-	TotalReturn  float64 `json:"total_return"`
-	CAGR         float64 `json:"cagr"`
-	MaxDrawdown  float64 `json:"max_drawdown"`
-	SharpeRatio  float64 `json:"sharpe_ratio"`
-	SortinoRatio float64 `json:"sortino_ratio"`
-	CalmarRatio  float64 `json:"calmar_ratio"`
-	WinRate      float64 `json:"win_rate"`
-	ProfitFactor float64 `json:"profit_factor"`
-	TotalTrades  int     `json:"total_trades"`
-	ConfigJSON   string  `json:"config_json"`
-	EquityCurve  string  `json:"equity_curve"`
-	TradesJSON   string  `json:"trades_json"`
-	OHLCVData    string  `json:"ohlcv_data"`
-	StartedAt    string  `json:"started_at"`
-	FinishedAt   string  `json:"finished_at"`
-	CreatedAt    string  `json:"created_at"`
+	ID            int     `json:"id"`
+	RunID         string  `json:"run_id"`
+	WorkflowName  string  `json:"workflow_name"`
+	StrategyName  string  `json:"strategy_name"`
+	Symbol        string  `json:"symbol"`
+	EngineType    string  `json:"engine_type"`
+	TotalReturn   float64 `json:"total_return"`
+	CAGR          float64 `json:"cagr"`
+	MaxDrawdown   float64 `json:"max_drawdown"`
+	SharpeRatio   float64 `json:"sharpe_ratio"`
+	SortinoRatio  float64 `json:"sortino_ratio"`
+	CalmarRatio   float64 `json:"calmar_ratio"`
+	WinRate       float64 `json:"win_rate"`
+	ProfitFactor  float64 `json:"profit_factor"`
+	TotalTrades   int     `json:"total_trades"`
+	ConfigJSON    string  `json:"config_json"`
+	EquityCurve   string  `json:"equity_curve"`
+	TradesJSON    string  `json:"trades_json"`
+	OHLCVData     string  `json:"ohlcv_data"`
+	BacktestStart string  `json:"backtest_start"`
+	BacktestEnd   string  `json:"backtest_end"`
+	StartedAt     string  `json:"started_at"`
+	FinishedAt    string  `json:"finished_at"`
+	CreatedAt     string  `json:"created_at"`
 }
 
 // StoredBacktestSummary contains metadata and performance metrics for a
 // backtest run, without the large JSON blobs.
 type StoredBacktestSummary struct {
-	ID           int     `json:"id"`
-	RunID        string  `json:"run_id"`
-	WorkflowName string  `json:"workflow_name"`
-	StrategyName string  `json:"strategy_name"`
-	Symbol       string  `json:"symbol"`
-	EngineType   string  `json:"engine_type"`
-	TotalReturn  float64 `json:"total_return"`
-	CAGR         float64 `json:"cagr"`
-	MaxDrawdown  float64 `json:"max_drawdown"`
-	SharpeRatio  float64 `json:"sharpe_ratio"`
-	SortinoRatio float64 `json:"sortino_ratio"`
-	CalmarRatio  float64 `json:"calmar_ratio"`
-	WinRate      float64 `json:"win_rate"`
-	ProfitFactor float64 `json:"profit_factor"`
-	TotalTrades  int     `json:"total_trades"`
-	StartedAt    string  `json:"started_at"`
-	FinishedAt   string  `json:"finished_at"`
-	CreatedAt    string  `json:"created_at"`
+	ID            int     `json:"id"`
+	RunID         string  `json:"run_id"`
+	WorkflowName  string  `json:"workflow_name"`
+	StrategyName  string  `json:"strategy_name"`
+	Symbol        string  `json:"symbol"`
+	EngineType    string  `json:"engine_type"`
+	TotalReturn   float64 `json:"total_return"`
+	CAGR          float64 `json:"cagr"`
+	MaxDrawdown   float64 `json:"max_drawdown"`
+	SharpeRatio   float64 `json:"sharpe_ratio"`
+	SortinoRatio  float64 `json:"sortino_ratio"`
+	CalmarRatio   float64 `json:"calmar_ratio"`
+	WinRate       float64 `json:"win_rate"`
+	ProfitFactor  float64 `json:"profit_factor"`
+	TotalTrades   int     `json:"total_trades"`
+	BacktestStart string  `json:"backtest_start"`
+	BacktestEnd   string  `json:"backtest_end"`
+	StartedAt     string  `json:"started_at"`
+	FinishedAt    string  `json:"finished_at"`
+	CreatedAt     string  `json:"created_at"`
 }
 
 // BacktestRepo provides CRUD operations for backtest result persistence.
@@ -74,13 +78,13 @@ func (r *BacktestRepo) Save(ctx context.Context, bt StoredBacktest) (int, error)
 			total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio,
 			calmar_ratio, win_rate, profit_factor, total_trades,
 			config_json, equity_curve, trades_json, ohlcv_data,
-			started_at, finished_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			backtest_start, backtest_end, started_at, finished_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		bt.RunID, bt.WorkflowName, bt.StrategyName, bt.Symbol, bt.EngineType,
 		bt.TotalReturn, bt.CAGR, bt.MaxDrawdown, bt.SharpeRatio, bt.SortinoRatio,
 		bt.CalmarRatio, bt.WinRate, bt.ProfitFactor, bt.TotalTrades,
 		bt.ConfigJSON, bt.EquityCurve, bt.TradesJSON, bt.OHLCVData,
-		bt.StartedAt, bt.FinishedAt,
+		bt.BacktestStart, bt.BacktestEnd, bt.StartedAt, bt.FinishedAt,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("save backtest result: %w", err)
@@ -102,7 +106,7 @@ func (r *BacktestRepo) List(ctx context.Context, limit, offset int) ([]StoredBac
 		`SELECT id, run_id, workflow_name, strategy_name, symbol, engine_type,
 			total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio,
 			calmar_ratio, win_rate, profit_factor, total_trades,
-			started_at, finished_at, created_at
+			backtest_start, backtest_end, started_at, finished_at, created_at
 		 FROM backtest_results ORDER BY finished_at DESC LIMIT ? OFFSET ?`,
 		limit, offset,
 	)
@@ -120,7 +124,7 @@ func (r *BacktestRepo) GetByID(ctx context.Context, id int) (*StoredBacktest, er
 			total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio,
 			calmar_ratio, win_rate, profit_factor, total_trades,
 			config_json, equity_curve, trades_json, ohlcv_data,
-			started_at, finished_at, created_at
+			backtest_start, backtest_end, started_at, finished_at, created_at
 		 FROM backtest_results WHERE id=?`, id,
 	)
 	bt := &StoredBacktest{}
@@ -129,7 +133,7 @@ func (r *BacktestRepo) GetByID(ctx context.Context, id int) (*StoredBacktest, er
 		&bt.TotalReturn, &bt.CAGR, &bt.MaxDrawdown, &bt.SharpeRatio, &bt.SortinoRatio,
 		&bt.CalmarRatio, &bt.WinRate, &bt.ProfitFactor, &bt.TotalTrades,
 		&bt.ConfigJSON, &bt.EquityCurve, &bt.TradesJSON, &bt.OHLCVData,
-		&bt.StartedAt, &bt.FinishedAt, &bt.CreatedAt,
+		&bt.BacktestStart, &bt.BacktestEnd, &bt.StartedAt, &bt.FinishedAt, &bt.CreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get backtest result %d: %w", id, err)
@@ -137,10 +141,13 @@ func (r *BacktestRepo) GetByID(ctx context.Context, id int) (*StoredBacktest, er
 	return bt, nil
 }
 
-// ClearAll deletes ALL backtest results.
-func (r *BacktestRepo) ClearAll(ctx context.Context) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM backtest_results`)
-	return err
+// ClearAll deletes ALL backtest results. Returns the number of deleted rows.
+func (r *BacktestRepo) ClearAll(ctx context.Context) (int64, error) {
+	res, err := r.db.ExecContext(ctx, `DELETE FROM backtest_results`)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // Delete removes a backtest result by its primary key.
@@ -164,7 +171,7 @@ func (r *BacktestRepo) GetByRunID(ctx context.Context, runID string) (*StoredBac
 		`SELECT id, run_id, workflow_name, strategy_name, symbol, engine_type,
 			total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio,
 			calmar_ratio, win_rate, profit_factor, total_trades,
-			started_at, finished_at, created_at
+			backtest_start, backtest_end, started_at, finished_at, created_at
 		 FROM backtest_results WHERE run_id=?`, runID,
 	)
 	s := &StoredBacktestSummary{}
@@ -172,7 +179,7 @@ func (r *BacktestRepo) GetByRunID(ctx context.Context, runID string) (*StoredBac
 		&s.ID, &s.RunID, &s.WorkflowName, &s.StrategyName, &s.Symbol, &s.EngineType,
 		&s.TotalReturn, &s.CAGR, &s.MaxDrawdown, &s.SharpeRatio, &s.SortinoRatio,
 		&s.CalmarRatio, &s.WinRate, &s.ProfitFactor, &s.TotalTrades,
-		&s.StartedAt, &s.FinishedAt, &s.CreatedAt,
+		&s.BacktestStart, &s.BacktestEnd, &s.StartedAt, &s.FinishedAt, &s.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -192,7 +199,7 @@ func scanBacktestSummaries(rows *sql.Rows) ([]StoredBacktestSummary, error) {
 			&s.ID, &s.RunID, &s.WorkflowName, &s.StrategyName, &s.Symbol, &s.EngineType,
 			&s.TotalReturn, &s.CAGR, &s.MaxDrawdown, &s.SharpeRatio, &s.SortinoRatio,
 			&s.CalmarRatio, &s.WinRate, &s.ProfitFactor, &s.TotalTrades,
-			&s.StartedAt, &s.FinishedAt, &s.CreatedAt,
+			&s.BacktestStart, &s.BacktestEnd, &s.StartedAt, &s.FinishedAt, &s.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan backtest summary row: %w", err)
 		}

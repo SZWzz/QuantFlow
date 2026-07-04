@@ -27,6 +27,8 @@ interface BacktestSummary {
   win_rate: number
   profit_factor: number
   total_trades: number
+  backtest_start: string
+  backtest_end: string
   started_at: string
   finished_at: string
   created_at: string
@@ -51,10 +53,11 @@ const items = ref<BacktestSummary[]>([])
 const loading = ref(false)
 
 const columns = computed(() => [
-  { key: 'finished_at', label: '日期', width: 90, formatter: (v: string) => v?.slice(0, 10) || '-' },
+  { key: 'backtest_start', label: '回测开始', width: 90, formatter: (v: string) => v?.slice(0, 10) || '-', align: 'left' as const },
+  { key: 'backtest_end', label: '回测结束', width: 90, formatter: (v: string) => v?.slice(0, 10) || '-', align: 'left' as const },
   { key: 'workflow_name', label: '工作流', flex: 1 },
-  { key: 'strategy_name', label: '策略', width: 90 },
-  { key: 'symbol', label: '标的', width: 70 },
+  { key: 'strategy_name', label: '策略', width: 90, formatter: (v: string) => v || '-' },
+  { key: 'symbol', label: '标的', width: 70, formatter: (v: string) => v || '-' },
   { key: 'total_return', label: '收益率', width: 80, align: 'right' as const, format: 'percent' as const, colorize: true },
   { key: 'sharpe_ratio', label: 'Sharpe', width: 70, align: 'right' as const, format: 'number' as const },
   { key: 'total_trades', label: '交易', width: 50, align: 'right' as const },
@@ -79,9 +82,11 @@ function openRow(row: any) {
 }
 
 async function deleteAllRecords() {
-  if (!items.value.length) return
+  console.log('[BacktestPanel] deleteAllRecords called')
+  if (!items.value.length) { console.log('[BacktestPanel] items empty, early return'); return }
   if (!confirm(`确定删除全部 ${items.value.length} 条回测记录？此操作不可撤销。`)) return
   try {
+    console.log('[BacktestPanel] calling ClearBacktestResults')
     await (window as any).go.main.App.ClearBacktestResults()
     await loadList()
   } catch (e: any) {
@@ -91,8 +96,10 @@ async function deleteAllRecords() {
 }
 
 async function deleteSingleList(id: number) {
+  console.log('[BacktestPanel] deleteSingleList called, id=', id)
   if (!confirm('确定删除此回测记录？')) return
   try {
+    console.log('[BacktestPanel] calling DeleteBacktestResult')
     await (window as any).go.main.App.DeleteBacktestResult(id)
     await loadList()
   } catch (e: any) {
@@ -130,6 +137,8 @@ async function loadStoredResult(id: number) {
       workflow_name: res.workflow_name,
       strategy_name: res.strategy_name,
       symbol: res.symbol,
+      backtest_start: res.backtest_start,
+      backtest_end: res.backtest_end,
     }
   } catch (e) {
     console.error('GetStoredBacktestResult failed:', e)
@@ -144,11 +153,13 @@ function safeParseJSON(s: string | undefined, fallback: any): any {
 }
 
 async function deleteDetail() {
+  console.log('[BacktestPanel] deleteDetail called, detailId=', detailId.value)
   if (!detailId.value) return
   if (!confirm('确定删除此回测记录？')) return
   try {
+    console.log('[BacktestPanel] calling DeleteBacktestResult detail')
     await (window as any).go.main.App.DeleteBacktestResult(detailId.value)
-    deleted.value = true
+    goBack()
   } catch (e) {
     console.error('DeleteBacktestResult failed:', e)
     alert('删除失败，请重试')
@@ -372,7 +383,7 @@ onMounted(() => {
     <template v-else>
       <PanelHeader
         :title="storedData?.strategy_name || '回测详情'"
-        :subtitle="storedData ? `${storedData.symbol}` : ''"
+        :subtitle="storedData ? `${storedData.symbol} ｜ ${storedData.backtest_start?.slice(0,10) || '?'} → ${storedData.backtest_end?.slice(0,10) || '?'}` : ''"
         :controls="[
           { label: '← 返回列表', action: goBack },
           { label: '删除', action: deleteDetail },
