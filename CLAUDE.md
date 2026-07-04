@@ -294,6 +294,12 @@ onUnmounted(() => unsub())
 </script>
 ```
 
+> **⚠️ 禁用 `window.confirm()` / `window.alert()`** — Wails v3 的 webview 禁用了同步原生对话框:`confirm()` 直接返回 `false` 且不弹窗,`alert()` 是 no-op。任何 `if (!confirm(...)) return` 守卫会静默中止(典型受害者:所有删除/清空按钮)。
+> - 用 `frontend/src/lib/wails.ts` 的异步助手:`confirmDialog(msg)`(返回 `Promise<boolean>`)、`alertDialog(msg)`。
+> - **必须 `await`** — polyfill 把 `window.confirm` 也改成了 Promise 版,不带 `await` 的 `if (confirm(...))` 会拿到 truthy Promise 直接放行(等于不确认就执行)。
+> - 底层 API:`Dialogs.Question({Title, Message, Buttons:[{Label:"确定",IsDefault:true},{Label:"取消",IsCancel:true}]})` → resolve 被点按钮的 Label(`"确定"` = 确认);`Dialogs.Info(...)` 用于提示。
+> - 列表/查询类不受影响(它们不碰 confirm)——若某操作"加载正常但删除/保存无效",优先怀疑 confirm 守卫,而非 Go 绑定签名。
+
 ### SQLite: Schema Migration
 
 ```go
@@ -325,3 +331,4 @@ class FactorService(factor_pb2_grpc.FactorServiceServicer):
 - **SQLite 是唯一数据库** — 永远不要引入 PostgreSQL/Redis 依赖。进程内缓存用 `sync.Map` 或 channel。
 - **Terminal 和 Workflow 共享底层** — 新面板必须同时考虑是否有对应的 workflow node，反之亦然。
 - **Python 是可选 sidecar** — 核心交易/行情/工作流功能必须纯 Go 可用。Python 只用于 ML/因子/LLM。
+- **禁用 `window.confirm()` / `window.alert()`** — Wails v3 webview 把它们禁用了(`confirm` 直接返回 `false`)。面板里的确认/提示一律用 `@/lib/wails` 的 `confirmDialog` / `alertDialog` 并 `await`。详见上文「Vue: Panel Implementation」。

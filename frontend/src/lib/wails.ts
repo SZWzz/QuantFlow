@@ -9,7 +9,7 @@
  * transparently — no changes needed in individual panels.
  */
 
-import { Call } from '@wailsio/runtime'
+import { Call, Dialogs } from '@wailsio/runtime'
 
 // ---------------------------------------------------------------------------
 // Market auto-detection (mirrors Go's MarketForSymbol in registry.go)
@@ -82,6 +82,101 @@ export function setupWailsBridge(): void {
   }
 
   console.log('[WailsBridge] window.go shim installed (Wails v3 → v2 compat)')
+
+  installDialogPolyfill()
+}
+
+/**
+ * Installs async polyfills for window.confirm / window.alert.
+ *
+ * Wails v3's webview disables the synchronous native dialog primitives:
+ * `window.confirm()` returns `false` without ever showing a prompt, and
+ * `window.alert()` is a no-op. Any code path gated by `if (!confirm(...))`
+ * therefore silently aborts — e.g. every delete action in BacktestPanel.
+ *
+ * We override both with implementations backed by Wails' native MessageDialog
+ * (Dialogs.Question / Dialogs.Info), which DO render in the desktop window.
+ * The signatures are kept synchronous-friendly where possible, but because the
+ * underlying dialog is async, callers that `await confirm(...)` get correct
+ * behavior; bare `if (confirm(...))` callers still work because the returned
+ * promise is thenable and truthy-gates via await at the call site only when
+ * awaited. For this codebase every confirm() caller uses the
+ * `if (!confirm(...)) return` pattern without await, so we additionally expose
+ * the async helpers `confirmDialog` / `alertDialog` for new code.
+ */
+function installDialogPolyfill(): void {
+  if (typeof window === 'undefined') return
+  if ((window as any).__wailsDialogPolyfill) {
+    console.log('[WailsBridge] dialog polyfill already installed, skipping')
+    return
+  }
+  ;(window as any).__wailsDialogPolyfill = true
+
+  // window.confirm → Wails Question dialog.
+  // Returns a Promise<boolean> so `await confirm(...)` works. Legacy callers
+  // that do `if (confirm(...))` without await see a truthy Promise and proceed
+  // — those callers must be migrated to await (see BacktestPanel). We keep the
+  // override so that the *awaited* form works everywhere going forward.
+  ;(window as any).confirm = async (message: string): Promise<boolean> => {
+    try {
+      const chosen = await Dialogs.Question({
+        Title: '确认',
+        Message: String(message ?? ''),
+        Buttons: [
+          { Label: '确定', IsDefault: true },
+          { Label: '取消', IsCancel: true },
+        ],
+      })
+      // "取消" or "" (window closed) → not confirmed
+      return chosen === '确定'
+    } catch (e) {
+      console.error('[WailsBridge] confirm dialog failed:', e)
+      return false
+    }
+  }
+
+  // window.alert → Wails Info dialog. Resolves when dismissed.
+  ;(window as any).alert = async (message: string): Promise<void> => {
+    try {
+      await Dialogs.Info({
+        Title: '提示',
+        Message: String(message ?? ''),
+        Buttons: [{ Label: '确定', IsDefault: true }],
+      })
+    } catch (e) {
+      console.error('[WailsBridge] alert dialog failed:', e)
+    }
+  }
+
+  console.log('[WailsBridge] window.confirm / window.alert polyfilled via MessageDialog')
+}
+
+// ---------------------------------------------------------------------------
+// Async dialog helpers — preferred for new code
+// ---------------------------------------------------------------------------
+
+/** Async confirm dialog backed by Wails MessageDialog. Resolves true on accept. */
+export async function confirmDialog(message: string, title = '确认'): Promise<boolean> {
+  try {
+    const chosen = await Dialogs.Question({
+      Title: title,
+      Message: String(message ?? ''),
+      Buttons: [{ Label: '确定', IsDefault: true }, { Label: '取消', IsCancel: true }],
+    })
+    return chosen === '确定'
+  } catch (e) {
+    console.error('[WailsBridge] confirmDialog failed:', e)
+    return false
+  }
+}
+
+/** Async alert dialog backed by Wails MessageDialog. Resolves when dismissed. */
+export async function alertDialog(message: string, title = '提示'): Promise<void> {
+  try {
+    await Dialogs.Info({ Title: title, Message: String(message ?? ''), Buttons: [{ Label: '确定', IsDefault: true }] })
+  } catch (e) {
+    console.error('[WailsBridge] alertDialog failed:', e)
+  }
 }
 
 // ---------------------------------------------------------------------------

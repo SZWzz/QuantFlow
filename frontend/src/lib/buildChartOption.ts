@@ -176,15 +176,15 @@ export function buildKlineOption(
   }
 
   if (eventMarkers && eventMarkers.length > 0) {
-    series[0].markLine = {
-      silent: true,
-      symbol: 'none',
-      data: eventMarkers.map(m => ({
-        xAxis: m.dataIndex,
-        label: { formatter: m.label, color: m.color, fontSize: 10, fontWeight: 'bold' as const },
-        lineStyle: { color: m.color, type: 'dashed' as const, width: 1, opacity: 0.6 },
-      })),
-    }
+      series[0].markLine = {
+        silent: true,
+        symbol: 'none',
+        data: eventMarkers.map(m => ({
+          xAxis: m.dataIndex,
+          label: { formatter: m.label, color: m.color, fontSize: 10, fontWeight: 'bold' as const, position: 'start' as const },
+          lineStyle: { color: m.color, type: 'dashed' as const, width: 1, opacity: 0.6 },
+        })),
+      }
   }
 
   if (tradeSignals && tradeSignals.length > 0) {
@@ -234,7 +234,7 @@ export function buildKlineOption(
   return {
     backgroundColor: 'transparent',
     grid: [
-      { left: 60, right: 10, top: 10, height: '52%' },
+      { left: 60, right: 10, top: 24, height: '50%' },
       { left: 60, right: 10, top: '68%', height: '26%' },
     ],
     xAxis: [
@@ -303,7 +303,7 @@ export function buildMinuteOption(
   const series: any[] = []
 
   const priceBot = bottomMode === 'volume' ? '78%' : '55%'
-  grid.push({ left: 60, right: 20, top: 10, height: bottomMode === 'volume' ? '62%' : '40%' })
+  grid.push({ left: 60, right: 20, top: 24, height: bottomMode === 'volume' ? '60%' : '38%' })
   xAxis.push({ type: 'category', data: times, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: theme.splitColor } }, axisTick: { show: false } })
   yAxis.push({ type: 'value', gridIndex: 0, position: 'left', axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { lineStyle: { color: theme.bgColor } },
     min: (val: { min: number; max: number }) => Math.floor(val.min * 0.995 * 100) / 100,
@@ -315,7 +315,7 @@ export function buildMinuteOption(
         { offset: 0, color: isUp ? upCol + '40' : downCol + '40' },
         { offset: 1, color: 'rgba(0,0,0,0)' },
       ]}},
-      markLine: prevClose > 0 ? { silent: true, symbol: 'none', lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 }, data: [{ yAxis: prevClose, label: { formatter: `${t('kline.prev_close')} ${prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10 } }] } : undefined,
+      markLine: prevClose > 0 ? { silent: true, symbol: 'none', lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 }, data: [{ yAxis: prevClose, label: { formatter: `${t('kline.prev_close')} ${prevClose.toFixed(2)}`, color: theme.axisColor, fontSize: 10, position: 'start' as const } }] } : undefined,
     },
     { type: 'line', name: t('kline.avg_price'), data: ticks.map(tick => tick.avg_price), xAxisIndex: 0, yAxisIndex: 0, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 1, type: 'dashed' } },
   )

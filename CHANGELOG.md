@@ -6,6 +6,10 @@
 
 ## [2026.7.4] - 2026-07-04
 
+### Fixed
+- [Frontend] 修复回测历史面板所有删除操作（行内 ✕、顶部"清空全部"、详情页"删除"、键盘 Del）均无反应的问题。根因:Wails v3 webview 禁用了同步的 `window.confirm()` / `window.alert()` —— `confirm()` 直接返回 `false` 且不弹窗,导致所有 `if (!confirm(...)) return` 守卫静默中止,删除永不执行。修复:在 `setupWailsBridge` 中为 `window.confirm` / `window.alert` 安装基于 Wails `Dialogs.Question` / `Dialogs.Info` 的异步 polyfill,并新增 `confirmDialog` / `alertDialog` 助手;BacktestPanel 三处删除改为 `await confirmDialog(...)`。同时补回缺失的 `deleteSingleList` 函数(行内 ✕ 按钮此前引用未定义函数),并移除遗留的调试代码(绿色 "🟢 TEST" div 与 `rawTest`)
+- [Frontend] 修正上一条 CHANGELOG 中关于"context.Context 参数导致 Wails v3 绑定失败"的错误诊断 —— `ListBacktestHistory` 同样带 `ctx` 参数且工作正常,证明 context 自动注入并非阻塞原因;真正阻塞是 `confirm()` polyfill 缺失
+
 ### Added
 - [Terminal] `BacktestPanel` — 合并回测历史与回测详情为单一面板，支持列表 ➔ 详情双视图：历史列表（PanelTable）、K 线+买卖点、净值曲线、指标卡片网格（PanelCard）、交易记录表（PanelTable）
 - [Terminal] BacktestResultPanel 运行时也能删除历史回测 — 自动通过 run_id 查找对应存储记录并显示删除按钮
