@@ -7,13 +7,9 @@ import (
 	"github.com/coder/websocket"
 )
 
-var DefaultHub = NewHub()
-
-func init() {
-	go DefaultHub.Run()
-}
-
-func ServeWS(w http.ResponseWriter, r *http.Request) {
+// ServeWS upgrades an HTTP connection to WebSocket and registers the client.
+// hub is the WebSocket hub managing topic-based subscriptions.
+func ServeWS(w http.ResponseWriter, r *http.Request, hub *Hub) {
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		InsecureSkipVerify: true,
 	})
@@ -22,8 +18,8 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := NewClient(DefaultHub, conn)
-	DefaultHub.register <- client
+	client := NewClient(hub, conn)
+	hub.register <- client
 
 	go client.WritePump()
 	go client.ReadPump()
