@@ -10,6 +10,7 @@ import { detectMarket } from '@/lib/wails'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { useDataStore } from '@/stores/data'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import {
   PanelHeader,
   PanelTabs,
@@ -128,6 +129,14 @@ const bisCnNames: Record<string, string> = {
 }
 
 const activeCategory = ref('all')
+
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const controls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  list.push({ icon: 'refresh', label: t('common.refresh'), action: loadSignals })
+  return list
+})
 
 // Request sequence counter: guards against stale responses when switching
 // sources mid-flight (e.g., BIS SDMX is slow, user taps "中国宏观" before it
@@ -480,9 +489,7 @@ function changeClass(c: number): string {
     <!-- Header: source switch + signal summary -->
     <PanelHeader
       :title="sourceCnLabels[activeSource]"
-      :controls="[
-        { icon: 'refresh', label: $t('common.refresh'), action: loadSignals },
-      ]"
+      :controls="controls"
     >
       <template #extra>
         <div class="signal-summary">

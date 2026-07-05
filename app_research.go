@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -9,6 +8,7 @@ import (
 	"time"
 	"unicode"
 
+	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/research"
 	"quantflow/internal/trading"
@@ -17,7 +17,9 @@ import (
 // GetSentiment returns sentiment analysis for a symbol.
 func (a *App) GetSentiment(symbol string) (*research.SentimentOutput, error) {
 	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db), a.newsAdpt)
-	return engine.AnalyzeSentiment(context.Background(), symbol, "", "news", detectLanguage(symbol))
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	return engine.AnalyzeSentiment(ctx, symbol, "", "news", detectLanguage(symbol))
 }
 
 // detectLanguage returns "zh" for A-share symbols (starts with 0/3/6 and is 6-digit numeric, or has .SZ/.SH suffix), "en" otherwise.
@@ -74,7 +76,9 @@ func detectST(symbol string) bool {
 // GetSentimentHistory returns historical sentiment for a symbol.
 func (a *App) GetSentimentHistory(symbol string, days int) ([]research.SentimentOutput, error) {
 	engine := research.NewSentimentEngine(a.bridge, research.NewResearchRepo(a.db), a.newsAdpt)
-	return engine.GetSentimentHistory(context.Background(), symbol, days)
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	return engine.GetSentimentHistory(ctx, symbol, days)
 }
 
 // GetStockResearch returns multi-dimensional research data for a symbol.
@@ -97,7 +101,10 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 	// Try EastMoney stock_info for overview data and market cap
 	var emInfo *adapters.EastMoneyStockInfo
 	if a.eastmoneyAdpt != nil {
-		if info, err := a.eastmoneyAdpt.FetchStockInfo(context.Background(), symbol); err == nil {
+		ctx, cancel := market.RequestCtx()
+		defer cancel()
+		info, err := a.eastmoneyAdpt.FetchStockInfo(ctx, symbol)
+		if err == nil {
 			emInfo = info
 			result.Overview["name"] = info.Name
 			result.Overview["sector"] = info.Industry
@@ -110,7 +117,10 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 			slog.Warn("eastmoney stock_info failed", "symbol", symbol, "error", err)
 			// Fallback: try quote pipeline (Tencent/Sina) for name, price, and market cap
 			if a.marketReg != nil {
-				if quote, _, qErr := a.marketReg.FetchQuoteWithFallback(context.Background(), "CN", symbol); qErr == nil && quote != nil {
+				ctx2, cancel2 := market.RequestCtx()
+				defer cancel2()
+				quote, _, qErr := a.marketReg.FetchQuoteWithFallback(ctx2, "CN", symbol)
+				if qErr == nil && quote != nil {
 					result.Overview["name"] = quote.Name
 					result.Overview["price"] = quote.Last
 					if quote.MarketCap > 0 {
@@ -127,7 +137,9 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 	for _, tab := range tabs {
 		switch tab {
 		case "financials":
-			fd, _ := finSvc.GetFinancials(context.Background(), symbol)
+			ctx, cancel := market.RequestCtx()
+			defer cancel()
+			fd, _ := finSvc.GetFinancials(ctx, symbol)
 			// Sina financials adapter does not provide market cap — fill from EastMoney
 			if fd != nil && fd.MarketCap == 0 && emInfo != nil {
 				fd.MarketCap = emInfo.MarketCap
@@ -143,17 +155,25 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 				Ratios: finSvc.ComputeRatios(fd),
 			}
 		case "peers":
-			peers, _ := peerSvc.GetPeers(context.Background(), symbol)
+			ctx, cancel := market.RequestCtx()
+			defer cancel()
+			peers, _ := peerSvc.GetPeers(ctx, symbol)
 			result.Peers = peers
 		case "estimates":
-			est, _ := estSvc.GetEstimates(context.Background(), symbol)
+			ctx, cancel := market.RequestCtx()
+			defer cancel()
+			est, _ := estSvc.GetEstimates(ctx, symbol)
 			result.Estimates = est
 		case "insider":
-			txns, _ := insSvc.GetInsiderTrades(context.Background(), symbol)
+			ctx, cancel := market.RequestCtx()
+			defer cancel()
+			txns, _ := insSvc.GetInsiderTrades(ctx, symbol)
 			result.InsiderTxns = txns
 		case "sentiment":
 			engine := research.NewSentimentEngine(a.bridge, repo, a.newsAdpt)
-			s, err := engine.AnalyzeSentiment(context.Background(), symbol, "", "news", detectLanguage(symbol))
+			ctx, cancel := market.RequestCtx()
+			defer cancel()
+			s, err := engine.AnalyzeSentiment(ctx, symbol, "", "news", detectLanguage(symbol))
 			if err != nil {
 				slog.Warn("sentiment analysis error", "symbol", symbol, "error", err)
 			}
@@ -173,7 +193,9 @@ func (a *App) GetStockResearch(symbol string, tabs []string) (*research.StockRes
 // Used by the CongressTradingPanel frontend.
 func (a *App) GetCongressTrades() ([]research.CongressTrade, error) {
 	svc := research.NewCongressTradingService(a.congressAdpt)
-	return svc.GetCongressTrades(context.Background())
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	return svc.GetCongressTrades(ctx)
 }
 
 // GetPredictionMarkets returns prediction market events for a category.
@@ -182,7 +204,9 @@ func (a *App) GetPredictionMarkets(category string, limit int) (map[string]inter
 	if a.predictionMarketSvc == nil {
 		return nil, fmt.Errorf("prediction market service not initialized")
 	}
-	events, err := a.predictionMarketSvc.GetEvents(context.Background(), category, limit)
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	events, err := a.predictionMarketSvc.GetEvents(ctx, category, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +218,8 @@ func (a *App) GetPredictionEventDetail(eventID string) (map[string]interface{}, 
 	if a.predictionMarketSvc == nil {
 		return nil, fmt.Errorf("prediction market service not initialized")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	event, err := a.predictionMarketSvc.GetEventDetail(ctx, eventID)
 	if err != nil {
 		return nil, err
@@ -208,7 +233,9 @@ func (a *App) GetPredictionSignals(category string, minProbChange float64) (map[
 	if a.predictionMarketSvc == nil {
 		return nil, fmt.Errorf("prediction market service not initialized")
 	}
-	output, err := a.predictionMarketSvc.ExtractSignals(context.Background(), category, minProbChange)
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	output, err := a.predictionMarketSvc.ExtractSignals(ctx, category, minProbChange)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +252,9 @@ func (a *App) GetGeopoliticsRisks() (map[string]interface{}, error) {
 	if a.geopoliticsSvc == nil {
 		return nil, fmt.Errorf("geopolitics service not initialized")
 	}
-	risks, err := a.geopoliticsSvc.GetTopicRisks(context.Background())
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	risks, err := a.geopoliticsSvc.GetTopicRisks(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +266,9 @@ func (a *App) GetEconomicIndicators() (map[string]interface{}, error) {
 	if a.govDataSvc == nil {
 		return nil, fmt.Errorf("govdata service not initialized")
 	}
-	signals, err := a.govDataSvc.GetAllSignals(context.Background())
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	signals, err := a.govDataSvc.GetAllSignals(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +280,9 @@ func (a *App) GetIndicatorData(seriesID string, limit int) (map[string]interface
 	if a.govDataSvc == nil {
 		return nil, fmt.Errorf("govdata service not initialized")
 	}
-	points, err := a.govDataSvc.GetIndicator(context.Background(), seriesID, limit)
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	points, err := a.govDataSvc.GetIndicator(ctx, seriesID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +303,9 @@ func (a *App) GetGeopoliticsDetail(topicID, timespan string) (map[string]interfa
 	if a.geopoliticsSvc == nil {
 		return nil, fmt.Errorf("geopolitics service not initialized")
 	}
-	return a.geopoliticsSvc.GetTopicDetail(context.Background(), topicID, timespan)
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	return a.geopoliticsSvc.GetTopicDetail(ctx, topicID, timespan)
 }
 
 // GetSatelliteSnapshots returns satellite energy data snapshots for all 5 regions.
@@ -278,7 +313,9 @@ func (a *App) GetSatelliteSnapshots() (map[string]interface{}, error) {
 	if a.satelliteSvc == nil {
 		return nil, fmt.Errorf("satellite service not initialized")
 	}
-	snapshots, err := a.satelliteSvc.GetRegionSnapshots(context.Background())
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	snapshots, err := a.satelliteSvc.GetRegionSnapshots(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +327,8 @@ func (a *App) GetSatelliteDetail(regionID string) (map[string]interface{}, error
 	if a.satelliteSvc == nil {
 		return nil, fmt.Errorf("satellite service not initialized")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	snapshot, _, err := a.satelliteSvc.GetRegionDetail(ctx, regionID)
 	if err != nil {
 		return nil, err
@@ -363,25 +401,59 @@ func (a *App) GetAuction(symbol string) ([]adapters.AuctionItem, error) {
 // GetAbnormalStocks returns stocks with abnormal price/volume behavior.
 // market is "SH" or "SZ". Tries MAC adapter first; falls back to EastMoney
 // push2 API (which is more reliable on public MAC servers).
-func (a *App) GetAbnormalStocks(market string) ([]adapters.AbnormalStock, error) {
-	if a.macAdpt != nil {
-		var mkt int
-		switch market {
-		case "SH":
-			mkt = 1
-		case "SZ":
-			mkt = 0
-		default:
-			return nil, fmt.Errorf("invalid market: %q (expected SH or SZ)", market)
+// Off-hours: returns cached last-known data.
+func (a *App) GetAbnormalStocks(mkt string) ([]adapters.AbnormalStock, error) {
+	cnMkt := resolveMarket(mkt)
+	if !market.IsTradingHours(cnMkt) {
+		if cached, ok := a.abnormalStocksCache.Get(mkt); ok {
+			return cached, nil
 		}
-		stocks, err := a.macAdpt.GetAbnormalStocks(mkt)
+		return nil, fmt.Errorf("market %q is currently closed (no cached data)", cnMkt)
+	}
+	if a.macAdpt != nil {
+		var mktCode int
+		switch mkt {
+		case "SH":
+			mktCode = 1
+		case "SZ":
+			mktCode = 0
+		default:
+			return nil, fmt.Errorf("invalid market: %q (expected SH or SZ)", mkt)
+		}
+		stocks, err := a.macAdpt.GetAbnormalStocks(mktCode)
 		if err == nil && len(stocks) > 0 {
+			a.abnormalStocksCache.Set(mkt, stocks)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						slog.Error("abnormal stocks cache save panicked", "recover", r)
+					}
+				}()
+				if e := a.abnormalStocksCache.Save(); e != nil {
+					slog.Warn("save abnormal stocks cache", "error", e)
+				}
+			}()
 			return stocks, nil
 		}
-		// MAC returned empty or error — fall through to EastMoney
 	}
 	if a.signalsAdpt != nil {
-		return a.signalsAdpt.FetchAbnormalStocks(context.Background(), market, 100)
+		ctx, cancel := market.RequestCtx()
+		defer cancel()
+		stocks, err := a.signalsAdpt.FetchAbnormalStocks(ctx, mkt, 100)
+		if err == nil && len(stocks) > 0 {
+			a.abnormalStocksCache.Set(mkt, stocks)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						slog.Error("abnormal stocks cache save panicked", "recover", r)
+					}
+				}()
+				if e := a.abnormalStocksCache.Save(); e != nil {
+					slog.Warn("save abnormal stocks cache", "error", e)
+				}
+			}()
+		}
+		return stocks, err
 	}
 	return nil, fmt.Errorf("no adapter available for abnormal stocks")
 }
@@ -392,7 +464,9 @@ func (a *App) GetIPOCalendar(startDate, endDate string) ([]adapters.IPORecord, e
 	if a.signalsAdpt == nil {
 		return nil, fmt.Errorf("signals adapter not initialized")
 	}
-	return a.signalsAdpt.FetchIPOCalendar(context.Background(), startDate, endDate, 200)
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	return a.signalsAdpt.FetchIPOCalendar(ctx, startDate, endDate, 200)
 }
 
 // ── Financial Deep Analysis ──────────────────────────────────────────
@@ -440,7 +514,8 @@ func (a *App) GetFinancialStatements(symbol string) (map[string]interface{}, err
 	if a.sinaFinAdpt == nil {
 		return nil, fmt.Errorf("sina financials adapter not available")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	income, _ := a.sinaFinAdpt.FetchIncomeStatement(ctx, symbol, 12)
 	balance, _ := a.sinaFinAdpt.FetchBalanceSheet(ctx, symbol, 12)
 	cashflow, _ := a.sinaFinAdpt.FetchCashFlow(ctx, symbol, 12)
@@ -460,7 +535,8 @@ func (a *App) fetchFinancialJSON(symbol string) (string, error) {
 	if a.sinaFinAdpt == nil {
 		return "", fmt.Errorf("sina financials adapter not available")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	income, _ := a.sinaFinAdpt.FetchIncomeStatement(ctx, symbol, 12)
 	balance, _ := a.sinaFinAdpt.FetchBalanceSheet(ctx, symbol, 12)
 	cashflow, _ := a.sinaFinAdpt.FetchCashFlow(ctx, symbol, 12)
@@ -485,7 +561,8 @@ func (a *App) fetchDelistingFinancialJSON(symbol string) (string, error) {
 	if a.sinaFinAdpt == nil {
 		return "", fmt.Errorf("sina financials adapter not available")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	income, _ := a.sinaFinAdpt.FetchIncomeStatement(ctx, symbol, 12)
 	balance, _ := a.sinaFinAdpt.FetchBalanceSheet(ctx, symbol, 12)
 	cashflow, _ := a.sinaFinAdpt.FetchCashFlow(ctx, symbol, 12)
@@ -584,7 +661,8 @@ func formatFinPeriodsRaw(periods []adapters.FinancialStatementPeriod) []map[stri
 
 // fetchQuoteJSON fetches current quote + shares outstanding and returns JSON string.
 func (a *App) fetchQuoteJSON(symbol string) string {
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	quote, _, err := a.GetQuote(ctx, "CN", symbol)
 	if err != nil || quote == nil {
 		return "{}"
@@ -601,7 +679,11 @@ func (a *App) fetchQuoteJSON(symbol string) string {
 			payload["market_cap"] = info.MarketCap
 		}
 	}
-	b, _ := json.Marshal(payload)
+	b, err := json.Marshal(payload)
+	if err != nil {
+		slog.Warn("GetStockInfo: marshal payload", "error", err)
+		return "{}"
+	}
 	return string(b)
 }
 
@@ -611,7 +693,9 @@ func (a *App) GetExDividendCalendar(startDate, endDate string) ([]adapters.ExDiv
 	if a.capitalAdpt == nil {
 		return nil, fmt.Errorf("capital adapter not initialized")
 	}
-	return a.capitalAdpt.FetchExDividendCalendar(context.Background(), startDate, endDate)
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	return a.capitalAdpt.FetchExDividendCalendar(ctx, startDate, endDate)
 }
 
 // GetDelistingRisk returns delisting risk assessment for a symbol.
@@ -634,8 +718,9 @@ func (a *App) GetDelistingRisk(symbol string) (*trading.DelistingRiskResult, err
 	return a.computeDelistingRisk(symbol, market, isST, metrics)
 }
 
-func (a *App) computeDelistingRisk(symbol, market string, isST bool, metrics *trading.FinancialMetrics) (*trading.DelistingRiskResult, error) {
-	ctx := context.Background()
+func (a *App) computeDelistingRisk(symbol, mkt string, isST bool, metrics *trading.FinancialMetrics) (*trading.DelistingRiskResult, error) {
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	price, marketCap, volume := 0.0, 0.0, 0.0
 	totalShares := 0.0
 	board := trading.DetectBoard(symbol)
@@ -647,7 +732,7 @@ func (a *App) computeDelistingRisk(symbol, market string, isST bool, metrics *tr
 			totalShares = info.TotalShares
 		}
 	}
-	quote, _, err := a.GetQuote(ctx, market, symbol)
+	quote, _, err := a.GetQuote(ctx, mkt, symbol)
 	if err == nil && quote != nil {
 		price = quote.Last
 		volume = quote.Volume
@@ -657,7 +742,7 @@ func (a *App) computeDelistingRisk(symbol, market string, isST bool, metrics *tr
 	}
 
 	var categories []trading.DelistingCategory
-	switch market {
+	switch mkt {
 	case "CN":
 		categories = trading.AssessCN(metrics, board, price, marketCap, volume, totalShares)
 	case "HK":
@@ -672,7 +757,7 @@ func (a *App) computeDelistingRisk(symbol, market string, isST bool, metrics *tr
 	summary := trading.GenerateSummary(categories, overallRisk)
 
 	return &trading.DelistingRiskResult{
-		Market:      market,
+		Market:      mkt,
 		Board:       board,
 		IsST:        isST,
 		OverallRisk: overallRisk,

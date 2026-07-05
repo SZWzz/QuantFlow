@@ -121,6 +121,17 @@ type App struct {
 	// Symbol search (in-memory index, built at startup).
 	searchSvc *market.SymbolSearchService
 
+	// Resolved absolute DB path (kept separate from cfg.DBPath so Save()
+	// never persists an absolute path that would break after moving the project).
+	resolvedDBPath string
+
+	// Off-hours data caches for weekend/after-hours display.
+	industryRanksCache  *market.OffHoursCache[[]market.IndustryRank]
+	depthCache          *market.OffHoursCache[*market.DepthSnapshot]
+	abnormalStocksCache *market.OffHoursCache[[]adapters.AbnormalStock]
+	dragonTigerCache    *market.OffHoursCache[[]adapters.DragonTigerRecord]
+	fundFlowCache       *market.OffHoursCache[interface{}]
+
 	// Python sidecar subprocess (auto-launched).
 	sidecar *python.SidecarProcess
 }
@@ -133,12 +144,21 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		return fmt.Errorf("load config: %w", err)
 	}
 	a.cfg = cfg
+	// If db_path was persisted as absolute from a previous version, reset to default
+	// relative path so it resolves correctly against the current executable location.
+	// This handles config.yaml left behind by the old code that overwrote cfg.DBPath
+	// with the ResolveDBPath result before saving.
+	if filepath.IsAbs(a.cfg.DBPath) {
+		slog.Warn("config db_path is absolute, resetting to default relative (data/quantflow.db)", "current", a.cfg.DBPath)
+		a.cfg.DBPath = "data/quantflow.db"
+	}
 	// Resolve relative DB path against executable directory so dev/build/.app all share the same DB.
-	a.cfg.DBPath = config.ResolveDBPath(a.cfg.DBPath)
+	// Store in resolvedDBPath — NOT in a.cfg.DBPath — so Save() never persists an absolute path.
+	a.resolvedDBPath = config.ResolveDBPath(a.cfg.DBPath)
 	logging.Setup(cfg.LogLevel)
 
 	// Open shared DB connection and run migrations once at startup.
-	db, err := storage.Open(a.cfg.DBPath)
+	db, err := storage.Open(a.resolvedDBPath)
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
@@ -206,10 +226,43 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	nctx.MarketReg = a.marketReg
 
 	// Load persisted last quotes (weekend/off-hours display).
-	lastQuotePath := filepath.Join(filepath.Dir(a.cfg.DBPath), "last_quote.json")
+	lastQuotePath := filepath.Join(filepath.Dir(a.resolvedDBPath), "last_quote.json")
 	a.marketReg.SetLastQuotePath(lastQuotePath)
 	if err := a.marketReg.LoadLastQuotes(); err != nil {
 		slog.Warn("load last quotes", "error", err)
+	}
+
+	// Initialize off-hours data caches (persisted JSON in data/offhours/).
+	offDir := filepath.Join(filepath.Dir(a.resolvedDBPath), "offhours")
+
+	a.industryRanksCache = market.NewOffHoursCache[[]market.IndustryRank]("industry_ranks")
+	a.industryRanksCache.SetPath(filepath.Join(offDir, "industry_ranks.json"))
+	if err := a.industryRanksCache.Load(); err != nil {
+		slog.Warn("load industry ranks cache", "error", err)
+	}
+
+	a.depthCache = market.NewOffHoursCache[*market.DepthSnapshot]("depth")
+	a.depthCache.SetPath(filepath.Join(offDir, "depth.json"))
+	if err := a.depthCache.Load(); err != nil {
+		slog.Warn("load depth cache", "error", err)
+	}
+
+	a.abnormalStocksCache = market.NewOffHoursCache[[]adapters.AbnormalStock]("abnormal_stocks")
+	a.abnormalStocksCache.SetPath(filepath.Join(offDir, "abnormal_stocks.json"))
+	if err := a.abnormalStocksCache.Load(); err != nil {
+		slog.Warn("load abnormal stocks cache", "error", err)
+	}
+
+	a.dragonTigerCache = market.NewOffHoursCache[[]adapters.DragonTigerRecord]("dragon_tiger")
+	a.dragonTigerCache.SetPath(filepath.Join(offDir, "dragon_tiger.json"))
+	if err := a.dragonTigerCache.Load(); err != nil {
+		slog.Warn("load dragon tiger cache", "error", err)
+	}
+
+	a.fundFlowCache = market.NewOffHoursCache[interface{}]("fund_flow")
+	a.fundFlowCache.SetPath(filepath.Join(offDir, "fund_flow.json"))
+	if err := a.fundFlowCache.Load(); err != nil {
+		slog.Warn("load fund flow cache", "error", err)
 	}
 
 	// FetchData cache: prevents redundant Python sidecar calls for slow
@@ -319,8 +372,16 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 
 	// Wire execution saver so every workflow run is recorded
 	a.engine.SetExecutionSaver(func(runID string, wf *workflow.Workflow, result *workflow.ExecutionResult) {
-		wfJSON, _ := json.Marshal(wf)
-		nodeResults, _ := json.Marshal(result.NodeResults)
+		wfJSON, err := json.Marshal(wf)
+		if err != nil {
+			slog.Warn("marshal workflow failed", "error", err)
+			return
+		}
+		nodeResults, err := json.Marshal(result.NodeResults)
+		if err != nil {
+			slog.Warn("marshal node results failed", "error", err)
+			return
+		}
 		if err := a.execRepo.Save(runID, wf.ID, wf.Name, string(wfJSON), len(wf.Nodes), nodeResults, result.StartedAt, "manual"); err != nil {
 			slog.Warn("failed to save execution start", "run_id", runID, "error", err)
 			return
@@ -329,7 +390,11 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		if result.Error != "" {
 			status = "failed"
 		}
-		nodeResults, _ = json.Marshal(result.NodeResults)
+		nodeResults, err = json.Marshal(result.NodeResults)
+		if err != nil {
+			slog.Warn("marshal node results failed", "error", err)
+			return
+		}
 		if err := a.execRepo.Complete(runID, status, nodeResults, result.FinishedAt, result.Error); err != nil {
 			slog.Warn("failed to complete execution record", "run_id", runID, "error", err)
 		}
@@ -988,10 +1053,12 @@ func (a *App) SearchResearch(query string, channel string, size int) ([]adapters
 	if a.iwencaiAdpt == nil {
 		return nil, fmt.Errorf("iwencai adapter not initialized")
 	}
-	if !a.iwencaiAdpt.IsAvailable(context.Background()) {
+	ictx, icancel := market.RequestCtx()
+	defer icancel()
+	if !a.iwencaiAdpt.IsAvailable(ictx) {
 		return nil, fmt.Errorf("iwencai not available: IWENCAI_API_KEY not set or endpoint unreachable")
 	}
-	return a.iwencaiAdpt.Search(context.Background(), query, channel, size)
+	return a.iwencaiAdpt.Search(ictx, query, channel, size)
 }
 
 // GetCapitalData returns capital/fundamental data for a symbol: margin trading,
@@ -1000,7 +1067,8 @@ func (a *App) GetCapitalData(symbol string) (map[string]interface{}, error) {
 	if a.capitalSvc == nil {
 		return nil, fmt.Errorf("capital service not initialized")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	result := map[string]interface{}{}
 	if data, err := a.capitalSvc.GetMarginTrading(ctx, symbol, 30); err == nil {
 		result["margin_trading"] = data
@@ -1025,18 +1093,45 @@ func (a *App) GetAnnouncements(symbol string, pageSize int) ([]adapters.Announce
 	if pageSize <= 0 {
 		pageSize = 30
 	}
-	return a.announcementSvc.GetAnnouncements(context.Background(), symbol, pageSize)
+	annCtx, annCancel := market.RequestCtx()
+	defer annCancel()
+	return a.announcementSvc.GetAnnouncements(annCtx, symbol, pageSize)
 }
 
 // GetDragonTiger returns dragon tiger board data for a symbol.
 func (a *App) GetDragonTiger(symbol string, endDate string, lookBack int) ([]adapters.DragonTigerRecord, error) {
+	if !market.IsTradingHours(resolveMarketFromSymbol(symbol)) {
+		cacheKey := symbol + ":" + endDate + ":" + fmt.Sprint(lookBack)
+		if cached, ok := a.dragonTigerCache.Get(cacheKey); ok {
+			return cached, nil
+		}
+		return nil, fmt.Errorf("market %q is currently closed (no cached data)", resolveMarketFromSymbol(symbol))
+	}
 	if a.signalsAdpt == nil {
 		return nil, fmt.Errorf("signals adapter not initialized")
 	}
 	if lookBack <= 0 {
 		lookBack = 30
 	}
-	return a.signalsAdpt.FetchDragonTigerStock(context.Background(), symbol, endDate, lookBack)
+	dtCtx, dtCancel := market.RequestCtx()
+	defer dtCancel()
+	records, err := a.signalsAdpt.FetchDragonTigerStock(dtCtx, symbol, endDate, lookBack)
+	if err != nil {
+		return nil, err
+	}
+	cacheKey := symbol + ":" + endDate + ":" + fmt.Sprint(lookBack)
+	a.dragonTigerCache.Set(cacheKey, records)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("dragon tiger cache save panicked", "recover", r)
+			}
+		}()
+		if e := a.dragonTigerCache.Save(); e != nil {
+			slog.Warn("save dragon tiger cache", "error", e)
+		}
+	}()
+	return records, nil
 }
 
 // GetDailyDragonTiger returns market-wide dragon tiger board for a trading date.
@@ -1044,7 +1139,9 @@ func (a *App) GetDailyDragonTiger(date string, minNetBuy float64) ([]adapters.Dr
 	if a.signalsAdpt == nil {
 		return nil, fmt.Errorf("signals adapter not initialized")
 	}
-	return a.signalsAdpt.FetchDailyDragonTiger(context.Background(), date, minNetBuy)
+	ddtCtx, ddtCancel := market.RequestCtx()
+	defer ddtCancel()
+	return a.signalsAdpt.FetchDailyDragonTiger(ddtCtx, date, minNetBuy)
 }
 
 // GetLockupExpiry returns lockup expiry data (解禁) for a symbol.
@@ -1052,20 +1149,49 @@ func (a *App) GetLockupExpiry(symbol string) ([]adapters.LockupExpiry, error) {
 	if a.signalsAdpt == nil {
 		return nil, fmt.Errorf("signals adapter not initialized")
 	}
-	return a.signalsAdpt.FetchLockupExpiry(context.Background(), symbol)
+	lkCtx, lkCancel := market.RequestCtx()
+	defer lkCancel()
+	return a.signalsAdpt.FetchLockupExpiry(lkCtx, symbol)
 }
 
 // GetIndustryRanks returns industry ranking by change percent for a given market.
 // Uses per-market fallback chains: CN→eastmoney_signals, HK→tencent, US→finnhub.
+// Off-hours: returns cached last-known data.
 func (a *App) GetIndustryRanks(mkt string, topN int) ([]market.IndustryRank, error) {
 	if topN <= 0 {
 		topN = 20
+	}
+	if !market.IsTradingHours(resolveMarket(mkt)) {
+		if cached, ok := a.industryRanksCache.Get(mkt); ok {
+			if len(cached) > topN {
+				cached = cached[:topN]
+			}
+			return cached, nil
+		}
+		return nil, fmt.Errorf("market %q is currently closed (no cached data)", mkt)
 	}
 	reg := a.getMarketReg()
 	if reg == nil {
 		return nil, fmt.Errorf("market registry not initialized")
 	}
-	return reg.FetchIndustryRanksWithFallback(context.Background(), mkt, topN)
+	irCtx, irCancel := market.RequestCtx()
+	defer irCancel()
+	ranks, err := reg.FetchIndustryRanksWithFallback(irCtx, mkt, topN)
+	if err != nil {
+		return nil, err
+	}
+	a.industryRanksCache.Set(mkt, ranks)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("industry ranks cache save panicked", "recover", r)
+			}
+		}()
+		if e := a.industryRanksCache.Save(); e != nil {
+			slog.Warn("save industry ranks cache", "error", e)
+		}
+	}()
+	return ranks, nil
 }
 
 // GetConceptBlocks returns the concept/industry/sector blocks a stock belongs to.
@@ -1073,7 +1199,9 @@ func (a *App) GetConceptBlocks(symbol string) ([]adapters.ConceptBlock, error) {
 	if a.conceptAdpt == nil {
 		return nil, fmt.Errorf("concept adapter not initialized")
 	}
-	return a.conceptAdpt.FetchConceptBlocks(context.Background(), symbol)
+	cbCtx, cbCancel := market.RequestCtx()
+	defer cbCancel()
+	return a.conceptAdpt.FetchConceptBlocks(cbCtx, symbol)
 }
 
 // GetMarketSnapshot returns batch quotes for a list of symbols.
@@ -1183,7 +1311,8 @@ func (a *App) GetNews(symbol string, limit int) ([]NewsItem, error) {
 	if limit > 50 {
 		limit = 50
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 
 	if symbol == "" && a.globalNewsAdpt != nil {
 		articles, err := a.globalNewsAdpt.FetchGlobalNews(ctx, limit)
@@ -1271,6 +1400,49 @@ func (a *App) GetCommodityQuotes() map[string]interface{} {
 	return queryCommodityQuotes(a.marketReg)
 }
 
+// resolveMarket maps market abbreviations to canonical market names for
+// IsTradingHours checks. "SH"/"SZ" → "CN", others passed through.
+func resolveMarket(mkt string) string {
+	switch mkt {
+	case "SH", "SZ":
+		return "CN"
+	}
+	return mkt
+}
+
+// resolveMarketFromSymbol detects the market from a stock symbol.
+func resolveMarketFromSymbol(symbol string) string {
+	// CN: .SH/.SZ/.BJ suffix or 6-digit numeric
+	// HK: .HK suffix
+	// CRYPTO: -USDT/-BTC suffix
+	if len(symbol) >= 3 {
+		suf := symbol[len(symbol)-3:]
+		switch suf {
+		case ".SH", ".SZ", ".BJ":
+			return "CN"
+		case ".HK":
+			return "HK"
+		}
+	}
+	// 6-digit numeric → CN A-share
+	if len(symbol) == 6 {
+		allDigits := true
+		for _, c := range symbol {
+			if c < '0' || c > '9' {
+				allDigits = false
+				break
+			}
+		}
+		if allDigits {
+			return "CN"
+		}
+	}
+	if len(symbol) > 4 && (symbol[len(symbol)-4:] == "USDT" || symbol[len(symbol)-4:] == "USDC") {
+		return "CRYPTO"
+	}
+	return "US"
+}
+
 // ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,
 // shared DB connection, and releases any resources held by the application.
 func (a *App) ServiceShutdown() error {
@@ -1330,9 +1502,21 @@ func persistBacktestResults(a *App, runID string, wf *workflow.Workflow, result 
 			}
 		}
 
-		configJSON, _ := json.Marshal(btResult.Config)
-		equityJSON, _ := json.Marshal(btResult.EquityCurve)
-		tradesJSON, _ := json.Marshal(btResult.Trades)
+		configJSON, err := json.Marshal(btResult.Config)
+		if err != nil {
+			slog.Warn("persistBacktest: marshal config", "error", err)
+			configJSON = []byte("{}")
+		}
+		equityJSON, err := json.Marshal(btResult.EquityCurve)
+		if err != nil {
+			slog.Warn("persistBacktest: marshal equity", "error", err)
+			equityJSON = []byte("[]")
+		}
+		tradesJSON, err := json.Marshal(btResult.Trades)
+		if err != nil {
+			slog.Warn("persistBacktest: marshal trades", "error", err)
+			tradesJSON = []byte("[]")
+		}
 
 		bt := storage.StoredBacktest{
 			RunID:         runID,

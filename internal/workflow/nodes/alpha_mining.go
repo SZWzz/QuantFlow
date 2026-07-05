@@ -70,8 +70,14 @@ func (n *AlphaMiningNode) Execute(ctx context.Context, inputs map[string]any, pa
 	ohlcv := inputs["ohlcv_data"].(map[string][]float64)
 
 	// Encode factor data as Arrow-compatible JSON for the gRPC call
-	factorJSON, _ := json.Marshal(factorPool)
-	returnsJSON, _ := json.Marshal(ohlcv)
+	factorJSON, err := json.Marshal(factorPool)
+	if err != nil {
+		return nil, fmt.Errorf("alpha_mining: marshal factor pool: %w", err)
+	}
+	returnsJSON, err := json.Marshal(ohlcv)
+	if err != nil {
+		return nil, fmt.Errorf("alpha_mining: marshal ohlcv: %w", err)
+	}
 
 	mlClient := python.NewMLClient(bridge)
 	req := &proto.AlphaMiningRequest{

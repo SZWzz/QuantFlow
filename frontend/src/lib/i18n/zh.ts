@@ -191,7 +191,7 @@ export default {
     all_categories: '全部分类', all_types: '全部类型', all_status: '全部状态',
     category: '分类', hyperparams: '超参数', created: '创建时间',
     archive: '归档', archived: '已归档', failed: '失败',
-    add_to_workflow: '+ 工作流', sharpe: '夏普比率',
+    sharpe: '夏普比率',
     ic_trend: 'IC 走势', prediction_vs_actual: '预测 vs 实际',
     pred_distribution: '预测分布', quantile_returns: '分位数收益', load: '加载',
     models: '可用模型',
@@ -257,6 +257,9 @@ export default {
     paste: '粘贴', select_all: '全选', add_node: '添加节点...',
     back: '返回', sub_workflow: '子工作流',
     drag_hint: '从面板拖入节点或按 Ctrl+K 添加',
+    add_to_workflow: '+ 工作流',
+    switch_confirm_title: '切换到工作流模式？',
+    switch_confirm_body: '节点已添加到工作流画布。是否切换到工作流模式进行连接和配置？',
   },
   monitor: {
     title: '系统监控', go_runtime: 'Go 运行时', goroutines: '协程数',

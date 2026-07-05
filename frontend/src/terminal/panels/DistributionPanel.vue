@@ -17,6 +17,8 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { histogramBins } from '@/lib/stats'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 use([
   BarChart,
@@ -57,6 +59,8 @@ const hasECharts = ref(false)
 const loading = ref(false)
 const loadError = ref('')
 const dataReady = ref(false)
+
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
 function normalPDF(x: number, mean: number, std: number): number {
   if (std === 0) return 0
@@ -210,6 +214,7 @@ onMounted(() => {
     <div class="panel-header">
       <h3>{{ t('misc.distribution') }}</h3>
       <span class="symbol-badge">{{ symbol }} {{ name }}</span>
+      <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
     </div>
 
     <div class="controls-row">
@@ -309,6 +314,10 @@ onMounted(() => {
 }
 
 .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding: 10px 14px 6px;
   border-bottom: 1px solid var(--color-border-strong);
 }
@@ -453,5 +462,27 @@ onMounted(() => {
 .dist-table td {
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
+}
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
 }
 </style>

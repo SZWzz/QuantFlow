@@ -1,6 +1,7 @@
 package market
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -109,4 +110,10 @@ func NewTransientError(msg string) error {
 // NewTransientErrorf creates a formatted transient error.
 func NewTransientErrorf(format string, args ...any) error {
 	return &transientError{msg: fmt.Sprintf(format, args...)}
+}
+
+// RequestCtx returns a context with a 10-second timeout for market data
+// requests. Callers must call the returned cancel function to release resources.
+func RequestCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), 10*time.Second)
 }

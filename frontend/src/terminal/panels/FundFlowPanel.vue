@@ -3,6 +3,8 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -10,6 +12,7 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '000001')
 const { name } = useStockName(symbol)
 const { fetchWithCache } = usePanelCache()
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 const loading = ref(false)
 const error = ref('')
 const data = ref<any>(null)
@@ -98,6 +101,7 @@ onMounted(loadData)
         <span class="badge">资金流向</span>
       </div>
       <div class="header-right">
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
         <span v-if="latestDay" class="latest-date">{{ latestDay['日期'] }}</span>
         <button class="btn-sm" @click="loadData">🔄 刷新</button>
       </div>
@@ -260,4 +264,26 @@ onMounted(loadData)
 }
 .cell-date { text-align: left !important; color: var(--color-text-secondary); }
 .flow-table tr:hover td { background: var(--color-bg-hover); }
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
 </style>

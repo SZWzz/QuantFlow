@@ -2,19 +2,17 @@ package nodes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"quantflow/internal/workflow"
 )
 
-// JSONParseNode parses a JSON string and optionally extracts a value
-// at the given JSON path. Currently returns a mock parsed result.
 type JSONParseNode struct {
 	id     string
 	params map[string]any
 }
 
-// NewJSONParseNode creates a new JSONParseNode.
 func NewJSONParseNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &JSONParseNode{id: id, params: params}, nil
 }
@@ -31,33 +29,51 @@ func (n *JSONParseNode) InputPorts() []workflow.PortDefinition {
 
 func (n *JSONParseNode) OutputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
-		{Name: "parsed", Type: workflow.PortSeries, Required: false},
+		{Name: "parsed", Type: workflow.PortAny, Required: false},
 		{Name: "value", Type: workflow.PortAny, Required: false},
 	}
 }
 
 func (n *JSONParseNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "path", Type: "string", Default: "", Description: "JSONPath or key to extract (empty returns entire parsed object)"},
+		{Name: "path", Type: "string", Default: "", Description: "Key to extract (empty returns entire parsed object)"},
 	}
 }
 
 func (n *JSONParseNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	jsonStr, ok := inputs["json_str"]
-	if !ok || jsonStr == nil {
+	raw, ok := inputs["json_str"]
+	if !ok || raw == nil {
 		return nil, fmt.Errorf("json_parse: json_str input is required")
 	}
 
-	path := getStringParam(params, "path", "")
-	_ = path
-	_ = fmt.Sprint(jsonStr) // consume for when real parser is wired
+	var jsonStr string
+	switch v := raw.(type) {
+	case string:
+		jsonStr = v
+	case []byte:
+		jsonStr = string(v)
+	default:
+		jsonStr = fmt.Sprintf("%v", v)
+	}
 
-	// TODO: wire real JSON parser with path extraction.
-	// For now return mock parsed data.
-	return map[string]any{
-		"parsed": []float64{1.0, 2.0, 3.0},
-		"value":  "{}",
-	}, nil
+	var parsed any
+	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
+		return nil, fmt.Errorf("json_parse: invalid JSON: %w", err)
+	}
+
+	path := getStringParam(params, "path", "")
+	if path == "" {
+		return map[string]any{"parsed": parsed, "value": parsed}, nil
+	}
+
+	if m, ok := parsed.(map[string]any); ok {
+		if val, exists := m[path]; exists {
+			return map[string]any{"parsed": parsed, "value": val}, nil
+		}
+		return nil, fmt.Errorf("json_parse: key %q not found in parsed object", path)
+	}
+
+	return nil, fmt.Errorf("json_parse: path extraction requires a JSON object, got %T", parsed)
 }
 
 func (n *JSONParseNode) Validate() error {

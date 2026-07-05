@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -20,10 +21,16 @@ func NewResearchRepo(db *sql.DB) *ResearchRepo {
 
 // SaveSentiment stores a sentiment result in the cache.
 func (r *ResearchRepo) SaveSentiment(output *SentimentOutput) error {
-	kwJSON, _ := json.Marshal(output.Keywords)
-	entJSON, _ := json.Marshal(output.Entities)
+	kwJSON, err := json.Marshal(output.Keywords)
+	if err != nil {
+		return fmt.Errorf("marshal keywords: %w", err)
+	}
+	entJSON, err := json.Marshal(output.Entities)
+	if err != nil {
+		return fmt.Errorf("marshal entities: %w", err)
+	}
 
-	_, err := r.db.Exec(
+	_, err = r.db.Exec(
 		`INSERT INTO sentiment_cache (symbol, score, label, confidence, source, keywords, entities)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		output.Symbol, output.Score, output.Label, output.Confidence,
@@ -52,8 +59,12 @@ func (r *ResearchRepo) GetSentimentHistory(symbol string, since time.Time) ([]Se
 			&o.Source, &kwJSON, &entJSON, &createdAt); err != nil {
 			return nil, fmt.Errorf("scan sentiment: %w", err)
 		}
-		json.Unmarshal([]byte(kwJSON), &o.Keywords)
-		json.Unmarshal([]byte(entJSON), &o.Entities)
+		if err := json.Unmarshal([]byte(kwJSON), &o.Keywords); err != nil {
+			slog.Warn("unmarshal keywords", "error", err)
+		}
+		if err := json.Unmarshal([]byte(entJSON), &o.Entities); err != nil {
+			slog.Warn("unmarshal entities", "error", err)
+		}
 		results = append(results, o)
 	}
 	return results, rows.Err()
@@ -107,8 +118,12 @@ func (r *ResearchRepo) GetLatestSentiment(symbol string) (*SentimentOutput, erro
 	if err != nil {
 		return nil, fmt.Errorf("get latest sentiment: %w", err)
 	}
-	json.Unmarshal([]byte(kwJSON), &o.Keywords)
-	json.Unmarshal([]byte(entJSON), &o.Entities)
+	if err := json.Unmarshal([]byte(kwJSON), &o.Keywords); err != nil {
+		slog.Warn("unmarshal keywords", "error", err)
+	}
+	if err := json.Unmarshal([]byte(entJSON), &o.Entities); err != nil {
+		slog.Warn("unmarshal entities", "error", err)
+	}
 	return &o, nil
 }
 

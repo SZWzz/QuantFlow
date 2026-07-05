@@ -5,14 +5,14 @@ import (
 )
 
 func TestPolygonAdapter_Name(t *testing.T) {
-	a := NewPolygonAdapter()
+	a := NewPolygonAdapter(PolygonConfig{})
 	if got := a.Name(); got != "polygon" {
 		t.Errorf("Name() = %q, want %q", got, "polygon")
 	}
 }
 
 func TestPolygonAdapter_Markets(t *testing.T) {
-	a := NewPolygonAdapter()
+	a := NewPolygonAdapter(PolygonConfig{})
 	want := []string{"US"}
 	got := a.Markets()
 	if len(got) != len(want) {
@@ -26,7 +26,7 @@ func TestPolygonAdapter_Markets(t *testing.T) {
 }
 
 func TestPolygonAdapter_RequiresAuth(t *testing.T) {
-	a := NewPolygonAdapter()
+	a := NewPolygonAdapter(PolygonConfig{})
 	if got := a.RequiresAuth(); got != true {
 		t.Errorf("RequiresAuth() = %v, want %v", got, true)
 	}

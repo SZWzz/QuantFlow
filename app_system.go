@@ -28,7 +28,7 @@ func (a *App) GetConfig() map[string]interface{} {
 	return map[string]interface{}{
 		"version":  a.cfg.Version,
 		"logLevel": a.cfg.LogLevel,
-		"dbPath":   a.cfg.DBPath,
+		"dbPath":   a.resolvedDBPath,
 	}
 }
 

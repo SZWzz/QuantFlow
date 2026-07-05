@@ -15,6 +15,12 @@ import os
 # when subprocess is spawned from within a gRPC server process.
 os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "1"
 
+from importlib.metadata import version as _pkg_version
+try:
+    __version__ = _pkg_version("quantflow-python")
+except Exception:
+    __version__ = "0.0.0"
+
 import asyncio
 import logging
 import time
@@ -55,14 +61,9 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
 
     async def Ping(self, request, context):
         uptime = int(time.time() - self.start_time)
-        try:
-            from importlib.metadata import version as _pkg_version
-            _ver = _pkg_version("quantflow-python")
-        except Exception:
-            _ver = "0.2.2"
         return health_pb2.PingResponse(
             healthy=True,
-            version=_ver,
+            version=__version__,
             uptime_seconds=uptime,
         )
 
@@ -78,7 +79,7 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
         uptime = int(time.time() - self.start_time)
         return health_pb2.StatusResponse(
             healthy=True,
-            version="2026.6.26",
+            version=__version__,
             uptime_seconds=uptime,
             active_requests=0,
             memory_mb=mem_mb,

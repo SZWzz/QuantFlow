@@ -155,7 +155,7 @@ func (a *App) registerMarketAdapters() {
 	finnhubAdpt := adapters.NewFinnhubAdapter()
 	finnhubAdpt.SetAPIKey(a.cfg.GetAPIKey("finnhub"))
 	a.marketReg.Register(finnhubAdpt)
-	a.marketReg.Register(adapters.NewPolygonAdapter())
+	a.marketReg.Register(adapters.NewPolygonAdapter(adapters.PolygonConfig{APIKey: a.cfg.GetAPIKey("polygon")}))
 	a.marketReg.Register(adapters.NewGateIOAdapter()) // primary crypto (accessible from CN)
 	a.marketReg.Register(adapters.NewOKXAdapter())
 	a.marketReg.Register(adapters.NewBinanceAdapter())
@@ -310,7 +310,8 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 		}
 	}
 
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	req := &pb.FetchDataRequest{
 		Source:    source,
 		DataType:  dataType,
@@ -348,19 +349,45 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 
 // GetFundFlow returns capital flow data for a symbol.
 // flowType: "minute" (今日分钟级) or "daily" (120日日级).
+// Off-hours: returns cached last-known data.
 func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
+	if !market.IsTradingHours(resolveMarketFromSymbol(symbol)) {
+		cacheKey := symbol + ":" + flowType
+		if cached, ok := a.fundFlowCache.Get(cacheKey); ok {
+			return cached, nil
+		}
+		return nil, fmt.Errorf("market %q is currently closed (no cached data)", resolveMarketFromSymbol(symbol))
+	}
 	if a.fundFlowSvc == nil {
 		return nil, fmt.Errorf("fund flow service not initialized")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
+	var result interface{}
+	var err error
 	switch flowType {
 	case "minute":
-		return a.fundFlowSvc.GetMinuteFlow(ctx, symbol)
+		result, err = a.fundFlowSvc.GetMinuteFlow(ctx, symbol)
 	case "daily":
-		return a.fundFlowSvc.GetDailyFlow(ctx, symbol)
+		result, err = a.fundFlowSvc.GetDailyFlow(ctx, symbol)
 	default:
 		return nil, fmt.Errorf("invalid flowType: %s (use 'minute' or 'daily')", flowType)
 	}
+	if err == nil && result != nil {
+		cacheKey := symbol + ":" + flowType
+		a.fundFlowCache.Set(cacheKey, result)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("fund flow cache save panicked", "recover", r)
+				}
+			}()
+			if e := a.fundFlowCache.Save(); e != nil {
+				slog.Warn("save fund flow cache", "error", e)
+			}
+		}()
+	}
+	return result, err
 }
 
 // GetNorthboundFlow returns northbound capital flow data.
@@ -368,7 +395,8 @@ func (a *App) GetNorthboundFlow() (map[string]interface{}, error) {
 	if a.northboundSvc == nil {
 		return nil, fmt.Errorf("northbound service not initialized")
 	}
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	result := map[string]interface{}{}
 	if data, err := a.northboundSvc.GetMinuteFlow(ctx); err == nil {
 		result["minute_flow"] = data
@@ -403,7 +431,7 @@ func (a *App) getMarketReg() *market.AdapterRegistry {
 
 // lastMinutePath returns the file path for persisting minute ticks.
 func (a *App) lastMinutePath() string {
-	return filepath.Join(filepath.Dir(a.cfg.DBPath), "last_minute_ticks.json")
+	return filepath.Join(filepath.Dir(a.resolvedDBPath), "last_minute_ticks.json")
 }
 
 // saveLastMinuteTicks persists the latest batch of minute ticks for a symbol
@@ -417,7 +445,9 @@ func (a *App) saveLastMinuteTicks(symbol string, ticks []market.MinuteTick) {
 
 	// Merge with existing persisted data (other symbols).
 	if b, err := os.ReadFile(path); err == nil {
-		json.Unmarshal(b, &data)
+		if err := json.Unmarshal(b, &data); err != nil {
+			slog.Warn("unmarshal last minute ticks", "error", err)
+		}
 	}
 	data[symbol] = ticks
 
@@ -456,7 +486,8 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 		return data, nil
 	}
 
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	var indices []idxDef
 	marketName := mkt
 	switch mkt {
@@ -665,60 +696,90 @@ func (a *App) GetCryptoDepth(ctx context.Context, exchange, symbol string, limit
 // For CN/HK: uses Tencent adapter (free, no auth).
 // For US: falls back to simulated (no free depth data).
 // For CRYPTO: routes to GetCryptoDepth via Python sidecar.
+// Off-hours: returns cached last-known depth.
 func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSnapshot, error) {
+	if !market.IsTradingHours(mkt) {
+		cacheKey := mkt + ":" + symbol
+		if cached, ok := a.depthCache.Get(cacheKey); ok {
+			return cached, nil
+		}
+		return nil, fmt.Errorf("market %q is currently closed (no cached data)", mkt)
+	}
+	var snap *market.DepthSnapshot
+	var depthErr error
 	switch mkt {
 	case "CN":
 		adpt := a.marketReg.Get("sina")
 		if adpt != nil {
 			if tc, ok := adpt.(*adapters.SinaAdapter); ok {
-				snap, err := tc.FetchDepth(ctx, symbol)
-				if err == nil {
-					return snap, nil
+				snap, depthErr = tc.FetchDepth(ctx, symbol)
+				if depthErr == nil {
+					break
 				}
-				slog.Warn("sina depth failed, trying tencent", "symbol", symbol, "err", err)
+				slog.Warn("sina depth failed, trying tencent", "symbol", symbol, "err", depthErr)
 			}
 		}
-		// fallback to Tencent
 		adpt = a.marketReg.Get("tencent")
 		if adpt == nil {
-			return nil, fmt.Errorf("tencent adapter not available")
+			depthErr = fmt.Errorf("tencent adapter not available")
+			break
 		}
 		tc, ok := adpt.(*adapters.TencentAdapter)
 		if !ok {
-			return nil, fmt.Errorf("tencent adapter type assertion failed")
+			depthErr = fmt.Errorf("tencent adapter type assertion failed")
+			break
 		}
-		return tc.FetchDepth(ctx, symbol)
+		snap, depthErr = tc.FetchDepth(ctx, symbol)
 	case "HK":
 		adpt := a.marketReg.Get("sina")
 		if adpt != nil {
 			if tc, ok := adpt.(*adapters.SinaAdapter); ok {
-				snap, err := tc.FetchDepth(ctx, symbol)
-				if err == nil {
-					return snap, nil
+				snap, depthErr = tc.FetchDepth(ctx, symbol)
+				if depthErr == nil {
+					break
 				}
-				slog.Warn("sina HK depth failed, trying tencent", "symbol", symbol, "err", err)
+				slog.Warn("sina HK depth failed, trying tencent", "symbol", symbol, "err", depthErr)
 			}
 		}
 		adpt = a.marketReg.Get("tencent")
 		if adpt == nil {
-			return nil, fmt.Errorf("tencent adapter not available")
+			depthErr = fmt.Errorf("tencent adapter not available")
+			break
 		}
 		tc, ok := adpt.(*adapters.TencentAdapter)
 		if !ok {
-			return nil, fmt.Errorf("tencent adapter type assertion failed")
+			depthErr = fmt.Errorf("tencent adapter type assertion failed")
+			break
 		}
-		return tc.FetchDepth(ctx, symbol)
+		snap, depthErr = tc.FetchDepth(ctx, symbol)
 	case "CRYPTO":
 		exchange := "binance"
 		raw, err := a.GetCryptoDepth(ctx, exchange, symbol, 10)
 		if err != nil {
-			return nil, err
+			depthErr = err
+			break
 		}
 		data, _ := raw["data"].(string)
-		return &market.DepthSnapshot{Symbol: symbol}, fmt.Errorf("crypto depth via Python sidecar, data=%s", data)
+		snap = &market.DepthSnapshot{Symbol: symbol}
+		depthErr = fmt.Errorf("crypto depth via Python sidecar, data=%s", data)
 	default:
-		return nil, fmt.Errorf("depth not available for market %s", mkt)
+		depthErr = fmt.Errorf("depth not available for market %s", mkt)
 	}
+	if depthErr == nil && snap != nil {
+		cacheKey := mkt + ":" + symbol
+		a.depthCache.Set(cacheKey, snap)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("depth cache save panicked", "recover", r)
+				}
+			}()
+			if e := a.depthCache.Save(); e != nil {
+				slog.Warn("save depth cache", "error", e)
+			}
+		}()
+	}
+	return snap, depthErr
 }
 
 // GetDeFiTVL returns top DeFi protocols by TVL via DeFi Llama.
@@ -803,7 +864,8 @@ func (a *App) GetEarningsCalendar(ctx context.Context, from, to string) ([]map[s
 
 // GetUSOptionChain returns option chain data for a US stock via Finnhub.
 func (a *App) GetUSOptionChain(symbol string) ([]adapters.OptionChainItem, error) {
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	reg := a.getMarketReg()
 	adpt := reg.Get("finnhub")
 	if adpt == nil {
@@ -818,7 +880,8 @@ func (a *App) GetUSOptionChain(symbol string) ([]adapters.OptionChainItem, error
 
 // GetSECFilings returns recent SEC filings for a US stock via Finnhub.
 func (a *App) GetSECFilings(symbol string) ([]adapters.FinnhubSECFiling, error) {
-	ctx := context.Background()
+	ctx, cancel := market.RequestCtx()
+	defer cancel()
 	reg := a.getMarketReg()
 	adpt := reg.Get("finnhub")
 	if adpt == nil {

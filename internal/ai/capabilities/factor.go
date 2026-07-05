@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"quantflow/internal/ai"
 	"quantflow/internal/python"
@@ -37,8 +38,10 @@ func RegisterFactorCapabilities(reg *ai.CapabilityRegistry, bridge *python.Pytho
 				var params struct {
 					Category string `json:"category"`
 				}
-				json.Unmarshal(args, &params)
-				catFilter = params.Category
+				if err := json.Unmarshal(args, &params); err != nil {
+				slog.Warn("list_factors: unmarshal params", "error", err)
+			}
+			catFilter = params.Category
 			}
 
 			var lines []string
@@ -89,7 +92,10 @@ func RegisterFactorCapabilities(reg *ai.CapabilityRegistry, bridge *python.Pytho
 			if resp.Error != "" {
 				return fmt.Sprintf("Error: %s", resp.Error), nil
 			}
-			result, _ := json.Marshal(resp.Results)
+			result, err := json.Marshal(resp.Results)
+			if err != nil {
+				return "", fmt.Errorf("compute_factor: marshal: %w", err)
+			}
 			return fmt.Sprintf("Factor %s computed in %dms. Results: %s", params.FactorName, resp.ComputeTimeMs, string(result)), nil
 		},
 	})

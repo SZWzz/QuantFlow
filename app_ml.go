@@ -218,7 +218,11 @@ func (a *App) AssessRisk(symbols []string, modelType string) (map[string]interfa
 	if a.bridge == nil {
 		return nil, nil
 	}
-	returnsJSON, _ := json.Marshal([][]float64{})
+	returnsJSON, err := json.Marshal([][]float64{})
+	if err != nil {
+		slog.Warn("assess_risk: marshal returns", "error", err)
+		returnsJSON = []byte("[]")
+	}
 	client := python.NewMLClient(a.bridge)
 	req := &pb.RiskModelRequest{
 		ModelType:   modelType,

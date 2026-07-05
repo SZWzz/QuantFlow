@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { PanelHeader } from '@/terminal/components/panel'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
-defineProps<{
+const props = defineProps<{
   panelId: string
   params?: Record<string, any>
 }>()
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 
 const searchQuery = ref('')
 const selectedCategory = ref<string | null>(null)
@@ -78,6 +81,10 @@ function categoryColor(cat: string): string {
 
 <template>
   <div class="factor-panel">
+    <PanelHeader
+      :title="$t('ml.factor_analysis')"
+      :controls="addToWfControl ? [addToWfControl] : []"
+    />
     <!-- Search -->
     <div class="search-bar">
       <input

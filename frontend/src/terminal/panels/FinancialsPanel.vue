@@ -4,6 +4,8 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 interface FinPeriod {
   report_date: string
@@ -33,6 +35,8 @@ const tabs = [
   { key: 'balance', label: '资产负债表' },
   { key: 'cashflow', label: '现金流量表' },
 ] as const
+
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
 function smartFormat(val: string): string {
   const n = parseFloat(val)
@@ -92,6 +96,7 @@ onMounted(loadData)
     <div class="panel-header">
       <h3>财务报表</h3>
       <div class="header-right">
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
         <span class="symbol-badge">{{ symbol }} {{ name }}</span>
         <button class="refresh-btn" @click="loadData" :disabled="loading">⟳</button>
       </div>
@@ -172,4 +177,26 @@ onMounted(loadData)
 .t-val { min-width: 100px; text-align: right; }
 .t-section { background: rgba(96,165,250,0.04); }
 .t-section .t-label { font-weight: 600; color: var(--color-accent); }
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
 </style>

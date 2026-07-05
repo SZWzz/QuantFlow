@@ -70,21 +70,20 @@ func (h *Hub) Unsubscribe(client *Client, topic string) {
 }
 
 func (h *Hub) Broadcast(topic string, data any) {
-	h.mu.RLock()
-	subs := h.topics[topic]
-	h.mu.RUnlock()
-
 	raw, err := json.Marshal(data)
 	if err != nil {
 		return
 	}
 
 	msg := &Message{Topic: topic, Data: raw}
-	rawMsg, _ := json.Marshal(msg)
+	rawMsg, marshalErr := json.Marshal(msg)
+	if marshalErr != nil {
+		return
+	}
 
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	for client := range subs {
+	for client := range h.topics[topic] {
 		select {
 		case client.send <- rawMsg:
 		default:

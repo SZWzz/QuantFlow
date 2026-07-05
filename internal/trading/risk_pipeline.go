@@ -1,6 +1,9 @@
 package trading
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 // RiskConfig defines the risk parameters for the trading engine.
 type RiskConfig struct {
@@ -24,6 +27,7 @@ func DefaultRiskConfig() RiskConfig {
 
 // RiskPipeline checks orders and positions against risk rules.
 type RiskPipeline struct {
+	mu     sync.Mutex
 	config RiskConfig
 }
 
@@ -37,15 +41,20 @@ func NewRiskPipeline(config RiskConfig) *RiskPipeline {
 // CheckDrawdown returns an error if current equity has fallen below the
 // maximum drawdown threshold relative to the peak equity.
 func (r *RiskPipeline) CheckDrawdown(currentEquity float64) error {
+	r.mu.Lock()
 	if currentEquity > r.config.PeakEquity {
 		r.config.PeakEquity = currentEquity
 	}
-	if r.config.PeakEquity <= 0 {
+	peak := r.config.PeakEquity
+	maxDD := r.config.MaxDrawdownPct
+	r.mu.Unlock()
+
+	if peak <= 0 {
 		return nil
 	}
-	dd := (r.config.PeakEquity - currentEquity) / r.config.PeakEquity
-	if dd > r.config.MaxDrawdownPct {
-		return fmt.Errorf("max drawdown exceeded: %.2f%% > %.2f%%", dd*100, r.config.MaxDrawdownPct*100)
+	dd := (peak - currentEquity) / peak
+	if dd > maxDD {
+		return fmt.Errorf("max drawdown exceeded: %.2f%% > %.2f%%", dd*100, maxDD*100)
 	}
 	return nil
 }

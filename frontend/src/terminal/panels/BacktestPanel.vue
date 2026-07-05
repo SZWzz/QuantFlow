@@ -8,6 +8,8 @@ import VChart from 'vue-echarts'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { PanelHeader, PanelTable, PanelCard, EmptyState, LoadingState } from '@/terminal/components/panel'
 import { confirmDialog, alertDialog } from '@/lib/wails'
+import { useI18n } from 'vue-i18n'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import type { TradeSignal, KlineDataItem } from '@/lib/buildChartOption'
 
 use([CanvasRenderer, CandlestickChart, BarChart, LineChart, TooltipComponent, GridComponent, DataZoomComponent, MarkPointComponent])
@@ -36,6 +38,24 @@ interface BacktestSummary {
 }
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const { t } = useI18n()
+
+const listControls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  list.push({ icon: 'refresh', title: t('common.refresh'), action: loadList, loading: loading })
+  list.push({ icon: 'delete', title: '清空全部记录', action: deleteAllRecords })
+  return list
+})
+
+const detailControls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  list.push({ label: '← 返回列表', action: goBack })
+  list.push({ label: t('common.delete'), action: deleteDetail })
+  return list
+})
 
 type ViewMode = 'list' | 'detail'
 const view = ref<ViewMode>('list')
@@ -226,10 +246,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
       <PanelHeader
         title="回测历史"
         :subtitle="`${items.length} 条记录`"
-        :controls="[
-          { icon: 'refresh', title: '刷新', action: loadList, loading: loading },
-          { icon: 'delete', title: '清空全部记录', action: deleteAllRecords },
-        ]"
+        :controls="listControls"
       />
       <div class="panel-body">
         <LoadingState v-if="loading && items.length === 0" type="table" :rows="5" :cols="7" />
@@ -259,10 +276,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
       <PanelHeader
         :title="storedData?.strategy_name || '回测详情'"
         :subtitle="storedData ? `${storedData.symbol} ｜ ${storedData.backtest_start?.slice(0,10) || '?'} → ${storedData.backtest_end?.slice(0,10) || '?'}` : ''"
-        :controls="[
-          { label: '← 返回列表', action: goBack },
-          { label: '删除', action: deleteDetail },
-        ]"
+        :controls="detailControls"
       />
       <div class="panel-body scrollable">
         <LoadingState v-if="storedLoading" type="chart" />

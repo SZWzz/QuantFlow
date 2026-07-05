@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	pb "quantflow/internal/python/proto"
@@ -89,6 +90,11 @@ func (c *MLClient) RLTrain(ctx context.Context, req *pb.RLTrainRequest) (<-chan 
 
 	ch := make(chan *pb.RLTrainUpdate, 10)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("ml_client train goroutine panicked", "recover", r)
+			}
+		}()
 		defer close(ch)
 		for {
 			update, err := stream.Recv()

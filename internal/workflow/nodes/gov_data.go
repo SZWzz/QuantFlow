@@ -139,7 +139,11 @@ func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params
 		}
 	}
 
-	signalsJSON, _ := json.Marshal(signals)
+	signalsJSON, err := json.Marshal(signals)
+	if err != nil {
+		slog.Warn("gov_data: marshal signals", "error", err)
+		signalsJSON = []byte("[]")
+	}
 
 	return map[string]any{
 		"macro_signal": map[string]any{
@@ -165,6 +169,5 @@ func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params
 
 func (n *GovDataNode) Validate() error { return nil }
 
-// blank assignment to keep unused imports
-var _ = json.Marshal
+// blank assignment to keep unused import
 var _ = time.Now

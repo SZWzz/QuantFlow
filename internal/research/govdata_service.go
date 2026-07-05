@@ -122,12 +122,11 @@ func (s *GovDataService) GetAllSignals(ctx context.Context) ([]MacroSignal, erro
 	cacheKey := "all_signals"
 
 	s.mu.RLock()
-	if entry, ok := s.cache[cacheKey]; ok && time.Now().Before(entry.expiresAt) {
-		defer s.mu.RUnlock()
-		// Not the same type but ok — we re-check differently
-		_ = entry
+	if _, ok := s.cache[cacheKey]; ok {
+		s.mu.RUnlock()
+	} else {
+		s.mu.RUnlock()
 	}
-	s.mu.RUnlock()
 
 	// Collect all indicator IDs in stable order
 	order := []string{

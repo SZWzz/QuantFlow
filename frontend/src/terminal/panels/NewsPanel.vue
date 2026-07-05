@@ -2,11 +2,14 @@
 import { ref, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { PanelHeader } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const { fetchWithCache } = usePanelCache()
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 
 interface NewsItem { title: string; source: string; time: string; url?: string; symbol?: string }
 
@@ -64,6 +67,10 @@ watch(() => items.value, (newItems) => {
 
 <template>
   <div class="news-panel">
+    <PanelHeader
+      title="News"
+      :controls="addToWfControl ? [addToWfControl] : []"
+    />
     <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
     <div v-else-if="!items.length" class="empty-state">{{ $t('news.no_news') }}</div>
     <div v-else v-for="(item, i) in items" :key="i" class="news-item" @click="openUrl(item.url)">

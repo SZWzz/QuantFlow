@@ -30,10 +30,16 @@ func (r *ModelRegistry) Create(ctx context.Context, model *MLModel) error {
 	model.CreatedAt = now
 	model.UpdatedAt = now
 
-	hyperJSON, _ := json.Marshal(model.Hyperparams)
-	metricsJSON, _ := json.Marshal(model.Metrics)
+	hyperJSON, err := json.Marshal(model.Hyperparams)
+	if err != nil {
+		return fmt.Errorf("marshal hyperparams: %w", err)
+	}
+	metricsJSON, err := json.Marshal(model.Metrics)
+	if err != nil {
+		return fmt.Errorf("marshal metrics: %w", err)
+	}
 
-	_, err := r.db.ExecContext(ctx,
+	_, err = r.db.ExecContext(ctx,
 		`INSERT INTO ml_models (id, name, model_type, category, hyperparams, metrics, file_path, file_bytes, status, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		model.ID, model.Name, string(model.ModelType), string(model.Category),
@@ -70,8 +76,12 @@ func (r *ModelRegistry) Get(ctx context.Context, id string) (*MLModel, error) {
 	model.Status = ModelStatus(status)
 	model.CreatedAt, _ = time.Parse(time.RFC3339, ca)
 	model.UpdatedAt, _ = time.Parse(time.RFC3339, ua)
-	json.Unmarshal([]byte(hyperJSON), &model.Hyperparams)
-	json.Unmarshal([]byte(metricsJSON), &model.Metrics)
+	if err := json.Unmarshal([]byte(hyperJSON), &model.Hyperparams); err != nil {
+		slog.Warn("unmarshal hyperparams", "model", model.ID, "error", err)
+	}
+	if err := json.Unmarshal([]byte(metricsJSON), &model.Metrics); err != nil {
+		slog.Warn("unmarshal metrics", "model", model.ID, "error", err)
+	}
 
 	return model, nil
 }
@@ -126,8 +136,12 @@ func (r *ModelRegistry) List(ctx context.Context, filter ModelFilter) ([]*MLMode
 		m.Status = ModelStatus(status)
 		m.CreatedAt, _ = time.Parse(time.RFC3339, ca)
 		m.UpdatedAt, _ = time.Parse(time.RFC3339, ua)
-		json.Unmarshal([]byte(hyperJSON), &m.Hyperparams)
-		json.Unmarshal([]byte(metricsJSON), &m.Metrics)
+		if err := json.Unmarshal([]byte(hyperJSON), &m.Hyperparams); err != nil {
+			slog.Warn("unmarshal hyperparams", "model", m.ID, "error", err)
+		}
+		if err := json.Unmarshal([]byte(metricsJSON), &m.Metrics); err != nil {
+			slog.Warn("unmarshal metrics", "model", m.ID, "error", err)
+		}
 		models = append(models, m)
 	}
 	return models, rows.Err()

@@ -170,7 +170,10 @@ func (a *TuShareAdapter) callAPI(ctx context.Context, apiName string, params map
 		"fields":   fieldsToString(fields),
 	}
 
-	data, _ := json.Marshal(reqBody)
+	data, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("tushare: marshal: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, "POST", tushareBaseURL, bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("tushare: %w", err)

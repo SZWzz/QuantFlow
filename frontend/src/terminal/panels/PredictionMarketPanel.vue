@@ -7,6 +7,8 @@ import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -47,6 +49,8 @@ const categoryLabels: Record<string, string> = {
   all: t('common.all'), economics: '经济', crypto: '加密', politics: '政治',
   sports: '体育', tech: '科技', entertainment: '娱乐'
 }
+
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
 async function loadEvents() {
   loading.value = true
@@ -157,6 +161,7 @@ function changeClass(c: number): string {
     <div class="panel-header">
       <h3>📊 {{ t('prediction.title') }}</h3>
       <div class="header-actions">
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
         <span v-if="signalInfo && signalInfo.action !== 'hold'" class="signal-badge" :class="signalInfo.action">
           {{ signalInfo.action === 'buy' ? '🟢' : '🔴' }} {{ signalInfo.description }}
         </span>
@@ -371,4 +376,26 @@ tr.signal-row { border-left: 3px solid var(--color-accent); }
   padding: 40px; color: var(--color-text-tertiary);
 }
 .empty-state.small { padding: 20px; font-size: 12px; }
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
 </style>

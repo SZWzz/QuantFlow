@@ -15,6 +15,8 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 use([HeatmapChart, TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, CanvasRenderer])
 
@@ -49,6 +51,8 @@ function parseSymbols(): string[] {
     .map((s: string) => s.trim())
     .filter((s: string) => s.length > 0)
 }
+
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
 async function compute() {
   const syms = parseSymbols()
@@ -195,6 +199,7 @@ onMounted(() => {
   <div class="correlation-panel">
     <div class="panel-header">
       <h3>{{ $t('misc.correlation') }}{{ name ? ` — ${firstSymbol} ${name}` : '' }}</h3>
+      <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
     </div>
 
     <div class="controls-row">
@@ -272,6 +277,9 @@ onMounted(() => {
 }
 
 .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 10px 14px 6px;
   border-bottom: 1px solid var(--color-border-strong);
 }
@@ -398,5 +406,27 @@ onMounted(() => {
   border-radius: 2px;
   border: 1px solid transparent;
   font-variant-numeric: tabular-nums;
+}
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
 }
 </style>

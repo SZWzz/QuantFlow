@@ -39,9 +39,9 @@ func TestFetchOHLCV_ReturnsErrorWhenNotSupported(t *testing.T) {
 	})
 
 	t.Run("polygon", func(t *testing.T) {
-		_, err := NewPolygonAdapter().FetchOHLCV(ctx, "AAPL", "1d", "", 0, 0)
+		_, err := NewPolygonAdapter(PolygonConfig{}).FetchOHLCV(ctx, "AAPL", "1d", "", 0, 0)
 		if err == nil {
-			t.Error("polygon: FetchOHLCV should return an error (not implemented without API key)")
+			t.Error("polygon: FetchOHLCV should return an error (no API key)")
 		}
 	})
 }

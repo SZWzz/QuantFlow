@@ -121,8 +121,12 @@ func (m *CredentialManager) List() ([]Credential, error) {
 
 // Save creates or updates a credential. Keys are encrypted before storage.
 func (m *CredentialManager) Save(name, credType string, keys map[string]string) error {
-	plain, _ := json.Marshal(keys)
+	plain, err := json.Marshal(keys)
+	if err != nil {
+		return fmt.Errorf("credential: marshal keys: %w", err)
+	}
 	encrypted, err := m.encrypt(plain)
+
 	if err != nil {
 		return err
 	}

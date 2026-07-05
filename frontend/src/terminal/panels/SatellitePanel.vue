@@ -6,6 +6,8 @@ import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const { t } = useI18n()
 
@@ -38,6 +40,8 @@ const solarData = ref<EnergyPoint[]>([])
 const windData = ref<EnergyPoint[]>([])
 const chartLoading = ref(false)
 const { fetchWithCache } = usePanelCache()
+
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
 async function loadRegions() {
   const seq = ++loadSeq
@@ -218,6 +222,7 @@ function wildfireClass(count: number): string {
         <span class="summary-badge up" v-if="signalCounts.up > 0">↑ {{ signalCounts.up }} 上升</span>
         <span class="summary-badge down" v-if="signalCounts.down > 0">↓ {{ signalCounts.down }} 下降</span>
         <span class="summary-badge stable" v-if="signalCounts.stable > 0">→ {{ signalCounts.stable }} 稳定</span>
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
         <button class="btn-sm" @click="loadRegions()">🔄 {{ $t('common.refresh') }}</button>
       </div>
     </div>
@@ -570,4 +575,26 @@ function wildfireClass(count: number): string {
   grid-column: 1 / -1;
 }
 .empty-state.small { padding: 20px; font-size: 12px; }
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
 </style>

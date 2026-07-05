@@ -4,6 +4,34 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.5] - 2026-07-05
+
+### Added
+- [Frontend] 终端 → 工作流方向联动 — 21 个面板新增 [⊕] 按钮，点击自动创建对应工作流节点并询问是否切换到工作流模式。新建 `panelToNode.ts` 映射表和 `useAddToWorkflow` composable，支持 `PanelHeader:controls` 注入和自定义 header 两种模式。已将 `add_to_workflow` i18n key 从 `ml` 段移至 `workflow` 段并添加确认对话框文案
+- [Engine] 周末/闭市离线数据缓存 — 新增泛型 `OffHoursCache[T]` 工具（`internal/market/offhours.go`），自动持久化各数据类型最后成功获取的结果到 `data/offhours/*.json`。覆盖 GetIndustryRanks、GetDepth、GetAbnormalStocks、GetDragonTiger、GetFundFlow 五个端点，闭市时返回缓存数据而非空白
+
+### Fixed
+- [Storage] P1: `config.yaml` 中 `db_path` 若残留来自旧版本的绝对路径，`ResolveDBPath` 直接原样返回导致数据库始终指向旧位置。修复：启动时检测 `db_path` 是否绝对路径，自动重置为默认相对路径 `data/quantflow.db`。同时修改已损坏的 `~/config.yaml`
+- [Engine] P0: 修复 `satellite_service.go` 和 `govdata_service.go` 中缓存的类型断言失败后不 return 导致的 double RUnlock panic
+- [Engine] P0: 为所有 `go func()` 添加 panic recovery（cache saves, bridge, ml_client, quote poller），防止单个 goroutine panic 导致整个进程崩溃
+- [MarketData] P0: 所有 Wails 方法中的 `context.Background()` 替换为带 10s 超时的 `market.RequestCtx()`，防止 adapter 挂起导致 goroutine 永久泄漏
+- [MarketData] P1: 修复 `risk_pipeline.go` 中 `PeakEquity` 无锁访问的数据竞争
+- [MarketData] P1: 修复 `ws/hub.go` 中 `Broadcast` 两次 RLock 间的 TOCTOU 竞态，改为单次 RLock 内完成订阅查询和发送
+- [Broker] P1: 在 `alpaca.go` 和 `binance.go` 中添加缺失的 `defer resp.Body.Close()`，防止连接池耗尽
+- [Storage] P1: 36 处 JSON marshal/unmarshal 错误不再静默忽略 — 关键路径（凭证加密、通知、工作流序列化）改为返回 error，非关键路径加 `slog.Warn` 日志
+- [Frontend] P1: `RebalancePanel` 将 `window.alert()` 替换为 `alertDialog()`，适配 Wails v3 webview
+
+### Added
+- [Terminal] P2: 新增 `.editorconfig`、`.env.example` — 标准化跨编辑器缩进和记录所需环境变量
+- [Terminal] P2: 新增 `.github/workflows/ci.yml`（Go + Vue + Python CI）、`.golangci.yml`（8 linters）、`.pre-commit-config.yaml`（go vet + vue-tsc 钩子）
+- [Terminal] P2: 启用 `tsconfig strict` 模式
+- [Python] P2: 对齐 `pyproject.toml` 与 `requirements.txt` 的依赖列表，结构化 optional 分组（data/nlp/stats/dev），版本号从 importlib.metadata 动态读取
+- [Terminal] P2: 清理 `dist/` 仓库跟踪（`git rm --cached`），`vendor/` 加入 `.gitignore`
+- [Engine] P3: 实现 4 个之前为 stub 的工作流节点 — `risk_metrics`（风险指标计算）、`json_parse`（JSON 解析）、`http_request`（HTTP 请求+SSRF 防护）、`allocation`（资金分配）
+- [MarketData] P3: 实现 Polygon.io 数据适配器（报价/K线/公司基本面/新闻 API + 速率限制）
+- [Testing] P3: 新增 3 个测试文件覆盖零测试包 — `internal/ws/hub_test.go`、`internal/auth/credential_test.go`、`internal/logging/logger_test.go`
+- [Frontend] P3: 清理 Vue 组件 — `CandlestickPanel` 合并重复 watch、`SymbolSearch` 将 computed 副作用改为 watch + debounce
+
 ## [2026.7.4] - 2026-07-04
 
 ### Fixed

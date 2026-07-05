@@ -3,6 +3,8 @@ import { ref, watch, computed } from 'vue'
 import { useResearchStore } from '@/stores/research'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
@@ -54,6 +56,8 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
   }
 })
 
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
+
 async function refresh() {
   loadError.value = ''
   try {
@@ -82,6 +86,7 @@ function handleSymbolSubmit(e: Event) {
     <div class="panel-header">
       <h3>{{ $t('research.analyst') }} &mdash; {{ symbol.toUpperCase() }} {{ name }}</h3>
       <div class="header-controls">
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
         <input
           class="symbol-input"
           :value="symbol"
@@ -164,4 +169,26 @@ function handleSymbolSubmit(e: Event) {
 .num-cell { font-variant-numeric: tabular-nums; }
 .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
 </style>

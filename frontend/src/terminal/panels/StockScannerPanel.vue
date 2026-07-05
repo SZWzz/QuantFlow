@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
-defineProps<{
+const props = defineProps<{
   panelId: string
   params?: Record<string, any>
 }>()
+
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 
 interface StrategyDef {
   id: string
@@ -182,6 +185,7 @@ function tableData() {
     <PanelHeader
       :title="selectedStrategy ? selectedStrategy.name : 'Stock Scanner'"
       :subtitle="selectedStrategy ? selectedStrategy.category : '策略选股'"
+      :controls="addToWfControl ? [addToWfControl] : []"
     >
       <template #controls>
         <div v-if="selectedStrategy" class="header-controls">

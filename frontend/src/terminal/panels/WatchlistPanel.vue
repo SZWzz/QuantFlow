@@ -6,6 +6,8 @@ import { detectMarket } from '@/lib/wails'
 import { PanelHeader } from '@/terminal/components/panel'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
+import { useI18n } from 'vue-i18n'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -14,6 +16,15 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const { fetchWithCache } = usePanelCache()
 const ws = useWebSocket()
 const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const { t } = useI18n()
+
+const controls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  list.push({ icon: 'refresh', label: t('common.refresh'), action: refreshAll })
+  return list
+})
 
 const WS_KEY = 'quantflow-watchlist'
 const CONFIG_KEY = 'quantflow-watchlist-config'
@@ -362,9 +373,7 @@ onUnmounted(() => {
   <div class="watchlist-panel">
     <PanelHeader
       :title="$t('watchlist.title')"
-      :controls="[
-        { icon: 'refresh', label: $t('common.refresh'), action: refreshAll },
-      ]"
+      :controls="controls"
     />
 
     <!-- Empty state -->

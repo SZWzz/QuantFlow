@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -154,7 +155,14 @@ func (b *PythonBridge) runPython(module string, args ...string) (map[string]any,
 	}
 
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("python sidecar goroutine panicked", "recover", r)
+			}
+		}()
+		done <- cmd.Wait()
+	}()
 
 	select {
 	case <-ctx.Done():

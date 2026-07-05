@@ -104,7 +104,10 @@ func RegisterQuoteCapabilities(reg *ai.CapabilityRegistry) {
 			if len(matches) == 0 {
 				return fmt.Sprintf("No symbols found for %q. Try company name or known ticker.", params.Query), nil
 			}
-			result, _ := json.Marshal(matches)
+			result, err := json.Marshal(matches)
+			if err != nil {
+				return "", fmt.Errorf("search_symbol: marshal: %w", err)
+			}
 			return string(result), nil
 		},
 	})

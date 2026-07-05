@@ -59,10 +59,12 @@ func (s *SatelliteService) GetRegionSnapshots(ctx context.Context) ([]adapters.R
 
 	s.mu.RLock()
 	if entry, ok := s.cache[cacheKey]; ok && time.Now().Before(entry.expiresAt) {
-		defer s.mu.RUnlock()
 		if snapshots, ok := entry.data.([]adapters.RegionSnapshot); ok {
+			s.mu.RUnlock()
 			return snapshots, nil
 		}
+		s.mu.RUnlock()
+		return nil, fmt.Errorf("satellite: cache entry %q has unexpected type %T", cacheKey, entry.data)
 	}
 	s.mu.RUnlock()
 

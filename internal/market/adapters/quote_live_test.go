@@ -36,7 +36,7 @@ func TestAllQuoteAdapters_FetchQuote(t *testing.T) {
 
 		// ── US ─────────────────────────────────────────────────────
 		{name: "yahoo", adapter: NewYahooAdapter(), symbol: "AAPL", market: "US", wantAuth: false},
-		{name: "polygon", adapter: NewPolygonAdapter(), symbol: "AAPL", market: "US", wantAuth: true},
+		{name: "polygon", adapter: NewPolygonAdapter(PolygonConfig{}), symbol: "AAPL", market: "US", wantAuth: true},
 
 		// ── HK ─────────────────────────────────────────────────────
 		// (no dedicated HK-only adapter; yahoo and others cover HK)

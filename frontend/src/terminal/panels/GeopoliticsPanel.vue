@@ -5,6 +5,8 @@ import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -50,6 +52,8 @@ const riskBadgeMap: Record<string, string> = {
 }
 
 const { fetchWithCache } = usePanelCache()
+
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
 async function loadRisks() {
   loading.value = true
@@ -218,6 +222,7 @@ function formatTime(ts: number): string {
     <div class="panel-header">
       <h3>{{ $t('geo.title') }}</h3>
       <div class="header-actions">
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
         <button class="btn-sm" @click="loadRisks()">&#128260; {{ $t('common.refresh') }}</button>
       </div>
     </div>
@@ -524,4 +529,26 @@ function formatTime(ts: number): string {
   grid-column: 1 / -1;
 }
 .empty-state.small { padding: 20px; font-size: 12px; }
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
 </style>

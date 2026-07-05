@@ -60,7 +60,7 @@ func (b *BinanceBroker) Connect(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("binance connect: %w", err)
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("binance connect: status %d", resp.StatusCode)
 	}

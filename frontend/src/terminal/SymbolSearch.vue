@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useSymbolSearch, type StockEntry } from '@/lib/symbolSearch'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import type { StockEntry } from '@/lib/symbolSearch'
 
 const props = defineProps<{
   modelValue?: string
@@ -12,7 +12,9 @@ const emit = defineEmits<{
   'select': [entry: StockEntry]
 }>()
 
-const { query, results, loading } = useSymbolSearch()
+const query = ref('')
+const results = ref<StockEntry[]>([])
+const loading = ref(false)
 const marketFilter = ref<string>('ALL')
 const open = ref(false)
 const selectedIndex = ref(-1)
@@ -36,8 +38,26 @@ const listRef = ref<HTMLUListElement | null>(null)
 const displayValue = ref(props.modelValue ?? '')
 const selectedName = ref('')
 
-// Sync external modelValue changes
-computed(() => props.modelValue)
+let debounceTimer: ReturnType<typeof setTimeout>
+
+async function searchApi(q: string): Promise<StockEntry[]> {
+  loading.value = true
+  try {
+    const app = (window as any).go?.main?.App
+    if (app?.SearchSymbols) {
+      return await app.SearchSymbols(q.trim(), 20)
+    }
+  } catch {}
+  return []
+}
+
+watch(query, (newQuery) => {
+  clearTimeout(debounceTimer)
+  if (newQuery.length < 2) { results.value = []; loading.value = false; return }
+  debounceTimer = setTimeout(() => {
+    searchApi(newQuery).then(r => { results.value = r; loading.value = false })
+  }, 300)
+})
 
 // When user picks a result
 function select(entry: StockEntry) {
@@ -136,6 +156,7 @@ function onClickOutside(e: MouseEvent) {
 
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
+onUnmounted(() => clearTimeout(debounceTimer))
 </script>
 
 <template>

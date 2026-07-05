@@ -72,6 +72,16 @@ func (p *QuotePoller) Run(ctx context.Context) {
 	p.running = true
 	p.mu.Unlock()
 
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("quote poller panicked, restarting", "recover", r)
+			p.mu.Lock()
+			p.running = false
+			p.mu.Unlock()
+			time.Sleep(5 * time.Second)
+			go p.Run(ctx)
+		}
+	}()
 	slog.Info("quote poller started", "interval", p.interval)
 	ticker := time.NewTicker(p.interval)
 	defer ticker.Stop()

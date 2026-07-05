@@ -140,7 +140,7 @@ func (a *AlpacaBroker) CancelOrder(ctx context.Context, orderID string) error {
 	if err != nil {
 		return fmt.Errorf("alpaca cancel order: %w", err)
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("alpaca cancel order: HTTP %d", resp.StatusCode)
 	}

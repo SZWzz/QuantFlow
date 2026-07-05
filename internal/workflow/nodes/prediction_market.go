@@ -107,7 +107,11 @@ func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]an
 	if len(events) > limit {
 		events = events[:limit]
 	}
-	eventsJSON, _ := json.Marshal(events)
+	eventsJSON, err := json.Marshal(events)
+	if err != nil {
+		slog.Warn("prediction_market: marshal events", "error", err)
+		eventsJSON = []byte("[]")
+	}
 
 	return map[string]any{
 		"top_events":     string(eventsJSON),

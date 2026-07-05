@@ -5,6 +5,7 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { PanelHeader, PanelCard, PanelTable, LoadingState } from '@/terminal/components/panel'
 import type { IndexSnapshot, SectorRanking } from '@/stores/data'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -15,6 +16,14 @@ const { fetchWithCache } = usePanelCache()
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const headerControls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  list.push({ label: autoRefresh.value ? `自动 (${countdown.value}s)` : '手动', action: toggleAutoRefresh, title: '切换自动刷新' })
+  list.push({ icon: 'refresh', action: refresh, loading: loading.value, title: '刷新' })
+  return list
+})
 const autoRefresh = ref(true)
 const loadError = ref('')
 const refreshInterval = ref(15)
@@ -150,10 +159,7 @@ const blockRankColumns = [
         { key: 'US', label: 'US' },
       ]"
       :active-tab="activeMarket"
-      :controls="[
-        { label: autoRefresh ? `自动 (${countdown}s)` : '手动', action: toggleAutoRefresh, title: '切换自动刷新' },
-        { icon: 'refresh', action: refresh, loading: loading.valueOf(), title: '刷新' },
-      ]"
+      :controls="headerControls"
       @tab-change="switchMarket"
     />
 

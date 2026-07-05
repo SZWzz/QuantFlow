@@ -65,7 +65,10 @@ func (n *PredictNode) Execute(ctx context.Context, inputs map[string]any, params
 		return nil, fmt.Errorf("predict: model_id must be string")
 	}
 	features := inputs["feature_matrix"].(map[string][]float64)
-	featureJSON, _ := json.Marshal(features)
+	featureJSON, err := json.Marshal(features)
+	if err != nil {
+		return nil, fmt.Errorf("predict: marshal features: %w", err)
+	}
 
 	mlClient := python.NewMLClient(bridge)
 	req := &proto.PredictRequest{

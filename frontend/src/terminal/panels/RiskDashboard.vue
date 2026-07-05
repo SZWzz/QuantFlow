@@ -5,9 +5,12 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { graphic } from 'echarts/core'
 import VChart from 'vue-echarts'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
-defineProps<{ panelId: string; params?: Record<string, any> }>()
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = usePortfolioStore()
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 const loading = ref(false)
 
 const fmt = (n: number, dec = 2) => n.toFixed(dec)
@@ -122,7 +125,10 @@ onMounted(async () => {
   <div class="risk-dashboard-panel">
     <div class="panel-header">
       <h3>风险仪表盘</h3>
-      <span v-if="totalExposure > 0" class="exposure-badge">敞口 ${{ fmtMoney(totalExposure) }}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
+        <span v-if="totalExposure > 0" class="exposure-badge">敞口 ${{ fmtMoney(totalExposure) }}</span>
+      </div>
     </div>
     <SkeletonPanel v-if="loading && !hasData" type="card" :rows="2" />
     <div v-else-if="!hasData" class="status">暂无数据 — 需要持仓和净值历史数据</div>
@@ -155,4 +161,26 @@ onMounted(async () => {
 .kpi-value { font-size: 18px; font-weight: 700; }
 .chart-section { background: var(--color-bg-elevated, var(--color-bg-panel)); border-radius: var(--radius-lg); padding: 8px; margin-bottom: 8px; border: 1px solid var(--color-border-subtle); }
 .dd-info { text-align: center; font-size: 11px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
 </style>

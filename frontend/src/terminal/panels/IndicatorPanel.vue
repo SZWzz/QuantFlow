@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useStockName } from '@/lib/composables/useStockName'
 import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
-defineProps<{
+const props = defineProps<{
   panelId: string
   params?: Record<string, any>
 }>()
@@ -140,6 +142,17 @@ const tableColumns = computed(() => {
   }
   return cols
 })
+
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const { t } = useI18n()
+const headerControls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  if (selectedIndicator.value) {
+    list.push({ icon: 'chevron-left', label: t('common.back'), action: goBack })
+  }
+  return list
+})
 </script>
 
 <template>
@@ -147,9 +160,7 @@ const tableColumns = computed(() => {
     <PanelHeader
       :title="selectedIndicator ? selectedIndicator.name : 'Indicator Panel'"
       :subtitle="selectedIndicator ? selectedIndicator.category : '技术指标'"
-      :controls="selectedIndicator ? [
-        { icon: 'chevron-left', label: '返回', action: goBack },
-      ] : []"
+      :controls="headerControls"
     />
 
     <div class="panel-body">

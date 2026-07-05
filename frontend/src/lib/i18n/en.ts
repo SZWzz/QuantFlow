@@ -175,7 +175,7 @@ export default {
     all_categories: 'All Categories', all_types: 'All Types', all_status: 'All Status',
     category: 'Category', hyperparams: 'Hyperparams', created: 'Created',
     archive: 'Archive', archived: 'Archived', failed: 'Failed',
-    add_to_workflow: '+ Workflow', ic_trend: 'IC Trend',
+    ic_trend: 'IC Trend',
     prediction_vs_actual: 'Pred vs Actual', pred_distribution: 'Pred Distribution',
     quantile_returns: 'Quantile Returns', load: 'Load',
     models: 'Available Models',
@@ -237,6 +237,9 @@ export default {
     paste: 'Paste', select_all: 'Select All', add_node: 'Add Node...',
     back: 'Back', sub_workflow: 'Sub-workflow',
     drag_hint: 'Drag nodes from the palette or press Ctrl+K',
+    add_to_workflow: '+ Workflow',
+    switch_confirm_title: 'Switch to Workflow Mode?',
+    switch_confirm_body: 'The node has been added to the workflow canvas. Switch to workflow mode to connect and configure it?',
   },
   monitor: {
     title: 'System Monitor', go_runtime: 'Go Runtime', goroutines: 'Goroutines',

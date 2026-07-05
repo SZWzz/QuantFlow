@@ -38,7 +38,10 @@ func (t *TelegramNotifier) Send(ctx context.Context, msg *Message) error {
 	}
 
 	payload := map[string]interface{}{"chat_id": t.chatID, "text": text, "parse_mode": "MarkdownV2"}
-	body, _ := json.Marshal(payload)
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("telegram: marshal: %w", err)
+	}
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", t.botToken)
 
 	var lastErr error

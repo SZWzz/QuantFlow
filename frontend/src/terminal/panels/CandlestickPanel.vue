@@ -16,6 +16,8 @@ import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { detectLimitUpDown } from '@/lib/chart/EventMarker'
 import type { EventMarker } from '@/lib/chart/EventMarker'
 import { useWebSocket, type KlineUpdate } from '@/lib/composables/useWebSocket'
+import { getIcon } from '@/lib/icons'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -64,6 +66,7 @@ function isTradingHours(): boolean {
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
+const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId, symbol)
 
 const WS_KEY = 'quantflow-watchlist'
 function getWatchlist(): string[] {
@@ -385,6 +388,19 @@ function mergeOHLCVUpdate(data: KlineDataItem[], update: KlineUpdate) {
   }
 }
 
+function loadData() {
+  loadOHLCV(symbol.value)
+  loadQuote()
+  initWebSocket()
+  if (['1m', '5m', '15m', '30m', '1h'].includes(interval.value)) {
+    if (activeTab.value === 'kline') {
+      startKlineRefresh()
+    }
+  } else {
+    stopKlineRefresh()
+  }
+}
+
 // Subscribe to symbol context via link group
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
   if (newSymbol && newSymbol !== symbol.value) {
@@ -393,10 +409,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
   }
 })
 
-watch(symbol, () => {
-  loadQuote()
-  initWebSocket()
-})
+watch([symbol, interval], () => loadData(), { immediate: true })
 
 watch(ohlcvData, (data) => {
   eventMarkers.value = data.length >= 2 ? detectLimitUpDown(data) : []
@@ -428,12 +441,6 @@ watch(indexOverlaySymbol, async (sym) => {
   } catch (e) {
     console.error('[Candlestick] loadIndex:', e)
   }
-})
-
-// Regenerate data on interval change
-watch(interval, () => {
-  loadOHLCV(symbol.value)
-  initWebSocket()
 })
 
 // Watch tab switch for minute polling
@@ -470,17 +477,6 @@ watch(() => symbol.value, (newSymbol, oldSymbol) => {
   if (activeTab.value === 'minute') {
     loadMinuteLine()
     if (showDepth.value) loadDepth()
-  }
-})
-
-// K-line auto-refresh for minute intervals
-watch(interval, (iv) => {
-  if (['1m', '5m', '15m', '30m', '1h'].includes(iv as string)) {
-    if (activeTab.value === 'kline') {
-      startKlineRefresh()
-    }
-  } else {
-    stopKlineRefresh()
   }
 })
 
@@ -727,6 +723,7 @@ onUnmounted(() => {
         <button class="drawing-btn" @click="toggleDrawingMode()" :class="{ active: drawingMode }" title="画线工具 (Shift+D)">
           ✏️
         </button>
+        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
       </div>
       <div v-if="activeTab === 'kline'" class="interval-btns">
         <button v-for="i in ['1m','5m','15m','30m','1h','1d','1w']" :key="i"
@@ -1104,5 +1101,27 @@ onUnmounted(() => {
   height: 1px;
   margin: 4px 8px;
   background: var(--color-border-subtle);
+}
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
 }
 </style>

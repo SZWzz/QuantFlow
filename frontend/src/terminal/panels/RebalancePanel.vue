@@ -5,6 +5,7 @@ import type { PositionDetail } from '@/stores/portfolio'
 
 import VChart from 'vue-echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { alertDialog } from '@/lib/wails'
 
 defineProps<{
   panelId: string
@@ -160,10 +161,10 @@ function removeTargetRow(id: number) {
   targetAllocation.value = targetAllocation.value.filter((t) => t.id !== id)
 }
 
-function generateOrders() {
+async function generateOrders() {
   const buys = tradeList.value.filter((t) => t.action === 'Buy')
   const sells = tradeList.value.filter((t) => t.action === 'Sell')
-  window.alert(`Generated ${buys.length} buy orders, ${sells.length} sell orders`)
+  await alertDialog(`Generated ${buys.length} buy orders, ${sells.length} sell orders`)
 }
 
 function fmtMoney(n: number): string {

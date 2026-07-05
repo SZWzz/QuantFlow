@@ -86,8 +86,14 @@ func (n *TrainModelNode) Execute(ctx context.Context, inputs map[string]any, par
 	target := inputs["target"].(map[string][]float64)
 
 	// Convert to JSON bytes for the gRPC message
-	featureJSON, _ := json.Marshal(features)
-	targetJSON, _ := json.Marshal(target)
+	featureJSON, err := json.Marshal(features)
+	if err != nil {
+		return nil, fmt.Errorf("train_model: marshal features: %w", err)
+	}
+	targetJSON, err := json.Marshal(target)
+	if err != nil {
+		return nil, fmt.Errorf("train_model: marshal target: %w", err)
+	}
 
 	hyperparams := map[string]string{
 		"n_estimators":  fmt.Sprintf("%d", getIntParam(params, "n_estimators", 100)),

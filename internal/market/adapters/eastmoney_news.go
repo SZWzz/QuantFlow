@@ -59,7 +59,7 @@ func (a *EastMoneyNewsAdapter) FetchStockNews(ctx context.Context, symbol string
 	a.limiter.Wait()
 
 	// Build JSONP request body (matching SKILL.md §5.1)
-	innerParams, _ := json.Marshal(map[string]any{
+	innerParams, err := json.Marshal(map[string]any{
 		"uid":          "",
 		"keyword":      symbol,
 		"type":         []string{"cmsArticleWebOld"},
@@ -77,6 +77,9 @@ func (a *EastMoneyNewsAdapter) FetchStockNews(ctx context.Context, symbol string
 			},
 		},
 	})
+	if err != nil {
+		return nil, fmt.Errorf("eastmoney_news: marshal params: %w", err)
+	}
 
 	url := fmt.Sprintf(
 		"https://search-api-web.eastmoney.com/search/jsonp?cb=jQuery_news&param=%s",

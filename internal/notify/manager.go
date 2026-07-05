@@ -79,7 +79,11 @@ func (m *Manager) processEvents() {
 		copy(notifiers, m.notifiers)
 		m.mu.RUnlock()
 
-		metadataJSON, _ := json.Marshal(msg.Metadata)
+		metadataJSON, err := json.Marshal(msg.Metadata)
+		if err != nil {
+			slog.Warn("marshal notification metadata", "error", err)
+			metadataJSON = []byte("{}")
+		}
 		m.db.Exec("INSERT INTO notifications (level, title, body, metadata) VALUES (?, ?, ?, ?)",
 			msg.Level, msg.Title, msg.Body, string(metadataJSON))
 

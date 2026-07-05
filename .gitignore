@@ -56,6 +56,9 @@ coverage.out
 # Project proposal (outdated after implementation)
 NEW_PROJECT_PROPOSAL.md
 
+# Go vendor
+vendor/
+
 # Stray temp files
 1
 问题.md
