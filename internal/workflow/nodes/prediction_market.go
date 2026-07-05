@@ -81,7 +81,7 @@ func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]an
 	} else {
 		slog.Warn("prediction market service not set, using mock")
 		// Use the service's own mock data via a nil-adapter instance.
-		mockSvc := &research.PredictionMarketService{}
+		mockSvc := research.NewPredictionMarketService(nil)
 		events, _ := mockSvc.GetEvents(ctx, category, limit)
 		output = &research.SignalOutput{
 			Category:    category,
@@ -92,7 +92,7 @@ func (n *PredictionMarketNode) Execute(ctx context.Context, inputs map[string]an
 	}
 	if err != nil {
 		slog.Warn("prediction market signal extraction failed", "error", err)
-		mockSvc := &research.PredictionMarketService{}
+		mockSvc := research.NewPredictionMarketService(nil)
 		events, _ := mockSvc.GetEvents(ctx, category, limit)
 		output = &research.SignalOutput{
 			Category:    category,

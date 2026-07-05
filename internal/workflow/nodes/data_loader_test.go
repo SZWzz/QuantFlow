@@ -50,7 +50,10 @@ func TestDataLoaderNode_PortDefinitions(t *testing.T) {
 		t.Errorf("InputPorts should be empty, got %d", len(inputs))
 	}
 	outputs := node.OutputPorts()
-	if len(outputs) != 1 || outputs[0].Name != "ohlcv" {
-		t.Errorf("OutputPorts: %+v, want 1 port named 'ohlcv'", outputs)
+	if len(outputs) != 6 {
+		t.Errorf("OutputPorts count = %d, want 6 (ohlcv,close,open,high,low,volume)", len(outputs))
+	}
+	if outputs[0].Name != "ohlcv" {
+		t.Errorf("OutputPorts[0].Name = %q, want 'ohlcv'", outputs[0].Name)
 	}
 }

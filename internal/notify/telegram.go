@@ -13,6 +13,7 @@ type TelegramNotifier struct {
 	botToken string
 	chatID   string
 	client   *http.Client
+	baseURL  string // overridable for tests; default "https://api.telegram.org"
 }
 
 func NewTelegramNotifier(botToken, chatID string) *TelegramNotifier {
@@ -20,6 +21,7 @@ func NewTelegramNotifier(botToken, chatID string) *TelegramNotifier {
 		botToken: botToken,
 		chatID:   chatID,
 		client:   &http.Client{Timeout: 10 * time.Second},
+		baseURL:  "https://api.telegram.org",
 	}
 }
 
@@ -42,7 +44,7 @@ func (t *TelegramNotifier) Send(ctx context.Context, msg *Message) error {
 	if err != nil {
 		return fmt.Errorf("telegram: marshal: %w", err)
 	}
-	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", t.botToken)
+	url := fmt.Sprintf("%s/bot%s/sendMessage", t.baseURL, t.botToken)
 
 	var lastErr error
 	for i := 0; i < 3; i++ {

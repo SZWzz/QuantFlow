@@ -46,7 +46,7 @@ func (r *Repo) Delete(id string) error {
 
 func (r *Repo) List() ([]*Task, error) {
 	rows, err := r.db.Query(
-		"SELECT id, name, cron_expr, workflow_id, enabled, timeout_sec, created_at, updated_at FROM schedule_tasks ORDER BY created_at DESC",
+		"SELECT id, name, cron_expr, workflow_id, enabled, timeout_sec, last_run_at, last_run_status, created_at, updated_at FROM schedule_tasks ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, err
@@ -55,14 +55,21 @@ func (r *Repo) List() ([]*Task, error) {
 	var tasks []*Task
 	for rows.Next() {
 		task := &Task{}
-		var ca, ua string
+		var ca, ua, lra, lrs sql.NullString
 		var en int
-		if err := rows.Scan(&task.ID, &task.Name, &task.CronExpr, &task.WorkflowID, &en, &task.TimeoutSec, &ca, &ua); err != nil {
+		if err := rows.Scan(&task.ID, &task.Name, &task.CronExpr, &task.WorkflowID, &en, &task.TimeoutSec, &lra, &lrs, &ca, &ua); err != nil {
 			return nil, err
 		}
 		task.Enabled = en != 0
-		task.CreatedAt, _ = time.Parse(time.RFC3339, ca)
-		task.UpdatedAt, _ = time.Parse(time.RFC3339, ua)
+		if lra.Valid {
+			t, _ := time.Parse(time.RFC3339, lra.String)
+			task.LastRunAt = &t
+		}
+		if lrs.Valid {
+			task.LastRunStatus = lrs.String
+		}
+		task.CreatedAt, _ = time.Parse(time.RFC3339, ca.String)
+		task.UpdatedAt, _ = time.Parse(time.RFC3339, ua.String)
 		tasks = append(tasks, task)
 	}
 	return tasks, rows.Err()
