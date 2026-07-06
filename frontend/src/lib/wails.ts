@@ -285,3 +285,17 @@ export function changeColorClass(pct: number, scheme: string = 'cn'): string {
   if (scheme === 'us') return pct >= 0 ? 'up' : 'down' // CSS handles mapping
   return pct >= 0 ? 'up' : 'down'
 }
+
+// ── Log Panel ────────────────────────────────────────────────────────
+
+export interface LogEntry {
+  id: number
+  time: string
+  level: string
+  message: string
+  attrs?: Record<string, any>
+}
+
+export async function GetLogs(afterID: number): Promise<LogEntry[]> {
+  return wailsCall<LogEntry[]>('GetLogs', afterID)
+}
