@@ -4,6 +4,20 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.6] - 2026-07-06
+
+### Added
+- [Terminal] 日志面板：集成 stderr 日志到前端 LogPanel.vue，无需独立终端窗口
+- [Engine] RingBuffer 日志环形缓冲区（5000 条容量），双写 stderr + 内存
+- [Frontend] useLogger composable：轮询 GetLogs API 获取增量日志
+
+### Fixed
+- [Frontend] **P0: 工作流模式头部按钮变形（文字竖向排列、位置漂移）** — `themes.css` 全局 `.wf-btn` 定义 `width: 24px`（用于「添加到工作流」小图标按钮），与 WorkflowMode 头部工具栏按钮共用 class 名。scoped CSS 未设置 `width`，全局 24px 约束将「我的工作流」（~60px）压缩到单字符宽度，导致中文逐字换行呈竖向排列。修复：scoped `.wf-btn` 添加 `width: auto` 覆盖全局宽度
+- [Frontend] **P0: K 线 tooltip 显示完全错误的 OHLC 值** — tooltip 中开/收/低/高分别显示为 `dataIndex/实际开盘/实际收盘/实际最低`（如 `开3190 收4.64 低.62 高4.53`），正确值应为 `开4.6 收4.62 低4.53 高4.79`。根因：ECharts 5.5+ 在 tooltip 回调中 `p.data` 返回 `[dataIndex, open, close, low, high]`（5 元素）而非预期的 `[open, close, low, high]`（4 元素），代码读取 `d[0..3]` 时 dataIndex 被误当作开盘价，全部数据错位一位。修复：`buildChartOption.ts` tooltip 改为通过 `data[p.dataIndex]` 从原始 `KlineDataItem` 对象取值，绕过 ECharts 内部数据表示。同时修复 `Crosshair.ts` 中 `getValues` 的相同字段偏移问题
+- [MarketData] P1: EastMoney kline API 参数修正 — 将 `fields`（单数参数）替换为文档规定的 `fields1`+`fields2` 参数，确保 API 返回正确的字段顺序（`f51=date, f52=open, f53=close, f54=high, f55=low, f56=volume, f57=amount`）。旧参数可能被 API 忽略，导致字段偏移（如 open 显示成交额/量值）。同步更新注释及字段数量检查逻辑
+- [MarketData] P1: 回退前次 `/100` 除操作 — Web 搜索和实测确认 EastMoney kline API（push2his）返回价格单位为 **元**，非分笔行情（push2）的 **分**，除 100 会导致所有价格变为实际值的 1/100
+- [MarketData] P3: `FetchOHLCVWithFallback` 成功时添加 `slog.Info` 日志，输出使用的 adapter 名称和数据条数，便于排查 K 线数据来源
+
 ## [2026.7.5] - 2026-07-05
 
 ### Added
