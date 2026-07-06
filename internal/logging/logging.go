@@ -1,4 +1,3 @@
-// Package logging provides a thin wrapper around slog for application-level logging.
 package logging
 
 import (
@@ -6,8 +5,8 @@ import (
 	"os"
 )
 
-// Setup configures the default slog logger with the given level.
-// Valid levels: "debug", "info", "warn", "error".
+var Ring = NewRingBuffer(5000)
+
 func Setup(level string) {
 	var lvl slog.Level
 	switch level {
@@ -20,6 +19,7 @@ func Setup(level string) {
 	default:
 		lvl = slog.LevelInfo
 	}
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: lvl})
+	textHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: lvl})
+	handler := newDualHandler(textHandler, Ring)
 	slog.SetDefault(slog.New(handler))
 }
