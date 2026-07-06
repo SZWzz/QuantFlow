@@ -1016,6 +1016,12 @@ func (a *App) ListProfiles() []*ai.AgentProfile {
 	return a.profileMgr.List()
 }
 
+// GetLogs returns log entries after the given ID (0 = all).
+// Used by the frontend LogPanel to poll for new entries.
+func (a *App) GetLogs(afterID int) []logging.LogEntry {
+	return logging.Ring.Lines(int64(afterID), 200)
+}
+
 // GetNotifications returns recent notifications.
 func (a *App) GetNotifications(limit, offset int) []*notify.Notification {
 	if a.notifyMgr == nil {

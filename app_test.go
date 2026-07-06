@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
+	"quantflow/internal/logging"
 	"quantflow/internal/market"
 )
 
@@ -62,5 +64,25 @@ func TestApp_FetchOHLCV_NoRegistryErrors(t *testing.T) {
 	_, _, err := a.FetchOHLCV(context.Background(), "CN", "600519", "1D", "", 0, 0)
 	if err == nil {
 		t.Fatal("FetchOHLCV should error when market registry is nil")
+	}
+}
+
+func TestGetLogs(t *testing.T) {
+	app := &App{}
+	logging.Setup("debug")
+	slog.Info("test log for GetLogs")
+	logs := app.GetLogs(0)
+	if len(logs) == 0 {
+		t.Fatal("expected at least 1 log entry")
+	}
+	lastID := logs[len(logs)-1].ID
+	newLogs := app.GetLogs(int(lastID))
+	if len(newLogs) != 0 {
+		t.Fatalf("expected 0 new entries after last ID, got %d", len(newLogs))
+	}
+	slog.Info("second test log")
+	newLogs = app.GetLogs(int(lastID))
+	if len(newLogs) != 1 {
+		t.Fatalf("expected 1 new entry, got %d", len(newLogs))
 	}
 }
