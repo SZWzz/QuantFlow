@@ -117,6 +117,7 @@ register('system-monitor', () => import('./SystemMonitorPanel.vue'), { label: '�
 register('schedule-panel', () => import('./SchedulePanel.vue'), { label: '定时任务', category: '系统', description: '自动化定时任务' })
 register('notify-panel', () => import('./NotifyPanel.vue'), { label: '通知中心', category: '系统', description: '消息通知列表' })
 register('settings', () => import('./SettingsPanel.vue'), { label: '系统设置', category: '系统', description: '全局配置' })
+register('log-viewer', () => import('./LogPanel.vue'), { label: '日志面板', category: '系统', description: '实时系统日志' })
 
 // ── 欢迎页 ──
 register('welcome', () => import('./WelcomePanel.vue'), { label: '欢迎', category: '系统', description: '欢迎页面' })
