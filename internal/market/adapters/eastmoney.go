@@ -144,7 +144,7 @@ func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interv
 		fqt = 0
 	}
 
-	url := fmt.Sprintf("%s?secid=%s&klt=%s&fqt=%d&beg=%s&end=%s&fields=f51,f52,f53,f54,f55,f56,f57",
+	url := fmt.Sprintf("%s?secid=%s&klt=%s&fqt=%d&beg=%s&end=%s&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57",
 		eastmoneyKlineURL, secid, klt, fqt,
 		time.Unix(start, 0).Format("20060102"),
 		time.Unix(end, 0).Format("20060102"))
@@ -176,8 +176,12 @@ func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interv
 	endDate := time.Unix(end, 0)
 	bars := make([]market.OHLCVBar, 0, len(klineResp.Data.Klines))
 	for _, kline := range klineResp.Data.Klines {
-		// Each kline is comma-separated: f51,f52,f53,f54,f55,f56,f57
-		// f51=date, f52=open, f53=close, f54=high, f55=low, f56=volume, f57=amount
+		// Each kline is comma-separated. With fields2=f51..f57, the expected order is:
+		// [0]=date, [1]=open, [2]=close, [3]=high, [4]=low, [5]=volume, [6]=amount
+		// NOTE: EastMoney's CSV order is NOT standard OHLCV (open, high, low, close).
+		// It returns close BEFORE high/low. Do NOT reorder to match OHLCV convention!
+		// EastMoney may return additional fields (amplitude, pct, change, turnover)
+		// if more fields are requested; we only consume the first 7.
 		fields := strings.Split(kline, ",")
 		if len(fields) < 6 {
 			continue
