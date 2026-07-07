@@ -51,12 +51,29 @@ func TestRingBufferLinesAfterID(t *testing.T) {
 	}
 }
 
-func TestRingBufferZeroCapacity(t *testing.T) {
+func TestRingBufferZeroCapacityDefaultsTo5000(t *testing.T) {
 	rb := NewRingBuffer(0)
+	if rb.max != 5000 {
+		t.Fatalf("expected max=5000, got %d", rb.max)
+	}
 	rb.Push(LogEntry{ID: 1, Message: "a"})
 	lines := rb.Lines(0, 10)
+	if lines == nil {
+		t.Fatal("expected non-nil slice")
+	}
+	if len(lines) != 1 {
+		t.Fatalf("expected 1 line, got %d", len(lines))
+	}
+}
+
+func TestRingBufferEmptyReturnsEmptySlice(t *testing.T) {
+	rb := NewRingBuffer(100)
+	lines := rb.Lines(0, 10)
+	if lines == nil {
+		t.Fatal("expected non-nil slice, got nil")
+	}
 	if len(lines) != 0 {
-		t.Fatal("expected empty ring buffer with 0 capacity")
+		t.Fatal("expected empty slice")
 	}
 }
 

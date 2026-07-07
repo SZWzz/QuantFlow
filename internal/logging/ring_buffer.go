@@ -23,15 +23,8 @@ type RingBuffer struct {
 }
 
 func NewRingBuffer(capacity int) *RingBuffer {
-	if capacity < 0 {
+	if capacity <= 0 {
 		capacity = 5000
-	}
-	if capacity == 0 {
-		return &RingBuffer{
-			buffer: nil,
-			max:    0,
-			nextID: 1,
-		}
 	}
 	return &RingBuffer{
 		buffer: make([]LogEntry, capacity),
@@ -43,9 +36,6 @@ func NewRingBuffer(capacity int) *RingBuffer {
 func (rb *RingBuffer) Push(entry LogEntry) {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
-	if rb.max == 0 {
-		return
-	}
 	entry.ID = rb.nextID
 	rb.nextID++
 	if rb.count < rb.max {
@@ -61,7 +51,7 @@ func (rb *RingBuffer) Lines(afterID int64, limit int) []LogEntry {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
 	if rb.count == 0 || limit <= 0 {
-		return nil
+		return []LogEntry{}
 	}
 
 	var result []LogEntry
