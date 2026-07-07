@@ -17,6 +17,8 @@
 - [Engine] eastmoney_signals %w directive on non-wrapping NewTransientErrorf
 - [Engine] app_test inject cfg to prevent nil deref in registerMarketAdapters
 - [Frontend] Register vue-i18n in test setup for component mount wrappers
+- [Workflow] CredentialManager confirm/alert → confirmDialog/alertDialog (Wails v3 compat)
+- [Workflow] NodePalette template _id no longer mutates module-level TEMPLATES constant
 - [Frontend] Crosshair 成交量硬编码为 0 → 从 candlestick raw data 正确提取
 - [Frontend] Crosshair 黑框不再冗余显示 OHLC（已由 ECharts tooltip 展示），仅保留 Chg/Chg%/Vol
 - [Frontend] ECharts tooltip OHLC 显示顺序修正为 O→H→L→C（行业标准）
