@@ -78,7 +78,8 @@ async function fetchBlockRank() {
     blockRankLoading.value = false
   }
 }
-function switchMarket(mkt: typeof activeMarket.value) {
+function switchMarket(mkt: string) {
+  if (mkt !== 'CN' && mkt !== 'HK' && mkt !== 'US') return
   activeMarket.value = mkt
   refresh()
 }

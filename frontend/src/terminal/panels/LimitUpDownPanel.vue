@@ -72,7 +72,8 @@ async function refresh() {
   }
 }
 
-function switchMarket(mkt: 'SH' | 'SZ') {
+function switchMarket(mkt: string) {
+  if (mkt !== 'SH' && mkt !== 'SZ') return
   market.value = mkt
   refresh()
 }

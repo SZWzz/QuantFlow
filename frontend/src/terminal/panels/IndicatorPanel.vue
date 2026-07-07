@@ -136,7 +136,7 @@ const tableColumns = computed(() => {
     cols.push({
       key: o.toLowerCase(),
       label: o,
-      align: 'right' as const,
+      align: 'left' as const,
       formatter: (v: number) => v?.toFixed?.(4) ?? v ?? '-',
     })
   }

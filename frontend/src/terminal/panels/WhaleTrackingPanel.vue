@@ -28,11 +28,14 @@ const { fetchWithCache } = usePanelCache()
 
 const sorted = computed(() => {
   const arr = [...txs.value]
-  arr.sort((a, b) => {
-    const aVal = a[sortKey.value as keyof WhaleTx] ?? 0
-    const bVal = b[sortKey.value as keyof WhaleTx] ?? 0
-    return (typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal))) * sortDir.value
-  })
+    arr.sort((a, b) => {
+      const aVal = a[sortKey.value as keyof WhaleTx] ?? 0
+      const bVal = b[sortKey.value as keyof WhaleTx] ?? 0
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return (aVal - bVal) * sortDir.value
+      }
+      return String(aVal).localeCompare(String(bVal)) * sortDir.value
+    })
   return arr
 })
 

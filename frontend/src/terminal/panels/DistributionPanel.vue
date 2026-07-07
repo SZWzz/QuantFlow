@@ -41,6 +41,7 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
 const symbol = ref(props.params?.symbol ?? ctx.getGroupSymbol(pg.groupId) ?? '600519')
 const { name } = useStockName(symbol)
+const { t } = useI18n()
 const lookback = ref(props.params?.lookback ?? 252)
 const lookbackOptions = [30, 60, 90, 252]
 

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"quantflow/internal/config"
 	"quantflow/internal/logging"
 	"quantflow/internal/market"
 )
@@ -15,6 +16,7 @@ import (
 // IsAvailable()==false (graceful degradation), while the others are still registered.
 func TestApp_RegisterMarketAdapters_AllWired(t *testing.T) {
 	a := &App{
+		cfg:       config.DefaultConfig(),
 		marketReg: market.NewAdapterRegistry(),
 		bridge:    nil, // no Python sidecar → mootdx degrades
 	}
