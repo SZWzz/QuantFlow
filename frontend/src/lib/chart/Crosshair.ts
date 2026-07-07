@@ -118,26 +118,6 @@ export class Crosshair {
       ctx.fillText(timeText, this.mouseX - tw / 2, h - 6)
     }
 
-    if (this.data) {
-      const lines = [
-        `T: ${this.data.time}`,
-        `Chg: ${this.data.change >= 0 ? '+' : ''}${this.data.change.toFixed(2)}`,
-        `${this.data.changePercent >= 0 ? '+' : ''}${this.data.changePercent.toFixed(2)}%`,
-        `Vol: ${(this.data.volume / 10000).toFixed(0)}万`,
-      ]
-      const lineH = 16
-      const boxW = 130
-      const boxH = lines.length * lineH + 8
-      const boxX = Math.min(this.mouseX + 16, w - boxW - 8)
-      const boxY = Math.max(4, Math.min(this.mouseY - boxH / 2, h - boxH - 4))
-
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
-      ctx.fillRect(boxX, boxY, boxW, boxH)
-      ctx.fillStyle = '#fff'
-      ctx.font = '11px monospace'
-      lines.forEach((line, i) => {
-        ctx.fillText(line, boxX + 6, boxY + 12 + i * lineH)
-      })
-    }
+    // Black box (Chg/Chg%/Vol) removed — displayed in ECharts tooltip instead
   }
 }

@@ -259,6 +259,20 @@ export function buildKlineOption(
               lines.push(`<div>${t('kline.high')}: ${item.high.toFixed(2)}</div>`)
               lines.push(`<div>${t('kline.low')}: ${item.low.toFixed(2)}</div>`)
               lines.push(`<div>${t('kline.close')}: ${item.close.toFixed(2)}</div>`)
+              if (p.dataIndex > 0) {
+                const prev = data[p.dataIndex - 1]
+                if (prev) {
+                  const chg = item.close - prev.close
+                  const chgPct = prev.close !== 0 ? (chg / prev.close) * 100 : 0
+                  const chgColor = chg >= 0 ? '#ef5350' : '#66bb6a'
+                  lines.push(`<div style="margin-top:2px">${t('quote.change')}: <span style="color:${chgColor}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}</span></div>`)
+                  lines.push(`<div>${t('quote.change_pct')}: <span style="color:${chgColor}">${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%</span></div>`)
+                }
+              } else {
+                lines.push(`<div style="margin-top:2px">${t('quote.change')}: --</div>`)
+                lines.push(`<div>${t('quote.change_pct')}: --</div>`)
+              }
+              lines.push(`<div>${t('kline.volume')}: ${(item.volume / 10000).toFixed(0)}万</div>`)
               continue
             }
           }
