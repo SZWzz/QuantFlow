@@ -10,27 +10,30 @@ export function useLogger(pollInterval = 1000) {
   const entries = ref<LogEntry[]>([])
   const lastID = ref(0)
   const maxEntries = 2000
+  const error = ref<string | null>(null)
   const filter = ref<LogFilter>({ levels: new Set(['info', 'warn', 'error']), search: '' })
   let timer: ReturnType<typeof setInterval> | null = null
 
   async function poll() {
     try {
-      const newEntries = await GetLogs(lastID.value)
-      if (newEntries.length > 0) {
+      const newEntries: LogEntry[] = await GetLogs(lastID.value)
+      if (newEntries && newEntries.length > 0) {
         lastID.value = newEntries[newEntries.length - 1].id
         entries.value.push(...newEntries)
         if (entries.value.length > maxEntries) {
           entries.value = entries.value.slice(entries.value.length - maxEntries)
         }
       }
+      error.value = null
     } catch (e) {
-      // Silently fail — log panel should never crash the app
+      error.value = String(e)
+      console.error('[useLogger] poll error:', e)
     }
   }
 
   function filteredEntries(): LogEntry[] {
     return entries.value.filter(e => {
-      if (!filter.value.levels.has(e.level)) return false
+      if (e.level && !filter.value.levels.has(e.level.toLowerCase())) return false
       if (filter.value.search) {
         const q = filter.value.search.toLowerCase()
         const msg = e.message.toLowerCase()
@@ -58,6 +61,7 @@ export function useLogger(pollInterval = 1000) {
   function clear() {
     entries.value = []
     lastID.value = 0
+    error.value = null
   }
 
   onMounted(() => {
@@ -72,5 +76,5 @@ export function useLogger(pollInterval = 1000) {
     }
   })
 
-  return { entries, filter, filteredEntries, toggleLevel, setSearch, clear, poll }
+  return { entries, filter, filteredEntries, toggleLevel, setSearch, clear, poll, error }
 }
