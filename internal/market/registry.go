@@ -291,6 +291,7 @@ func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, sy
 			continue
 		}
 
+		slog.Info("ohlcv fetched", "adapter", name, "symbol", symbol, "interval", interval, "bars", len(bars))
 		return bars, name, nil
 	}
 

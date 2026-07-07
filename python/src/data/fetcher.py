@@ -173,14 +173,26 @@ def _fetch_mootdx_ohlcv(symbols: list[str], start_date: str, end_date: str, inte
                 break
 
             df = pd.DataFrame(raw)
+
+            logger.info("mootdx ohlcv raw columns for %s: %s", symbol, list(df.columns))
+            if len(df) > 0:
+                logger.info("mootdx ohlcv first raw row for %s: %s", symbol, dict(df.iloc[0]))
+
+            # Also handle bare "date" column (mootdx 0.11+)
             col_map = {}
-            if "datetime" in df.columns:
-                col_map["datetime"] = "trade_date"
-            if "vol" in df.columns:
-                col_map["vol"] = "volume"
+            for c in df.columns:
+                cl = str(c).strip().lower()
+                if cl in ("datetime", "date"):
+                    col_map[c] = "trade_date"
+                elif cl == "vol":
+                    col_map[c] = "volume"
             df = df.rename(columns=col_map)
 
+            # Remove duplicate columns to prevent row[col] returning a Series
+            df = df.loc[:, ~df.columns.duplicated()]
+
             if "trade_date" not in df.columns:
+                logger.info("mootdx ohlcv missing trade_date for %s, columns: %s", symbol, list(df.columns))
                 break
 
             df["trade_date"] = pd.to_datetime(df["trade_date"])
@@ -205,19 +217,23 @@ def _fetch_mootdx_ohlcv(symbols: list[str], start_date: str, end_date: str, inte
         for idx, row in result.iterrows():
             bar = {"symbol": symbol, "date": idx.strftime("%Y-%m-%d")}
             for col in ("open", "high", "low", "close", "volume"):
-                if col in result.columns:
-                    try:
-                        val = row[col]
-                        # iterrows may return a Series for val on duplicate columns
-                        if hasattr(val, '__len__') and not isinstance(val, str):
-                            val = val.iloc[0] if hasattr(val, 'iloc') else float(val)
-                        bar[col] = float(val) if pd.notna(val) else 0.0
-                    except (ValueError, TypeError):
-                        bar[col] = 0.0
+                try:
+                    val = row[col]
+                    if hasattr(val, 'iloc'):
+                        val = val.iloc[0]
+                    elif hasattr(val, 'item'):
+                        val = val.item()
+                    bar[col] = float(val) if pd.notna(val) else 0.0
+                except (KeyError, ValueError, TypeError):
+                    bar[col] = 0.0
             all_bars.append(bar)
 
     if not all_bars:
         raise ValueError(f"mootdx: no data for {symbols} in [{start_date}, {end_date}]")
+
+    logger.info("mootdx ohlcv returning %d bars for %s, first2: %s, last2: %s",
+                 len(all_bars), symbols, all_bars[:2] if all_bars else [],
+                 all_bars[-2:] if len(all_bars) >= 2 else all_bars)
 
     return all_bars
 

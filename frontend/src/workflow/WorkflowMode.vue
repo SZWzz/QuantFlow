@@ -266,6 +266,7 @@ function onKeydown(event: KeyboardEvent) {
   font-family: inherit;
   transition: all var(--transition-fast);
   height: 30px;
+  width: auto;
 }
 
 .wf-btn:hover:not(:disabled) {

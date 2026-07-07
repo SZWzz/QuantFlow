@@ -37,3 +37,29 @@ tasks:
       # rsync --delete with --exclude skips .venv/ in both source and dest,
       # so we create the symlink AFTER rsync to ensure it survives.
       - ln -sfn "$(pwd)/python/.venv" build/python/.venv
+      # Package as .app bundle so double-click doesn't open Terminal
+      - mkdir -p build/quantflow.app/Contents/MacOS
+      - cp build/quantflow build/quantflow.app/Contents/MacOS/quantflow
+      # Symlink python/ so os.Executable()-relative resolution finds the sidecar
+      - ln -sfn ../../../python build/quantflow.app/Contents/MacOS/python
+      - |
+        if [ ! -f build/quantflow.app/Contents/Info.plist ]; then
+          cat > build/quantflow.app/Contents/Info.plist <<'PLIST'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>CFBundleExecutable</key>
+          <string>quantflow</string>
+          <key>CFBundleIdentifier</key>
+          <string>com.quantflow.app</string>
+          <key>CFBundleName</key>
+          <string>QuantFlow</string>
+          <key>CFBundleVersion</key>
+          <string>1.0</string>
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+        </dict>
+        </plist>
+        PLIST
+        fi

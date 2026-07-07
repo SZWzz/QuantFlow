@@ -1,21 +1,33 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import { PanelHeader } from '@/terminal/components/panel'
+import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { useLogger } from '@/lib/composables/useLogger'
 import { confirmDialog } from '@/lib/wails'
 
-defineProps<{ panelId: string; params?: Record<string, any> }>()
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 
 const LEVELS = ['debug', 'info', 'warn', 'error']
 
 const {
-  entries, filter, filteredEntries,
-  toggleLevel, setSearch, clear, poll,
+  filter, filteredEntries,
+  toggleLevel, setSearch, clear, poll, error,
 } = useLogger()
 
 const scrollContainer = ref<HTMLElement | null>(null)
 const autoScroll = ref(true)
+const searchInput = ref('')
 
 const displayEntries = computed(() => filteredEntries().slice(-500))
+
+const controls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  list.push({ icon: 'refresh', title: '刷新', action: () => { clear(); poll() } })
+  return list
+})
 
 function onScroll() {
   if (!scrollContainer.value) return
@@ -38,6 +50,12 @@ async function handleClear() {
   if (ok) clear()
 }
 
+function onSearchInput(e: Event) {
+  const val = (e.target as HTMLInputElement).value
+  searchInput.value = val
+  setSearch(val)
+}
+
 function formatTime(t: string): string {
   try {
     const d = new Date(t)
@@ -55,8 +73,8 @@ function formatAttrs(attrs?: Record<string, any>): string {
 }
 
 function highlightSearch(text: string): string {
-  if (!filter.value.search) return text
-  const q = filter.value.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (!searchInput.value) return text
+  const q = searchInput.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const re = new RegExp(`(${q})`, 'gi')
   return text.replace(re, '<mark class="log-highlight">$1</mark>')
 }
@@ -64,6 +82,11 @@ function highlightSearch(text: string): string {
 
 <template>
   <div class="log-panel">
+    <PanelHeader
+      title="日志面板"
+      :controls="controls"
+    />
+
     <!-- Toolbar -->
     <div class="log-toolbar">
       <div class="log-levels">
@@ -81,8 +104,8 @@ function highlightSearch(text: string): string {
         <input
           class="log-search"
           type="text"
-          :value="filter.search"
-          @input="setSearch(($event.target as HTMLInputElement).value)"
+          :value="searchInput"
+          @input="onSearchInput"
           placeholder="搜索日志..."
         />
         <button class="log-clear-btn" @click="handleClear">清空</button>
@@ -104,7 +127,10 @@ function highlightSearch(text: string): string {
           {{ formatAttrs(entry.attrs) }}
         </span>
       </div>
-      <div v-if="displayEntries.length === 0" class="log-empty">
+      <div v-if="error" class="log-error">
+        连接错误: {{ error }}
+      </div>
+      <div v-else-if="displayEntries.length === 0" class="log-empty">
         暂无日志
       </div>
     </div>
@@ -116,34 +142,34 @@ function highlightSearch(text: string): string {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1a1a2e;
+  background: var(--color-bg-panel);
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
-  color: #e0e0e0;
+  font-size: var(--font-xs);
+  color: var(--color-text-primary);
 }
 
 .log-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
-  background: #16162a;
-  border-bottom: 1px solid #2a2a4a;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .log-levels {
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .log-level-btn {
   padding: 2px 8px;
-  border: 1px solid #333;
-  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #888;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   font-size: 10px;
   font-family: inherit;
@@ -151,26 +177,26 @@ function highlightSearch(text: string): string {
 }
 
 .log-level-btn.active {
-  border-color: #555;
+  border-color: var(--color-border-strong);
 }
 
-.log-level-btn.log-level-debug.active { color: #888; border-color: #888; }
-.log-level-btn.log-level-info.active { color: #e0e0e0; border-color: #e0e0e0; }
-.log-level-btn.log-level-warn.active { color: #f0ad4e; border-color: #f0ad4e; }
-.log-level-btn.log-level-error.active { color: #ef4444; border-color: #ef4444; }
+.log-level-btn.log-level-debug.active { color: var(--color-text-tertiary); border-color: var(--color-text-tertiary); }
+.log-level-btn.log-level-info.active { color: var(--color-text-primary); border-color: var(--color-text-primary); }
+.log-level-btn.log-level-warn.active { color: var(--color-warn); border-color: var(--color-warn); }
+.log-level-btn.log-level-error.active { color: var(--color-danger); border-color: var(--color-danger); }
 
 .log-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .log-search {
   padding: 2px 8px;
-  border: 1px solid #333;
-  border-radius: 3px;
-  background: #0f0f1e;
-  color: #e0e0e0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
   font-size: 11px;
   font-family: inherit;
   width: 160px;
@@ -178,29 +204,29 @@ function highlightSearch(text: string): string {
 }
 
 .log-search:focus {
-  border-color: #555;
+  border-color: var(--color-accent);
 }
 
 .log-clear-btn {
   padding: 2px 10px;
-  border: 1px solid #333;
-  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #888;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   font-size: 10px;
   font-family: inherit;
 }
 
 .log-clear-btn:hover {
-  color: #ef4444;
-  border-color: #ef4444;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .log-entries {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
 }
 
 .log-entries::-webkit-scrollbar {
@@ -212,26 +238,27 @@ function highlightSearch(text: string): string {
 }
 
 .log-entries::-webkit-scrollbar-thumb {
-  background: #333;
+  background: var(--color-border);
   border-radius: 3px;
 }
 
 .log-line {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 1px 8px;
+  gap: var(--space-sm);
+  padding: 1px var(--space-sm);
   line-height: 1.5;
   white-space: nowrap;
   font-size: 11px;
 }
 
 .log-line:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-bg-hover);
 }
 
 .log-time {
-  color: #666;
+  color: var(--color-text-tertiary);
+  opacity: 0.7;
   flex-shrink: 0;
   width: 60px;
 }
@@ -242,10 +269,10 @@ function highlightSearch(text: string): string {
   font-weight: 500;
 }
 
-.log-line.log-level-debug { color: #888; }
-.log-line.log-level-info { color: #e0e0e0; }
-.log-line.log-level-warn { color: #f0ad4e; }
-.log-line.log-level-error { color: #ef4444; }
+.log-line.log-level-debug { color: var(--color-text-tertiary); }
+.log-line.log-level-info { color: var(--color-text-primary); }
+.log-line.log-level-warn { color: var(--color-warn); }
+.log-line.log-level-error { color: var(--color-danger); }
 
 .log-msg {
   flex-shrink: 1;
@@ -254,20 +281,28 @@ function highlightSearch(text: string): string {
 }
 
 .log-attrs {
-  color: #666;
+  color: var(--color-text-tertiary);
+  opacity: 0.6;
   flex-shrink: 0;
   margin-left: auto;
 }
 
 .log-empty {
-  padding: 20px;
+  padding: var(--space-lg);
   text-align: center;
-  color: #555;
+  color: var(--color-text-tertiary);
   font-style: italic;
 }
 
+.log-error {
+  padding: var(--space-md);
+  text-align: center;
+  color: var(--color-danger);
+  font-size: 11px;
+}
+
 :deep(.log-highlight) {
-  background: rgba(240, 173, 78, 0.3);
+  background: var(--color-warn-soft, rgba(240, 173, 78, 0.3));
   border-radius: 2px;
   padding: 0 1px;
 }
