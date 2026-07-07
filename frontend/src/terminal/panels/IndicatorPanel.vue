@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useStockName } from '@/lib/composables/useStockName'
-import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
+import { PanelHeader, PanelTable, EmptyState, type Column } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{
@@ -129,8 +129,8 @@ function goBack() {
 
 const tableColumns = computed(() => {
   if (!selectedIndicator.value) return []
-  const cols = [
-    { key: 'date', label: '日期', align: 'left' as const, width: 100 },
+  const cols: Column[] = [
+    { key: 'date', label: '日期', align: 'left', width: 100 },
   ]
   for (const o of selectedIndicator.value.outputs) {
     cols.push({

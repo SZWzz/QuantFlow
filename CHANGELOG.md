@@ -7,6 +7,16 @@
 ## [2026.7.7] - 2026-07-07
 
 ### Fixed
+- [Terminal] AIChatPanel marked renderer.code signature for marked v18+ API
+- [Terminal] CandlestickPanel jumpToDate parse date strings to Unix timestamps
+- [Terminal] CorrelationPanel corrMatrix type via fetchWithCache generic param
+- [Terminal] DefiTVLPanel/WhaleTrackingPanel sort comparator bVal type narrowing
+- [Terminal] DistributionPanel add missing useI18n() destructure
+- [Terminal] IndicatorPanel column align right→left; extract Column type to shared types.ts
+- [Terminal] LimitUpDownPanel/MarketOverviewPanel switchMarket accept string with runtime guard
+- [Engine] eastmoney_signals %w directive on non-wrapping NewTransientErrorf
+- [Engine] app_test inject cfg to prevent nil deref in registerMarketAdapters
+- [Frontend] Register vue-i18n in test setup for component mount wrappers
 - [Frontend] Crosshair 成交量硬编码为 0 → 从 candlestick raw data 正确提取
 - [Frontend] Crosshair 黑框不再冗余显示 OHLC（已由 ECharts tooltip 展示），仅保留 Chg/Chg%/Vol
 - [Frontend] ECharts tooltip OHLC 显示顺序修正为 O→H→L→C（行业标准）

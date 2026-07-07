@@ -1,17 +1,7 @@
 <script setup lang="ts">
 import { computed, useSlots } from 'vue'
 import LoadingState from './LoadingState.vue'
-
-interface Column {
-  key: string
-  label: string
-  width?: number
-  flex?: number
-  align?: 'left' | 'right' | 'center'
-  format?: 'price' | 'percent' | 'volume' | 'number'
-  colorize?: boolean
-  formatter?: (val: any) => string
-}
+import type { Column } from './types'
 
 const props = withDefaults(defineProps<{
   columns: Column[]
