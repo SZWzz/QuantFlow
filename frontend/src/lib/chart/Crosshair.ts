@@ -59,21 +59,23 @@ export class Crosshair {
     const rawData = series.getRawData()
     if (!rawData || dataIndex < 0 || dataIndex >= rawData.length) { this.data = null; return }
     const item = rawData.getValues(dataIndex) as any
+    // candlestick data: [open, close, low, high]; ECharts 5.5+ may prepend dataIndex → [idx, open, close, low, high]
+    const off = Array.isArray(item) && item.length >= 5 ? 1 : 0
 
     this.data = {
-      time: String(item[0] || ''),
-      open: Number(item[1]),
-      high: Number(item[2] !== undefined ? item[2] : item[3]),
-      low: Number(item[3] !== undefined ? item[3] : item[2]),
-      close: Number(item[4] !== undefined ? item[4] : item[2]),
-      volume: Number(item[5] || item[6] || 0),
+      time: String(item[0] ?? ''),
+      open: Number(item[off]),
+      close: Number(item[off + 1]),
+      low: Number(item[off + 2]),
+      high: Number(item[off + 3]),
+      volume: Number(item[off + 4] ?? 0),
       change: 0,
       changePercent: 0,
     }
 
     if (dataIndex > 0) {
       const prev = rawData.getValues(dataIndex - 1) as any
-      const prevClose = Number(prev[4] !== undefined ? prev[4] : prev[2])
+      const prevClose = Number(prev[off + 1])
       this.data.change = this.data.close - prevClose
       this.data.changePercent = prevClose !== 0 ? (this.data.change / prevClose) * 100 : 0
     }
@@ -119,10 +121,6 @@ export class Crosshair {
     if (this.data) {
       const lines = [
         `T: ${this.data.time}`,
-        `O: ${this.data.open.toFixed(2)}`,
-        `H: ${this.data.high.toFixed(2)}`,
-        `L: ${this.data.low.toFixed(2)}`,
-        `C: ${this.data.close.toFixed(2)}`,
         `Chg: ${this.data.change >= 0 ? '+' : ''}${this.data.change.toFixed(2)}`,
         `${this.data.changePercent >= 0 ? '+' : ''}${this.data.changePercent.toFixed(2)}%`,
         `Vol: ${(this.data.volume / 10000).toFixed(0)}万`,
