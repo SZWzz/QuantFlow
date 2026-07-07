@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -146,8 +147,17 @@ func (a *MootdxAdapter) FetchOHLCV(ctx context.Context, symbol string, interval 
 			High:   b.High,
 			Low:    b.Low,
 			Close:  b.Close,
-			Volume: b.Volume,
+			Volume: b.Volume * 100, // 手→shares, consistent with EastMoney adapter
 		})
+	}
+
+	if len(bars) > 0 {
+		first := bars[0]
+		last := bars[len(bars)-1]
+		slog.Info("mootdx ohlcv bars",
+			"symbol", symbol, "count", len(bars),
+			"first_date", first.Date, "first_ohlc", fmt.Sprintf("%.2f/%.2f/%.2f/%.2f", first.Open, first.High, first.Low, first.Close),
+			"last_date", last.Date, "last_ohlc", fmt.Sprintf("%.2f/%.2f/%.2f/%.2f", last.Open, last.High, last.Low, last.Close))
 	}
 
 	return bars, nil
