@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { confirmDialog, alertDialog } from '@/lib/wails'
 
 interface Credential {
   id: number
@@ -35,12 +36,12 @@ async function saveCred() {
     showAdd.value = false
     await loadCreds()
   } catch (e: any) {
-    alert('保存失败: ' + (e?.message || String(e)))
+    await alertDialog('保存失败: ' + (e?.message || String(e)))
   }
 }
 
 async function deleteCred(name: string) {
-  if (!confirm('确定删除凭证 "' + name + '"？')) return
+  if (!await confirmDialog('确定删除凭证 "' + name + '"？')) return
   const app = (window as any).go?.main?.App
   await app.DeleteCredential(name)
   await loadCreds()

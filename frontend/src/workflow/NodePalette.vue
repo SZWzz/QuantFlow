@@ -13,19 +13,17 @@ const workflow = useWorkflowStore()
 const showTemplates = ref(false)
 
 function insertTemplate(tpl: typeof TEMPLATES[0]) {
-  tpl.nodes.forEach((n, i) => {
-    const id = workflow.addNode(n.node_type, { x: n.x, y: n.y + 100 }, n.params)
-    // Store ID mapping
-    ;(n as any)._id = id
-  })
+  const nodeIds: string[] = tpl.nodes.map(n =>
+    workflow.addNode(n.node_type, { x: n.x, y: n.y + 100 }, n.params)
+  )
   tpl.edges.forEach(e => {
-    const srcNode = tpl.nodes[e.from] as any
-    const tgtNode = tpl.nodes[e.to] as any
-    if (srcNode._id && tgtNode._id) {
+    const srcId = nodeIds[e.from]
+    const tgtId = nodeIds[e.to]
+    if (srcId && tgtId) {
       workflow.addEdge({
-        id: `e-${srcNode._id}-${tgtNode._id}`,
-        source: srcNode._id,
-        target: tgtNode._id,
+        id: `e-${srcId}-${tgtId}`,
+        source: srcId,
+        target: tgtId,
         sourceHandle: e.from_port,
         targetHandle: e.to_port,
         type: 'smoothstep',
