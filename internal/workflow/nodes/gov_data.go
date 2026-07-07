@@ -50,9 +50,9 @@ func (n *GovDataNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var govDataService *research.GovDataService
+	var govDataService workflow.GovDataServiceInterface
 	if nctx != nil {
-		govDataService, _ = nctx.GovDataService.(*research.GovDataService)
+		govDataService = nctx.GovDataService
 	}
 	indicator := resolveStringParam(params, n.params, "indicator", "all")
 	if v, ok := inputs["indicator"].(string); ok && v != "" {

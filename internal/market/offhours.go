@@ -2,11 +2,15 @@ package market
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
 )
+
+// ErrCacheMiss is returned by Get when the requested key is not in the cache.
+var ErrCacheMiss = errors.New("off-hours cache miss")
 
 // OffHoursCache provides sync.Map + atomic JSON persistence for off-hours data.
 // Type parameter T must be JSON-serializable.
@@ -80,11 +84,19 @@ func (c *OffHoursCache[T]) Save() error {
 	return nil
 }
 
-func (c *OffHoursCache[T]) Get(key string) (T, bool) {
+func (c *OffHoursCache[T]) Get(key string, dest *T) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	v, ok := c.data[key]
-	return v, ok
+	c.mu.Unlock()
+	if !ok {
+		return ErrCacheMiss
+	}
+	// Deep-copy via JSON to prevent caller mutation of cached data
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, dest)
 }
 
 func (c *OffHoursCache[T]) Set(key string, val T) {

@@ -26,7 +26,7 @@ function insertTemplate(tpl: typeof TEMPLATES[0]) {
         target: tgtId,
         sourceHandle: e.from_port,
         targetHandle: e.to_port,
-        type: 'smoothstep',
+        type: 'default',
         style: { stroke: '#30363d', strokeWidth: 2 },
       } as any)
     }

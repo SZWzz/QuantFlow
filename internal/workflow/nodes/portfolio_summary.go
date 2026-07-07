@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 
-	"quantflow/internal/trading"
 	"quantflow/internal/workflow"
 )
 
@@ -33,9 +32,9 @@ func (n *PortfolioSummaryNode) OutputPorts() []workflow.PortDefinition {
 func (n *PortfolioSummaryNode) ParamSchema() []workflow.ParamDef { return nil }
 
 func (n *PortfolioSummaryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var oms *trading.OMS
+	var oms workflow.OMSService
 	if nctx != nil {
-		oms, _ = nctx.OMS.(*trading.OMS)
+		oms = nctx.OMS
 	}
 
 	if oms == nil {

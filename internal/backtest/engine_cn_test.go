@@ -17,11 +17,13 @@ func TestCNEngine_RejectsBuyAtLimitUp(t *testing.T) {
 	}
 
 	// day1 (涨停) 发出买入信号
+	var barIdx int
 	strategy := Strategy{
 		ID:   "test-limit-up",
 		Name: "limit-up test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
-			if bar.Date == "2026-06-02" {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+			barIdx++
+			if barIdx == 2 {
 				return &trading.Signal{Direction: "buy", Quantity: 100}
 			}
 			return nil
@@ -53,11 +55,13 @@ func TestCNEngine_AllowsNormalBuy(t *testing.T) {
 		{Symbol: "600519", Date: "2026-06-02", Open: 10.5, High: 10.5, Low: 10.5, Close: 10.5, Volume: 1000},
 	}
 
+	var barIdx int
 	strategy := Strategy{
 		ID:   "test-normal-buy",
 		Name: "normal buy test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
-			if bar.Date == "2026-06-02" {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+			barIdx++
+			if barIdx == 2 {
 				return &trading.Signal{Direction: "buy", Quantity: 100}
 			}
 			return nil
@@ -90,15 +94,17 @@ func TestCNEngine_RejectsSellAtLimitDown(t *testing.T) {
 		{Symbol: "600519", Date: "2026-06-02", Open: 9, High: 9, Low: 9, Close: 9, Volume: 1000},
 	}
 
+	var barIdx int
 	strategy := Strategy{
 		ID:   "test-limit-down-sell",
 		Name: "limit-down sell test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
-			if bar.Date == "2026-06-02" && portfolio.Positions[bar.Symbol] > 0 {
-				return &trading.Signal{Direction: "sell", Quantity: 100}
-			}
-			if bar.Date == "2026-06-01" {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+			barIdx++
+			if barIdx == 1 {
 				return &trading.Signal{Direction: "buy", Quantity: 100}
+			}
+			if barIdx == 2 && portfolio.Positions["600519"] > 0 {
+				return &trading.Signal{Direction: "sell", Quantity: 100}
 			}
 			return nil
 		},
@@ -130,11 +136,13 @@ func TestCNEngine_ChiNextLimitUp(t *testing.T) {
 		{Symbol: "300750", Date: "2026-06-02", Open: 12, High: 12, Low: 12, Close: 12, Volume: 1000},
 	}
 
+	var barIdx int
 	strategy := Strategy{
 		ID:   "test-chinext-limit",
 		Name: "chinext limit test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
-			if bar.Date == "2026-06-02" {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+			barIdx++
+			if barIdx == 2 {
 				return &trading.Signal{Direction: "buy", Quantity: 100}
 			}
 			return nil
@@ -171,11 +179,8 @@ func TestCNEngine_RejectsStopLossAtLimitDown(t *testing.T) {
 	strategy := Strategy{
 		ID:   "test-stoploss-limit-down",
 		Name: "stoploss at limit-down test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
-			if bar.Date == "2026-06-01" {
-				return &trading.Signal{Direction: "buy", Quantity: 100}
-			}
-			return nil
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+			return &trading.Signal{Direction: "buy", Quantity: 100}
 		},
 		RiskConfig: trading.RiskConfig{
 			StopLossPct: 0.05, // 5% stop-loss → triggers at 9.5, day2 close=9 触发

@@ -6,7 +6,6 @@ import { useWorkflowStore } from '@/stores/workflow'
 import { useTerminalStore } from '@/stores/terminal'
 import WorkflowCanvas from './canvas/WorkflowCanvas.vue'
 import NodePalette from './NodePalette.vue'
-import PropertyPanel from './PropertyPanel.vue'
 import ExecutionLog from './ExecutionLog.vue'
 import WorkflowList from './WorkflowList.vue'
 import { getIcon } from '@/lib/icons'
@@ -166,7 +165,6 @@ function onKeydown(event: KeyboardEvent) {
       <div class="canvas-area">
         <WorkflowCanvas />
       </div>
-      <PropertyPanel />
     </div>
 
     <ExecutionLog v-if="showLog" />

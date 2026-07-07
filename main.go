@@ -2,7 +2,8 @@ package main
 
 import (
 	"embed"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -46,6 +47,7 @@ func main() {
 
 	err := app.Run()
 	if err != nil {
-		log.Fatal(err.Error())
+		slog.Error("application run failed", "error", err)
+		os.Exit(1)
 	}
 }

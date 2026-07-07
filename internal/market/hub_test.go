@@ -1,6 +1,7 @@
 package market
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
@@ -121,5 +122,45 @@ func TestHub_SubscriberCount(t *testing.T) {
 	}
 	if hub.TopicCount() != 2 {
 		t.Errorf("TopicCount = %d, want 2", hub.TopicCount())
+	}
+}
+
+func TestConcurrentPublish(t *testing.T) {
+	hub := NewHub()
+
+	ch, unsub := hub.Subscribe("market:quote:RACE", "racer")
+	defer unsub()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			hub.Publish("market:quote:RACE", &QuoteSnapshot{
+				Symbol: "RACE",
+				Last:   float64(n),
+			})
+		}(i)
+	}
+	wg.Wait()
+
+	// Drain all published messages (may be fewer than 10 if some are coalesced)
+	received := 0
+	for {
+		select {
+		case <-ch:
+			received++
+		default:
+			goto done
+		}
+	}
+done:
+	if received == 0 {
+		t.Fatal("expected at least 1 message from concurrent publish")
+	}
+
+	// Verify topic was created without panic or deadlock
+	if hub.TopicCount() != 1 {
+		t.Errorf("TopicCount = %d, want 1", hub.TopicCount())
 	}
 }

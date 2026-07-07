@@ -471,7 +471,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
           target: targetId,
           sourceHandle: e.from_port,
           targetHandle: e.to_port,
-          type: 'smoothstep',
+          type: 'default',
           style: { stroke: '#30363d', strokeWidth: 2 },
         } as VFEdge)
       }

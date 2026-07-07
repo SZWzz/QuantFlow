@@ -10,6 +10,8 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
+	path string // resolved absolute path, set by Load
+
 	Version        string            `yaml:"version"`
 	LogLevel       string            `yaml:"log_level"`
 	DBPath         string            `yaml:"db_path"`
@@ -26,14 +28,18 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Save writes the configuration back to config.yaml.
+// Save writes the configuration back to its loaded path.
 func (c *Config) Save() error {
 	data, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("marshal config: %w", err)
 	}
-	if err := os.WriteFile("config.yaml", data, 0644); err != nil {
-		return fmt.Errorf("write config.yaml: %w", err)
+	savePath := c.path
+	if savePath == "" {
+		savePath = "config.yaml"
+	}
+	if err := os.WriteFile(savePath, data, 0644); err != nil {
+		return fmt.Errorf("write config: %w", err)
 	}
 	return nil
 }
@@ -76,15 +82,15 @@ func ResolveDBPath(dbPath string) string {
 	return filepath.Join(filepath.Dir(execPath), dbPath)
 }
 
-// Load reads config from default locations, falling back to defaults.
-func Load() (*Config, error) {
-	paths := []string{"config.yaml", "config/config.yaml"}
-	for _, p := range paths {
-		if _, err := os.Stat(p); err == nil {
-			return loadFile(p)
-		}
+// Load reads config from the given path.
+// If the file does not exist, returns DefaultConfig with the path set.
+func Load(path string) (*Config, error) {
+	if _, err := os.Stat(path); err != nil {
+		cfg := DefaultConfig()
+		cfg.path = path
+		return cfg, nil
 	}
-	return DefaultConfig(), nil
+	return loadFile(path)
 }
 
 func loadFile(path string) (*Config, error) {
@@ -93,6 +99,7 @@ func loadFile(path string) (*Config, error) {
 		return nil, fmt.Errorf("read config %s: %w", path, err)
 	}
 	cfg := DefaultConfig()
+	cfg.path = path
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parse config %s: %w", path, err)
 	}

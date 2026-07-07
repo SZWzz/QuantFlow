@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"quantflow/internal/trading"
 	"quantflow/internal/workflow"
 )
 
@@ -42,9 +41,9 @@ func (n *CancelOrderNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *CancelOrderNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var oms *trading.OMS
+	var oms workflow.OMSService
 	if nctx != nil {
-		oms, _ = nctx.OMS.(*trading.OMS)
+		oms = nctx.OMS
 	}
 
 	orderID := getStringParam(params, "order_id", "")

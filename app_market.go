@@ -351,12 +351,13 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 // flowType: "minute" (今日分钟级) or "daily" (120日日级).
 // Off-hours: returns cached last-known data.
 func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
-	if !market.IsTradingHours(resolveMarketFromSymbol(symbol)) {
+	if !market.IsTradingHours(market.MarketForSymbol(symbol)) {
 		cacheKey := symbol + ":" + flowType
-		if cached, ok := a.fundFlowCache.Get(cacheKey); ok {
+		var cached interface{}
+		if err := a.fundFlowCache.Get(cacheKey, &cached); err == nil {
 			return cached, nil
 		}
-		return nil, fmt.Errorf("market %q is currently closed (no cached data)", resolveMarketFromSymbol(symbol))
+		return nil, fmt.Errorf("market %q is currently closed (no cached data)", market.MarketForSymbol(symbol))
 	}
 	if a.fundFlowSvc == nil {
 		return nil, fmt.Errorf("fund flow service not initialized")
@@ -700,7 +701,8 @@ func (a *App) GetCryptoDepth(ctx context.Context, exchange, symbol string, limit
 func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSnapshot, error) {
 	if !market.IsTradingHours(mkt) {
 		cacheKey := mkt + ":" + symbol
-		if cached, ok := a.depthCache.Get(cacheKey); ok {
+		var cached *market.DepthSnapshot
+		if err := a.depthCache.Get(cacheKey, &cached); err == nil {
 			return cached, nil
 		}
 		return nil, fmt.Errorf("market %q is currently closed (no cached data)", mkt)

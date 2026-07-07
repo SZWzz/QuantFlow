@@ -71,12 +71,12 @@ func (n *TrainModelNode) Validate() error {
 
 func (n *TrainModelNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	var bridge *python.PythonBridge
-	var modelRegistry *ml.ModelRegistry
+	var modelRegistry workflow.ModelRegistryService
 	if nctx != nil {
 		if nctx.Bridge != nil {
 			bridge, _ = nctx.Bridge.(*python.PythonBridge)
 		}
-		modelRegistry, _ = nctx.ModelRegistry.(*ml.ModelRegistry)
+		modelRegistry = nctx.ModelRegistry
 	}
 	if bridge == nil {
 		return nil, fmt.Errorf("train_model: PythonBridge not set — call SetPythonBridge() first")

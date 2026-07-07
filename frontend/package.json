@@ -8,6 +8,7 @@
     "build": "vite build",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.vue --fix",
     "test": "vitest run",
     "test:watch": "vitest"
   },

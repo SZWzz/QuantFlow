@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
@@ -23,6 +24,7 @@ func (k CacheKey) String() string { return string(k) }
 // This enables partial re-execution — only nodes whose transitive inputs changed
 // are re-executed.
 type NodeCache struct {
+	mu       sync.RWMutex
 	inner    *lru.Cache[string, map[string]any]
 	nodeKeys map[string]CacheKey // nodeID → latest cache key
 }
@@ -83,7 +85,10 @@ func ComputeKey(nodeType string, params map[string]any, ancestors map[string]Cac
 // Otherwise: returns (nil, false).
 func (c *NodeCache) GetOrCompute(nodeID, nodeType string, params map[string]any, ancestors map[string]CacheKey) (map[string]any, bool) {
 	key := ComputeKey(nodeType, params, ancestors)
-	if existing, ok := c.nodeKeys[nodeID]; ok && existing == key {
+	c.mu.RLock()
+	existing, ok := c.nodeKeys[nodeID]
+	c.mu.RUnlock()
+	if ok && existing == key {
 		if out, ok := c.inner.Get(string(key)); ok {
 			return out, true
 		}
@@ -93,12 +98,16 @@ func (c *NodeCache) GetOrCompute(nodeID, nodeType string, params map[string]any,
 
 // Store caches node outputs and records the cache key for this node.
 func (c *NodeCache) Store(nodeID string, key CacheKey, outputs map[string]any) {
+	c.mu.Lock()
 	c.nodeKeys[nodeID] = key
+	c.mu.Unlock()
 	c.inner.Add(string(key), outputs)
 }
 
 // GetNodeKey returns the recorded cache key for a node, or empty string.
 func (c *NodeCache) GetNodeKey(nodeID string) CacheKey {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.nodeKeys[nodeID]
 }
 

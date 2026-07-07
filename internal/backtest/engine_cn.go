@@ -2,7 +2,7 @@ package backtest
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"sort"
 
 	"quantflow/internal/trading"
@@ -94,6 +94,7 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 	var tradeRecords []TradeRecord
 	latestPrices := make(map[string]float64)
 	var lastDate string
+	var prevBar *trading.OHLCVBar
 
 	for _, bar := range bars {
 		select {
@@ -143,7 +144,7 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 
 		// 2. Generate signals
 		if strategy.SignalFunc != nil {
-			signal := strategy.SignalFunc(bar, portfolio)
+			signal := strategy.SignalFunc(bar.Open, prevBar, portfolio)
 			if signal != nil && signal.Direction != "hold" {
 				if signal.Direction == "buy" {
 					e.processCNBuySignal(bar, signal, portfolio, &tradeRecords)
@@ -171,6 +172,7 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 			Equity: portfolio.Equity(latestPrices),
 			Cash:   e.oms.GetCashBalance(),
 		})
+		prevBar = &bar
 	}
 
 	metrics := ComputeMetrics(equityCurve, tradeRecords)
@@ -207,7 +209,7 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 
 	cost := effectivePrice*qty + effectivePrice*qty*e.config.Commission
 	if cost > portfolio.Cash {
-		log.Printf("backtest: %s buy signal skipped: insufficient cash (need %.2f, have %.2f)", bar.Symbol, cost, portfolio.Cash)
+		slog.Debug("buy signal skipped: insufficient cash", "symbol", bar.Symbol, "need", cost, "have", portfolio.Cash)
 		return
 	}
 
@@ -226,18 +228,18 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		Price:    effectivePrice,
 	}
 	if err := e.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
-		log.Printf("backtest: %s buy signal risk rejected: %v", bar.Symbol, err)
+		slog.Debug("buy signal risk rejected", "symbol", bar.Symbol, "error", err)
 		return
 	}
 
 	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
 	if err != nil {
-		log.Printf("backtest: %s buy signal order failed: %v", bar.Symbol, err)
+		slog.Debug("buy signal order failed", "symbol", bar.Symbol, "error", err)
 		return
 	}
 
 	if _, err := e.oms.FillOrder(order.ID, qty, effectivePrice); err != nil {
-		log.Printf("backtest: %s buy signal fill failed: %v", bar.Symbol, err)
+		slog.Debug("buy signal fill failed", "symbol", bar.Symbol, "error", err)
 		return
 	}
 
@@ -281,12 +283,12 @@ func (e *CNEngine) processCNSellSignal(bar trading.OHLCVBar, signal *trading.Sig
 
 	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)
 	if err != nil {
-		log.Printf("backtest: %s sell signal order failed: %v", bar.Symbol, err)
+		slog.Debug("sell signal order failed", "symbol", bar.Symbol, "error", err)
 		return
 	}
 
 	if _, err := e.oms.FillOrder(order.ID, qty, effectivePrice); err != nil {
-		log.Printf("backtest: %s sell signal fill failed: %v", bar.Symbol, err)
+		slog.Debug("sell signal fill failed", "symbol", bar.Symbol, "error", err)
 		return
 	}
 

@@ -26,11 +26,11 @@ func TestRunner_StopLossHit(t *testing.T) {
 	strategy := Strategy{
 		ID:   "stop_loss_test",
 		Name: "Stop Loss Test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
 			if !bought {
 				bought = true
 				return &trading.Signal{
-					Symbol:    bar.Symbol,
+					Symbol:    "TEST",
 					Direction: "buy",
 					Quantity:  100,
 				}
@@ -88,11 +88,11 @@ func TestRunner_NoStopLossWhenPriceStable(t *testing.T) {
 	strategy := Strategy{
 		ID:   "no_stop_test",
 		Name: "No Stop Loss Test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
 			if !bought {
 				bought = true
 				return &trading.Signal{
-					Symbol:    bar.Symbol,
+					Symbol:    "TEST",
 					Direction: "buy",
 					Quantity:  100,
 				}
@@ -139,11 +139,11 @@ func TestRunner_StopLossShort(t *testing.T) {
 	strategy := Strategy{
 		ID:   "short_stop_test",
 		Name: "Short Stop Loss Test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
 			if !sold {
 				sold = true
 				return &trading.Signal{
-					Symbol:    bar.Symbol,
+					Symbol:    "TEST",
 					Direction: "sell",
 					Quantity:  100,
 				}

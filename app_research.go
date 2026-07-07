@@ -405,7 +405,8 @@ func (a *App) GetAuction(symbol string) ([]adapters.AuctionItem, error) {
 func (a *App) GetAbnormalStocks(mkt string) ([]adapters.AbnormalStock, error) {
 	cnMkt := resolveMarket(mkt)
 	if !market.IsTradingHours(cnMkt) {
-		if cached, ok := a.abnormalStocksCache.Get(mkt); ok {
+		var cached []adapters.AbnormalStock
+		if err := a.abnormalStocksCache.Get(mkt, &cached); err == nil {
 			return cached, nil
 		}
 		return nil, fmt.Errorf("market %q is currently closed (no cached data)", cnMkt)

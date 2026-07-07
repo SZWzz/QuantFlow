@@ -52,6 +52,7 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 	// T+2 settlement tracker (informational, does not block trades in bar-by-bar simulation)
 	// settlementQueue maps settlement date → unlocked quantity
 	_ = make(map[string]float64) // reserved for future T+2 settlement enforcement
+	var prevBar *trading.OHLCVBar
 
 	for _, bar := range bars {
 		select {
@@ -87,7 +88,7 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 
 		// 2. Generate signals
 		if strategy.SignalFunc != nil {
-			signal := strategy.SignalFunc(bar, portfolio)
+			signal := strategy.SignalFunc(bar.Open, prevBar, portfolio)
 			if signal != nil && signal.Direction != "hold" {
 				if signal.Direction == "buy" {
 					e.processHKBuySignal(bar, signal, portfolio, &tradeRecords)
@@ -103,6 +104,7 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 			Equity: portfolio.Equity(latestPrices),
 			Cash:   e.oms.GetCashBalance(),
 		})
+		prevBar = &bar
 	}
 
 	metrics := ComputeMetrics(equityCurve, tradeRecords)

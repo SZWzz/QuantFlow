@@ -1,3 +1,6 @@
+// Package backtest provides multi-market backtesting engines with
+// market-specific rules (T+1, price limits, PDT, stamp duty) and
+// configurable slippage/commission models.
 package backtest
 
 import (
@@ -12,7 +15,9 @@ import (
 type Strategy struct {
 	ID         string
 	Name       string
-	SignalFunc func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal
+	// SignalFunc receives the current open price and the previous completed bar.
+	// It does NOT receive the current bar's Close/High/Low to prevent look-ahead bias.
+	SignalFunc func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal
 	RiskConfig trading.RiskConfig
 }
 
@@ -56,6 +61,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 	var tradeRecords []TradeRecord
 	latestPrices := make(map[string]float64)
 
+	var prevBar *trading.OHLCVBar
 	for _, bar := range bars {
 		select {
 		case <-ctx.Done():
@@ -103,9 +109,9 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 			}
 		}
 
-		// 2. Generate signal from strategy
+		// 2. Generate signal from strategy (only prevBar, not current bar's OHLC)
 		if strategy.SignalFunc != nil {
-			signal := strategy.SignalFunc(bar, portfolio)
+			signal := strategy.SignalFunc(bar.Open, prevBar, portfolio)
 			if signal != nil && signal.Direction != "hold" {
 				if signal.Direction == "buy" {
 					r.processBuySignal(bar, signal, portfolio, &tradeRecords)
@@ -122,6 +128,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 			Equity: portfolio.Equity(latestPrices),
 			Cash:   r.oms.GetCashBalance(),
 		})
+		prevBar = &bar
 	}
 
 	metrics := ComputeMetrics(equityCurve, tradeRecords)

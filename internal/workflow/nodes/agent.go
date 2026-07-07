@@ -58,14 +58,14 @@ func (n *AgentNode) Execute(ctx context.Context, inputs map[string]any, params m
 	var agentBridge *python.PythonBridge
 	var agentReg *ai.CapabilityRegistry
 	var agentEmitter *ai.EventEmitter
-	var agentPM *ai.ProfileManager
+	var agentPM workflow.ProfileMgrService
 	if nctx != nil {
 		if nctx.Bridge != nil {
 			agentBridge, _ = nctx.Bridge.(*python.PythonBridge)
 		}
 		agentReg, _ = nctx.CapRegistry.(*ai.CapabilityRegistry)
 		agentEmitter, _ = nctx.Emitter.(*ai.EventEmitter)
-		agentPM, _ = nctx.ProfileMgr.(*ai.ProfileManager)
+		agentPM = nctx.ProfileMgr
 	}
 
 	profileName := getStringParam(params, "profile", "general")

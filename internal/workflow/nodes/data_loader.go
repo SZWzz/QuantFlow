@@ -97,8 +97,8 @@ func (n *DataLoaderNode) Execute(ctx context.Context, inputs map[string]any, par
 		if nctx == nil || nctx.MarketReg == nil {
 			return nil, fmt.Errorf("data_loader: market data registry not available (wired at app startup)")
 		}
-		reg, ok := nctx.MarketReg.(*market.AdapterRegistry)
-		if !ok || reg == nil {
+		reg := nctx.MarketReg
+		if reg == nil {
 			return nil, fmt.Errorf("data_loader: invalid market registry type")
 		}
 

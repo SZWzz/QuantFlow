@@ -38,9 +38,9 @@ func (n *OrderQueryNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *OrderQueryNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var oms *trading.OMS
+	var oms workflow.OMSService
 	if nctx != nil {
-		oms, _ = nctx.OMS.(*trading.OMS)
+		oms = nctx.OMS
 	}
 
 	if oms == nil {

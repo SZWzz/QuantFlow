@@ -100,8 +100,11 @@ func TestRunner_SMACross(t *testing.T) {
 	strategy := Strategy{
 		ID:   "sma_cross",
 		Name: "SMA Cross Test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
-			smaValues = append(smaValues, bar.Close)
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+			if prevBar == nil {
+				return nil
+			}
+			smaValues = append(smaValues, prevBar.Close)
 			if len(smaValues) < 10 {
 				return nil
 			}
@@ -111,18 +114,18 @@ func TestRunner_SMACross(t *testing.T) {
 			}
 			sma := sum / 10.0
 
-			heldQty := portfolio.Positions[bar.Symbol]
+			heldQty := portfolio.Positions["TEST"]
 
-			if bar.Close > sma && heldQty <= 0 {
+			if prevBar.Close > sma && heldQty <= 0 {
 				return &trading.Signal{
-					Symbol:    bar.Symbol,
+					Symbol:    "TEST",
 					Direction: "buy",
 					Quantity:  100,
 				}
 			}
-			if bar.Close < sma && heldQty > 0 {
+			if prevBar.Close < sma && heldQty > 0 {
 				return &trading.Signal{
-					Symbol:    bar.Symbol,
+					Symbol:    "TEST",
 					Direction: "sell",
 					Quantity:  heldQty,
 				}
@@ -173,11 +176,11 @@ func TestCNEngine_T1Enforcement(t *testing.T) {
 	strategy := Strategy{
 		ID:   "t1_test",
 		Name: "T+1 Test",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal {
 			if !buyDone {
 				buyDone = true
 				return &trading.Signal{
-					Symbol:    bar.Symbol,
+					Symbol:    "TEST",
 					Direction: "buy",
 					Quantity:  100,
 				}

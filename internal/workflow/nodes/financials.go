@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"quantflow/internal/research"
 	"quantflow/internal/workflow"
 )
 
@@ -45,9 +44,9 @@ func (n *FinancialsNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *FinancialsNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var financialsService *research.FinancialsService
+	var financialsService workflow.FinancialsServiceInterface
 	if nctx != nil {
-		financialsService, _ = nctx.FinancialsService.(*research.FinancialsService)
+		financialsService = nctx.FinancialsService
 	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {

@@ -47,9 +47,9 @@ func (n *SatelliteNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *SatelliteNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var satelliteService *research.SatelliteService
+	var satelliteService workflow.SatelliteServiceInterface
 	if nctx != nil {
-		satelliteService, _ = nctx.SatelliteService.(*research.SatelliteService)
+		satelliteService = nctx.SatelliteService
 	}
 	region := resolveStringParam(params, n.params, "region", "")
 	if v, ok := inputs["region"].(string); ok && v != "" {

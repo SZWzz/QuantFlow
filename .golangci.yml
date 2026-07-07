@@ -8,6 +8,11 @@ linters:
     - ineffassign
     - unused
     - misspell
+    - gofumpt
+    - gocyclo
+    - revive
+    - goconst
+    - gocritic
 linters-settings:
   errcheck:
     exclude-functions:

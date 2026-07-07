@@ -107,14 +107,18 @@ func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, param
 
 	// Create simple strategy
 	// In a full implementation, this would parse strategy_config from inputs
+	firstSymbol := ""
+	if len(tradingBars) > 0 {
+		firstSymbol = tradingBars[0].Symbol
+	}
 	strategy := backtest.Strategy{
 		ID:   n.id,
 		Name: "Workflow Strategy",
-		SignalFunc: func(bar trading.OHLCVBar, portfolio *backtest.Portfolio) *trading.Signal {
+		SignalFunc: func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *backtest.Portfolio) *trading.Signal {
 			// Default: buy and hold on first bar
-			if portfolio.Positions[bar.Symbol] <= 0 {
+			if firstSymbol != "" && portfolio.Positions[firstSymbol] <= 0 {
 				return &trading.Signal{
-					Symbol:    bar.Symbol,
+					Symbol:    firstSymbol,
 					Direction: "buy",
 					Quantity:  100,
 				}

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
@@ -102,28 +104,22 @@ func (e *SentimentEngine) GetSentimentHistory(ctx context.Context, symbol string
 
 // BatchAnalyze analyzes sentiment for multiple symbols concurrently.
 func (e *SentimentEngine) BatchAnalyze(ctx context.Context, symbols []string, textType, language string) ([]*SentimentOutput, error) {
-	type result struct {
-		idx    int
-		output *SentimentOutput
-	}
-	ch := make(chan result, len(symbols))
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+	results := make([]*SentimentOutput, len(symbols))
 
 	for i, sym := range symbols {
-		go func(idx int, symbol string) {
-			output, err := e.AnalyzeSentiment(ctx, symbol, "", textType, language)
+		i, sym := i, sym
+		g.Go(func() error {
+			output, err := e.AnalyzeSentiment(ctx, sym, "", textType, language)
 			if err != nil {
-				output = e.mockSentiment(symbol, textType)
+				output = e.mockSentiment(sym, textType)
 			}
-			ch <- result{idx: idx, output: output}
-		}(i, sym)
+			results[i] = output
+			return nil
+		})
 	}
-
-	results := make([]*SentimentOutput, len(symbols))
-	for range symbols {
-		r := <-ch
-		results[r.idx] = r.output
-	}
-	return results, nil
+	return results, g.Wait()
 }
 
 // IsBridgeAvailable returns whether the Python sidecar is connected.

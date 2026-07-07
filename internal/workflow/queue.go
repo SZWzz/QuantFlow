@@ -30,11 +30,18 @@ type ExecutionQueue struct {
 	queue   []*QueuedWorkflow
 	running bool
 	engine  *Engine
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
 // NewExecutionQueue creates an ExecutionQueue.
 func NewExecutionQueue(engine *Engine) *ExecutionQueue {
-	return &ExecutionQueue{engine: engine}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &ExecutionQueue{engine: engine, ctx: ctx, cancel: cancel}
+}
+
+func (q *ExecutionQueue) Shutdown() {
+	q.cancel()
 }
 
 // Enqueue adds a workflow to the execution queue and returns a run ID.
@@ -129,7 +136,7 @@ func (q *ExecutionQueue) processLoop() {
 		q.mu.Unlock()
 
 		// Execute
-		result, err := q.engine.Execute(context.Background(), current.Workflow)
+		result, err := q.engine.Execute(q.ctx, current.Workflow)
 
 		q.mu.Lock()
 		current.FinishedAt = time.Now()

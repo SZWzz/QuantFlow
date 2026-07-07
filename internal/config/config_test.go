@@ -59,18 +59,11 @@ func TestLoadConfig_WithFile(t *testing.T) {
 }
 
 func TestLoadConfig_MissingFile(t *testing.T) {
-	// Load() in an empty temp dir should return defaults, not error
+	// Load() with nonexistent path should return defaults, not error
 	tmp := t.TempDir()
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Getwd() error = %v", err)
-	}
-	defer os.Chdir(cwd)
-	if err := os.Chdir(tmp); err != nil {
-		t.Fatalf("Chdir() error = %v", err)
-	}
+	cfgPath := filepath.Join(tmp, "nonexistent.yaml")
 
-	cfg, err := Load()
+	cfg, err := Load(cfgPath)
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
@@ -94,16 +87,7 @@ func TestLoadConfig_FromConfigDir(t *testing.T) {
 	cfgPath := filepath.Join(configDir, "config.yaml")
 	os.WriteFile(cfgPath, []byte(`log_level: "warn"`), 0644)
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Getwd() error = %v", err)
-	}
-	defer os.Chdir(cwd)
-	if err := os.Chdir(tmp); err != nil {
-		t.Fatalf("Chdir() error = %v", err)
-	}
-
-	cfg, err := Load()
+	cfg, err := Load(cfgPath)
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}

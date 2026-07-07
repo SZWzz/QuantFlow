@@ -1,3 +1,5 @@
+// Package schedule provides a cron-based task scheduler for
+// periodic workflow execution, with persistence via SQLite.
 package schedule
 
 import (

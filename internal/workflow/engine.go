@@ -1,3 +1,5 @@
+// Package workflow implements a Kahn-based DAG execution engine
+// for composing trading strategies from reusable node types.
 package workflow
 
 import (
@@ -13,8 +15,20 @@ import (
 
 func generateShortID() string {
 	b := make([]byte, 4)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%x", time.Now().UnixNano())
+	}
 	return hex.EncodeToString(b)
+}
+
+// generateUniqueShortID returns a short ID that does not appear in the given set.
+func generateUniqueShortID(existing map[string]bool) string {
+	for {
+		id := generateShortID()
+		if !existing[id] {
+			return id
+		}
+	}
 }
 
 // buildUpstreamMap converts the sync.Map of upstream outputs into a regular map
@@ -144,43 +158,62 @@ func (e *Engine) Execute(ctx context.Context, wf *Workflow) (*ExecutionResult, e
 	}
 
 	for layerIdx, layer := range layers {
-		var wg sync.WaitGroup
-		var mu sync.Mutex
-		var layerErr error
-
+		// Determine max retries for this layer (max across all nodes)
+		layerMaxRetries := 0
 		for _, nodeID := range layer {
-			nodeID := nodeID
-			layerIdx := layerIdx
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer func() {
-					if r := recover(); r != nil {
+			_, retryCount := getNodeErrorConfig(wf, nodeID)
+			if retryCount > layerMaxRetries {
+				layerMaxRetries = retryCount
+			}
+		}
+
+		var layerErr error
+	layerRetryLoop:
+		for attempt := 0; attempt <= layerMaxRetries; attempt++ {
+			if attempt > 0 {
+				time.Sleep(retryBackoff(attempt - 1))
+				slog.Info("retrying layer", "layer", layerIdx, "attempt", attempt+1, "max", layerMaxRetries+1)
+			}
+
+			var wg sync.WaitGroup
+			var mu sync.Mutex
+			layerErr = nil
+
+			for _, nodeID := range layer {
+				nodeID := nodeID
+				layerIdx := layerIdx
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					defer func() {
+						if r := recover(); r != nil {
+							mu.Lock()
+							nr := nodeResultByID[nodeID]
+							nr.Status = "failed"
+							nr.Error = fmt.Sprintf("panic: %v", r)
+							mu.Unlock()
+						}
+					}()
+					err := e.executeNode(ctx, wf, nodeID, layerIdx, upstreamOutputs, nodeResultByID)
+					if err != nil {
 						mu.Lock()
-						nr := nodeResultByID[nodeID]
-						nr.Status = "failed"
-						nr.Error = fmt.Sprintf("panic: %v", r)
+						strategy, _ := getNodeErrorConfig(wf, nodeID)
+						if strategy == ErrorSkip {
+							upstreamOutputs.Store(nodeID, map[string]any{})
+							slog.Info("node skipped due to error", "node", nodeID, "error", err)
+						} else {
+							layerErr = err
+						}
 						mu.Unlock()
 					}
 				}()
-				err := e.executeNode(ctx, wf, nodeID, layerIdx, upstreamOutputs, nodeResultByID)
-				if err != nil {
-					mu.Lock()
-					// Check if we should skip or stop
-					strategy, retryCount := getNodeErrorConfig(wf, nodeID)
-					if strategy == ErrorSkip {
-						// Store empty outputs so downstream can continue
-						upstreamOutputs.Store(nodeID, map[string]any{})
-						slog.Info("node skipped due to error", "node", nodeID, "error", err)
-					} else {
-						layerErr = err
-					}
-					_ = retryCount
-					mu.Unlock()
-				}
-			}()
+			}
+			wg.Wait()
+
+			if layerErr == nil {
+				break layerRetryLoop
+			}
 		}
-		wg.Wait()
 
 		if layerErr != nil {
 			result.Status = "failed"

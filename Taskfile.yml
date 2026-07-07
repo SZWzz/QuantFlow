@@ -1,6 +1,28 @@
 version: '3'
 
 tasks:
+  python:deps:
+    summary: Compile Python dependencies
+    dir: python
+    cmds:
+      - pip-compile pyproject.toml --output-file=requirements.lock
+
+  proto:
+    summary: Regenerate gRPC code from .proto files
+    cmds:
+      - |
+        cd python && python -m grpc_tools.protoc \
+          -I proto \
+          --python_out=src/proto \
+          --grpc_python_out=src/proto \
+          proto/*.proto
+      - |
+        protoc --go_out=. --go_opt=module=quantflow --go-grpc_out=. --go-grpc_opt=module=quantflow \
+          -I python/proto \
+          python/proto/*.proto
+      - echo "Proto generated"
+
+  build:frontend:
   build:frontend:
     summary: Build the frontend
     dir: frontend

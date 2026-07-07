@@ -7,12 +7,22 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestCredentialManager_SaveAndList(t *testing.T) {
+// testMasterKey returns a deterministic MasterKey for use in tests.
+func testMasterKey() *MasterKey {
+	var key [32]byte
+	for i := range key {
+		key[i] = byte(i)
+	}
+	return NewMasterKey(key)
+}
+
+func setupTestDB(t *testing.T) *sql.DB {
+	t.Helper()
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	t.Cleanup(func() { db.Close() })
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS credentials (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,8 +35,12 @@ func TestCredentialManager_SaveAndList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return db
+}
 
-	cm, err := NewCredentialManager(db)
+func TestCredentialManager_SaveAndList(t *testing.T) {
+	db := setupTestDB(t)
+	cm, err := newCredentialManager(testMasterKey(), db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,25 +66,8 @@ func TestCredentialManager_SaveAndList(t *testing.T) {
 }
 
 func TestCredentialManager_EncryptDecryptRoundTrip(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS credentials (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE NOT NULL,
-		type TEXT NOT NULL,
-		data TEXT NOT NULL,
-		created_at TEXT DEFAULT (datetime('now')),
-		updated_at TEXT DEFAULT (datetime('now'))
-	)`)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cm, err := NewCredentialManager(db)
+	db := setupTestDB(t)
+	cm, err := newCredentialManager(testMasterKey(), db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,25 +91,8 @@ func TestCredentialManager_EncryptDecryptRoundTrip(t *testing.T) {
 }
 
 func TestCredentialManager_Delete(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS credentials (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE NOT NULL,
-		type TEXT NOT NULL,
-		data TEXT NOT NULL,
-		created_at TEXT DEFAULT (datetime('now')),
-		updated_at TEXT DEFAULT (datetime('now'))
-	)`)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cm, err := NewCredentialManager(db)
+	db := setupTestDB(t)
+	cm, err := newCredentialManager(testMasterKey(), db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,25 +118,8 @@ func TestCredentialManager_Delete(t *testing.T) {
 }
 
 func TestCredentialManager_Names(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS credentials (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE NOT NULL,
-		type TEXT NOT NULL,
-		data TEXT NOT NULL,
-		created_at TEXT DEFAULT (datetime('now')),
-		updated_at TEXT DEFAULT (datetime('now'))
-	)`)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cm, err := NewCredentialManager(db)
+	db := setupTestDB(t)
+	cm, err := newCredentialManager(testMasterKey(), db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,25 +144,8 @@ func TestCredentialManager_Names(t *testing.T) {
 }
 
 func TestCredentialManager_UpdateExisting(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS credentials (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE NOT NULL,
-		type TEXT NOT NULL,
-		data TEXT NOT NULL,
-		created_at TEXT DEFAULT (datetime('now')),
-		updated_at TEXT DEFAULT (datetime('now'))
-	)`)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cm, err := NewCredentialManager(db)
+	db := setupTestDB(t)
+	cm, err := newCredentialManager(testMasterKey(), db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,5 +162,67 @@ func TestCredentialManager_UpdateExisting(t *testing.T) {
 	}
 	if creds[0].Keys["k"] != "new" {
 		t.Errorf("expected updated key 'new', got %q", creds[0].Keys["k"])
+	}
+}
+
+func TestMasterKey_EncryptDecrypt(t *testing.T) {
+	key := testMasterKey()
+	plaintext := []byte("hello, world!")
+	ciphertext, err := key.Encrypt(plaintext)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decrypted, err := key.Decrypt(ciphertext)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(decrypted) != string(plaintext) {
+		t.Errorf("decrypted = %q, want %q", decrypted, plaintext)
+	}
+}
+
+func TestMasterKey_DifferentKeys(t *testing.T) {
+	var key1Arr, key2Arr [32]byte
+	for i := range key1Arr {
+		key1Arr[i] = 0xAA
+		key2Arr[i] = 0xBB
+	}
+	key1 := NewMasterKey(key1Arr)
+	key2 := NewMasterKey(key2Arr)
+
+	plaintext := []byte("secret data")
+	ct, err := key1.Encrypt(plaintext)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = key2.Decrypt(ct)
+	if err == nil {
+		t.Error("expected decryption with different key to fail")
+	}
+}
+
+func TestCredentialManager_OldKeyFallback(t *testing.T) {
+	db := setupTestDB(t)
+
+	oldCm, err := newCredentialManager(testMasterKey(), db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = oldCm.Save("legacy", "api", map[string]string{"token": "legacy-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	creds, err := oldCm.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(creds) != 1 {
+		t.Fatalf("expected 1 credential, got %d", len(creds))
+	}
+	if creds[0].Keys["token"] != "legacy-token" {
+		t.Errorf("token = %q, want 'legacy-token'", creds[0].Keys["token"])
 	}
 }

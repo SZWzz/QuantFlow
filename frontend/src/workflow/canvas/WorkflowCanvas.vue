@@ -172,7 +172,7 @@ onConnect((connection: Connection) => {
     target: connection.target,
     sourceHandle: connection.sourceHandle,
     targetHandle: connection.targetHandle,
-    type: 'smoothstep',
+    type: 'default',
     animated: false,
     style: { stroke: 'var(--color-border)', strokeWidth: 2 },
   }

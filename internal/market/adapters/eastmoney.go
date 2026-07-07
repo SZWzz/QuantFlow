@@ -64,6 +64,8 @@ func (a *EastMoneyAdapter) IsAvailable(ctx context.Context) bool {
 }
 
 func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*market.QuoteSnapshot, error) {
+	GlobalEMLimiter.Wait()
+
 	secid := toEastMoneySecID(symbol)
 	url := fmt.Sprintf("%s?secid=%s&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58,f116,f117,f162,f167,f169,f170,f171",
 		eastmoneyURL, secid)
@@ -120,6 +122,8 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 }
 
 func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, fqfactor string, start, end int64) ([]market.OHLCVBar, error) {
+	GlobalEMLimiter.Wait()
+
 	secid := toEastMoneySecID(symbol)
 
 	// Map interval to EastMoney klt code

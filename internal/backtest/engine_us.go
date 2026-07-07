@@ -84,6 +84,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 
 	// Track daily buys per symbol to detect day trades (buy + sell same day same symbol)
 	dailyBuys := make(map[string]bool)
+	var prevBar *trading.OHLCVBar
 
 	for _, bar := range bars {
 		select {
@@ -148,7 +149,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 
 		// 2. Generate signal from strategy
 		if strategy.SignalFunc != nil {
-			signal := strategy.SignalFunc(bar, portfolio)
+			signal := strategy.SignalFunc(bar.Open, prevBar, portfolio)
 			if signal != nil && signal.Direction != "hold" {
 				if signal.Direction == "buy" {
 					// PDT check: block buy if PDT triggered and equity < $25k
@@ -173,6 +174,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 			Equity: portfolio.Equity(latestPrices),
 			Cash:   e.oms.GetCashBalance(),
 		})
+		prevBar = &bar
 	}
 
 	metrics := ComputeMetrics(equityCurve, tradeRecords)

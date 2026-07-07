@@ -4,13 +4,11 @@ package auth
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"time"
 )
@@ -37,27 +35,41 @@ type credentialRow struct {
 
 // CredentialManager handles encrypted credential storage.
 type CredentialManager struct {
-	db  *sql.DB
-	gcm cipher.AEAD
+	db        *sql.DB
+	masterKey *MasterKey
+	oldGCM    cipher.AEAD // for backward compatibility with deriveKey-based encryption
 }
 
 // NewCredentialManager creates a credential manager with AES-256-GCM encryption.
-// The encryption key is derived from the machine's hostname + a salt, providing
-// basic protection for API keys stored on disk.
+// The encryption key is stored in the OS keychain (macOS) or a local key file (Linux),
+// replacing the previous hostname-derived key approach.
 func NewCredentialManager(db *sql.DB) (*CredentialManager, error) {
-	key := deriveKey()
-	block, err := aes.NewCipher(key)
+	mk, err := LoadOrCreateMasterKey()
 	if err != nil {
-		return nil, fmt.Errorf("credential: create cipher: %w", err)
+		return nil, fmt.Errorf("credential: load master key: %w", err)
+	}
+	return newCredentialManager(mk, db)
+}
+
+// newCredentialManager creates a CredentialManager with a given MasterKey.
+// It also sets up the old hostname-derived GCM for backward compatibility.
+func newCredentialManager(mk *MasterKey, db *sql.DB) (*CredentialManager, error) {
+	cm := &CredentialManager{db: db, masterKey: mk}
+	oldKey := deriveKey()
+	block, err := aes.NewCipher(oldKey)
+	if err != nil {
+		return nil, fmt.Errorf("credential: create old cipher: %w", err)
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, fmt.Errorf("credential: create GCM: %w", err)
+		return nil, fmt.Errorf("credential: create old GCM: %w", err)
 	}
-	return &CredentialManager{db: db, gcm: gcm}, nil
+	cm.oldGCM = gcm
+	return cm, nil
 }
 
 // deriveKey creates a 256-bit key from machine identity + fixed salt.
+// Retained for backward compatibility with data encrypted before the OS keychain migration.
 func deriveKey() []byte {
 	hostname, _ := os.Hostname()
 	material := hostname + ":quantflow-cred-salt-v1"
@@ -65,28 +77,48 @@ func deriveKey() []byte {
 	return h[:]
 }
 
-// encrypt encrypts plaintext with AES-GCM and returns base64-encoded ciphertext.
+// encrypt encrypts plaintext with the master key and returns base64-encoded ciphertext.
 func (m *CredentialManager) encrypt(plaintext []byte) (string, error) {
-	nonce := make([]byte, m.gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", fmt.Errorf("credential: generate nonce: %w", err)
+	ct, err := m.masterKey.Encrypt(plaintext)
+	if err != nil {
+		return "", fmt.Errorf("credential: encrypt: %w", err)
 	}
-	ciphertext := m.gcm.Seal(nonce, nonce, plaintext, nil)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
+	return base64.StdEncoding.EncodeToString(ct), nil
 }
 
-// decrypt decrypts a base64-encoded ciphertext back to plaintext.
-func (m *CredentialManager) decrypt(encoded string) ([]byte, error) {
+// decryptWithMigrate decrypts a base64-encoded ciphertext. It returns the plaintext
+// and a boolean indicating whether the data was decrypted with the old key
+// (meaning it should be re-encrypted with the master key for migration).
+func (m *CredentialManager) decryptWithMigrate(encoded string) ([]byte, bool, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, false, fmt.Errorf("credential: decode: %w", err)
+	}
+	plain, err := m.masterKey.Decrypt(ciphertext)
+	if err == nil {
+		return plain, false, nil
+	}
+	if m.oldGCM != nil {
+		plain, err := m.oldGCMDecrypt(encoded)
+		if err == nil {
+			return plain, true, nil
+		}
+	}
+	return nil, false, fmt.Errorf("credential: decrypt: %w", err)
+}
+
+// oldGCMDecrypt decrypts using the old hostname-derived key (backward compatibility).
+func (m *CredentialManager) oldGCMDecrypt(encoded string) ([]byte, error) {
 	ciphertext, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("credential: decode: %w", err)
 	}
-	nonceSize := m.gcm.NonceSize()
+	nonceSize := m.oldGCM.NonceSize()
 	if len(ciphertext) < nonceSize {
 		return nil, fmt.Errorf("credential: ciphertext too short")
 	}
 	nonce, ct := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	return m.gcm.Open(nil, nonce, ct, nil)
+	return m.oldGCM.Open(nil, nonce, ct, nil)
 }
 
 // List returns all stored credentials (with encrypted values decrypted).
@@ -103,13 +135,19 @@ func (m *CredentialManager) List() ([]Credential, error) {
 		if err := rows.Scan(&row.ID, &row.Name, &row.Type, &row.Data, &row.CreatedAt, &row.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("credential: scan: %w", err)
 		}
-		plain, err := m.decrypt(row.Data)
+		plain, migrated, err := m.decryptWithMigrate(row.Data)
 		if err != nil {
 			return nil, fmt.Errorf("credential: decrypt %q: %w", row.Name, err)
 		}
 		var keys map[string]string
 		if err := json.Unmarshal(plain, &keys); err != nil {
 			return nil, fmt.Errorf("credential: unmarshal %q: %w", row.Name, err)
+		}
+		if migrated {
+			newEnc, err := m.encrypt(plain)
+			if err == nil {
+				_, _ = m.db.Exec(`UPDATE credentials SET data=? WHERE id=?`, newEnc, row.ID)
+			}
 		}
 		creds = append(creds, Credential{
 			ID: row.ID, Name: row.Name, Type: row.Type, Keys: keys,

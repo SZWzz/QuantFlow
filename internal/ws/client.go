@@ -18,10 +18,11 @@ const (
 )
 
 type Client struct {
-	hub    *Hub
-	conn   *websocket.Conn
-	send   chan []byte
-	topics map[string]bool
+	hub     *Hub
+	conn    *websocket.Conn
+	send    chan []byte
+	topics  map[string]bool
+	hubDone <-chan struct{}
 }
 
 type subscribeMessage struct {
@@ -31,10 +32,11 @@ type subscribeMessage struct {
 
 func NewClient(hub *Hub, conn *websocket.Conn) *Client {
 	return &Client{
-		hub:    hub,
-		conn:   conn,
-		send:   make(chan []byte, sendBufSize),
-		topics: make(map[string]bool),
+		hub:     hub,
+		conn:    conn,
+		send:    make(chan []byte, sendBufSize),
+		topics:  make(map[string]bool),
+		hubDone: hub.done,
 	}
 }
 
@@ -104,6 +106,8 @@ func (c *Client) WritePump() {
 			if err != nil {
 				return
 			}
+		case <-c.hubDone:
+			return
 		}
 	}
 }

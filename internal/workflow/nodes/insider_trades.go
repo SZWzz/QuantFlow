@@ -46,9 +46,9 @@ func (n *InsiderTradesNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *InsiderTradesNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var insiderTradingService *research.InsiderTradingService
+	var insiderTradingService workflow.InsiderTradingServiceInterface
 	if nctx != nil {
-		insiderTradingService, _ = nctx.InsiderTradingService.(*research.InsiderTradingService)
+		insiderTradingService = nctx.InsiderTradingService
 	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {

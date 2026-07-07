@@ -1,4 +1,4 @@
-.PHONY: build build-full build-frontend test lint vet clean bench coverage distclean
+.PHONY: build build-full build-frontend test lint vet clean bench coverage distclean python-setup
 
 build:
 	go build ./...
@@ -30,6 +30,7 @@ bench:
 
 lint:
 	go vet ./...
+	golangci-lint run ./... --timeout 5m
 
 coverage:
 	go test ./... -coverprofile=coverage.out
@@ -37,6 +38,11 @@ coverage:
 
 clean:
 	rm -f coverage.out
+
+python-setup:
+	cd python && python3 -m venv .venv && \
+	.venv/bin/pip install --upgrade pip && \
+	.venv/bin/pip install -e ".[dev,data]"
 
 distclean: clean
 	rm -rf build/

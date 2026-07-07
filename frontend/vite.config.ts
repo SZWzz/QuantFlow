@@ -23,6 +23,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    target: 'es2020',
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-vue': ['vue', 'vue-router', 'vue-i18n', 'pinia'],
+          'vendor-flow': ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls', '@vue-flow/minimap'],
+          'vendor-chart': ['echarts', 'vue-echarts'],
+          'vendor-wails': ['@wailsio/runtime'],
+        },
+      },
+    },
   },
   test: {
     globals: true,

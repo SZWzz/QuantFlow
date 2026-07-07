@@ -3,44 +3,41 @@ package workflow
 import "context"
 
 // NodeContext holds all shared service dependencies available to workflow nodes.
-// Services are stored as interface{} to avoid import cycles between the workflow
-// package and packages like trading, python, research, etc.
-// Nodes that need these services should type-assert the interface{} fields.
 type NodeContext struct {
 	// Trading
-	OMS interface{} // *trading.OMS
+	OMS OMSService
 
-	// Python bridge for ML/AI nodes
-	Bridge interface{} // *python.PythonBridge
+	// Python bridge for ML/AI nodes (passed to constructors, stays as any)
+	Bridge interface{}
 
 	// AI agent dependencies
-	CapRegistry interface{} // *ai.CapabilityRegistry
-	Emitter     interface{} // *ai.EventEmitter
-	ProfileMgr  interface{} // *ai.ProfileManager
+	CapRegistry interface{} // *ai.CapabilityRegistry (passed to constructors)
+	Emitter     interface{} // *ai.EventEmitter (passed to constructors)
+	ProfileMgr  ProfileMgrService
 
 	// ML model registry
-	ModelRegistry interface{} // *ml.ModelRegistry
+	ModelRegistry ModelRegistryService
 
 	// Market adapters
-	MarketReg         interface{} // *market.AdapterRegistry — real OHLCV/quote fetching
-	NewsAdapter       interface{} // adapters.NewsAdapter
-	GlobalNewsAdapter interface{} // adapters.GlobalNewsAdapter
+	MarketReg         MarketRegService
+	NewsAdapter       NewsAdapterService
+	GlobalNewsAdapter interface{} // adapters.GlobalNewsAdapter (unused by nodes)
 
 	// Research services
-	SentimentEngine         interface{} // *research.SentimentEngine
-	FinancialsService       interface{} // *research.FinancialsService
-	PeerComparisonService   interface{} // *research.PeerComparisonService
-	AnalystEstimatesService interface{} // *research.AnalystEstimatesService
-	InsiderTradingService   interface{} // *research.InsiderTradingService
-	CongressTradingService  interface{} // *research.CongressTradingService
-	CapitalService          interface{} // *research.CapitalService
-	FundFlowService         interface{} // *research.FundFlowService
-	NorthboundService       interface{} // *research.NorthboundService
-	AnnouncementService     interface{} // *research.AnnouncementService
-	PredictionMarketService interface{} // *research.PredictionMarketService
-	GeopoliticsService      interface{} // *research.GeopoliticsService
-	GovDataService          interface{} // *research.GovDataService
-	SatelliteService        interface{} // *research.SatelliteService
+	SentimentEngine         SentimentEngineService
+	FinancialsService       FinancialsServiceInterface
+	PeerComparisonService   PeerComparisonServiceInterface
+	AnalystEstimatesService AnalystEstimatesServiceInterface
+	InsiderTradingService   InsiderTradingServiceInterface
+	CongressTradingService  interface{}
+	CapitalService          interface{}
+	FundFlowService         interface{}
+	NorthboundService       interface{}
+	AnnouncementService     interface{}
+	PredictionMarketService PredictionMarketServiceInterface
+	GeopoliticsService      GeopoliticsServiceInterface
+	GovDataService          GovDataServiceInterface
+	SatelliteService        SatelliteServiceInterface
 
 	// Backtest window — set by ExecuteBacktest before each window
 	BacktestStart string

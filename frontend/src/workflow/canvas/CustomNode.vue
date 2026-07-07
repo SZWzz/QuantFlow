@@ -77,13 +77,25 @@ const inputPorts = computed(() => (props.data.inputs && props.data.inputs.length
 const outputPorts = computed(() => (props.data.outputs && props.data.outputs.length) ? props.data.outputs : ['output'])
 const maxPorts = computed(() => Math.max(inputPorts.value.length, outputPorts.value.length, 1))
 
-const HEADER_H = 30
-const PORT_ROW_H = 26
-const paramsH = computed(() => paramKeys.value.length > 0 ? paramKeys.value.length * 20 + 6 : 0)
+// Error handling strategy (stored in _ prefixed params)
+const errorStrategy = computed(() => props.data.params?._onError || 'stop')
+const retryCount = computed(() => props.data.params?._retryCount ?? 3)
 
-// Position each port dot at the correct vertical offset
-function portTop(idx: number): string {
-  return (HEADER_H + paramsH.value + idx * PORT_ROW_H + PORT_ROW_H / 2) + 'px'
+function setErrorStrategy(s: string) {
+  if (!props.data.params) props.data.params = {}
+  if (s === 'stop') {
+    delete props.data.params._onError
+    delete props.data.params._retryCount
+  } else {
+    props.data.params._onError = s
+    if (s === 'retry' && !props.data.params._retryCount) {
+      props.data.params._retryCount = 3
+    }
+  }
+}
+function setRetryCount(n: number) {
+  if (!props.data.params) props.data.params = {}
+  props.data.params._retryCount = n
 }
 </script>
 
@@ -100,7 +112,7 @@ function portTop(idx: number): string {
       <div class="params-hint">{{ t('workflow.click_to_edit') }}</div>
       <div v-for="key in paramKeys" :key="key" class="param-row" @click.stop="startEdit(key)">
         <template v-if="editingParam === key">
-          <input class="param-input" v-model="editValue" @keyup.enter="commitEdit" @keyup.escape="cancelEdit" @blur="commitEdit" autofocus @click.stop />
+          <input class="param-input" v-model="editValue" @keyup.enter="commitEdit" @keyup.escape="cancelEdit" @blur="commitEdit" autofocus @mousedown.stop />
         </template>
         <template v-else>
           <span class="param-key">{{ paramLabel(key, t) }}</span>
@@ -110,39 +122,52 @@ function portTop(idx: number): string {
       </div>
     </div>
 
-    <!-- Input handles on left edge -->
-    <Handle
-      v-for="(port, idx) in inputPorts"
-      :key="'in-' + port"
-      :type="'target'"
-      :position="Position.Left"
-      :id="port"
-      :style="{ top: portTop(idx) }"
-      class="port-dot port-dot-left"
-    />
-    <!-- Output handles on right edge -->
-    <Handle
-      v-for="(port, idx) in outputPorts"
-      :key="'out-' + port"
-      :type="'source'"
-      :position="Position.Right"
-      :id="port"
-      :style="{ top: portTop(idx) }"
-      class="port-dot port-dot-right"
-    />
-    <!-- Port labels -->
+    <!-- Port rows with handles aligned to labels -->
     <div class="node-ports">
       <div
         v-for="i in maxPorts"
         :key="'pr-' + i"
         class="port-row"
       >
+        <Handle
+          v-if="inputPorts[i - 1]"
+          type="target"
+          :position="Position.Left"
+          :id="inputPorts[i - 1]"
+          class="port-dot port-dot-left"
+        />
         <span class="port-label left-label">
           {{ inputPorts[i - 1] ? portLabel(inputPorts[i - 1]) : '' }}
         </span>
         <span class="port-label right-label">
           {{ outputPorts[i - 1] ? portLabel(outputPorts[i - 1]) : '' }}
         </span>
+        <Handle
+          v-if="outputPorts[i - 1]"
+          type="source"
+          :position="Position.Right"
+          :id="outputPorts[i - 1]"
+          class="port-dot port-dot-right"
+        />
+      </div>
+    </div>
+
+    <!-- Error handling (only when selected) -->
+    <div v-if="selected" class="node-error-section" @mousedown.stop @click.stop>
+      <div class="error-row">
+        <select class="error-select" :value="errorStrategy" @change="setErrorStrategy(($event.target as HTMLSelectElement).value)" @mousedown.stop>
+          <option value="stop">⏹ {{ t('workflow.error_stop') }}</option>
+          <option value="skip">⏭ {{ t('workflow.error_skip') }}</option>
+          <option value="retry">🔄 {{ t('workflow.error_retry') }}</option>
+        </select>
+        <input
+          v-if="errorStrategy === 'retry'"
+          class="retry-input"
+          type="number" min="1" max="10"
+          :value="retryCount"
+          @input="setRetryCount(Number(($event.target as HTMLInputElement).value))"
+          @mousedown.stop
+        />
       </div>
     </div>
 
@@ -220,7 +245,7 @@ function portTop(idx: number): string {
 .node-ports { padding: 4px 0; }
 .port-row {
   display: flex; justify-content: space-between; align-items: center;
-  height: 26px; padding: 0 12px;
+  height: 26px; padding: 0 12px; position: relative;
 }
 .port-label { font-size: 10px; color: var(--color-text-tertiary); user-select: none; white-space: nowrap; }
 .right-label { text-align: right; }
@@ -232,11 +257,32 @@ function portTop(idx: number): string {
   border: 2px solid #171b26 !important;
   border-radius: 50% !important;
   position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
   z-index: 20;
 }
 .port-dot:hover { transform: scale(1.6); background: #79c0ff !important; }
 .port-dot-left { left: -6px; }
 .port-dot-right { right: -6px; }
+
+/* ── Error handling (selected only) ── */
+.node-error-section {
+  padding: 4px 8px; border-top: 1px solid rgba(255,255,255,.06);
+  background: rgba(0,0,0,.1);
+}
+.error-row { display: flex; align-items: center; gap: 4px; }
+.error-select {
+  flex: 1; padding: 2px 4px; font-size: 10px;
+  background: var(--color-bg-input); border: 1px solid var(--color-border);
+  border-radius: 3px; color: var(--color-text-secondary); outline: none; cursor: pointer;
+}
+.error-select:focus { border-color: var(--color-accent); }
+.retry-input {
+  width: 44px; padding: 2px 4px; font-size: 10px;
+  background: var(--color-bg-input); border: 1px solid var(--color-border);
+  border-radius: 3px; color: var(--color-text-primary); outline: none; text-align: center;
+}
+.retry-input:focus { border-color: var(--color-accent); }
 
 /* ── Status ── */
 .running-indicator { position: absolute; bottom: 4px; right: 4px; width: 8px; height: 8px; background: #f0883e; border-radius: 50%; }

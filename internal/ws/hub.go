@@ -16,6 +16,7 @@ type Hub struct {
 	topics     map[string]map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
+	done       chan struct{}
 }
 
 func NewHub() *Hub {
@@ -24,7 +25,12 @@ func NewHub() *Hub {
 		topics:     make(map[string]map[*Client]bool),
 		register:   make(chan *Client, 256),
 		unregister: make(chan *Client, 256),
+		done:       make(chan struct{}),
 	}
+}
+
+func (h *Hub) Shutdown() {
+	close(h.done)
 }
 
 func (h *Hub) Run() {
@@ -46,6 +52,8 @@ func (h *Hub) Run() {
 				close(client.send)
 			}
 			h.mu.Unlock()
+		case <-h.done:
+			return
 		}
 	}
 }

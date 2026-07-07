@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,15 +12,23 @@ import (
 )
 
 type testNotifier struct {
+	mu      sync.Mutex
 	name    string
 	lastMsg *Message
 }
 
 func (t *testNotifier) Send(ctx context.Context, msg *Message) error {
+	t.mu.Lock()
 	t.lastMsg = msg
+	t.mu.Unlock()
 	return nil
 }
 func (t *testNotifier) Name() string { return t.name }
+func (t *testNotifier) LastMsg() *Message {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.lastMsg
+}
 
 func TestManager_Register(t *testing.T) {
 	db, err := sql.Open("sqlite3", ":memory:")
@@ -81,14 +90,12 @@ func TestManager_AddNotification(t *testing.T) {
 	}
 
 	// Verify notifier received the message
-	if tn.lastMsg == nil {
+	if got := tn.LastMsg(); got == nil {
 		t.Fatal("notifier did not receive message")
-	}
-	if tn.lastMsg.Title != "Test Title" {
-		t.Errorf("notifier title = %q, want 'Test Title'", tn.lastMsg.Title)
-	}
-	if tn.lastMsg.Level != LevelInfo {
-		t.Errorf("notifier level = %q, want 'info'", tn.lastMsg.Level)
+	} else if got.Title != "Test Title" {
+		t.Errorf("notifier title = %q, want 'Test Title'", got.Title)
+	} else if got.Level != LevelInfo {
+		t.Errorf("notifier level = %q, want 'info'", got.Level)
 	}
 	mgr.Close()
 }

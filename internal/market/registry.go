@@ -1,3 +1,6 @@
+// Package market provides real-time and historical market data access
+// with automatic adapter selection and fallback. Key abstractions:
+// Registry, MarketDataHub, and OffHoursCache.
 package market
 
 import (
@@ -38,6 +41,7 @@ type AdapterRegistry struct {
 	lastQuote     sync.Map // market:symbol → *QuoteSnapshot (last known value, survives TTL)
 	lastQuotePath string   // if set, last quotes are persisted to this JSON file
 	saveMu        sync.Mutex
+	saveTimer     *time.Timer
 }
 
 // SetLastQuotePath sets a file path for persisting last known quotes.
@@ -100,6 +104,17 @@ func (r *AdapterRegistry) saveLastQuotes() {
 		slog.Warn("rename last quotes", "error", err)
 	}
 	slog.Debug("saved last quotes", "count", len(data), "path", r.lastQuotePath)
+}
+
+func (r *AdapterRegistry) debouncedSaveQuotes() {
+	r.saveMu.Lock()
+	defer r.saveMu.Unlock()
+	if r.saveTimer != nil {
+		r.saveTimer.Stop()
+	}
+	r.saveTimer = time.AfterFunc(5*time.Second, func() {
+		r.saveLastQuotes()
+	})
 }
 
 // NewAdapterRegistry creates an empty AdapterRegistry.
@@ -195,7 +210,7 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 		r.quoteCache[cacheKey] = &quoteCacheEntry{snapshot: quote, source: name, expires: time.Now().Add(quoteCacheTTL)}
 		r.mu.Unlock()
 		r.lastQuote.Store(cacheKey, quote)
-		go r.saveLastQuotes()
+		r.debouncedSaveQuotes()
 		return quote, name, nil
 	}
 

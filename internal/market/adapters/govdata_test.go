@@ -123,8 +123,8 @@ func TestGovDataAdapter_FetchCompanyFilings(t *testing.T) {
 }
 
 func TestFREDIndicators_Count(t *testing.T) {
-	if len(FREDIndicators) != 15 {
-		t.Errorf("expected 15 FRED indicators, got %d", len(FREDIndicators))
+	if len(FREDIndicators) != 13 {
+		t.Errorf("expected 13 FRED indicators, got %d", len(FREDIndicators))
 	}
 }
 
@@ -134,7 +134,7 @@ func TestFREDIndicators_HasKeyCategories(t *testing.T) {
 		categories[meta.Category]++
 	}
 
-	expectedCats := []string{"gdp", "inflation", "employment", "rates", "energy", "housing"}
+	expectedCats := []string{"gdp", "inflation", "employment", "rates", "housing"}
 	for _, cat := range expectedCats {
 		if _, ok := categories[cat]; !ok {
 			t.Errorf("expected category %q in FRED indicators", cat)

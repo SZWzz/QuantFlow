@@ -50,17 +50,17 @@ func (n *StockResearchNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *StockResearchNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var financialsService *research.FinancialsService
-	var sentimentEngine *research.SentimentEngine
-	var peerComparisonService *research.PeerComparisonService
-	var analystEstimatesService *research.AnalystEstimatesService
-	var insiderTradingService *research.InsiderTradingService
+	var financialsService workflow.FinancialsServiceInterface
+	var sentimentEngine workflow.SentimentEngineService
+	var peerComparisonService workflow.PeerComparisonServiceInterface
+	var analystEstimatesService workflow.AnalystEstimatesServiceInterface
+	var insiderTradingService workflow.InsiderTradingServiceInterface
 	if nctx != nil {
-		financialsService, _ = nctx.FinancialsService.(*research.FinancialsService)
-		sentimentEngine, _ = nctx.SentimentEngine.(*research.SentimentEngine)
-		peerComparisonService, _ = nctx.PeerComparisonService.(*research.PeerComparisonService)
-		analystEstimatesService, _ = nctx.AnalystEstimatesService.(*research.AnalystEstimatesService)
-		insiderTradingService, _ = nctx.InsiderTradingService.(*research.InsiderTradingService)
+		financialsService = nctx.FinancialsService
+		sentimentEngine = nctx.SentimentEngine
+		peerComparisonService = nctx.PeerComparisonService
+		analystEstimatesService = nctx.AnalystEstimatesService
+		insiderTradingService = nctx.InsiderTradingService
 	}
 
 	symbol, ok := inputs["symbol"].(string)

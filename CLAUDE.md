@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **QuantFlow Terminal** — 双模式量化金融终端，融合彭博式面板终端 + 可视化工作流编排。
 
-- **技术栈**: Go 1.22+ (Wails v3 桌面壳) / Vue 3 + TypeScript (前端) / SQLite WAL (存储) / Python 3.12+ (gRPC sidecar)
+- **技术栈**: Go 1.25+ (Wails v3 桌面壳) / Vue 3 + TypeScript (前端) / SQLite WAL (存储) / Python 3.12+ (gRPC sidecar)
 - **目标市场**: A 股 / 港股 / 美股 / 加密（无印度市场）
 - **许可证**: AGPL-3.0
 

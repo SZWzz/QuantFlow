@@ -33,7 +33,7 @@ describe('useWorkflowStore', () => {
     const store = useWorkflowStore()
     const id1 = store.addNode('sma', { x: 0, y: 0 })
     const id2 = store.addNode('log_output', { x: 200, y: 0 })
-    const edge = { id: 'e-1', source: id1, target: id2, type: 'smoothstep', style: { stroke: '#30363d', strokeWidth: 2 } }
+    const edge = { id: 'e-1', source: id1, target: id2, type: 'default', style: { stroke: '#30363d', strokeWidth: 2 } }
     store.addEdge(edge)
     expect(store.edges).toHaveLength(1)
     store.removeEdge(edge.id)
@@ -75,7 +75,7 @@ describe('useWorkflowStore', () => {
       target: toNode.id,
       sourceHandle: 'ohlcv',
       targetHandle: 'input',
-      type: 'smoothstep',
+      type: 'default',
       style: { stroke: '#30363d', strokeWidth: 2 },
     })
 

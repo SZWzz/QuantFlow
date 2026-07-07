@@ -114,17 +114,13 @@ func (h *MarketDataHub) Publish(topic string, data any) {
 		Timestamp: time.Now(),
 	}
 
-	h.mu.RLock()
+	h.mu.Lock()
 	broker, ok := h.topics[topic]
-	h.mu.RUnlock()
-
 	if !ok {
-		// No subscribers yet; create broker to cache the message
-		h.mu.Lock()
 		broker = newTopicBroker()
 		h.topics[topic] = broker
-		h.mu.Unlock()
 	}
+	h.mu.Unlock()
 
 	broker.publish(msg)
 }

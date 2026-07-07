@@ -6,24 +6,72 @@
 
 ## [2026.7.7] - 2026-07-07
 
+### Added
+- [Security] 凭据加密改用 OS 钥匙串主密钥，不再依赖主机名派生密钥（macOS 走 `security` CLI，Linux 走 `secret-tool`/文件回退，Windows 留桩待实现）
+- [MarketData] EastMoney adapter HTTP 调用接入令牌桶限流（5 req/s），防止反爬封禁
+- [MarketData] MarketDataHub 并发发布测试，竞态检测器验证通过
+- [Workflow] NodeContext 中 14 个 `interface{}` 字段替换为类型化服务接口，所有节点实现获得编译时类型安全
+- [Workflow] Registry 缓存保存改为防抖 5s（原每笔报价都起 goroutine 写盘，快轮询下堆积严重）
+- [Frontend] 新增 ESLint 配置（`.eslintrc.cjs`），Vue 3 + TypeScript 风格检查
+- [Frontend] Vite 构建增加 `manualChunks` 分包，vendor 拆为 vue/flow/chart/wails 四个独立 chunk
+- [Frontend] 新增 `vitest.setup.ts`，统一 mock Wails runtime 和 `window.go` bridge，消除 jsdom 下未定义错误
+- [Infrastructure] CI 流水线增加 `actions/cache`（Go mod / npm / pip）、`go build` 验证和 `golangci-lint`
+- [Infrastructure] `make lint` 同时跑 `go vet` 和 `golangci-lint`
+- [Infrastructure] `Taskfile.yml` 增加 `python:deps` 和 `proto` 生成目标
+- [Infrastructure] `Makefile` 增加 `python-setup` 目标
+- [Docs] internal/market / workflow / backtest / schedule / notify 增加包级 docstring
+- [Docs] `python/README.md` 本地开发环境搭建说明
+
+### Changed
+- [Backtest] **关键** `SignalFunc` 签名变更为 `(openPrice float64, prevBar *OHLCVBar, portfolio) *Signal`，SignalFunc 不再接触当前 bar 的 Close/High/Low，从类型层面杜绝前视偏差
+- [Backtest] 所有测试回调适配新签名；SMACross 策略改用 `prevBar.Close` 计算均线
+- [Backtest] 引擎内 `log.Printf` 全部改为 `slog.Debug`，日志一并在 LogPanel 展示
+- [MarketData] `MarketDataHub.Publish` TOCTOU 竞态修复：`RLock` → 排他 `Lock`，消除双 goroutine 同时创建 topic 时产生孤儿 `topicBroker` 的问题
+- [MarketData] `OffHoursCache.Get` 签名从返回 `any` 改为 `Get(key, dest *T) error`，内部 JSON 深拷贝后再反序列化到 dest，防止调用方篡改缓存数据
+- [MarketData] app.go / app_market.go / app_research.go 中 5 处 `OffHoursCache.Get` 调用方同步更新
+- [MarketData] `MarketForSymbol` 导出为唯一真相源，`app.go` 中重复的 `resolveMarketFromSymbol` 移除
+- [Workflow] WebSocket Hub 增加 `done` 通道 + `Shutdown()`，Hub.Run() 不再无限阻塞
+- [Workflow] ExecutionQueue 增加可取消上下文 + `Shutdown()`，应用退出时可取消排队中的 workflow
+- [Workflow] SentimentEngine.BatchAnalyze 无界 goroutine 改为 `errgroup` 有界工作池（最多 10 并发）
+- [Workflow] `generateShortID` 处理 `rand.Read` 失败：回退到时间戳 hex
+- [Workflow] 错误重试从仅单节点扩展到层级级：`executeLayer` 根据节点 ErrorStrategy 自动重试
+- [Workflow] NodeContext 所有 `interface{}` 字段替换为类型化接口，19 个节点文件同步更新
+- [Workflow] NodeCache `nodeKeys` map 增加 `sync.RWMutex`，消除并发读写竞态
+- [Workflow] 移除 PropertyPanel.vue，编辑/错误处理全部嵌入 CustomNode.vue 卡片内联控件
+- [Workflow] 连线样式从 smoothstep → step → default bezier（无拐角弧线）
+- [Config] `Load()` 存储解析后的绝对路径，`Save()` 写回该路径，不再依赖进程 CWD
+- [Frontend] 测试 setup 改用真实 i18n 消息（原为空 {}），语言设为 `'en'`，支持文本断言
+- [Frontend] LogPanel 测试补 `setActivePinia(createPinia())`，消除 Pinia 未激活 panic
+- [Frontend] CustomNode.vue 全部 30+ 节点类型端口标签/参数名走 i18n；端口句柄改用 CSS `top:50%; transform:translateY(-50%)` 居中；选中节点显示错误处理 UI；参数输入框加 `@mousedown.stop` 防止拖拽冲突
+- [Python] Sidecar Stop() 移除 macOS 专用 `lsof`，改为 PID 文件 + `os.Interrupt` 信号停进程
+- [Python] requirements.lock 移除 7 个违规/无用传递依赖（psycopg2-binary / fastapi / uvicorn / duckdb / matplotlib / weasyprint / pillow）
+- [Security] 凭据加密从 `sha256(hostname + salt)` 派生密钥改为 OS 钥匙串 MasterKey，旧凭据首次读时自动迁移
+- [Lint] `.golangci.yml` 增加 gofumpt / gocyclo / revive / goconst / gocritic
+- [Infrastructure] `app.go` 拆分为 `app_startup.go` + `app_shutdown.go`（原 >1500 行）
+- [Infrastructure] `main.go` 中 `log.Fatal` 改为 `slog.Error` + `os.Exit(1)`，与全项目结构化日志一致
+- [Docs] CLAUDE.md Go 版本从 1.22+ 修正为 1.25+，对齐 go.mod
+
 ### Fixed
-- [Terminal] AIChatPanel marked renderer.code signature for marked v18+ API
-- [Terminal] CandlestickPanel jumpToDate parse date strings to Unix timestamps
-- [Terminal] CorrelationPanel corrMatrix type via fetchWithCache generic param
-- [Terminal] DefiTVLPanel/WhaleTrackingPanel sort comparator bVal type narrowing
-- [Terminal] DistributionPanel add missing useI18n() destructure
-- [Terminal] IndicatorPanel column align right→left; extract Column type to shared types.ts
-- [Terminal] LimitUpDownPanel/MarketOverviewPanel switchMarket accept string with runtime guard
-- [Engine] eastmoney_signals %w directive on non-wrapping NewTransientErrorf
-- [Engine] app_test inject cfg to prevent nil deref in registerMarketAdapters
-- [Frontend] Register vue-i18n in test setup for component mount wrappers
-- [Workflow] CredentialManager confirm/alert → confirmDialog/alertDialog (Wails v3 compat)
-- [Workflow] NodePalette template _id no longer mutates module-level TEMPLATES constant
+- [Backtest] CN/US/HK 引擎测试全部在新 `SignalFunc` 签名下通过
+- [MarketData] FRED 指标测试硬编码数量 15→13（与实际条目数对齐），移除不再存在的 "energy" 分类
+- [MarketData] Notify manager 测试 `testNotifier` 数据竞争修复：`sync.Mutex` 保护 `lastMsg`
+- [Terminal] AIChatPanel 标记 `renderer.code` 签名适配 marked v18+ API
+- [Terminal] CandlestickPanel `jumpToDate` 日期字符串正确解析为 Unix 时间戳
+- [Terminal] CorrelationPanel `corrMatrix` 类型通过 `fetchWithCache` 泛型参数修复
+- [Terminal] DefiTVLPanel / WhaleTrackingPanel 排序比较器 `bVal` 类型收窄
+- [Terminal] DistributionPanel 补上漏掉的 `useI18n()` 解构
+- [Terminal] IndicatorPanel 列对齐右→左；`Column` 类型提取到共享 `types.ts`
+- [Terminal] LimitUpDownPanel / MarketOverviewPanel `switchMarket` 接受 `string` 加运行时守卫
+- [Engine] eastmoney_signals 非包装 `NewTransientErrorf` 上错误使用 `%w` 指令
+- [Engine] app_test 注入 `cfg` 防止 `registerMarketAdapters` 空指针
+- [Frontend] 测试 setup 注册 vue-i18n，组件挂载不再报 missing plugin
+- [Workflow] CredentialManager `confirm()` / `alert()` 改为 `confirmDialog()` / `alertDialog()`（Wails v3 webview 禁用同步弹窗）
+- [Workflow] NodePalette `template._id` 不再意外修改模块级 `TEMPLATES` 常量
 - [Frontend] Crosshair 成交量硬编码为 0 → 从 candlestick raw data 正确提取
 - [Frontend] Crosshair 黑框不再冗余显示 OHLC（已由 ECharts tooltip 展示），仅保留 Chg/Chg%/Vol
 - [Frontend] ECharts tooltip OHLC 显示顺序修正为 O→H→L→C（行业标准）
-- [Frontend] useLogger 改用 typed GetLogs wrapper 代替 raw window.go
-- [Storage] RingBuffer(0) 不再创建静默 no-op 缓冲区；对齐 spec（capacity≤0 → 5000）
+- [Frontend] useLogger 改用 typed `GetLogs` wrapper 代替 raw `window.go`
+- [Storage] `RingBuffer(0)` 不再创建静默 no-op 缓冲区；按 spec 修正：capacity≤0 时容量默认 5000
 - [MarketData] mootdx OHLCV 成交量从手归一化为股（×100），与 EastMoney adapter 一致
 - [Docs] EastMoney adapter 注释显式标注非标准字段顺序，防止将来被"修复"
 

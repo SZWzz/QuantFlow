@@ -57,9 +57,9 @@ func (n *NewsFetcherNode) ParamSchema() []workflow.ParamDef {
 
 // Execute fetches news and concatenates the text for NLP consumption.
 func (n *NewsFetcherNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var newsAdapter adapters.NewsAdapter
+	var newsAdapter workflow.NewsAdapterService
 	if nctx != nil {
-		newsAdapter, _ = nctx.NewsAdapter.(adapters.NewsAdapter)
+		newsAdapter = nctx.NewsAdapter
 	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {

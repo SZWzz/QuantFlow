@@ -1,3 +1,5 @@
+// Package notify provides multi-channel notification delivery
+// (in-app, Telegram) with persistence and read tracking.
 package notify
 
 import (

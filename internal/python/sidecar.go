@@ -26,6 +26,7 @@ const ExpectedSidecarVersion = "0.2.3"
 // SidecarProcess wraps a running Python sidecar child process.
 type SidecarProcess struct {
 	cmd     *exec.Cmd
+	pid     int
 	addr    string
 	pidFile string
 	done    chan struct{}
@@ -48,11 +49,20 @@ func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProc
 	binDir := filepath.Dir(pythonDir)
 	pidFile := filepath.Join(binDir, ".quantflow-sidecar.pid")
 
-	// Always kill any stale sidecar process on the port before starting fresh.
+	// Kill any stale sidecar process using the PID file before starting fresh.
 	// This prevents reusing an old Python process that has stale code loaded,
 	// which can happen when the Go app exits but the Python sidecar orphan survives.
-	killSidecarByPort(port)
-	time.Sleep(300 * time.Millisecond)
+	if data, err := os.ReadFile(pidFile); err == nil {
+		lines := strings.SplitN(string(data), "\n", 2)
+		if len(lines) > 0 {
+			if oldPid, err := strconv.Atoi(strings.TrimSpace(lines[0])); err == nil {
+				if oldProc, err := os.FindProcess(oldPid); err == nil {
+					oldProc.Signal(syscall.SIGTERM)
+					time.Sleep(300 * time.Millisecond)
+				}
+			}
+		}
+	}
 	os.Remove(pidFile)
 
 	// Resolve the Python binary — prefer the project's venv, fall back to system.
@@ -79,6 +89,7 @@ func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProc
 
 	sp := &SidecarProcess{
 		cmd:     cmd,
+		pid:     cmd.Process.Pid,
 		addr:    addr,
 		pidFile: pidFile,
 		done:    make(chan struct{}),
@@ -109,41 +120,6 @@ func getSidecarVersion(ctx context.Context, addr string) (string, error) {
 		return "", fmt.Errorf("ping: %w", err)
 	}
 	return resp.Version, nil
-}
-
-// killSidecarByPort finds any process listening on the given TCP port and sends SIGTERM.
-func killSidecarByPort(port int) {
-	// lsof -ti :<port> returns just the PID(s) listening on that port.
-	cmd := exec.Command("lsof", "-ti", fmt.Sprintf(":%d", port))
-	out, err := cmd.Output()
-	if err != nil {
-		slog.Warn("failed to find sidecar process by port", "port", port, "error", err)
-		return
-	}
-
-	pidStr := strings.TrimSpace(string(out))
-	if pidStr == "" {
-		return
-	}
-
-	pid, err := strconv.Atoi(pidStr)
-	if err != nil {
-		slog.Warn("invalid PID from lsof", "output", pidStr)
-		return
-	}
-
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		slog.Warn("failed to find sidecar process", "pid", pid, "error", err)
-		return
-	}
-
-	if err := proc.Signal(syscall.SIGTERM); err != nil {
-		slog.Warn("failed to send SIGTERM to sidecar", "pid", pid, "error", err)
-		return
-	}
-
-	slog.Info("sent SIGTERM to stale python sidecar", "pid", pid)
 }
 
 func (sp *SidecarProcess) waitReady(ctx context.Context) {

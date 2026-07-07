@@ -46,9 +46,9 @@ func (n *AnalystEstimatesNode) ParamSchema() []workflow.ParamDef {
 }
 
 func (n *AnalystEstimatesNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
-	var analystEstimatesService *research.AnalystEstimatesService
+	var analystEstimatesService workflow.AnalystEstimatesServiceInterface
 	if nctx != nil {
-		analystEstimatesService, _ = nctx.AnalystEstimatesService.(*research.AnalystEstimatesService)
+		analystEstimatesService = nctx.AnalystEstimatesService
 	}
 	symbol, ok := inputs["symbol"].(string)
 	if !ok || symbol == "" {
