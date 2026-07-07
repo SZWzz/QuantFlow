@@ -252,12 +252,24 @@ export function buildKlineOption(
         if (!ps?.length) return ''
         const lines: string[] = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]
         for (const p of ps) {
+          if (p.seriesType === 'candlestick') {
+            const item = data[p.dataIndex]
+            if (item) {
+              lines.push(`<div style="margin-top:4px">${t('kline.open')}: ${item.open.toFixed(2)}</div>`)
+              lines.push(`<div>${t('kline.high')}: ${item.high.toFixed(2)}</div>`)
+              lines.push(`<div>${t('kline.low')}: ${item.low.toFixed(2)}</div>`)
+              lines.push(`<div>${t('kline.close')}: ${item.close.toFixed(2)}</div>`)
+              continue
+            }
+          }
           const d = p.data
           if (p.seriesType === 'candlestick' && Array.isArray(d) && d.length >= 4) {
-            lines.push(`<div style="margin-top:4px">${t('kline.open')}: ${d[0].toFixed(2)}</div>`)
-            lines.push(`<div>${t('kline.close')}: ${d[1].toFixed(2)}</div>`)
-            lines.push(`<div>${t('kline.low')}: ${d[2].toFixed(2)}</div>`)
-            lines.push(`<div>${t('kline.high')}: ${d[3].toFixed(2)}</div>`)
+            // ECharts 5.5+ may prepend dataIndex to p.data: fallback
+            const off = d.length >= 5 ? 1 : 0
+            lines.push(`<div style="margin-top:4px">${t('kline.open')}: ${d[off].toFixed(2)}</div>`)
+            lines.push(`<div>${t('kline.high')}: ${d[off + 3].toFixed(2)}</div>`)
+            lines.push(`<div>${t('kline.low')}: ${d[off + 2].toFixed(2)}</div>`)
+            lines.push(`<div>${t('kline.close')}: ${d[off + 1].toFixed(2)}</div>`)
           } else if (p.seriesType === 'bar') {
             lines.push(`<div>${p.seriesName}: ${p.value != null ? Number(p.value).toFixed(1) : '--'}</div>`)
           } else if (p.seriesType === 'line') {
