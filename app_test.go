@@ -22,7 +22,7 @@ func TestApp_RegisterMarketAdapters_AllWired(t *testing.T) {
 	}
 	a.registerMarketAdapters()
 
-	want := 14
+	want := 15
 	if got := a.marketReg.Count(); got != want {
 		t.Fatalf("registered adapter count = %d, want %d", got, want)
 	}
