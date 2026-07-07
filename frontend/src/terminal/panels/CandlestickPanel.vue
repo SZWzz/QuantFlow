@@ -558,7 +558,7 @@ function jumpToDate() {
   const echarts = klineChartRef.value?.getEchartsInstance?.()
   if (!echarts) return
 
-  const timestamps = ohlcvData.value.map(d => d[0])
+  const timestamps = ohlcvData.value.map(d => new Date(d.date).getTime() / 1000)
   let bestIdx = 0
   let bestDiff = Infinity
   for (let i = 0; i < timestamps.length; i++) {

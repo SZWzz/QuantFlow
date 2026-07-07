@@ -35,12 +35,12 @@ marked.setOptions({
 
 // Custom renderer: highlight code blocks with highlight.js
 const renderer = new marked.Renderer()
-renderer.code = function (code: string, language: string | undefined) {
-  const lang = language || ''
-  if (lang && hljs.getLanguage(lang)) {
-    return '<pre><code class="hljs ' + lang + '">' + hljs.highlight(code, { language: lang }).value + '</code></pre>'
+renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
+  const language = lang || ''
+  if (language && hljs.getLanguage(language)) {
+    return '<pre><code class="hljs ' + language + '">' + hljs.highlight(text, { language: language }).value + '</code></pre>'
   }
-  return '<pre><code class="hljs">' + hljs.highlightAuto(code).value + '</code></pre>'
+  return '<pre><code class="hljs">' + hljs.highlightAuto(text).value + '</code></pre>'
 }
 marked.setOptions({ renderer })
 

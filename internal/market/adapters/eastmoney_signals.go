@@ -279,7 +279,7 @@ func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, mkt st
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return nil, market.NewTransientErrorf("eastmoney_signals industry: %w", err)
+		return nil, market.NewTransientErrorf("eastmoney_signals industry: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -299,7 +299,7 @@ func (a *EastMoneySignalsAdapter) FetchIndustryRanks(ctx context.Context, mkt st
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, market.NewTransientErrorf("eastmoney_signals industry: %w", err)
+		return nil, market.NewTransientErrorf("eastmoney_signals industry: %v", err)
 	}
 
 	ranks := make([]market.IndustryRank, 0, len(result.Data.Diff))

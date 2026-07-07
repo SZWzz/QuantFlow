@@ -67,7 +67,8 @@ async function compute() {
   loadError.value = ''
   try {
     const key = 'correlation:' + syms.join(',') + ':' + lookback.value
-    const { data: corrMatrix } = await fetchWithCache(key, () => app.GetCorrelationMatrix(syms, lookback.value))
+    type CorrMap = Record<string, Record<string, number>>
+    const { data: corrMatrix } = await fetchWithCache<CorrMap>(key, () => app.GetCorrelationMatrix(syms, lookback.value))
     // Convert map[string]map[string]float64 to 2D array ordered by syms
     const m: number[][] = syms.map(si =>
       syms.map(sj => corrMatrix?.[si]?.[sj] ?? 0)
