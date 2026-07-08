@@ -100,6 +100,15 @@ const activeParams = computed(() => activePanel.value?.params)
 function closeTab(tabId: string) {
   terminal.closeTab(props.leafId, tabId)
 }
+
+function tearOff(tab: DockTabState) {
+  const instanceId = `${tab.panelId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  const go = (window as any).go?.main?.App
+  if (!go) return
+  go.TearOffPanel(tab.panelId, instanceId, tab.label, JSON.stringify(tab.params || {}))
+    .then(() => closeTab(tab.id))
+    .catch((err: any) => console.error('[DockTab] tear-off failed:', err))
+}
 </script>
 
 <template>
@@ -125,6 +134,11 @@ function closeTab(tabId: string) {
             :style="{ background: tabGroupDot(tab.panelId).color }"
           ></span>
           <span class="tab-label">{{ tab.label }}</span>
+          <span
+            class="tab-tearoff"
+            @click.stop="tearOff(tab)"
+            title="撕下为新窗口"
+          >↗</span>
           <span
             class="tab-close"
             @click.stop="closeTab(tab.id)"
@@ -327,6 +341,31 @@ function closeTab(tabId: string) {
   opacity: 1 !important;
   background: var(--color-down-soft);
   color: var(--color-down) !important;
+}
+
+.tab-tearoff {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  opacity: 0;
+  color: var(--color-text-tertiary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  margin-left: 1px;
+  font-size: 11px;
+  line-height: 1;
+}
+.tab-btn:hover .tab-tearoff {
+  opacity: 0.4;
+}
+.tab-tearoff:hover {
+  opacity: 1 !important;
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary) !important;
 }
 
 .tab-content {
