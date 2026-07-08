@@ -10,6 +10,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"quantflow/internal/ai"
@@ -128,6 +129,10 @@ type App struct {
 
 	// Python sidecar subprocess (auto-launched).
 	sidecar *python.SidecarProcess
+
+	// Tear-off window tracking.
+	tearOffWindows   map[string]*tearOffEntry // instanceId → entry
+	tearOffWindowsMu sync.RWMutex
 }
 
 // ListNodes returns metadata for all registered workflow node types.
