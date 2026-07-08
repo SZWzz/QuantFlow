@@ -417,4 +417,9 @@ export default {
     deterministic: 'Deterministic', fill_na: 'Fill NA',
     lag_periods: 'Lag Periods',
   },
+  storage: {
+    title: 'Storage', table: 'Table', rows: 'Rows', size: 'Size',
+    oldest: 'Oldest', newest: 'Newest', actions: 'Actions',
+    export: 'Export', archive: 'Archive', cleanup: 'Cleanup',
+  },
 }

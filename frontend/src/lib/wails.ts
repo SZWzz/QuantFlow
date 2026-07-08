@@ -299,3 +299,51 @@ export interface LogEntry {
 export async function GetLogs(afterID: number): Promise<LogEntry[]> {
   return wailsCall<LogEntry[]>('GetLogs', afterID)
 }
+
+// ── Data Lifecycle Management ──────────────────────────────────────────
+
+export interface TableStat {
+  table: string
+  rows: number
+  size_bytes: number
+  oldest: string
+  newest: string
+}
+
+export interface ArchiveResult {
+  id: number
+  source: string
+  symbol: string
+  interval: string
+  date_from: string
+  date_to: string
+  row_count: number
+  compressed_bytes: number
+}
+
+export interface CleanupResult {
+  affected_rows: number
+  preview: Record<string, unknown>[]
+  table: string
+  dry_run: boolean
+}
+
+export async function GetStorageStats(): Promise<TableStat[]> {
+  return wailsCall<TableStat[]>('GetStorageStats')
+}
+
+export async function ArchiveData(source: string, symbol: string, before: string): Promise<ArchiveResult> {
+  return wailsCall<ArchiveResult>('ArchiveData', source, symbol, before)
+}
+
+export async function ExportData(table: string, symbol: string, interval: string, format: string, dateFrom: string, dateTo: string): Promise<string> {
+  return wailsCall<string>('ExportData', table, symbol, interval, format, dateFrom, dateTo)
+}
+
+export async function ImportData(filePath: string, table: string): Promise<number> {
+  return wailsCall<number>('ImportData', filePath, table)
+}
+
+export async function CleanupData(table: string, symbol: string, before: string, dryRun: boolean): Promise<CleanupResult> {
+  return wailsCall<CleanupResult>('CleanupData', table, symbol, before, dryRun)
+}

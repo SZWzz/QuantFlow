@@ -118,6 +118,7 @@ register('schedule-panel', () => import('./SchedulePanel.vue'), { label: '定时
 register('notify-panel', () => import('./NotifyPanel.vue'), { label: '通知中心', category: '系统', description: '消息通知列表' })
 register('settings', () => import('./SettingsPanel.vue'), { label: '系统设置', category: '系统', description: '全局配置' })
 register('log-viewer', () => import('./LogPanel.vue'), { label: '日志面板', category: '系统', description: '实时系统日志' })
+register('storage', () => import('./StoragePanel.vue'), { label: '存储管理', category: '系统', description: '数据归档/导出/清理/用量监控' })
 
 // ── 欢迎页 ──
 register('welcome', () => import('./WelcomePanel.vue'), { label: '欢迎', category: '系统', description: '欢迎页面' })

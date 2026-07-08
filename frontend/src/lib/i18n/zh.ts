@@ -443,5 +443,10 @@ export default {
     deterministic: '确定性', fill_na: '填充缺失值',
     lag_periods: '滞后阶数',
   },
+  storage: {
+    title: '存储管理', table: '数据表', rows: '行数', size: '大小',
+    oldest: '最早数据', newest: '最新数据', actions: '操作',
+    export: '导出', archive: '归档', cleanup: '清理',
+  },
 }
 // Append nothing - we'll use sed to add keys
