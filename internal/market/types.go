@@ -2,7 +2,11 @@
 // for real-time market data distribution with L0/L1/L2 caching.
 package market
 
-import "time"
+import (
+	"time"
+
+	"quantflow/internal/normalize"
+)
 
 // DepthLevel represents a single price level in the order book.
 type DepthLevel struct {
@@ -49,16 +53,8 @@ type QuoteSnapshot struct {
 	LimitDown     float64 `json:"limit_down"`
 }
 
-// OHLCVBar is a price bar.
-type OHLCVBar struct {
-	Symbol string  `json:"symbol"`
-	Date   string  `json:"date"`
-	Open   float64 `json:"open"`
-	High   float64 `json:"high"`
-	Low    float64 `json:"low"`
-	Close  float64 `json:"close"`
-	Volume float64 `json:"volume"`
-}
+// OHLCVBar is an alias for normalize.OHLCVBar — the canonical OHLCV type.
+type OHLCVBar = normalize.OHLCVBar
 
 // MarketMessage wraps data published to a topic.
 type MarketMessage struct {

@@ -2,7 +2,11 @@
 // paper trading, order matching, and risk management.
 package trading
 
-import "time"
+import (
+	"time"
+
+	"quantflow/internal/normalize"
+)
 
 // OrderSide represents the direction of an order.
 type OrderSide string
@@ -86,13 +90,5 @@ type Position struct {
 	Name        string  `json:"name"`
 }
 
-// OHLCVBar is a price bar used for order matching.
-type OHLCVBar struct {
-	Symbol string  `json:"symbol"`
-	Date   string  `json:"date"`
-	Open   float64 `json:"open"`
-	High   float64 `json:"high"`
-	Low    float64 `json:"low"`
-	Close  float64 `json:"close"`
-	Volume float64 `json:"volume"`
-}
+// OHLCVBar is an alias for normalize.OHLCVBar — the canonical OHLCV type.
+type OHLCVBar = normalize.OHLCVBar
