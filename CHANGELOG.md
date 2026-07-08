@@ -7,6 +7,12 @@
 ## [2026.7.8] - 2026-07-08
 
 ### Added
+- [Storage] Migration 018 user_config table (key-value store for UI state)
+- [Storage] Data lifecycle management — ArchiveData/UnarchiveData with gzip+sha256,
+  CleanupData with dryRun preview, CSV/Parquet export/import, GetTableStats
+- [Terminal] StoragePanel — archive/export/cleanup UI with usage monitoring
+- [Terminal] Layout Template System — named layout save/load/delete via SQLite persistence,
+  LayoutTemplatePanel UI, Ctrl+Shift+1..9 shortcuts for quick switching
 - [Broker] IBKR broker adapter via Client Portal REST API — Connect/Disconnect/SubmitOrder/
   CancelOrder/ModifyOrder/GetOrders/GetPositions/GetAccount, session management with
   4-minute auto-refresh, market/limit/stop order types, HTTP mock test suite (49 tests)
