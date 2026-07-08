@@ -55,6 +55,7 @@ func RegisterAll(r *workflow.NodeRegistry) {
 	r.RegisterWithCategory("merge", NewMergeNode, "data")
 	r.RegisterWithCategory("filter", NewFilterNode, "data")
 	r.RegisterWithCategory("resample", NewResampleNode, "data")
+	r.RegisterWithCategory("data_normalize", NewDataNormalizeNode, "data")
 	r.RegisterWithCategory("threshold_signal", NewThresholdSignalNode, "signal")
 	r.RegisterWithCategory("signal_combine", NewSignalCombineNode, "signal")
 	r.RegisterWithCategory("rank_select", NewRankSelectNode, "signal")
