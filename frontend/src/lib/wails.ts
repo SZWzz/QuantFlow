@@ -347,3 +347,21 @@ export async function ImportData(filePath: string, table: string): Promise<numbe
 export async function CleanupData(table: string, symbol: string, before: string, dryRun: boolean): Promise<CleanupResult> {
   return wailsCall<CleanupResult>('CleanupData', table, symbol, before, dryRun)
 }
+
+// ── Layout Template Management ─────────────────────────────────────────
+
+export async function SaveLayout(name: string, layoutJSON: string): Promise<void> {
+  return wailsCall<void>('SaveLayout', name, layoutJSON)
+}
+
+export async function LoadLayout(name: string): Promise<string> {
+  return wailsCall<string>('LoadLayout', name)
+}
+
+export async function ListLayouts(): Promise<string[]> {
+  return wailsCall<string[]>('ListLayouts')
+}
+
+export async function DeleteLayout(name: string): Promise<void> {
+  return wailsCall<void>('DeleteLayout', name)
+}

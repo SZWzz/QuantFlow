@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
 import type { DockLayoutTree, DockTabState } from '@/terminal/DockView/types'
 import { getPanelMeta } from '@/terminal/panels/registry'
+import { SaveLayout as saveLayoutIPC, LoadLayout as loadLayoutIPC, ListLayouts as listLayoutsIPC, DeleteLayout as deleteLayoutIPC } from '@/lib/wails'
 
 export interface PanelState {
   instanceId: string
@@ -38,9 +39,9 @@ export const useTerminalStore = defineStore('terminal', () => {
     } catch {}
   }
 
-  const layout = reactive<DockLayoutTree>(loadLayout())
+  const layout = reactive<DockLayoutTree>(loadPersistedLayout())
 
-  function loadLayout(): DockLayoutTree {
+  function loadPersistedLayout(): DockLayoutTree {
     try {
       const saved = localStorage.getItem('quantflow-layout')
       if (saved) return JSON.parse(saved)
@@ -174,9 +175,52 @@ export const useTerminalStore = defineStore('terminal', () => {
     if (n?.type === 'container') n.splitRatios = ratios
   }
 
+  // ── Layout template management ──────────────────────────────────────
+
+  const savedLayouts = ref<string[]>([])
+
+  async function refreshLayouts() {
+    try {
+      savedLayouts.value = await listLayoutsIPC()
+    } catch {}
+  }
+
+  async function saveLayout(name: string) {
+    await saveLayoutIPC(name, JSON.stringify(layout))
+    try {
+      localStorage.setItem(`quantflow-layout:${name}`, JSON.stringify(layout))
+    } catch {}
+    await refreshLayouts()
+  }
+
+  async function loadLayout(name: string) {
+    let json: string | null = null
+    try {
+      json = localStorage.getItem(`quantflow-layout:${name}`)
+    } catch {}
+    if (!json) {
+      json = await loadLayoutIPC(name)
+      if (json) {
+        try { localStorage.setItem(`quantflow-layout:${name}`, json) } catch {}
+      }
+    }
+    if (json) {
+      applyLayout(JSON.parse(json))
+    }
+  }
+
+  async function deleteLayout(name: string) {
+    await deleteLayoutIPC(name)
+    try {
+      localStorage.removeItem(`quantflow-layout:${name}`)
+    } catch {}
+    await refreshLayouts()
+  }
+
   return {
     activePanels, commandHistory, pushPins, focusMode, layout, recentPanels,
     openPanel, closePanel, addCommand, toggleFocusMode,
     selectTab, closeTab, moveTab, updateSplitRatios, applyLayout, persistLayout,
+    savedLayouts, refreshLayouts, saveLayout, loadLayout, deleteLayout,
   }
 })
