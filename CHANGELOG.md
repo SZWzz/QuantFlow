@@ -15,6 +15,9 @@
   LayoutTemplatePanel UI, Ctrl+Shift+1..9 shortcuts for quick switching
 - [Engine] Data normalization system — unified OHLCVBar type, NormalizeVolume helper,
   FieldMapper interface, OrderStatus/Type mappers, OHLCVMapper, DataNormalizeNode workflow node
+- [MarketData] Normalize Phase 2 — all 6 A-share adapters route volume through
+  normalize.NormalizeVolume(); replaced 10 hardcoded *100 with unified function call;
+  added missing normalization to baidu/eastmoney Quote and tencent OHLCV volumes
 - [Broker] IBKR broker adapter via Client Portal REST API — Connect/Disconnect/SubmitOrder/
   CancelOrder/ModifyOrder/GetOrders/GetPositions/GetAccount, session management with
   4-minute auto-refresh, market/limit/stop order types, HTTP mock test suite (49 tests)

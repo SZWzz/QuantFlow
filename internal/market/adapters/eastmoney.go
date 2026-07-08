@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 )
 
 const (
@@ -110,7 +111,7 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 		High:      d.F44 / 100.0,  // f44: 最高价
 		Low:       d.F45 / 100.0,  // f45: 最低价
 		PrevClose: prevClose,
-		Volume:    d.F47,           // f47: 成交量 (手)
+		Volume:    normalize.NormalizeVolume(a.Name(), d.F47), // f47: 成交量 (手→股)
 		Turnover:  d.F48,           // f48: 成交额 (元)
 		Change:    d.F169 / 100.0,  // f169: 涨跌额
 		ChangePct: d.F170 / 100.0,  // f170: 涨跌幅
@@ -201,8 +202,6 @@ func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interv
 			continue // discard bars beyond the requested range
 		}
 
-		// Volume from EastMoney is in 手 (lots, 1 lot = 100 shares). Normalize to
-		// shares for consistency with other CN adapters (TuShare, Sina, Tencent).
 		bars = append(bars, market.OHLCVBar{
 			Symbol: symbol,
 			Date:   fields[0],
@@ -210,7 +209,7 @@ func (a *EastMoneyAdapter) FetchOHLCV(ctx context.Context, symbol string, interv
 			Close:  parseFloatSafe(fields[2]),
 			High:   parseFloatSafe(fields[3]),
 			Low:    parseFloatSafe(fields[4]),
-			Volume: parseFloatSafe(fields[5]) * 100,
+			Volume: normalize.NormalizeVolume(a.Name(), parseFloatSafe(fields[5])),
 		})
 	}
 

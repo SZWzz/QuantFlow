@@ -20,6 +20,14 @@ func NormalizeVolume(source string, volume float64) float64 {
 	return volume
 }
 
+// VolumeMultiplier returns the volume multiplier for a source, or 1 for unknown sources.
+func VolumeMultiplier(source string) float64 {
+	if mult, ok := volumeMultiplier[source]; ok {
+		return mult
+	}
+	return 1
+}
+
 // VolumeSources returns the list of known A-share data sources.
 func VolumeSources() []string {
 	sources := make([]string, 0, len(volumeMultiplier))

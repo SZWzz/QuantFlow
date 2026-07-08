@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 )
 
 // AKShareAdapter fetches data via Tencent Finance HTTP API.
@@ -286,7 +287,7 @@ func parseTencentQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 	open := parseFloatSafe(fields[5])
 	high := parseFloatSafe(fields[33])
 	low := parseFloatSafe(fields[34])
-	volume := parseFloatSafe(fields[6]) * 100
+	volume := normalize.NormalizeVolume("tencent", parseFloatSafe(fields[6]))
 	prevClose := parseFloatSafe(fields[4])
 
 	var turnover float64

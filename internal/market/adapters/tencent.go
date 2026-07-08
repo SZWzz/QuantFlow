@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 )
 
 const (
@@ -178,7 +179,7 @@ func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 			Close:  toFloatVal(r[2]),
 			High:   toFloatVal(r[3]),
 			Low:    toFloatVal(r[4]),
-			Volume: toFloatVal(r[5]),
+			Volume: normalize.NormalizeVolume(a.Name(), toFloatVal(r[5])),
 		})
 	}
 
@@ -352,11 +353,11 @@ func parseTencentDepth(symbol, body string) (*market.DepthSnapshot, error) {
 
 		bids[4-i] = market.DepthLevel{ // reverse so bids[0] is best (highest price)
 			Price: parseFloatSafe(fields[bidPriceIdx]),
-			Size:  parseFloatSafe(fields[bidVolIdx]) * 100,
+			Size:  normalize.NormalizeVolume("tencent", parseFloatSafe(fields[bidVolIdx])),
 		}
 		asks[i] = market.DepthLevel{ // asks[0] is best (lowest price)
 			Price: parseFloatSafe(fields[askPriceIdx]),
-			Size:  parseFloatSafe(fields[askVolIdx]) * 100,
+			Size:  normalize.NormalizeVolume("tencent", parseFloatSafe(fields[askVolIdx])),
 		}
 	}
 

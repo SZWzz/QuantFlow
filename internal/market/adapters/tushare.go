@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 )
 
 const tushareBaseURL = "https://api.tushare.pro"
@@ -70,7 +71,7 @@ func (a *TuShareAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 		Open:      rowFloat(row, "open"),
 		High:      rowFloat(row, "high"),
 		Low:       rowFloat(row, "low"),
-		Volume:    rowFloat(row, "vol") * 100, // 手→股
+		Volume:    normalize.NormalizeVolume(a.Name(), rowFloat(row, "vol")),
 		Change:    rowFloat(row, "change"),
 		ChangePct: rowFloat(row, "pct_chg"),
 		Timestamp: time.Now().UnixMilli(),
@@ -103,7 +104,7 @@ func (a *TuShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 			High:   rowFloat(row, "high"),
 			Low:    rowFloat(row, "low"),
 			Close:  rowFloat(row, "close"),
-			Volume: rowFloat(row, "vol") * 100,
+			Volume: normalize.NormalizeVolume(a.Name(), rowFloat(row, "vol")),
 		})
 	}
 	return bars, nil

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 )
 
 const (
@@ -72,7 +73,7 @@ func (a *BaiduAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Q
 		High:      d.High,
 		Low:       d.Low,
 		Open:      d.Open,
-		Volume:    d.Volume,
+		Volume:    normalize.NormalizeVolume(a.Name(), d.Volume),
 		Timestamp: time.Now().UnixMilli(),
 	}, nil
 }
@@ -160,7 +161,7 @@ func (a *BaiduAdapter) FetchOHLCV(ctx context.Context, symbol string, interval s
 			High:   colFloat(values, colIdx, "high"),
 			Low:    colFloat(values, colIdx, "low"),
 			Close:  colFloat(values, colIdx, "close"),
-			Volume: colFloat(values, colIdx, "volume"),
+			Volume: normalize.NormalizeVolume(a.Name(), colFloat(values, colIdx, "volume")),
 		})
 	}
 

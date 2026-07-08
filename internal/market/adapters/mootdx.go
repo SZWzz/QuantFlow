@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
@@ -86,7 +87,7 @@ func (a *MootdxAdapter) FetchQuote(ctx context.Context, symbol string) (*market.
 		PrevClose:     q.PrevClose,
 		Bid:           q.Bid,
 		Ask:           q.Ask,
-		Volume:        q.Volume,
+		Volume:        normalize.NormalizeVolume(a.Name(), q.Volume),
 		Turnover:      q.Turnover,
 		Change:        q.Change,
 		ChangePct:     q.ChangePct,
@@ -147,7 +148,7 @@ func (a *MootdxAdapter) FetchOHLCV(ctx context.Context, symbol string, interval 
 			High:   b.High,
 			Low:    b.Low,
 			Close:  b.Close,
-			Volume: b.Volume * 100, // 手→shares, consistent with EastMoney adapter
+			Volume: normalize.NormalizeVolume(a.Name(), b.Volume),
 		})
 	}
 

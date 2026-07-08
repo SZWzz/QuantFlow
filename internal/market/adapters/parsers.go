@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 )
 
 // parseFloatSafe parses a float64 from a string, returning 0 on failure.
@@ -110,7 +111,7 @@ func parseSinaQuote(symbol, body string) (*market.QuoteSnapshot, error) {
 	low := parseFloatSafe(fields[5])
 	bid := parseFloatSafe(fields[6])
 	ask := parseFloatSafe(fields[7])
-	volume := parseFloatSafe(fields[8]) * 100 // 手→股
+	volume := normalize.NormalizeVolume("sina", parseFloatSafe(fields[8])) // 手→股
 	prevClose := parseFloatSafe(fields[2])
 	turnover := parseFloatSafe(fields[9]) * 10000 // 万→元
 

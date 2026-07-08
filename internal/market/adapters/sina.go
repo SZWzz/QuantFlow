@@ -13,6 +13,7 @@ import (
 	"golang.org/x/text/transform"
 
 	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 )
 
 // SinaAdapter fetches A-share and HK stock quotes from Sina Finance (free, no auth).
@@ -141,21 +142,21 @@ func parseSinaDepth(symbol, body string) (*market.DepthSnapshot, error) {
 	asks := make([]market.DepthLevel, 5)
 
 	// Level 1
-	bids[0] = market.DepthLevel{Price: parseFloatSafe(fields[6]), Size: parseFloatSafe(fields[10]) * 100}
-	asks[0] = market.DepthLevel{Price: parseFloatSafe(fields[7]), Size: parseFloatSafe(fields[20]) * 100}
+	bids[0] = market.DepthLevel{Price: parseFloatSafe(fields[6]), Size: normalize.NormalizeVolume("sina", parseFloatSafe(fields[10]))}
+	asks[0] = market.DepthLevel{Price: parseFloatSafe(fields[7]), Size: normalize.NormalizeVolume("sina", parseFloatSafe(fields[20]))}
 
 	// Bid levels 2-5: [vol, price] pairs
 	for i := 1; i < 5; i++ {
 		volIdx := 12 + (i-1)*2
 		priceIdx := volIdx + 1
-		bids[i] = market.DepthLevel{Price: parseFloatSafe(fields[priceIdx]), Size: parseFloatSafe(fields[volIdx]) * 100}
+		bids[i] = market.DepthLevel{Price: parseFloatSafe(fields[priceIdx]), Size: normalize.NormalizeVolume("sina", parseFloatSafe(fields[volIdx]))}
 	}
 
 	// Ask levels 2-5: [vol, price] pairs
 	for i := 1; i < 5; i++ {
 		volIdx := 22 + (i-1)*2
 		priceIdx := volIdx + 1
-		asks[i] = market.DepthLevel{Price: parseFloatSafe(fields[priceIdx]), Size: parseFloatSafe(fields[volIdx]) * 100}
+		asks[i] = market.DepthLevel{Price: parseFloatSafe(fields[priceIdx]), Size: normalize.NormalizeVolume("sina", parseFloatSafe(fields[volIdx]))}
 	}
 
 	return &market.DepthSnapshot{
