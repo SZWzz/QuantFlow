@@ -448,5 +448,13 @@ export default {
     oldest: '最早数据', newest: '最新数据', actions: '操作',
     export: '导出', archive: '归档', cleanup: '清理',
   },
+  layout: {
+    title: '布局模板',
+    saveNew: '保存当前布局',
+    namePlaceholder: '布局名称...',
+    empty: '暂无已保存的布局',
+    confirmDelete: '确认删除布局 "{name}"？',
+    hint: 'Ctrl+Shift+1..9 快速切换已保存布局',
+  },
 }
 // Append nothing - we'll use sed to add keys

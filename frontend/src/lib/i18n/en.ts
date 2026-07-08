@@ -422,4 +422,12 @@ export default {
     oldest: 'Oldest', newest: 'Newest', actions: 'Actions',
     export: 'Export', archive: 'Archive', cleanup: 'Cleanup',
   },
+  layout: {
+    title: 'Layout Templates',
+    saveNew: 'Save Current Layout',
+    namePlaceholder: 'Layout name...',
+    empty: 'No saved layouts yet',
+    confirmDelete: 'Delete layout "{name}"?',
+    hint: 'Ctrl+Shift+1..9 to switch saved layouts',
+  },
 }
