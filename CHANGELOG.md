@@ -18,6 +18,8 @@
 - [Broker] IBKR broker adapter via Client Portal REST API — Connect/Disconnect/SubmitOrder/
   CancelOrder/ModifyOrder/GetOrders/GetPositions/GetAccount, session management with
   4-minute auto-refresh, market/limit/stop order types, HTTP mock test suite (49 tests)
+- [Terminal] Tear-off windows — DockTab panels can be detached into independent OS windows
+  via Wails multi-window API (TearOffPanel.vue, app_tearoff.go, DockTab ↗ button)
 
 ## [2026.7.7] - 2026-07-07
 

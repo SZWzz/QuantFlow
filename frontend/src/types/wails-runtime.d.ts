@@ -185,6 +185,12 @@ interface AppMethods {
   // --- System Monitor ---
   GetSystemStats(): Promise<Record<string, any>>
 
+  // --- Tear-off Windows ---
+  TearOffPanel(panelId: string, instanceId: string, label: string, paramsJson: string): Promise<void>
+  CloseTearOffWindow(instanceId: string): Promise<void>
+  GetTearOffPanelInfo(instanceId: string): Promise<[string, string, string]>
+  ListTearOffWindows(): Promise<string[]>
+
   // Index signature for dynamic calls via proxy
   [key: string]: (...args: any[]) => Promise<any>
 }
