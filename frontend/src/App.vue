@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, onMounted } from 'vue'
+import { watch, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useThemeStore } from '@/lib/theme'
@@ -13,6 +13,7 @@ onMounted(() => {
 const session = useSessionStore()
 const router = useRouter()
 const route = useRoute()
+const isTearOff = computed(() => route.path.startsWith('/tearoff'))
 
 // Sync theme/density body classes when session changes
 watch(() => [session.ui.theme, session.ui.density], () => {
@@ -22,18 +23,24 @@ watch(() => [session.ui.theme, session.ui.density], () => {
 
 // Keep URL in sync with session mode — this runs in the root component
 // so it survives route changes (TerminalMode ↔ WorkflowMode).
-watch(() => session.ui.mode, (mode) => {
-  const target = mode === 'workflow' ? '/workflow' : '/'
-  if (route.path !== target) router.push(target)
-}, { immediate: true })
+// Skip in tear-off windows: they run their own panel, no mode toggle.
+if (!route.path.startsWith('/tearoff')) {
+  watch(() => session.ui.mode, (mode) => {
+    const target = mode === 'workflow' ? '/workflow' : '/'
+    if (route.path !== target) router.push(target)
+  }, { immediate: true })
+}
 
-// Keep session mode in sync with URL (back/forward browser buttons)
-watch(() => route.path, (path) => {
-  const expectedMode = path === '/workflow' ? 'workflow' : 'terminal'
-  if (session.ui.mode !== expectedMode) {
-    session.ui.mode = expectedMode
-  }
-})
+// Keep session mode in sync with URL (back/forward browser buttons).
+// Skip in tear-off windows.
+if (!route.path.startsWith('/tearoff')) {
+  watch(() => route.path, (path) => {
+    const expectedMode = path === '/workflow' ? 'workflow' : 'terminal'
+    if (session.ui.mode !== expectedMode) {
+      session.ui.mode = expectedMode
+    }
+  })
+}
 </script>
 
 <template>

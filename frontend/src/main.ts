@@ -26,6 +26,11 @@ const router = createRouter({
       name: 'workflow',
       component: () => import('@/workflow/WorkflowMode.vue'),
     },
+    {
+      path: '/tearoff/:instanceId',
+      name: 'tearoff',
+      component: () => import('@/terminal/TearOffPanel.vue'),
+    },
   ],
 })
 
