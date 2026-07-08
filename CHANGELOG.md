@@ -4,6 +4,13 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.8] - 2026-07-08
+
+### Added
+- [Broker] IBKR broker adapter via Client Portal REST API — Connect/Disconnect/SubmitOrder/
+  CancelOrder/ModifyOrder/GetOrders/GetPositions/GetAccount, session management with
+  4-minute auto-refresh, market/limit/stop order types, HTTP mock test suite (49 tests)
+
 ## [2026.7.7] - 2026-07-07
 
 ### Added

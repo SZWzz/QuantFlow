@@ -236,6 +236,26 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		}
 	}
 
+	// IBKR broker adapter (optional) — configured via IBKR_HOST, IBKR_PORT, IBKR_ACCOUNT_ID env vars.
+	ibkrHost := os.Getenv("IBKR_HOST")
+	if ibkrHost == "" {
+		ibkrHost = "localhost"
+	}
+	ibkrCfg := brokers.IBKRConfig{
+		Host:      ibkrHost,
+		Port:      5000,
+		AccountID: os.Getenv("IBKR_ACCOUNT_ID"),
+	}
+	if ibkrCfg.AccountID != "" {
+		ibkrBroker := brokers.NewIBKRBroker(ibkrCfg)
+		if err := ibkrBroker.Connect(context.Background()); err != nil {
+			slog.Warn("ibkr broker not available — IBKR trading disabled", "error", err)
+		} else {
+			a.oms.SetBroker(ibkrBroker)
+			slog.Info("ibkr broker connected — IBKR trading enabled")
+		}
+	}
+
 	// Phase 5: Initialize notification manager (reuses shared DB connection).
 	a.notifyMgr = notify.NewManager(a.db)
 	a.notifyMgr.Register(notify.NewInAppNotifier())
