@@ -26,6 +26,9 @@
 - [Engine] RiskModel workflow node — computes GARCH/GJR-GARCH/EGARCH volatility and
   covariance matrix via Python sidecar gRPC; falls back to historical stddev when
   sidecar is unavailable; NodeContext wired with MLClient injection
+- [Python] ML pipeline fix — _decode_arrow() adds JSON fallback for Go→Python data
+  transfer; AssessRisk now fetches real OHLCV data and computes daily returns;
+  frontend assessRisk wired to Go IPC
 
 ## [2026.7.7] - 2026-07-07
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"quantflow/internal/market"
 	pb "quantflow/internal/python/proto"
 	"quantflow/internal/python"
 )
@@ -214,15 +215,21 @@ func (a *App) RunAlphaMining(params AlphaMiningParams) ([]DiscoveredFactorInfo, 
 // ── Risk Modeling ──────────────────────────────────────────────────────
 
 // AssessRisk runs a risk model via Python gRPC RiskModel.
+// It fetches 252 days of OHLCV data, computes daily log returns per symbol,
+// and sends them to the Python sidecar for GARCH/covariance estimation.
 func (a *App) AssessRisk(symbols []string, modelType string) (map[string]interface{}, error) {
 	if a.bridge == nil {
 		return nil, nil
 	}
-	returnsJSON, err := json.Marshal([][]float64{})
+
+	// Compute daily returns for each symbol from OHLCV data.
+	returnsMatrix := a.computeReturnsForRiskModel(symbols)
+	returnsJSON, err := json.Marshal(returnsMatrix)
 	if err != nil {
 		slog.Warn("assess_risk: marshal returns", "error", err)
 		returnsJSON = []byte("[]")
 	}
+
 	client := python.NewMLClient(a.bridge)
 	req := &pb.RiskModelRequest{
 		ModelType:   modelType,
@@ -242,4 +249,42 @@ func (a *App) AssessRisk(symbols []string, modelType string) (map[string]interfa
 		result[k] = v
 	}
 	return result, nil
+}
+
+// computeReturnsForRiskModel fetches OHLCV data for the given symbols and
+// computes daily log returns. Returns a [][]float64 matrix (symbols × days).
+func (a *App) computeReturnsForRiskModel(symbols []string) [][]float64 {
+	end := time.Now()
+	start := end.AddDate(0, 0, -365) // ~252 trading days
+
+	matrix := make([][]float64, 0, len(symbols))
+	for _, sym := range symbols {
+		bars, err := a.fetchOHLCVForSymbol(sym, start, end)
+		if err != nil || len(bars) < 2 {
+			slog.Warn("assess_risk: skip symbol, insufficient OHLCV data", "symbol", sym)
+			continue
+		}
+		returns := make([]float64, 0, len(bars)-1)
+		for i := 1; i < len(bars); i++ {
+			if bars[i-1].Close > 0 {
+				r := (bars[i].Close - bars[i-1].Close) / bars[i-1].Close
+				returns = append(returns, r)
+			}
+		}
+		if len(returns) > 0 {
+			matrix = append(matrix, returns)
+		}
+	}
+	return matrix
+}
+
+// fetchOHLCVForSymbol resolves a symbol's market and fetches daily OHLCV bars.
+func (a *App) fetchOHLCVForSymbol(symbol string, start, end time.Time) ([]market.OHLCVBar, error) {
+	if a.marketReg == nil {
+		return nil, fmt.Errorf("market registry not initialized")
+	}
+	marketName := market.MarketForSymbol(symbol)
+	bars, _, err := a.marketReg.FetchOHLCVWithFallback(context.Background(),
+		marketName, symbol, "1D", "", start.Unix(), end.Unix())
+	return bars, err
 }

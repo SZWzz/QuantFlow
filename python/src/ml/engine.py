@@ -1,4 +1,5 @@
 """MLService gRPC implementation — routes to sub-engines."""
+import json
 import os
 import time
 import logging
@@ -33,8 +34,43 @@ class MLService(ml_pb2_grpc.MLServiceServicer):
         return self._deep_engine
 
     def _decode_arrow(self, data: bytes) -> pa.Table:
-        reader = pa.ipc.open_stream(data)
-        return reader.read_all()
+        # Try Arrow IPC format (from future Go Arrow library).
+        try:
+            reader = pa.ipc.open_stream(data)
+            return reader.read_all()
+        except Exception:
+            pass
+
+        # Fallback: JSON-encoded data from Go (current encoding).
+        # Supports: list of floats, list of lists, list of dicts, or dict.
+        try:
+            parsed = json.loads(data)
+            if isinstance(parsed, list):
+                if len(parsed) == 0:
+                    return pa.table({})
+                # Single list of floats → one-column table "values".
+                if isinstance(parsed[0], (int, float)):
+                    return pa.table({"values": pa.array(parsed, type=pa.float64())})
+                # List of lists → each inner list becomes a column.
+                if isinstance(parsed[0], list):
+                    cols = {}
+                    for i, col in enumerate(parsed):
+                        cols[f"col_{i}"] = pa.array(col, type=pa.float64())
+                    return pa.table(cols)
+                # List of dicts → DataFrame.
+                if isinstance(parsed[0], dict):
+                    import pandas as pd
+                    return pa.Table.from_pandas(pd.DataFrame(parsed))
+            # Plain dict → single-row table.
+            if isinstance(parsed, dict):
+                return pa.table({
+                    k: pa.array([v] if not isinstance(v, list) else v, type=pa.float64())
+                    for k, v in parsed.items()
+                })
+        except Exception:
+            pass
+
+        return pa.table({})
 
     async def Train(self, request, context):
         try:

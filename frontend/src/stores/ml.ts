@@ -73,6 +73,7 @@ export const useMLStore = defineStore('ml', () => {
 
   // Phase 10.4: Risk Modeling
   const riskModelResult = ref<RiskModelResult | null>(null)
+  const riskLoading = ref(false)
 
   const readyModels = computed(() => models.value.filter(m => m.status === 'ready'))
   const predictionModels = computed(() => models.value.filter(m => m.category === 'prediction'))
@@ -195,13 +196,17 @@ export const useMLStore = defineStore('ml', () => {
 
   async function assessRisk(symbols: string[], modelType: string) {
     error.value = null
+    riskLoading.value = true
     try {
       const app = (window as any).go?.main?.App
       if (!app) { error.value = 'Bridge unavailable'; return }
-      // AssessRisk not yet implemented in Go backend
-      riskModelResult.value = null
+      const result = await app.AssessRisk(symbols, modelType)
+      riskModelResult.value = result
     } catch (e) {
       error.value = String(e)
+      riskModelResult.value = null
+    } finally {
+      riskLoading.value = false
     }
   }
 
@@ -211,6 +216,6 @@ export const useMLStore = defineStore('ml', () => {
     fetchModels, archiveModel, deleteModel, selectModel, fetchPredictions, fetchEvaluations, runAlphaMining,
     rlTrainingEpisodes, rlTrainingRunning, rlAlgorithm,
     trainRL, startRLTraining, addRLUpdate, stopRLTraining,
-    riskModelResult, assessRisk, setRiskModelResult,
+    riskModelResult, riskLoading, assessRisk, setRiskModelResult,
   }
 })
