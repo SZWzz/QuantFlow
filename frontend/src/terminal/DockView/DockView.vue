@@ -161,8 +161,16 @@ function findTabInTree(node: DockLayoutTree, tabId: string): DockTabState | null
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '4') {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key >= '1' && e.key <= '4') {
     e.preventDefault(); applyPreset(parseInt(e.key))
+  }
+  // Ctrl+Shift+1..9 → load saved layouts
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key >= '1' && e.key <= '9') {
+    e.preventDefault()
+    const idx = parseInt(e.key) - 1
+    if (idx < terminal.savedLayouts.length) {
+      terminal.loadLayout(terminal.savedLayouts[idx])
+    }
   }
 }
 
