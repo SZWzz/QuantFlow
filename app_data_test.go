@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"testing"
@@ -140,4 +141,82 @@ func TestApp_ImportData(t *testing.T) {
 		t.Fatalf("expected 3 imported, got %d", count)
 	}
 	os.Remove(path)
+}
+
+func TestAppLayout_RoundTrip(t *testing.T) {
+	app := setupTestAppDB(t)
+	ctx := context.Background()
+
+	layoutJSON := `{"id":"root","type":"tab","tabs":[{"id":"w1","panelId":"watchlist","label":"自选股","icon":"📊"}],"activeTab":"w1"}`
+
+	// Save
+	if err := app.SaveLayout(ctx, "trading", layoutJSON); err != nil {
+		t.Fatalf("SaveLayout error: %v", err)
+	}
+
+	// List
+	names, err := app.ListLayouts(ctx)
+	if err != nil {
+		t.Fatalf("ListLayouts error: %v", err)
+	}
+	var found bool
+	for _, n := range names {
+		if n == "trading" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("expected 'trading' in layout list")
+	}
+
+	// Load
+	loaded, err := app.LoadLayout(ctx, "trading")
+	if err != nil {
+		t.Fatalf("LoadLayout error: %v", err)
+	}
+	if loaded != layoutJSON {
+		t.Fatalf("LoadLayout = %q, want %q", loaded, layoutJSON)
+	}
+
+	// Delete
+	if err := app.DeleteLayout(ctx, "trading"); err != nil {
+		t.Fatalf("DeleteLayout error: %v", err)
+	}
+
+	// List after delete
+	names, err = app.ListLayouts(ctx)
+	if err != nil {
+		t.Fatalf("ListLayouts error: %v", err)
+	}
+	for _, n := range names {
+		if n == "trading" {
+			t.Fatal("expected 'trading' to be deleted")
+		}
+	}
+}
+
+func TestAppLayout_NotFound(t *testing.T) {
+	app := setupTestAppDB(t)
+	ctx := context.Background()
+
+	_, err := app.LoadLayout(ctx, "nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent layout")
+	}
+
+	err = app.DeleteLayout(ctx, "nonexistent")
+	if err == nil {
+		t.Fatal("expected error when deleting nonexistent layout")
+	}
+}
+
+func TestAppLayout_EmptyName(t *testing.T) {
+	app := setupTestAppDB(t)
+	ctx := context.Background()
+
+	err := app.SaveLayout(ctx, "", "{}")
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
 }

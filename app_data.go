@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"quantflow/internal/data"
@@ -73,6 +75,83 @@ func (a *App) CleanupData(ctx context.Context, table, symbol, before string, dry
 		return nil, fmt.Errorf("database not initialized")
 	}
 	return data.CleanupData(a.db, table, symbol, before, dryRun)
+}
+
+// SaveLayout stores layout JSON under a named key in user_config.
+func (a *App) SaveLayout(ctx context.Context, name string, layoutJSON string) error {
+	if a.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	if name == "" {
+		return fmt.Errorf("layout name cannot be empty")
+	}
+	_, err := a.db.Exec(
+		"INSERT OR REPLACE INTO user_config (key, value) VALUES (?, ?)",
+		"layout:"+name, layoutJSON,
+	)
+	if err != nil {
+		return fmt.Errorf("save layout: %w", err)
+	}
+	return nil
+}
+
+// LoadLayout retrieves layout JSON by name from user_config.
+func (a *App) LoadLayout(ctx context.Context, name string) (string, error) {
+	if a.db == nil {
+		return "", fmt.Errorf("database not initialized")
+	}
+	var value string
+	err := a.db.QueryRow(
+		"SELECT value FROM user_config WHERE key = ?", "layout:"+name,
+	).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("layout %q not found", name)
+	}
+	if err != nil {
+		return "", fmt.Errorf("load layout: %w", err)
+	}
+	return value, nil
+}
+
+// ListLayouts returns all saved layout names.
+func (a *App) ListLayouts(ctx context.Context) ([]string, error) {
+	if a.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	rows, err := a.db.Query("SELECT key FROM user_config WHERE key LIKE 'layout:%' ORDER BY key")
+	if err != nil {
+		return nil, fmt.Errorf("list layouts: %w", err)
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, err
+		}
+		names = append(names, strings.TrimPrefix(key, "layout:"))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return names, nil
+}
+
+// DeleteLayout removes a saved layout by name.
+func (a *App) DeleteLayout(ctx context.Context, name string) error {
+	if a.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	res, err := a.db.Exec("DELETE FROM user_config WHERE key = ?", "layout:"+name)
+	if err != nil {
+		return fmt.Errorf("delete layout: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("layout %q not found", name)
+	}
+	return nil
 }
 
 func exportFilePath(table, symbol, interval, dateFrom, dateTo, ext string) string {
