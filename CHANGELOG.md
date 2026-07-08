@@ -23,6 +23,9 @@
   4-minute auto-refresh, market/limit/stop order types, HTTP mock test suite (49 tests)
 - [Terminal] Tear-off windows — DockTab panels can be detached into independent OS windows
   via Wails multi-window API (TearOffPanel.vue, app_tearoff.go, DockTab ↗ button)
+- [Engine] RiskModel workflow node — computes GARCH/GJR-GARCH/EGARCH volatility and
+  covariance matrix via Python sidecar gRPC; falls back to historical stddev when
+  sidecar is unavailable; NodeContext wired with MLClient injection
 
 ## [2026.7.7] - 2026-07-07
 

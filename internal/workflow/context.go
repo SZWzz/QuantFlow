@@ -47,6 +47,10 @@ type NodeContext struct {
 	// before executing nodes. Nodes can include this in their outputs for traceability.
 	RunID string
 
+	// MLClient provides access to the Python sidecar ML service (gRPC).
+	// Set by app_startup.go when the Python bridge is available.
+	MLClient interface{} // *python.MLClient
+
 	// SubWorkflowRunner executes a child workflow by ID with given inputs.
 	// Set by app.go to wire the engine's Execute into sub_workflow nodes.
 	SubWorkflowRunner func(ctx context.Context, workflowID string, inputs map[string]any) (map[string]any, error)

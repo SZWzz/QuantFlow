@@ -219,6 +219,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	// so that model persistence is gracefully skipped. The bridge is the critical
 	// dependency — it enables gRPC communication with the Python sidecar.
 	nctx.ModelRegistry = nil
+	if a.bridge != nil {
+		nctx.MLClient = python.NewMLClient(a.bridge)
+	}
 
 	// Phase 5: Initialize trading OMS and wire to workflow nodes
 	a.oms = trading.NewOMS()
