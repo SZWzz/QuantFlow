@@ -1,40 +1,25 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useBrokerStatus } from '@/lib/composables/useBrokerStatus'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-interface BrokerStatus { name: string; label: string; market: string; connected: boolean; detail: string }
-
 const { t } = useI18n()
-const { fetchWithCache } = usePanelCache()
-const brokers = ref<BrokerStatus[]>([])
-const loading = ref(false)
-const loadError = ref('')
-
-async function loadStatus() {
-  // TODO: move to store
-  loading.value = true; loadError.value = ''
-  try {
-    const { data: result } = await fetchWithCache('broker_status', () => (window as any).go.main.App.GetBrokerStatuses())
-    brokers.value = Array.isArray(result) ? result : []
-  } catch(e) { loadError.value = (e as any)?.message || String(e); brokers.value = [] }
-  finally { loading.value = false }
-}
+const { brokers, loading, error: loadError, fetchBrokerStatuses } = useBrokerStatus()
 
 function statusDot(c: boolean): string { return 'dot ' + (c ? 'dot-connected' : 'dot-disconnected') }
 function statusText(c: boolean): string { return c ? t('common.connected') : t('common.disconnected') }
 function badgeClass(c: boolean): string { return 'status-badge ' + (c ? 'connected' : 'disconnected') }
 
-onMounted(loadStatus)
+onMounted(fetchBrokerStatuses)
 </script>
 
 <template>
   <div class="broker-status">
     <div class="panel-header">
       <span class="header-title">{{ $t('broker.title') }}</span>
-      <button class="refresh-btn" @click="loadStatus" :disabled="loading">{{ loading ? $t('broker.refreshing') : t('broker.refresh') }}</button>
+      <button class="refresh-btn" @click="fetchBrokerStatuses" :disabled="loading">{{ loading ? $t('broker.refreshing') : t('broker.refresh') }}</button>
     </div>
     <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <div class="card-grid">

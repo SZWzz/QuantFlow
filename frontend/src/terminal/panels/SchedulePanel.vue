@@ -1,19 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useSchedule } from '@/lib/composables/useSchedule'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
-interface ScheduleTask {
-  id: string; name: string; cron_expr: string; workflow_id: string
-  enabled: boolean; timeout_sec: number; last_run_status: string
-}
-
 const { t } = useI18n()
-const { fetchWithCache } = usePanelCache()
-const tasks = ref<ScheduleTask[]>([])
-const loading = ref(false)
+const { tasks, loading, fetchScheduleTasks, saveScheduleTask, toggleScheduleTask, deleteScheduleTask } = useSchedule()
 const showModal = ref(false)
 const editTask = ref({ name: '', cron_expr: '0 9 * * *', workflow_id: '', timeout_sec: 1800, editingId: '' })
 const cronPresets = [
@@ -22,40 +15,29 @@ const cronPresets = [
   { label: t('schedule.weekly'), expr: '0 9 * * 1' },
 ]
 
-async function loadTasks() {
-  // TODO: move to store
-  loading.value = true
-  try { const { data: r } = await fetchWithCache<any>('schedule_tasks', () => (window as any).go?.main?.App?.ListScheduleTasks(), 5 * 60 * 1000); tasks.value = Array.isArray(r) ? r : [] }
-  catch(e) { console.error('[Schedule] fetch:', e); tasks.value = [] }
-  finally { loading.value = false }
-}
-
 function openNew() {
   editTask.value = { name: '', cron_expr: '0 9 * * *', workflow_id: '', timeout_sec: 1800, editingId: '' }
   showModal.value = true
 }
 
 async function saveTask() {
-  // TODO: move to store
   const t = editTask.value
-  await (window as any).go.main.App.SaveScheduleTask({
+  await saveScheduleTask({
     id: t.editingId, name: t.name, cron_expr: t.cron_expr,
     workflow_id: t.workflow_id, timeout_sec: t.timeout_sec, enabled: true,
   })
-  showModal.value = false; loadTasks()
+  showModal.value = false; fetchScheduleTasks()
 }
 
 async function toggleTask(id: string, enabled: boolean) {
-  // TODO: move to store
-  await (window as any).go.main.App.ToggleScheduleTask(id, !enabled); loadTasks()
+  await toggleScheduleTask(id, enabled); fetchScheduleTasks()
 }
 
 async function deleteTask(id: string) {
-  // TODO: move to store
-  await (window as any).go.main.App.DeleteScheduleTask(id); loadTasks()
+  await deleteScheduleTask(id); fetchScheduleTasks()
 }
 
-onMounted(loadTasks)
+onMounted(fetchScheduleTasks)
 </script>
 
 <template>

@@ -182,6 +182,12 @@ export const useDataStore = defineStore('data', () => {
     }
   }
 
+  async function fetchMinuteLine(symbol: string, sinceTimestamp: number) {
+    const app = (window as any).go?.main?.App
+    if (!app) throw new Error('Wails bridge not available')
+    return app.GetMinuteLine(symbol, sinceTimestamp)
+  }
+
   return {
     quotes,
     ohlcvCache,
@@ -197,6 +203,7 @@ export const useDataStore = defineStore('data', () => {
     getOHLCV,
     toggleOffline,
     setCached,
+    fetchMinuteLine,
     getCached,
     clearCached,
     fetchMarketOverview,

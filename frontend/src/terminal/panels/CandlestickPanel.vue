@@ -12,6 +12,7 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { buildKlineOption, buildMinuteOption, type KlineDataItem } from '@/lib/buildChartOption'
 import { useWailsApp, type OHLCVBar, type QuoteData } from '@/lib/composables/useWailsApp'
+import { useDataStore } from '@/stores/data'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { detectLimitUpDown } from '@/lib/chart/EventMarker'
 import type { EventMarker } from '@/lib/chart/EventMarker'
@@ -299,7 +300,8 @@ async function loadMinuteLine() {
       ? parseMinuteTimeToUnix(lastTick.time)
       : 0
 
-    const result = await app.GetMinuteLine(symbol.value, sinceTimestamp)  // TODO: move to store
+    const dataStore = useDataStore()
+    const result = await dataStore.fetchMinuteLine(symbol.value, sinceTimestamp)
     if (seq !== loadSeq) return
     const ticks: MinuteTick[] = Array.isArray(result) ? result[0] : result
     if (!Array.isArray(ticks) || ticks.length === 0) {
