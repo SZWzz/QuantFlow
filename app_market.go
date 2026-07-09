@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -479,6 +482,50 @@ func (a *App) loadLastMinuteTicks(symbol string) []market.MinuteTick {
 	return data[symbol]
 }
 
+// fetchSinaIndexBreadth fetches real-time market breadth (advancers/decliners/unchanged)
+// for CN A-shares from Sina's index quote API. Returns market-wide counts parsed from
+// the SH index (sh000001) response. Returns zeros on any error.
+func fetchSinaIndexBreadth(ctx context.Context) (advancers, decliners, unchanged int) {
+	url := "https://hq.sinajs.cn/list=sh000001"
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return 0, 0, 0
+	}
+	req.Header.Set("Referer", "https://finance.sina.com.cn/")
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, 0, 0
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return 0, 0, 0
+	}
+
+	// Sina index format: var hq_str_sh000001="name,price,change,pct,vol,turnover,adv,dec,unch,..."
+	raw := string(body)
+	idx := strings.Index(raw, "\"")
+	lastIdx := strings.LastIndex(raw, "\"")
+	if idx < 0 || lastIdx <= idx {
+		return 0, 0, 0
+	}
+	fields := strings.Split(raw[idx+1:lastIdx], ",")
+	// Field layout (0-indexed):
+	//   0=name, 1=price, 2=change, 3=changePct, 4=volume(shou), 5=turnover(wan)
+	//   6=advancers, 7=decliners, 8=unchanged
+	if len(fields) < 9 {
+		return 0, 0, 0
+	}
+	adv, _ := strconv.Atoi(strings.TrimSpace(fields[6]))
+	dec, _ := strconv.Atoi(strings.TrimSpace(fields[7]))
+	unc, _ := strconv.Atoi(strings.TrimSpace(fields[8]))
+	return adv, dec, unc
+}
+
 // GetMarketOverview returns major market indices for the given market.
 // Results are cached in-memory for 30s; individual index quotes are fetched
 // in parallel to reduce wall-clock latency from N×serial to ~1×serial.
@@ -591,6 +638,15 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 		"indices": result,
 		"breadth": map[string]int{"advancers": 0, "decliners": 0, "unchanged": 0},
 	}
+
+	// Enrich with real breadth data for CN market (A-shares via Sina).
+	// Falls back gracefully to the zero values above on any error.
+	if mkt == "CN" || marketName == "CN" {
+		if adv, dec, unch := fetchSinaIndexBreadth(ctx); adv+dec+unch > 0 {
+			out["breadth"] = map[string]int{"advancers": adv, "decliners": dec, "unchanged": unch}
+		}
+	}
+
 	overviewCache.set(mkt, out)
 	return out, nil
 }
