@@ -2,22 +2,88 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useDataStore } from '@/stores/data'
 import { useSymbolContext } from '@/stores/symbolContext'
-import { PanelHeader, PanelCard, PanelTable, LoadingState } from '@/terminal/components/panel'
-import type { IndexSnapshot, SectorRanking } from '@/stores/data'
-import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { PanelHeader, LoadingState } from '@/terminal/components/panel'
+import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { buildKlineOption } from '@/lib/buildChartOption'
+import type { KlineDataItem } from '@/lib/buildChartOption'
+import type { ECBasicOption } from 'echarts/types/dist/shared'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
-const { fetchWithCache } = usePanelCache()
+const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const theme = useChartTheme()
+const indicatorCache = createIndicatorCache()
 
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
-const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const autoRefresh = ref(true)
+const refreshInterval = ref(15)
+const countdown = ref(refreshInterval.value)
+const loadError = ref('')
+let timer: ReturnType<typeof setInterval> | null = null
+
+// Chart state
+const chartOHLCV = ref<KlineDataItem[]>([])
+const indexChartLoading = ref(false)
+const indexInterval = ref<'1d' | '5d' | '1mo' | '1y'>('1d')
+
+// Computed from store
+const indices = computed(() => dataStore.marketOverview?.indices ?? [])
+const breadth = computed(() => dataStore.marketOverview?.breadth ?? { advancers: 0, decliners: 0, unchanged: 0 })
+const sentiment = computed(() => dataStore.marketOverview?.sentiment ?? { limitUp: 0, limitDown: 0, northboundFlow: 0, totalVolume: 0 })
+const sectors = computed(() => dataStore.marketOverview?.sectors ?? [])
+const updatedAt = computed(() => dataStore.marketOverview?.updatedAt ?? 0)
+const loading = computed(() => dataStore.marketLoading)
+
+const selectedIndex = computed(() => {
+  const sym = dataStore.selectedIndexSymbol
+  if (sym) {
+    const found = indices.value.find(i => i.symbol === sym)
+    if (found) return found
+  }
+  return indices.value[0] || null
+})
+
+// Sector rankings — top 10
+const topGainers = computed(() =>
+  [...sectors.value].sort((a, b) => b.changePct - a.changePct).slice(0, 10)
+)
+const topLosers = computed(() =>
+  [...sectors.value].sort((a, b) => a.changePct - b.changePct).slice(0, 10)
+)
+
+// Breadth percentages
+const breadthTotal = computed(() => {
+  const b = breadth.value
+  return b.advancers + b.decliners + b.unchanged || 1
+})
+const breadthUpPct = computed(() => (breadth.value.advancers / breadthTotal.value) * 100)
+const breadthFlatPct = computed(() => (breadth.value.unchanged / breadthTotal.value) * 100)
+const breadthDownPct = computed(() => (breadth.value.decliners / breadthTotal.value) * 100)
+
+// K-line chart option
+const chartOption = computed(() => {
+  if (!chartOHLCV.value.length) return {} as ECBasicOption
+  return buildKlineOption(
+    chartOHLCV.value,
+    'none',
+    'volume',
+    theme,
+    indicatorCache,
+    selectedIndex.value?.symbol || '',
+    indexInterval.value,
+    undefined, // eventMarkers
+  )
+})
+
+// Header controls
 const headerControls = computed(() => {
   const list: any[] = []
   if (addToWfControl.value) list.push(addToWfControl.value)
@@ -25,63 +91,70 @@ const headerControls = computed(() => {
   list.push({ icon: 'refresh', action: refresh, loading: loading.value, title: '刷新' })
   return list
 })
-const autoRefresh = ref(true)
-const loadError = ref('')
-const refreshInterval = ref(15)
-const countdown = ref(refreshInterval.value)
-let timer: ReturnType<typeof setInterval> | null = null
 
-// Block rank data
-interface BlockRankItem {
-  symbol: string
-  name: string
-  price: number
-  volume: number
-  amount: number
-}
-const blockRank = ref<BlockRankItem[]>([])
-const blockRankLoading = ref(false)
-
-const indices = computed(() => dataStore.marketOverview?.indices ?? [])
-const breadth = computed(() => dataStore.marketOverview?.breadth ?? { advancers: 0, decliners: 0, unchanged: 0 })
-const sectors = computed(() => dataStore.marketOverview?.sectors ?? [])
-const updatedAt = computed(() => dataStore.marketOverview?.updatedAt ?? 0)
-const loading = computed(() => dataStore.marketLoading)
-
-const topGainers = computed(() => [...sectors.value].sort((a, b) => b.changePct - a.changePct).slice(0, 8))
-const topLosers = computed(() => [...sectors.value].sort((a, b) => a.changePct - b.changePct).slice(0, 8))
-
-function refresh() {
-  dataStore.fetchMarketOverview(activeMarket.value)
-  countdown.value = refreshInterval.value
-  fetchBlockRank()
+// Breadth bar style helper
+function breadthBarStyle(pct: number, color: string) {
+  return { width: `${pct}%`, background: color }
 }
 
-async function fetchBlockRank() {
-  const app = (window as any).go?.main?.App
-  if (!app) return
-  blockRankLoading.value = true
-  loadError.value = ''
+function formatMoney(v: number): string {
+  if (!v) return '--'
+  if (Math.abs(v) >= 1e8) return (v / 1e8).toFixed(2) + '亿'
+  if (Math.abs(v) >= 1e4) return (v / 1e4).toFixed(2) + '万'
+  return String(v)
+}
+
+function formatTime(ts: number): string {
+  if (!ts) return '--'
+  return new Date(ts).toLocaleTimeString()
+}
+
+// Index card click: select index for K-line chart + link to other panels
+function onSelectIndex(idx: typeof indices.value[0]) {
+  if (!idx) return
+  dataStore.setSelectedIndex(idx.symbol)
+  loadIndexChart()
+  // Link to other panels (e.g., WatchlistPanel switches to this index's constituents)
+  const code = idx.symbol.replace(/\.(SH|SZ|SS|CSI)$/i, '')
+  ctx.setGroupSymbol(pg.groupId, code)
+}
+
+async function loadIndexChart() {
+  const idx = selectedIndex.value
+  if (!idx) { chartOHLCV.value = []; return }
+  indexChartLoading.value = true
   try {
-    const { data: result } = await fetchWithCache('block_rank', () => app.GetBlockRank(1, 0, 10), 5 * 60 * 1000)
-    const items: any[] = Array.isArray(result) ? result : (result ? [result] : [])
-    blockRank.value = items.map((i: any) => ({
-      symbol: i.symbol || '',
-      name: i.name || '',
-      price: i.price || 0,
-      volume: i.volume || 0,
-      amount: i.amount || 0,
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    const mkt = activeMarket.value
+    const end = Math.floor(Date.now() / 1000)
+    const lookbackDays = indexInterval.value === '1d' ? 5 : indexInterval.value === '5d' ? 30 : indexInterval.value === '1mo' ? 90 : 365
+    const start = end - lookbackDays * 86400
+    const [rawBars] = await app.FetchOHLCV(mkt, idx.symbol, '1D', 'qfq', start, end)
+    if (!rawBars?.length) { chartOHLCV.value = []; return }
+    chartOHLCV.value = rawBars.map((b: any) => ({
+      date: (b.date || '').slice(0, 10),
+      open: b.open, close: b.close, low: b.low, high: b.high, volume: b.volume || 0,
     }))
-  } catch(e: any) {
-    logger.warn('[MarketOverview] block rank unavailable:', e?.message || e)
-    blockRank.value = []
+  } catch (e) {
+    logger.error('[MarketOverview] index chart:', e)
+    chartOHLCV.value = []
   } finally {
-    blockRankLoading.value = false
+    indexChartLoading.value = false
   }
 }
+
+function refresh() {
+  loadError.value = ''
+  dataStore.fetchMarketOverview(activeMarket.value)
+  countdown.value = refreshInterval.value
+  loadIndexChart()
+}
+
 function switchMarket(mkt: string) {
   if (mkt !== 'CN' && mkt !== 'HK' && mkt !== 'US') return
-  activeMarket.value = mkt
+  activeMarket.value = mkt as 'CN' | 'HK' | 'US'
+  dataStore.setSelectedIndex('')
   refresh()
 }
 
@@ -92,44 +165,13 @@ function toggleAutoRefresh() {
   }
 }
 
-function formatTime(ts: number): string {
-  if (!ts) return '--'
-  return new Date(ts).toLocaleTimeString()
-}
-
-function changeColor(pct: number): string {
-  if (pct > 0) return 'var(--color-up)'
-  if (pct < 0) return 'var(--color-down)'
-  return 'var(--color-text-secondary)'
-}
-
-function formatPct(pct: number): string {
-  return (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%'
-}
-
-function formatVolume(v: number): string {
-  if (v >= 1e8) return (v / 1e8).toFixed(2) + '亿'
-  if (v >= 1e4) return (v / 1e4).toFixed(1) + '万'
-  return String(v)
-}
-function onIndexClick(idx: { symbol: string; name: string }) {
-  // Strip .SH / .SZ suffix for upstream index API (expects bare code like 000300)
-  const code = idx.symbol.replace(/\.(SH|SZ|SS|CSI)$/i, '')
-  ctx.setGroupSymbol(pg.groupId, code)
-}
-
-function formatAmount(a: number): string {
-  if (a >= 1e8) return (a / 1e8).toFixed(2) + '亿'
-  if (a >= 1e4) return (a / 1e4).toFixed(1) + '万'
-  return a.toFixed(0)
-}
-
 onMounted(() => {
   refresh()
   timer = setInterval(() => {
     if (autoRefresh.value) {
-      if (countdown.value <= 1) {
+      if (countdown.value <= 0) {
         refresh()
+        countdown.value = refreshInterval.value
       } else {
         countdown.value--
       }
@@ -138,16 +180,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
+  if (timer) { clearInterval(timer); timer = null }
+  indicatorCache.clear()
 })
-
-const blockRankColumns = [
-  { key: 'symbol', label: '代码', align: 'left' as const, width: 70 },
-  { key: 'name', label: '名称', align: 'left' as const, flex: 1 },
-  { key: 'price', label: '价格', align: 'right' as const, width: 70, format: 'price' as const },
-  { key: 'volume', label: '成交量', align: 'right' as const, width: 70, format: 'volume' as const },
-  { key: 'amount', label: '成交额', align: 'right' as const, width: 80, formatter: (v: number) => formatAmount(v) },
-]
 </script>
 
 <template>
@@ -155,92 +190,105 @@ const blockRankColumns = [
     <PanelHeader
       :title="$t('misc.market_overview')"
       :subtitle="formatTime(updatedAt)"
-      :tabs="[
-        { key: 'CN', label: 'CN' },
-        { key: 'HK', label: 'HK' },
-        { key: 'US', label: 'US' },
-      ]"
-      :active-tab="activeMarket"
       :controls="headerControls"
-      @tab-change="switchMarket"
     />
 
     <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <!-- Section A: Index Cards -->
-    <div class="indices-row">
-      <PanelCard
-        v-for="idx in indices"
-        :key="idx.symbol"
-        :title="idx.name"
-        :value="idx.last"
-        :change="idx.changePct / 100"
-        format="price"
-        :sparkline="idx.sparkline"
-        :ohlcv="idx.ohlcv"
-        clickable
-        @click="onIndexClick(idx)"
-      />
+
+    <!-- Zone 1: Market Tabs -->
+    <div class="market-tabs">
+      <button
+        v-for="m in (['CN', 'HK', 'US'] as const)"
+        :key="m"
+        :class="{ active: activeMarket === m }"
+        class="mkt-tab"
+        @click="switchMarket(m)"
+      >{{ m }}</button>
     </div>
 
-    <!-- Section B: 市场宽度 -->
-    <div class="breadth-section">
-      <div class="breadth-label">{{ $t('misc.market_breadth') }}</div>
-      <div class="breadth-bar">
-        <div class="breadth-segment up" :style="{ flex: breadth.advancers }"></div>
-        <div class="breadth-segment flat" :style="{ flex: breadth.unchanged }"></div>
-        <div class="breadth-segment down" :style="{ flex: breadth.decliners }"></div>
+    <!-- Zone 2: Index Cards -->
+    <div v-if="indices.length" class="index-cards">
+      <div
+        v-for="idx in indices"
+        :key="idx.symbol"
+        class="index-card"
+        :class="{ active: selectedIndex?.symbol === idx.symbol }"
+        @click="onSelectIndex(idx)"
+      >
+        <div class="idx-name">{{ idx.name }}</div>
+        <div class="idx-price">{{ idx.last?.toFixed(2) ?? '--' }}</div>
+        <div class="idx-chg" :class="idx.changePct >= 0 ? 'up' : 'down'">
+          {{ idx.changePct >= 0 ? '+' : '' }}{{ idx.changePct?.toFixed(2) ?? '0.00' }}%
+        </div>
       </div>
-      <div class="breadth-text">
+    </div>
+
+    <!-- Zone 3: Breadth + Sentiment Bar -->
+    <div v-if="breadthTotal > 1" class="breadth-section">
+      <div class="breadth-bar">
+        <div class="breadth-segment up" :style="breadthBarStyle(breadthUpPct, 'var(--color-up)')" :title="`涨 ${breadth.advancers}`" />
+        <div class="breadth-segment flat" :style="breadthBarStyle(breadthFlatPct, 'var(--color-text-tertiary)')" :title="`平 ${breadth.unchanged}`" />
+        <div class="breadth-segment down" :style="breadthBarStyle(breadthDownPct, 'var(--color-down)')" :title="`跌 ${breadth.decliners}`" />
+      </div>
+      <div class="breadth-labels">
         <span class="up-text">涨 {{ breadth.advancers }}</span>
         <span class="flat-text">平 {{ breadth.unchanged }}</span>
         <span class="down-text">跌 {{ breadth.decliners }}</span>
       </div>
+      <div class="sentiment-strip">
+        <span>涨停 {{ sentiment.limitUp }}</span>
+        <span>跌停 {{ sentiment.limitDown }}</span>
+        <span>北向 {{ sentiment.northboundFlow >= 0 ? '+' : '' }}{{ formatMoney(sentiment.northboundFlow) }}</span>
+        <span>成交 {{ formatMoney(sentiment.totalVolume) }}</span>
+      </div>
     </div>
 
-    <!-- Section C: Sector Rankings -->
-    <div class="sectors-grid">
-      <div class="sector-col">
-        <div class="sector-col-title up-text">{{ $t('misc.gainers') }}</div>
+    <!-- Zone 4: Index K-line Chart -->
+    <div v-if="loading && !chartOHLCV.length" class="kline-area">
+      <LoadingState type="card" :rows="1" />
+    </div>
+    <div v-else-if="chartOHLCV.length > 0" class="kline-area">
+      <div class="kline-tabs">
+        <button
+          v-for="iv in (['1d', '5d', '1mo', '1y'] as const)"
+          :key="iv"
+          :class="{ active: indexInterval === iv }"
+          class="interval-btn"
+          @click="indexInterval = iv; loadIndexChart()"
+        >{{ iv }}</button>
+      </div>
+      <div class="kline-wrapper" :class="{ loading: indexChartLoading }">
+        <KlineChart
+          :option="chartOption"
+          :symbol="selectedIndex?.symbol ?? ''"
+          :loading="indexChartLoading"
+        />
+      </div>
+    </div>
+    <div v-else class="empty-chart">暂无数据</div>
+
+    <!-- Zone 5: Sector Rankings (horizontal bar chart style) -->
+    <div v-if="sectors.length" class="sector-section">
+      <div class="sector-column">
+        <h4 class="sector-col-title up-text">{{ $t('misc.gainers') }}</h4>
         <div v-for="s in topGainers" :key="'g-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
-          <span class="sector-pct" :style="{ color: changeColor(s.changePct) }">{{ formatPct(s.changePct) }}</span>
+          <span class="sector-chg up">+{{ s.changePct.toFixed(1) }}%</span>
+          <div class="sector-bar-bg">
+            <div class="sector-bar up" :style="{ width: Math.min(Math.abs(s.changePct) * 8, 100) + '%' }" />
+          </div>
         </div>
       </div>
-      <div class="sector-col">
-        <div class="sector-col-title down-text">{{ $t('misc.losers') }}</div>
+      <div class="sector-column">
+        <h4 class="sector-col-title down-text">{{ $t('misc.losers') }}</h4>
         <div v-for="s in topLosers" :key="'l-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
-          <span class="sector-pct" :style="{ color: changeColor(s.changePct) }">{{ formatPct(s.changePct) }}</span>
+          <span class="sector-chg down">{{ s.changePct.toFixed(1) }}%</span>
+          <div class="sector-bar-bg">
+            <div class="sector-bar down" :style="{ width: Math.min(Math.abs(s.changePct) * 8, 100) + '%' }" />
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- Section D: Block Rank -->
-    <div class="block-rank-section">
-      <div class="block-rank-label">{{ $t('misc.block_rank') }}</div>
-      <LoadingState
-        v-if="blockRankLoading && blockRank.length === 0"
-        type="table"
-        :rows="3"
-        :cols="5"
-      />
-      <div v-else-if="blockRank.length === 0" class="block-empty">{{ $t('common.no_data') }}</div>
-      <PanelTable
-        v-else
-        :columns="blockRankColumns"
-        :data="blockRank"
-        :striped="true"
-      />
-    </div>
-
-    <!-- Skeleton: shown only on initial load (no data yet) -->
-    <div v-if="loading && !dataStore.marketOverview" class="skeleton-overlay">
-      <LoadingState type="card" :rows="5" />
-      <div class="skeleton-breadth">
-        <div class="skeleton-bar" />
-        <div class="skeleton-bar short" />
-      </div>
-      <LoadingState type="table" :rows="8" :cols="2" />
     </div>
   </div>
 </template>
@@ -251,178 +299,266 @@ const blockRankColumns = [
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  position: relative;
   color: var(--color-text-primary);
   background: var(--color-bg-panel);
 }
 
-/* Index Cards */
-.indices-row {
+.panel-error {
+  padding: 8px 12px;
+  margin: 0 var(--panel-padding);
+  border-radius: var(--radius-sm);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-size: 12px;
+}
+
+/* ── Zone 1: Market Tabs ── */
+.market-tabs {
+  display: flex;
+  gap: 2px;
+  padding: var(--space-sm) var(--panel-padding);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.mkt-tab {
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mkt-tab:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.mkt-tab.active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ── Zone 2: Index Cards ── */
+.index-cards {
   display: flex;
   gap: var(--space-sm);
   overflow-x: auto;
-  padding: var(--panel-padding) var(--panel-padding) 0;
+  padding: var(--space-md) var(--panel-padding);
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-strong) transparent;
 }
 
-.indices-row :deep(.panel-card) {
+.index-card {
   flex: 0 0 auto;
-  min-width: 130px;
+  min-width: 110px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-/* Breadth */
-.breadth-section {
-  padding: 0 var(--panel-padding);
-  margin-bottom: var(--space-md);
+.index-card:hover {
+  border-color: var(--color-accent);
 }
 
-.breadth-label {
-  font-size: var(--font-sm);
+.index-card.active {
+  border-color: var(--color-accent);
+  background: var(--color-bg-hover);
+}
+
+.idx-name {
+  font-size: var(--font-xs);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-sm);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.idx-price {
+  font-size: var(--font-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.idx-chg {
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+
+.idx-chg.up { color: var(--color-up); }
+.idx-chg.down { color: var(--color-down); }
+
+/* ── Zone 3: Breadth + Sentiment ── */
+.breadth-section {
+  padding: 0 var(--panel-padding) var(--space-sm);
 }
 
 .breadth-bar {
   display: flex;
-  height: 8px;
+  height: 6px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: var(--space-xs);
 }
 
-.breadth-segment.up {
-  background: var(--color-up);
+.breadth-segment {
+  height: 100%;
+  transition: width 0.3s ease;
 }
 
-.breadth-segment.down {
-  background: var(--color-down);
-}
+.breadth-segment.up { background: var(--color-up); }
+.breadth-segment.down { background: var(--color-down); }
+.breadth-segment.flat { background: var(--color-text-tertiary); }
 
-.breadth-segment.flat {
-  background: var(--color-text-tertiary);
-}
-
-.breadth-text {
+.breadth-labels {
   display: flex;
   gap: var(--space-lg);
   font-size: var(--font-xs);
+  margin-bottom: var(--space-sm);
 }
 
-.up-text {
-  color: var(--color-up);
+.sentiment-strip {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
-.down-text {
-  color: var(--color-down);
+.up-text { color: var(--color-up); }
+.down-text { color: var(--color-down); }
+.flat-text { color: var(--color-text-tertiary); }
+
+/* ── Zone 4: K-line Chart ── */
+.kline-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  flex: 1;
+  overflow: hidden;
 }
 
-.flat-text {
+.kline-tabs {
+  display: flex;
+  gap: 2px;
+  padding: var(--space-xs) var(--panel-padding);
+}
+
+.interval-btn {
+  padding: 2px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-xs);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.interval-btn:hover {
+  background: var(--color-bg-hover);
+}
+
+.interval-btn.active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.kline-wrapper {
+  flex: 1;
+  min-height: 160px;
+  position: relative;
+}
+
+.kline-wrapper.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
   color: var(--color-text-tertiary);
+  font-size: var(--font-sm);
+  border-top: 1px solid var(--color-border-strong);
 }
 
-/* Sectors */
-.sectors-grid {
+/* ── Zone 5: Sector Rankings ── */
+.sector-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-md);
-  flex: 1;
+  padding: var(--space-md) var(--panel-padding);
+  border-top: 1px solid var(--color-border-strong);
+  flex-shrink: 0;
+  max-height: 360px;
   overflow: hidden;
-  padding: 0 var(--panel-padding);
 }
 
-.sector-col {
+.sector-column {
   overflow-y: auto;
 }
 
 .sector-col-title {
   font-size: var(--font-sm);
   font-weight: 600;
-  margin-bottom: var(--space-sm);
+  margin: 0 0 var(--space-sm);
   padding-bottom: var(--space-xs);
   border-bottom: 1px solid var(--color-border-strong);
 }
 
 .sector-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--space-xs) 0;
-  font-size: var(--font-sm);
+  gap: var(--space-sm);
+  padding: 2px 0;
+  font-size: var(--font-xs);
+  position: relative;
 }
 
 .sector-name {
+  width: 60px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text-primary);
 }
 
-.sector-pct {
+.sector-chg {
+  width: 52px;
+  flex-shrink: 0;
+  text-align: right;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
-/* Skeleton loading */
-.skeleton-overlay {
-  position: absolute;
-  inset: 0;
-  padding: var(--panel-padding);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  background: var(--color-bg-panel);
-  z-index: 10;
-}
+.sector-chg.up { color: var(--color-up); }
+.sector-chg.down { color: var(--color-down); }
 
-.skeleton-breadth {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.skeleton-bar {
-  height: 12px;
-  border-radius: var(--radius-sm);
-  width: 60%;
-  background: linear-gradient(90deg, var(--color-bg-elevated) 25%, var(--color-bg-hover) 50%, var(--color-bg-elevated) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-}
-
-.skeleton-bar.short {
-  width: 40%;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* Block Rank */
-.block-rank-section {
-  margin-top: var(--space-md);
-  padding: var(--space-md) var(--panel-padding);
-  border-top: 1px solid var(--color-border-strong);
-  flex-shrink: 0;
+.sector-bar-bg {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-bg-elevated);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-.block-rank-label {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-sm);
-  font-weight: 600;
+.sector-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
-.panel-error { padding: 8px 12px; margin: 0 var(--panel-padding); border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
-.block-empty {
-  font-size: var(--font-xs);
-  color: var(--color-text-tertiary);
-  padding: var(--space-md) 0;
-  text-align: center;
-}
-
-.block-rank-section :deep(.panel-table-wrapper) {
-  font-size: var(--font-xs);
-}
+.sector-bar.up { background: var(--color-up); }
+.sector-bar.down { background: var(--color-down); }
 </style>
