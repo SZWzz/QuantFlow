@@ -364,53 +364,29 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
     all_ticks: list[dict] = []
 
     for symbol in symbols:
-        # Determine market from suffix, then strip to plain 6-digit code.
-        s = symbol.strip().upper()
-        market_code = None  # 0=SZ, 1=SH; None → use mootdx default
-        for suffix, mkt in ((".SH", 1), (".SS", 1), (".SZ", 0), (".BJ", 2)):
-            if s.endswith(suffix):
-                s = s[:-3]
-                market_code = mkt
-                break
+        # Index codes: TDX protocol does not support minute data for market
+        # indices.  Use Tencent HTTP API directly instead.
+        if _is_index_code(symbol):
+            logger.info("using tencent for index minute: %s", symbol)
+            tx_code = _to_tencent_code(symbol)
+            tx_ticks = _fetch_tencent_index_minute(tx_code)
+            if tx_ticks:
+                all_ticks.extend(tx_ticks)
+            continue
 
-        plain = s.strip()
-        if not (plain.isdigit() and len(plain) == 6):
-            plain = _normalize_code(symbol)  # fallback for non-CN symbols
-
+        # Individual stocks: use mootdx (TDX) as normal.
+        plain = _normalize_code(symbol)
         try:
-            if market_code is not None:
-                # Bypass mootdx minute() — use ExtQuotes-style direct call
-                # with explicit market code so indices resolve correctly.
-                raw = client.client.get_minute_time_data(market_code, plain)
-            else:
-                raw = client.minute(symbol=plain)
+            raw = client.minute(symbol=plain)
         except Exception as exc:
-            logger.warning("mootdx minute failed for %s (plain=%s): %s", symbol, plain, exc)
+            logger.warning("mootdx minute failed for %s: %s", symbol, exc)
             _reset_mootdx_client()
-            # TDX does not support minute data for indices.  Fall back to
-            # Tencent HTTP API which provides index minute data in JSON.
-            if _is_index_code(symbol):
-                logger.info("falling back to tencent for index minute: %s", symbol)
-                tx_code = _to_tencent_code(symbol)
-                tx_ticks = _fetch_tencent_index_minute(tx_code)
-                if tx_ticks:
-                    all_ticks.extend(tx_ticks)
             continue
 
         if raw is None or len(raw) == 0:
-            # TDX may return empty for indices.  Try Tencent as fallback.
-            if _is_index_code(symbol):
-                logger.info("mootdx returned empty for index %s, falling back to tencent", symbol)
-                tx_code = _to_tencent_code(symbol)
-                tx_ticks = _fetch_tencent_index_minute(tx_code)
-                if tx_ticks:
-                    all_ticks.extend(tx_ticks)
             continue
 
         df = pd.DataFrame(raw)
-        # Normalise column names: mootdx Quotes.minute() → to_data() tracks both
-        # 'vol' (per-minute) and 'volume' (cumulative).  The direct TDX client path
-        # returns only 'vol'.  Unify to 'volume' for the rest of the pipeline.
         if "vol" in df.columns and "volume" in df.columns:
             df = df.drop(columns=["volume"])
         if "vol" in df.columns:
@@ -434,12 +410,11 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
                 cum_amount += p * v
                 cum_vol += v
             cur_avg = cum_amount / cum_vol if cum_vol > 0 else 0.0
-            # mootdx minute data has no time column; generate from index
             idx = len(ticks_for_symbol)
-            m = idx  # minutes from 09:30
-            if m >= 120:  # after 11:30, skip 90min lunch
+            m = idx
+            if m >= 120:
                 m += 90
-            total = 9*60 + 30 + m  # minutes from midnight
+            total = 9*60 + 30 + m
             hh, mm = total // 60, total % 60
             ticks_for_symbol.append({
                 "time": f"{hh:02d}:{mm:02d}",
