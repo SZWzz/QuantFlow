@@ -8,6 +8,7 @@ import { TitleComponent, TooltipComponent, GridComponent, LegendComponent } from
 import { CanvasRenderer } from 'echarts/renderers'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { logger } from '@/lib/logger'
 
 use([LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer])
 
@@ -31,7 +32,7 @@ async function loadSurface() {
   try {
     const { data } = await fetchWithCache<any>(`vol_surface:${symbol.value}`, () => app.GetVolatilitySurface(symbol.value), 15 * 60 * 1000)
     surfaceData.value = data || []
-  } catch(e: any) { loadError.value = e?.message || String(e); console.error('[SurfaceChart] fetch:', e); surfaceData.value = [] }
+  } catch(e: any) { loadError.value = e?.message || String(e); logger.error('[SurfaceChart] fetch:', e); surfaceData.value = [] }
   finally { loading.value = false }
 }
 

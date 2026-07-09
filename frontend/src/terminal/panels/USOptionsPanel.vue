@@ -5,6 +5,7 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { logger } from '@/lib/logger'
 
 const { t } = useI18n()
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -72,7 +73,7 @@ async function fetchData() {
       selectedExpiry.value = expiries.value[0]
     }
   } catch (e) {
-    console.error('[USOptions]', e)
+    logger.error('[USOptions]', e)
     error.value = String(e)
     rows.value = []
   } finally {

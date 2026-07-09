@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const portfolio = usePortfolioStore()
@@ -60,7 +61,7 @@ async function fetchData() {
       }))
     }
   } catch (e) {
-    console.error('[TradingJournal]', e)
+    logger.error('[TradingJournal]', e)
     groups.value = []
   } finally {
     loading.value = false

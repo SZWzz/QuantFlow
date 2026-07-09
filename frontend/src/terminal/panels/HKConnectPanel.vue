@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -108,7 +109,7 @@ async function fetchData() {
       }))
     }
   } catch (e) {
-    console.error('[HKConnect]', e)
+    logger.error('[HKConnect]', e)
   } finally {
     loading.value = false
   }

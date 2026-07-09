@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { logger } from '@/lib/logger'
 
 /**
  * Universal data fetching composable with loading/error/data triad.
@@ -20,7 +21,7 @@ export function useDataFetch<T>(fetcher: () => Promise<T>) {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       error.value = msg
-      console.error('[useDataFetch]', msg)
+      logger.error('[useDataFetch]', msg)
     } finally {
       loading.value = false
     }

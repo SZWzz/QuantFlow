@@ -2,6 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
 
+import { logger } from '@/lib/logger'
+
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 interface Position {
@@ -17,7 +19,7 @@ async function loadPositions() {
   try {
     await store.fetchPositions()
   } catch(e) {
-    console.error('[Position] fetch:', e)
+    logger.error('[Position] fetch:', e)
   } finally {
     loading.value = false
   }

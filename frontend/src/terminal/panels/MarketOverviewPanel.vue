@@ -6,6 +6,7 @@ import { PanelHeader, PanelCard, PanelTable, LoadingState } from '@/terminal/com
 import type { IndexSnapshot, SectorRanking } from '@/stores/data'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -72,7 +73,7 @@ async function fetchBlockRank() {
       amount: i.amount || 0,
     }))
   } catch(e: any) {
-    console.warn('[MarketOverview] block rank unavailable:', e?.message || e)
+    logger.warn('[MarketOverview] block rank unavailable:', e?.message || e)
     blockRank.value = []
   } finally {
     blockRankLoading.value = false

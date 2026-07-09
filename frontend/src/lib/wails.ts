@@ -10,6 +10,7 @@
  */
 
 import { Call, Dialogs } from '@wailsio/runtime'
+import { logger } from '@/lib/logger'
 
 // ---------------------------------------------------------------------------
 // Market auto-detection (mirrors Go's MarketForSymbol in registry.go)
@@ -62,7 +63,7 @@ export function setupWailsBridge(): void {
   // Guard: don't overwrite if already set (e.g. by Wails itself)
   const existingGo = (window as any).go
   if (existingGo) {
-    console.log('[WailsBridge] window.go already exists, skipping shim setup')
+    logger.info('[WailsBridge] window.go already exists, skipping shim setup')
     return
   }
 
@@ -81,7 +82,7 @@ export function setupWailsBridge(): void {
     },
   }
 
-  console.log('[WailsBridge] window.go shim installed (Wails v3 → v2 compat)')
+  logger.info('[WailsBridge] window.go shim installed (Wails v3 → v2 compat)')
 
   installDialogPolyfill()
 }
@@ -107,7 +108,7 @@ export function setupWailsBridge(): void {
 function installDialogPolyfill(): void {
   if (typeof window === 'undefined') return
   if ((window as any).__wailsDialogPolyfill) {
-    console.log('[WailsBridge] dialog polyfill already installed, skipping')
+    logger.info('[WailsBridge] dialog polyfill already installed, skipping')
     return
   }
   ;(window as any).__wailsDialogPolyfill = true
@@ -130,7 +131,7 @@ function installDialogPolyfill(): void {
       // "取消" or "" (window closed) → not confirmed
       return chosen === '确定'
     } catch (e) {
-      console.error('[WailsBridge] confirm dialog failed:', e)
+      logger.error('[WailsBridge] confirm dialog failed:', e)
       return false
     }
   }
@@ -144,11 +145,11 @@ function installDialogPolyfill(): void {
         Buttons: [{ Label: '确定', IsDefault: true }],
       })
     } catch (e) {
-      console.error('[WailsBridge] alert dialog failed:', e)
+      logger.error('[WailsBridge] alert dialog failed:', e)
     }
   }
 
-  console.log('[WailsBridge] window.confirm / window.alert polyfilled via MessageDialog')
+  logger.info('[WailsBridge] window.confirm / window.alert polyfilled via MessageDialog')
 }
 
 // ---------------------------------------------------------------------------
@@ -165,7 +166,7 @@ export async function confirmDialog(message: string, title = '确认'): Promise<
     })
     return chosen === '确定'
   } catch (e) {
-    console.error('[WailsBridge] confirmDialog failed:', e)
+    logger.error('[WailsBridge] confirmDialog failed:', e)
     return false
   }
 }
@@ -175,7 +176,7 @@ export async function alertDialog(message: string, title = '提示'): Promise<vo
   try {
     await Dialogs.Info({ Title: title, Message: String(message ?? ''), Buttons: [{ Label: '确定', IsDefault: true }] })
   } catch (e) {
-    console.error('[WailsBridge] alertDialog failed:', e)
+    logger.error('[WailsBridge] alertDialog failed:', e)
   }
 }
 

@@ -3,6 +3,7 @@ import { ref, onMounted, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import { Call } from '@wailsio/runtime'
+import { logger } from '@/lib/logger'
 
 const route = useRoute()
 const instanceId = route.params.instanceId as string
@@ -51,7 +52,7 @@ async function fetchPanelInfo() {
       try { document.title = label.value } catch { /* ignore */ }
     }
   } catch (err: any) {
-    console.error('[TearOffPanel] failed:', err)
+    logger.error('[TearOffPanel] failed:', err)
     error.value = err?.message || String(err)
   } finally {
     loading.value = false

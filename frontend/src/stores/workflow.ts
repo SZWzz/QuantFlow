@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Node, Edge, ViewportTransform } from '@vue-flow/core'
 import { LoadWorkflow } from '@/lib/wails'
+import { logger } from '@/lib/logger'
 
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'failed'
 
@@ -398,7 +399,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
         if (status.status === 'completed' || status.status === 'failed') {
           executionStatus.value = status.status
           runId.value = null
-          if (status.error) console.error('workflow failed:', status.error)
+          if (status.error) logger.error('workflow failed:', status.error)
           stopPolling()
           return
         }

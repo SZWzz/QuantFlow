@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -55,7 +56,7 @@ async function fetchData() {
       order_side: l.order_side || '',
     }))
   } catch (e: any) {
-    console.error('[Liquidation]', e)
+    logger.error('[Liquidation]', e)
     loadError.value = e?.message || String(e)
     liquidations.value = []
   } finally {

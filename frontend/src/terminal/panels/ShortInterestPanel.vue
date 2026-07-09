@@ -4,6 +4,7 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -48,7 +49,7 @@ async function fetchData() {
       short_pct: r.short_pct || 0,
     }))
   } catch (e) {
-    console.error('[ShortInterest]', e)
+    logger.error('[ShortInterest]', e)
     rows.value = []
   } finally {
     loading.value = false

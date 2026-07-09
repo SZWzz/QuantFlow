@@ -1,4 +1,5 @@
 import { ref, onUnmounted } from 'vue'
+import { logger } from '@/lib/logger'
 
 type MessageHandler = (data: any) => void
 
@@ -28,7 +29,7 @@ export function useWebSocket() {
     try {
       ws.value = new WebSocket(url)
     } catch (e) {
-      console.error('[WS] connection failed:', e)
+      logger.error('[WS] connection failed:', e)
       scheduleReconnect(url, topics)
       return
     }
@@ -51,7 +52,7 @@ export function useWebSocket() {
           wildcard.forEach(h => h(msg))
         }
       } catch (e) {
-        console.error('[WS] parse error:', e)
+        logger.error('[WS] parse error:', e)
       }
     }
 

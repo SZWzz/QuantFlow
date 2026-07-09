@@ -9,6 +9,7 @@ import NodePalette from './NodePalette.vue'
 import ExecutionLog from './ExecutionLog.vue'
 import WorkflowList from './WorkflowList.vue'
 import { getIcon } from '@/lib/icons'
+import { logger } from '@/lib/logger'
 
 import { onMounted } from 'vue'
 
@@ -65,7 +66,7 @@ function delay(ms: number): Promise<void> {
 function onSave() {
   const wfJSON = workflow.toWorkflowJSON()
   localStorage.setItem('quantflow-current-workflow', JSON.stringify(wfJSON))
-  console.log('Workflow saved')
+  logger.info('Workflow saved')
 }
 
 function onLoad() {
@@ -75,7 +76,7 @@ function onLoad() {
     const wf = JSON.parse(saved)
     workflow.fromWorkflowJSON(wf)
   } catch (e) {
-    console.error('Failed to load workflow:', e)
+    logger.error('Failed to load workflow:', e)
   }
 }
 

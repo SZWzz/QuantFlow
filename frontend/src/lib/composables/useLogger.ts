@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { GetLogs, type LogEntry } from '@/lib/wails'
+import { logger } from '@/lib/logger'
 
 export interface LogFilter {
   levels: Set<string>
@@ -27,7 +28,7 @@ export function useLogger(pollInterval = 1000) {
       error.value = null
     } catch (e) {
       error.value = String(e)
-      console.error('[useLogger] poll error:', e)
+      logger.error('[useLogger] poll error:', e)
     }
   }
 

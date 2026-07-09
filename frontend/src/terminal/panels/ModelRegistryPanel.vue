@@ -5,6 +5,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { saveCredential, getCredential } from '@/lib/wails'
+import { logger } from '@/lib/logger'
 
 const { t } = useI18n()
 const settingsStore = useSettingsStore()
@@ -194,7 +195,7 @@ async function fetchProviderModels(pid: string) {
     models.value = models.value.filter((m: any) => m.provider !== pid)
     models.value.push(...fetchedModels)
   } catch (e: any) {
-    console.error(`[ModelRegistry] fetch ${pid} models:`, e)
+    logger.error(`[ModelRegistry] fetch ${pid} models:`, e)
   }
 }
 

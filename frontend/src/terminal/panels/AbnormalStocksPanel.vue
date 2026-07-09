@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -52,7 +53,7 @@ async function refresh() {
       turnover: i.turnover || 0,
     }))
   } catch(e) {
-    console.error('[AbnormalStocks]', e)
+    logger.error('[AbnormalStocks]', e)
     stocks.value = []
   } finally {
     loading.value = false

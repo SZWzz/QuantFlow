@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{
   panelId: string
@@ -120,7 +121,7 @@ async function startScan() {
       }))
     }
   } catch (e: any) {
-    console.error('[Scanner] scan failed:', e)
+    logger.error('[Scanner] scan failed:', e)
     loadError.value = e?.message || String(e)
     results.value = []
   } finally {

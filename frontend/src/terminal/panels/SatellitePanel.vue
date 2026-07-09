@@ -8,6 +8,7 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { logger } from '@/lib/logger'
 
 const { t } = useI18n()
 
@@ -55,7 +56,7 @@ async function loadRegions() {
       regions.value = result?.regions || []
     }
   } catch(e: any) {
-    console.error('[Satellite] loadRegions:', e)
+    logger.error('[Satellite] loadRegions:', e)
     loadError.value = e?.message || String(e)
   }
   if (seq === loadSeq) loading.value = false
@@ -72,7 +73,7 @@ async function loadRegionDetail(region: RegionSnapshot) {
       windData.value = result.wind_chart || result.wind_data || []
     }
   } catch(e) {
-    console.error('[Satellite] loadDetail:', e)
+    logger.error('[Satellite] loadDetail:', e)
   }
 }
 

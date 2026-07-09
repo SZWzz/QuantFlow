@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
@@ -32,7 +33,7 @@ async function fetchData() {
     }
     gas.value = raw?.data as GasData || null
   } catch (e: any) {
-    console.error('[GasFee]', e)
+    logger.error('[GasFee]', e)
     loadError.value = e?.message || String(e)
     gas.value = null
   } finally {

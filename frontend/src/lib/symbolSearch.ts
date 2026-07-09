@@ -1,4 +1,5 @@
 import { ref, watch, onUnmounted } from 'vue'
+import { logger } from '@/lib/logger'
 
 export interface StockEntry {
   code: string
@@ -37,7 +38,7 @@ export function useSymbolSearch() {
       }
       results.value = Array.isArray(data) ? data : []
     } catch (e) {
-      console.warn('SearchSymbols failed, using mock:', e)
+      logger.warn('SearchSymbols failed, using mock:', e)
       results.value = mockSearch(q.trim())
     } finally {
       loading.value = false

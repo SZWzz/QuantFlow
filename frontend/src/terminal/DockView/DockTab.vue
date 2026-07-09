@@ -6,6 +6,7 @@ import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { getIcon } from '@/lib/icons'
+import { logger } from '@/lib/logger'
 
 const props = defineProps<{
   tabs: DockTabState[]
@@ -107,7 +108,7 @@ function tearOff(tab: DockTabState) {
   if (!go) return
   go.TearOffPanel(tab.panelId, instanceId, tab.label, JSON.stringify(tab.params || {}))
     .then(() => closeTab(tab.id))
-    .catch((err: any) => console.error('[DockTab] tear-off failed:', err))
+    .catch((err: any) => logger.error('[DockTab] tear-off failed:', err))
 }
 </script>
 

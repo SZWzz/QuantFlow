@@ -19,7 +19,7 @@ async function fetchScheduleTasks() {
     const result = await (window as any).go?.main?.App?.ListScheduleTasks()
     tasks.value = Array.isArray(result) ? result : []
   } catch (e) {
-    console.error('[Schedule] fetch:', e)
+    logger.error('[Schedule] fetch:', e)
     tasks.value = []
   } finally {
     loading.value = false

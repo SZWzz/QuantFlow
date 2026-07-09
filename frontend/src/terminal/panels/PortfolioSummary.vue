@@ -7,6 +7,7 @@ import VChart from 'vue-echarts'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import type { PositionDetail } from '@/stores/portfolio'
+import { logger } from '@/lib/logger'
 
 defineProps<{
   panelId: string
@@ -106,7 +107,7 @@ function marketClass(market: string): string {
 }
 
 function onPositionClick(pos: PositionDetail) {
-  console.log('[PortfolioSummary] navigate to PositionDetail:', pos.symbol)
+  logger.info('[PortfolioSummary] navigate to PositionDetail:', pos.symbol)
 }
 
 // --- Equity curve chart ---
