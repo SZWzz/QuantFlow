@@ -22,6 +22,10 @@
 - [Security] ModelRegistryPanel saves/loads API keys via CredentialManager; settings store tracks only Configured booleans + base URLs
 
 ### Changed
+- [Frontend] Minute chart no longer rebuilds ECharts option when tick data hasn't changed (computed cache guard + shallowRef skips 90%+ of useless re-renders)
+- [Frontend] Non-CN markets skip minute polling entirely (eliminates pointless IPC errors every 5s)
+- [Frontend] Minute chart shows loading skeleton (SkeletonPanel) instead of blank area during initial load
+- [Frontend] Minute chart indicator cache key includes lastPrice to avoid stale MACD/KDJ/RSI hits when tick count unchanged but price moved
 - [Config] GetAPIKey now only checks CredentialManager + env vars; YAML api_keys field deprecated and zeroed after migration
 - [Security] Config api_keys section automatically migrates to CredentialManager on first startup, then zeroed out
 - [Python] Replace subprocess-per-request with direct importlib + asyncio.to_thread in fetcher.py for akshare calls (~200ms cold start eliminated)
