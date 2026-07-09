@@ -61,7 +61,7 @@ func (c *fetchDataCache) Get(key string) (map[string]interface{}, bool) {
 			c.mu.Lock()
 			delete(c.store, key)
 			c.mu.Unlock()
-		}
+			}
 		return nil, false
 	}
 	return entry.data, true
@@ -91,7 +91,7 @@ func (c *marketOverviewCache) get(mkt string) (map[string]interface{}, bool) {
 	if !ok || time.Now().After(entry.expires) {
 		if ok {
 			delete(c.entries, mkt)
-		}
+			}
 		return nil, false
 	}
 	return entry.data, true
@@ -205,20 +205,20 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 	if sinceTimestamp == 0 && !market.IsTradingHours("CN") {
 		if len(ticks) > 0 {
 			return ticks, "cache", nil
-		}
+			}
 		recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 10)
 		if err != nil {
 			slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)
-		}
+			}
 		if len(recentTicks) > 0 {
 			slog.Info("minute_cache: using off-hours data", "symbol", symbol, "date", recentDate)
 			return recentTicks, "cache", nil
-		}
+			}
 		// Final fallback: try JSON-persisted ticks from last trading day.
 		if persisted := a.loadLastMinuteTicks(symbol); len(persisted) > 0 {
 			slog.Info("minute_cache: using persisted off-hours data", "symbol", symbol)
 			return persisted, "cache", nil
-		}
+			}
 		// All caches empty — try live fetch.  The TDX server may still
 		// serve today's minute data shortly after market close.
 		if adpt != nil {
@@ -231,7 +231,7 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 				}
 				return liveTicks, "mootdx", nil
 			}
-		}
+			}
 		return nil, "unavailable", fmt.Errorf("no minute data available for %s (market closed)", symbol)
 	}
 
@@ -240,7 +240,7 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 	if sinceTimestamp > 0 {
 		if len(ticks) > 0 {
 			return ticks, "cache", nil
-		}
+			}
 		if adpt != nil {
 			if liveTicks, err := adpt.FetchMinuteLine(symbol); err == nil && len(liveTicks) > 0 {
 				today := time.Now().Format("2006-01-02")
@@ -252,7 +252,7 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 				freshTicks, _ := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
 				return freshTicks, "mootdx", nil
 			}
-		}
+			}
 		return ticks, "cache", nil
 	}
 
@@ -274,9 +274,9 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		today := time.Now().Format("2006-01-02")
 		if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
 			slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
-		} else {
+			} else {
 			a.saveLastMinuteTicks(symbol, liveTicks)
-		}
+			}
 		return liveTicks, "mootdx", nil
 	}
 
@@ -318,7 +318,7 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 	if a.dataCache != nil && source != "mootdx" {
 		if cached, ok := a.dataCache.Get(cacheKey); ok {
 			return cached, nil
-		}
+			}
 	}
 
 	ctx, cancel := market.RequestCtx()
@@ -351,7 +351,7 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 		ttl := fetchDataCacheDefaultTTL
 		if dataType == "macro_cn_summary" {
 			ttl = fetchDataCacheMacroTTL
-		}
+			}
 		a.dataCache.Set(cacheKey, result, ttl)
 	}
 
@@ -367,7 +367,7 @@ func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
 		var cached interface{}
 		if err := a.fundFlowCache.Get(cacheKey, &cached); err == nil {
 			return cached, nil
-		}
+			}
 		return nil, fmt.Errorf("market %q is currently closed (no cached data)", market.MarketForSymbol(symbol))
 	}
 	if a.fundFlowSvc == nil {
@@ -397,7 +397,7 @@ func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
 			if e := a.fundFlowCache.Save(); e != nil {
 				slog.Warn("save fund flow cache", "error", e)
 			}
-		}()
+			}()
 	}
 	return result, err
 }
@@ -459,7 +459,7 @@ func (a *App) saveLastMinuteTicks(symbol string, ticks []market.MinuteTick) {
 	if b, err := os.ReadFile(path); err == nil {
 		if err := json.Unmarshal(b, &data); err != nil {
 			slog.Warn("unmarshal last minute ticks", "error", err)
-		}
+			}
 	}
 	data[symbol] = ticks
 
@@ -552,13 +552,13 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			{"HSI.HK", "恒生指数"},
 			{"HSCEI.HK", "国企指数"},
 			{"HSTECH.HK", "恒生科技"},
-		}
+			}
 	case "US":
 		indices = []idxDef{
 			{"^GSPC", "S&P 500"},
 			{"^IXIC", "NASDAQ"},
 			{"^DJI", "Dow Jones"},
-		}
+			}
 	default:
 		marketName = "CN"
 		indices = []idxDef{
@@ -567,7 +567,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			{"399006.SZ", "创业板指"},
 			{"000688.SH", "科创50"},
 			{"000300.SH", "沪深300"},
-		}
+			}
 	}
 
 	type idxResult struct {
@@ -616,7 +616,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			}
 
 			ch <- idxResult{idx.code, snap, ohlcv}
-		}(idx)
+			}(idx)
 	}
 	wg.Wait()
 	close(ch)
@@ -634,15 +634,18 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	}
 
 	for _, r := range ordered {
-		ohlcvArr := make([]map[string]interface{}, 0, len(r.ohlcv))
-		for _, b := range r.ohlcv {
+			if r.snap == nil { // goroutine failed (e.g. adapter unavailable), skip
+				continue
+			}
+			ohlcvArr := make([]map[string]interface{}, 0, len(r.ohlcv))
+			for _, b := range r.ohlcv {
 			ohlcvArr = append(ohlcvArr, map[string]interface{}{
 				"open":  b.Open,
 				"high":  b.High,
 				"low":   b.Low,
 				"close": b.Close,
 			})
-		}
+			}
 		result = append(result, map[string]interface{}{
 			"code":       r.code,
 			"name":       getIndexName(r.code, indices),
@@ -650,7 +653,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			"change":     r.snap.Change,
 			"change_pct": r.snap.ChangePct,
 			"ohlcv":      ohlcvArr,
-		})
+			})
 	}
 
 	out := map[string]interface{}{
@@ -663,7 +666,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	if mkt == "CN" || marketName == "CN" {
 		if adv, dec, unch := fetchSinaIndexBreadth(ctx); adv+dec+unch > 0 {
 			out["breadth"] = map[string]int{"advancers": adv, "decliners": dec, "unchanged": unch}
-		}
+			}
 	}
 
 	overviewCache.set(mkt, out)
@@ -675,7 +678,7 @@ func getIndexName(code string, indices []idxDef) string {
 	for _, idx := range indices {
 		if idx.code == code {
 			return idx.name
-		}
+			}
 	}
 	return code
 }
@@ -691,12 +694,12 @@ func (a *App) GetCryptoOverview(ctx context.Context, symbols []string) (map[stri
 		snap, _, err := reg.FetchQuoteWithFallback(ctx, "CRYPTO", sym)
 		if err != nil {
 			continue
-		}
+			}
 		results = append(results, map[string]interface{}{
 			"symbol":     sym,
 			"price":      snap.Last,
 			"change_pct": snap.ChangePct,
-		})
+			})
 	}
 	return map[string]interface{}{"cryptos": results}, nil
 }
@@ -725,7 +728,7 @@ func (a *App) GetCryptoFundingRates(ctx context.Context, symbols []string) ([]ma
 			"index_price":       r.IndexPrice,
 			"funding_rate":      r.FundingRate,
 			"next_funding_time": r.NextFundingTime,
-		})
+			})
 	}
 	return result, nil
 }
@@ -755,7 +758,7 @@ func (a *App) GetCryptoLiquidations(ctx context.Context, symbol string, limit in
 			"amount":     l.Amount,
 			"time":       l.Time,
 			"order_side": l.OrderSide,
-		})
+			})
 	}
 	return result, nil
 }
@@ -779,7 +782,7 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 		var cached *market.DepthSnapshot
 		if err := a.depthCache.Get(cacheKey, &cached); err == nil {
 			return cached, nil
-		}
+			}
 		return nil, fmt.Errorf("market %q is currently closed (no cached data)", mkt)
 	}
 	var snap *market.DepthSnapshot
@@ -795,17 +798,17 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 				}
 				slog.Warn("sina depth failed, trying tencent", "symbol", symbol, "err", depthErr)
 			}
-		}
+			}
 		adpt = a.marketReg.Get("tencent")
 		if adpt == nil {
 			depthErr = fmt.Errorf("tencent adapter not available")
 			break
-		}
+			}
 		tc, ok := adpt.(*adapters.TencentAdapter)
 		if !ok {
 			depthErr = fmt.Errorf("tencent adapter type assertion failed")
 			break
-		}
+			}
 		snap, depthErr = tc.FetchDepth(ctx, symbol)
 	case "HK":
 		adpt := a.marketReg.Get("sina")
@@ -817,17 +820,17 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 				}
 				slog.Warn("sina HK depth failed, trying tencent", "symbol", symbol, "err", depthErr)
 			}
-		}
+			}
 		adpt = a.marketReg.Get("tencent")
 		if adpt == nil {
 			depthErr = fmt.Errorf("tencent adapter not available")
 			break
-		}
+			}
 		tc, ok := adpt.(*adapters.TencentAdapter)
 		if !ok {
 			depthErr = fmt.Errorf("tencent adapter type assertion failed")
 			break
-		}
+			}
 		snap, depthErr = tc.FetchDepth(ctx, symbol)
 	case "CRYPTO":
 		exchange := "binance"
@@ -835,7 +838,7 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 		if err != nil {
 			depthErr = err
 			break
-		}
+			}
 		data, _ := raw["data"].(string)
 		snap = &market.DepthSnapshot{Symbol: symbol}
 		depthErr = fmt.Errorf("crypto depth via Python sidecar, data=%s", data)
@@ -854,7 +857,7 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 			if e := a.depthCache.Save(); e != nil {
 				slog.Warn("save depth cache", "error", e)
 			}
-		}()
+			}()
 	}
 	return snap, depthErr
 }
@@ -902,7 +905,7 @@ func (a *App) GetShortInterest(ctx context.Context, symbol string) ([]map[string
 			"avg_daily_vol":  d.AvgDailyVolume,
 			"days_to_cover":  d.DaysToCover,
 			"short_pct":      d.ShortPercent,
-		})
+			})
 	}
 	return result, nil
 }
@@ -934,7 +937,7 @@ func (a *App) GetEarningsCalendar(ctx context.Context, from, to string) ([]map[s
 			"eps_estimate":     e.EPSEstimate,
 			"revenue_actual":   e.RevenueActual,
 			"revenue_estimate": e.RevenueEstimate,
-		})
+			})
 	}
 	return result, nil
 }
