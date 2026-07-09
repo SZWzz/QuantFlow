@@ -80,6 +80,8 @@ type App struct {
 
 	// QuotePoller for periodic quote fetch + WebSocket broadcast.
 	quotePoller   *market.QuotePoller
+	// MinutePoller for real-time minute tick push via WebSocket.
+	minutePoller  *market.MinutePoller
 	newsAdpt      adapters.NewsAdapter // news source for sentiment analysis
 	globalNewsAdpt *adapters.EastMoneyGlobalNewsAdapter
 	conceptAdpt   *adapters.EastMoneyConceptAdapter

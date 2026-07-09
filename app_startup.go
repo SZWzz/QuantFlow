@@ -188,6 +188,17 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	go a.quotePoller.Run(ctx)
 	slog.Info("quote poller started on ws hub")
 
+	// Start the MinutePoller: fetches minute ticks for subscribed symbols
+	// and pushes deltas via wsHub under market:minute:* topics.
+	a.minutePoller = market.NewMinutePoller(a.wsHub, func(symbol string, since int64) ([]market.MinuteTick, error) {
+		reqCtx, cancel := market.RequestCtx()
+		defer cancel()
+		ticks, _, err := a.GetMinuteLine(reqCtx, symbol, since)
+		return ticks, err
+	})
+	go a.minutePoller.Run(ctx)
+	slog.Info("minute poller started on ws hub")
+
 	// Initialize CapabilityRegistry
 	a.capRegistry = ai.NewCapabilityRegistry()
 	capabilities.RegisterQuoteCapabilities(a.capRegistry)
