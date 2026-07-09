@@ -29,8 +29,8 @@ describe('MarketOverviewPanel', () => {
     })
     await nextTick()
     // Either loading state or kline area container should render
-    const hasKlineArea = wrapper.find('.kline-area').exists() || wrapper.find('.empty-chart').exists()
-    expect(hasKlineArea).toBe(true)
+    const hasChartArea = wrapper.find('.chart-area').exists() || wrapper.find('.empty-chart').exists()
+    expect(hasChartArea).toBe(true)
   })
 
   it('renders sector section when data is available', async () => {

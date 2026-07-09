@@ -1,17 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useDataStore } from '@/stores/data'
 import { PanelHeader, LoadingState } from '@/terminal/components/panel'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { buildMinuteOption } from '@/lib/buildChartOption'
 import type { KlineDataItem } from '@/lib/buildChartOption'
+import type { MinuteTick } from '@/lib/composables/useWailsApp'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const theme = useChartTheme()
+const indicatorCache = createIndicatorCache()
 
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
@@ -22,10 +28,18 @@ const countdown = ref(refreshInterval.value)
 const loadError = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
-// Chart state
+// Chart mode: 分时 | K线
+const chartMode = ref<'minute' | 'kline'>('minute')
+
+// K-line state
 const chartOHLCV = ref<KlineDataItem[]>([])
 const indexChartLoading = ref(false)
 const indexInterval = ref<'1d' | '5d' | '1mo' | '1y'>('1d')
+
+// Minute chart state
+const minuteTicks = ref<MinuteTick[]>([])
+const minuteLoading = ref(false)
+const prevClose = ref(0)
 
 // Computed from store
 const indices = computed(() => dataStore.marketOverview?.indices ?? [])
@@ -61,10 +75,8 @@ const breadthUpPct = computed(() => (breadth.value.advancers / breadthTotal.valu
 const breadthFlatPct = computed(() => (breadth.value.unchanged / breadthTotal.value) * 100)
 const breadthDownPct = computed(() => (breadth.value.decliners / breadthTotal.value) * 100)
 
-// Lightweight K-line option for compact market overview display.
-// Uses fixed pixel grid heights (not percentage) to avoid volume/K-line overlap
-// in the constrained panel space. No dataZoom slider to save vertical room.
-const chartOption = computed(() => {
+// ── K-line option (lightweight, compact) ──
+const klineOption = computed(() => {
   const data = chartOHLCV.value
   if (!data.length) return {} as ECBasicOption
 
@@ -120,6 +132,24 @@ const chartOption = computed(() => {
   } as ECBasicOption
 })
 
+// ── Minute chart option (reuses buildMinuteOption) ──
+const minuteOption = computed(() => {
+  if (!minuteTicks.value.length || !prevClose.value) return {} as ECBasicOption
+  return buildMinuteOption(
+    minuteTicks.value,
+    prevClose.value,
+    'volume',
+    theme,
+    indicatorCache,
+    selectedIndex.value?.symbol || '',
+  )
+})
+
+// ── Active chart option ──
+const chartOption = computed(() => {
+  return chartMode.value === 'minute' ? minuteOption.value : klineOption.value
+})
+
 // Header controls
 const headerControls = computed(() => {
   const list: any[] = []
@@ -146,14 +176,45 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString()
 }
 
-// Index card click: select index for K-line chart only (no cross-panel linkage)
+// Index card click
 function onSelectIndex(idx: typeof indices.value[0]) {
   if (!idx) return
   dataStore.setSelectedIndex(idx.symbol)
-  loadIndexChart()
+  loadChart()
 }
 
-async function loadIndexChart() {
+// ── Data loading ──
+async function loadMinuteChart() {
+  const idx = selectedIndex.value
+  if (!idx) { minuteTicks.value = []; return }
+  minuteLoading.value = true
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app) return
+    // GetMinuteLine returns [ticks, symbol, error]
+    const [ticks, _sym] = (await app.GetMinuteLine(idx.symbol, 0)) as [any[], string]
+    if (!ticks?.length) { minuteTicks.value = []; return }
+    minuteTicks.value = ticks.map((t: any) => ({
+      time: t.time || '',
+      price: t.price || 0,
+      volume: t.volume || 0,
+      avg_price: t.avg_price ?? t.avgPrice ?? 0,
+      amount: t.amount ?? 0,
+    })) as MinuteTick[]
+    // Derive prevClose from OHLCV: yesterday's close
+    const ohlcv = idx.ohlcv
+    if (ohlcv && ohlcv.length > 0) {
+      prevClose.value = ohlcv[ohlcv.length - 1].close
+    }
+  } catch (e) {
+    logger.error('[MarketOverview] minute chart:', e)
+    minuteTicks.value = []
+  } finally {
+    minuteLoading.value = false
+  }
+}
+
+async function loadKlineChart() {
   const idx = selectedIndex.value
   if (!idx) { chartOHLCV.value = []; return }
   indexChartLoading.value = true
@@ -171,24 +232,38 @@ async function loadIndexChart() {
       open: b.open, close: b.close, low: b.low, high: b.high, volume: b.volume || 0,
     }))
   } catch (e) {
-    logger.error('[MarketOverview] index chart:', e)
+    logger.error('[MarketOverview] kline chart:', e)
     chartOHLCV.value = []
   } finally {
     indexChartLoading.value = false
   }
 }
 
+function loadChart() {
+  if (chartMode.value === 'minute') {
+    loadMinuteChart()
+  } else {
+    loadKlineChart()
+  }
+}
+
+function switchChartMode(mode: 'minute' | 'kline') {
+  chartMode.value = mode
+  loadChart()
+}
+
 function refresh() {
   loadError.value = ''
   dataStore.fetchMarketOverview(activeMarket.value)
   countdown.value = refreshInterval.value
-  loadIndexChart()
+  loadChart()
 }
 
 function switchMarket(mkt: string) {
   if (mkt !== 'CN' && mkt !== 'HK' && mkt !== 'US') return
   activeMarket.value = mkt as 'CN' | 'HK' | 'US'
   dataStore.setSelectedIndex('')
+  chartMode.value = 'minute'
   refresh()
 }
 
@@ -198,6 +273,14 @@ function toggleAutoRefresh() {
     countdown.value = refreshInterval.value
   }
 }
+
+// Auto-select first index when data loads
+watch(indices, (val) => {
+  if (val.length && !dataStore.selectedIndexSymbol) {
+    dataStore.setSelectedIndex(val[0].symbol)
+    loadChart()
+  }
+})
 
 onMounted(() => {
   refresh()
@@ -215,6 +298,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timer) { clearInterval(timer); timer = null }
+  indicatorCache.clear()
 })
 </script>
 
@@ -276,25 +360,39 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Zone 4: Index K-line Chart -->
-    <div v-if="loading && !chartOHLCV.length" class="kline-area">
+    <!-- Zone 4: Chart (分时 / K线) -->
+    <div v-if="loading && !chartOHLCV.length && !minuteTicks.length" class="chart-area">
       <LoadingState type="card" :rows="1" />
     </div>
-    <div v-else-if="chartOHLCV.length > 0" class="kline-area">
-      <div class="kline-tabs">
+    <div v-else-if="selectedIndex" class="chart-area">
+      <!-- Chart mode tabs: 分时 | 日K -->
+      <div class="chart-tabs">
         <button
-          v-for="iv in (['1d', '5d', '1mo', '1y'] as const)"
-          :key="iv"
-          :class="{ active: indexInterval === iv }"
-          class="interval-btn"
-          @click="indexInterval = iv; loadIndexChart()"
-        >{{ iv }}</button>
+          :class="{ active: chartMode === 'minute' }"
+          class="chart-tab"
+          @click="switchChartMode('minute')"
+        >分时</button>
+        <button
+          :class="{ active: chartMode === 'kline' }"
+          class="chart-tab"
+          @click="switchChartMode('kline')"
+        >日K</button>
+        <template v-if="chartMode === 'kline'">
+          <span class="chart-tab-sep" />
+          <button
+            v-for="iv in (['1d', '5d', '1mo', '1y'] as const)"
+            :key="iv"
+            :class="{ active: indexInterval === iv }"
+            class="chart-tab interval"
+            @click="indexInterval = iv; loadKlineChart()"
+          >{{ iv }}</button>
+        </template>
       </div>
-      <div class="kline-wrapper" :class="{ loading: indexChartLoading }">
+      <div class="chart-wrapper" :class="{ loading: indexChartLoading || minuteLoading }">
         <KlineChart
           :option="chartOption"
           :symbol="selectedIndex?.symbol ?? ''"
-          :loading="indexChartLoading"
+          :loading="indexChartLoading || minuteLoading"
         />
       </div>
     </div>
@@ -469,8 +567,8 @@ onUnmounted(() => {
 .down-text { color: var(--color-down); }
 .flat-text { color: var(--color-text-tertiary); }
 
-/* ── Zone 4: K-line Chart ── */
-.kline-area {
+/* ── Zone 4: Chart Area ── */
+.chart-area {
   display: flex;
   flex-direction: column;
   min-height: 240px;
@@ -478,14 +576,15 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.kline-tabs {
+.chart-tabs {
   display: flex;
+  align-items: center;
   gap: 2px;
   padding: var(--space-xs) var(--panel-padding);
 }
 
-.interval-btn {
-  padding: 2px 8px;
+.chart-tab {
+  padding: 3px 10px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -493,24 +592,38 @@ onUnmounted(() => {
   font-size: var(--font-xs);
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 
-.interval-btn:hover {
+.chart-tab:hover {
   background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
-.interval-btn.active {
+.chart-tab.active {
   background: var(--color-accent);
   color: #fff;
 }
 
-.kline-wrapper {
+.chart-tab.interval {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+.chart-tab-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border-strong);
+  margin: 0 4px;
+}
+
+.chart-wrapper {
   flex: 1;
   min-height: 160px;
   position: relative;
 }
 
-.kline-wrapper.loading {
+.chart-wrapper.loading {
   opacity: 0.5;
   pointer-events: none;
 }
