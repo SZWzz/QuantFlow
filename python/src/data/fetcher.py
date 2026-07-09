@@ -3,9 +3,13 @@
 Data is returned as JSON-encoded bytes for simplicity.
 """
 
+import asyncio
+import importlib
 import json
 import logging
 import socket
+import subprocess
+import sys
 import threading
 
 from src.proto import data_pb2, data_pb2_grpc
@@ -528,6 +532,81 @@ def _fetch_mootdx_f10(symbols: list[str], category: str) -> list[dict]:
         raise ValueError(f"mootdx: no F10 data for {symbols} (category={category})")
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# AKShare direct import helpers (replaces subprocess-per-request)
+# ---------------------------------------------------------------------------
+
+# Module-level cache for the akshare module
+_akshare_module = None
+
+
+def _get_akshare_module():
+    global _akshare_module
+    if _akshare_module is None:
+        try:
+            _akshare_module = importlib.import_module("akshare")
+        except ImportError:
+            return None
+    return _akshare_module
+
+
+def _run_akshare_subprocess(endpoint: str, **params) -> list[dict]:
+    """Fallback: call akshare via subprocess when direct import is unavailable."""
+    args = []
+    for k, v in params.items():
+        if isinstance(v, str):
+            args.append(f'{k}="{v}"')
+        else:
+            args.append(f'{k}={v}')
+    param_str = ", ".join(args)
+
+    code = (
+        "import akshare as ak; "
+        "import json; "
+        f"df = ak.{endpoint}({param_str}); "
+        "if df is None or (hasattr(df, 'empty') and df.empty): print('[]'); "
+        "else: print(df.to_json(orient='records', force_ascii=False))"
+    )
+
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode != 0:
+            return []
+        output = result.stdout.strip()
+        if not output:
+            return []
+        return json.loads(output)
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception):
+        return []
+
+
+async def _handle_akshare(endpoint: str, **params) -> list[dict]:
+    """Call an akshare function by name, trying direct import first, then subprocess."""
+    ak = _get_akshare_module()
+    if ak is None:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, lambda: _run_akshare_subprocess(endpoint, **params))
+
+    func = getattr(ak, endpoint, None)
+    if func is None:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, lambda: _run_akshare_subprocess(endpoint, **params))
+
+    loop = asyncio.get_event_loop()
+    df = await loop.run_in_executor(None, lambda: func(**params))
+
+    if df is None:
+        return []
+    if hasattr(df, 'empty') and df.empty:
+        return []
+    if hasattr(df, 'to_dict'):
+        return json.loads(df.to_json(orient='records', force_ascii=False))
+    return json.loads(json.dumps(df, default=str))
 
 
 # ---------------------------------------------------------------------------
