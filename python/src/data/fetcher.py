@@ -15,6 +15,8 @@ import socket
 import subprocess
 import sys
 import threading
+import urllib.request
+import urllib.error
 
 from src.proto import data_pb2, data_pb2_grpc
 
@@ -260,6 +262,83 @@ def _fetch_mootdx_ohlcv(symbols: list[str], start_date: str, end_date: str, inte
     return all_bars
 
 
+def _to_eastmoney_secid(symbol: str) -> str:
+    """Convert a CN symbol to EastMoney secid format ('1.000001' for SH, '0.399001' for SZ)."""
+    s = symbol.strip().upper()
+    for suffix, mkt in ((".SH", "1"), (".SS", "1"), (".SZ", "0"), (".BJ", "0")):
+        if s.endswith(suffix):
+            return mkt + "." + s[:-3]
+    # Bare code: infer market from prefix
+    code = s
+    if code[0] in ("5", "6", "9"):
+        return "1." + code
+    return "0." + code
+
+
+def _is_index_code(symbol: str) -> bool:
+    """Check whether a CN symbol is a market index (not an individual stock)."""
+    s = symbol.strip().upper()
+    for suffix in (".SH", ".SS", ".SZ", ".BJ"):
+        s = s.replace(suffix, "")
+    return len(s) == 6 and s.isdigit() and s[:3] in ("000", "399", "688")
+
+
+def _fetch_eastmoney_index_minute(secid: str) -> list[dict]:
+    """Fetch today's minute ticks for an index via EastMoney trends2 API.
+
+    Returns a list of dicts with time, price, volume, avg_price — same shape
+    as _fetch_mootdx_minute so downstream processing is unchanged.
+    """
+    url = (
+        "https://push2.eastmoney.com/api/qt/stock/trends2/get"
+        "?secid=" + secid +
+        "&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13"
+        "&fields2=f51,f52,f53,f54,f55,f56,f57,f58"
+        "&ndays=1&iscr=0&iscca=0"
+    )
+    req = urllib.request.Request(url)
+    req.add_header("User-Agent", "Mozilla/5.0")
+    req.add_header("Referer", "https://quote.eastmoney.com/")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, json.JSONDecodeError, OSError) as exc:
+        logger.warning("eastmoney index minute fetch failed for %s: %s", secid, exc)
+        return []
+
+    data = body.get("data")
+    if not data:
+        return []
+
+    trends = data.get("trends")
+    if not trends:
+        return []
+
+    ticks: list[dict] = []
+    for line in trends:
+        # Format: "YYYY-MM-DD HH:MM,price,avg_price,volume,..."
+        parts = line.split(",")
+        if len(parts) < 3:
+            continue
+        # Extract HH:MM from datetime string
+        dt = parts[0].strip()
+        time_str = dt[-5:] if len(dt) >= 5 else dt  # "HH:MM"
+        try:
+            price = float(parts[1])
+            avg_price = float(parts[2]) if len(parts) > 2 else 0.0
+            vol = float(parts[3]) if len(parts) > 3 else 0.0
+        except (ValueError, IndexError):
+            continue
+        ticks.append({
+            "time": time_str,
+            "price": round(price, 2),
+            "volume": int(vol),
+            "avg_price": round(avg_price, 2),
+            "amount": round(price * vol, 2),
+        })
+    return ticks
+
+
 def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
     """Fetch minute-by-minute ticks for today via mootdx.
 
@@ -299,9 +378,24 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
         except Exception as exc:
             logger.warning("mootdx minute failed for %s (plain=%s): %s", symbol, plain, exc)
             _reset_mootdx_client()
+            # TDX does not support minute data for indices.  Fall back to
+            # EastMoney HTTP API which provides index trend data.
+            if _is_index_code(symbol):
+                logger.info("falling back to eastmoney for index minute: %s", symbol)
+                secid = _to_eastmoney_secid(symbol)
+                em_ticks = _fetch_eastmoney_index_minute(secid)
+                if em_ticks:
+                    all_ticks.extend(em_ticks)
             continue
 
         if raw is None or len(raw) == 0:
+            # TDX may return empty for indices.  Try EastMoney as fallback.
+            if _is_index_code(symbol):
+                logger.info("mootdx returned empty for index %s, falling back to eastmoney", symbol)
+                secid = _to_eastmoney_secid(symbol)
+                em_ticks = _fetch_eastmoney_index_minute(secid)
+                if em_ticks:
+                    all_ticks.extend(em_ticks)
             continue
 
         df = pd.DataFrame(raw)
