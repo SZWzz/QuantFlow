@@ -809,7 +809,7 @@ func (a *App) GetIndustryRanks(mkt string, topN int) ([]market.IndustryRank, err
 			}
 			return cached, nil
 		}
-		return nil, fmt.Errorf("market %q is currently closed (no cached data)", mkt)
+		// No cache — fall through to live fetch
 	}
 	reg := a.getMarketReg()
 	if reg == nil {

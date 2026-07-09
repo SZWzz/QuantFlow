@@ -169,13 +169,13 @@ func (r *AdapterRegistry) FetchQuoteWithFallback(ctx context.Context, market, sy
 	}
 	r.mu.RUnlock()
 
-	// Skip fetch outside trading hours — no adapter can return real-time data.
-	// Return the last known value instead, so watchlists show previous day's data.
+	// Outside trading hours: prefer cached data.  If no cache is available,
+	// attempt a live fetch as last resort (adapters may still serve data).
 	if !IsTradingHours(market) {
 		if last, ok := r.lastQuote.Load(cacheKey); ok {
 			return last.(*QuoteSnapshot), "cache", nil
 		}
-		return nil, "", fmt.Errorf("market %q is currently closed (outside trading hours)", market)
+		// Continue to fallback chain — don't return error immediately
 	}
 
 	chain, ok := FallbackChains[market]
