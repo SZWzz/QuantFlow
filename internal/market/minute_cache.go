@@ -158,6 +158,16 @@ func (mc *MinuteCache) GetRecentTicks(symbol string, lookbackDays int) ([]Minute
 	return nil, "", nil
 }
 
+// Truncate clears all minute cache entries (both LRU and SQLite).
+// Useful for cache invalidation after data source fixes.
+func (mc *MinuteCache) Truncate() error {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
+	mc.lru.Purge()
+	_, err := mc.db.Exec("DELETE FROM minute_cache")
+	return err
+}
+
 // Close releases resources. The underlying sql.DB is not closed.
 func (mc *MinuteCache) Close() error {
 	mc.lru.Purge()
