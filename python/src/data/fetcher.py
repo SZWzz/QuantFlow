@@ -262,17 +262,16 @@ def _fetch_mootdx_ohlcv(symbols: list[str], start_date: str, end_date: str, inte
     return all_bars
 
 
-def _to_eastmoney_secid(symbol: str) -> str:
-    """Convert a CN symbol to EastMoney secid format ('1.000001' for SH, '0.399001' for SZ)."""
+def _to_tencent_code(symbol: str) -> str:
+    """Convert a CN symbol to Tencent code format ('sh000001' for SH, 'sz399001' for SZ)."""
     s = symbol.strip().upper()
-    for suffix, mkt in ((".SH", "1"), (".SS", "1"), (".SZ", "0"), (".BJ", "0")):
+    for suffix, mkt in ((".SH", "sh"), (".SS", "sh"), (".SZ", "sz"), (".BJ", "sz")):
         if s.endswith(suffix):
-            return mkt + "." + s[:-3]
+            return mkt + s[:-3]
     # Bare code: infer market from prefix
-    code = s
-    if code[0] in ("5", "6", "9"):
-        return "1." + code
-    return "0." + code
+    if s[0] in ("5", "6", "9"):
+        return "sh" + s
+    return "sz" + s
 
 
 def _is_index_code(symbol: str) -> bool:
@@ -283,57 +282,67 @@ def _is_index_code(symbol: str) -> bool:
     return len(s) == 6 and s.isdigit() and s[:3] in ("000", "399", "688")
 
 
-def _fetch_eastmoney_index_minute(secid: str) -> list[dict]:
-    """Fetch today's minute ticks for an index via EastMoney trends2 API.
+def _fetch_tencent_index_minute(tx_code: str) -> list[dict]:
+    """Fetch today's minute ticks for an index via Tencent's minute API.
 
-    Returns a list of dicts with time, price, volume, avg_price — same shape
-    as _fetch_mootdx_minute so downstream processing is unchanged.
+    Tencent endpoint: http://ifzq.gtimg.cn/appstock/app/minute/query
+      ?_var=min_data&code=sh000001
+
+    Returns a list of dicts with time, price, volume, avg_price.
     """
     url = (
-        "https://push2.eastmoney.com/api/qt/stock/trends2/get"
-        "?secid=" + secid +
-        "&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13"
-        "&fields2=f51,f52,f53,f54,f55,f56,f57,f58"
-        "&ndays=1&iscr=0&iscca=0"
+        "http://ifzq.gtimg.cn/appstock/app/minute/query"
+        "?_var=min_data&code=" + tx_code
     )
     req = urllib.request.Request(url)
     req.add_header("User-Agent", "Mozilla/5.0")
-    req.add_header("Referer", "https://quote.eastmoney.com/")
+    req.add_header("Referer", "https://finance.qq.com/")
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.URLError, json.JSONDecodeError, OSError) as exc:
-        logger.warning("eastmoney index minute fetch failed for %s: %s", secid, exc)
+            raw_text = resp.read().decode("gbk", errors="replace")
+    except (urllib.error.URLError, OSError) as exc:
+        logger.warning("tencent index minute fetch failed for %s: %s", tx_code, exc)
         return []
 
-    data = body.get("data")
-    if not data:
+    # Tencent returns JSONP: min_data={...}
+    if raw_text.startswith("min_data="):
+        raw_text = raw_text[len("min_data="):]
+    try:
+        body = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        logger.warning("tencent minute parse failed for %s: %s", tx_code, exc)
         return []
 
-    trends = data.get("trends")
-    if not trends:
+    # Structure: {code: "sh000001", data: {...}}
+    code_data = body.get("data") if "data" in body else body.get(tx_code, {}).get("data")
+    if not code_data:
+        return []
+
+    # Minute lines: each entry is "HH:MM price volume"
+    minutes = code_data.get("data", [])
+    if not minutes:
         return []
 
     ticks: list[dict] = []
-    for line in trends:
-        # Format: "YYYY-MM-DD HH:MM,price,avg_price,volume,..."
-        parts = line.split(",")
-        if len(parts) < 3:
+    cum_vol = 0
+    cum_amount = 0.0
+    for line in minutes:
+        parts = line.split(" ")
+        if len(parts) < 2:
             continue
-        # Extract HH:MM from datetime string
-        dt = parts[0].strip()
-        time_str = dt[-5:] if len(dt) >= 5 else dt  # "HH:MM"
+        time_str = parts[0].strip()
         try:
             price = float(parts[1])
-            avg_price = float(parts[2]) if len(parts) > 2 else 0.0
-            vol = float(parts[3]) if len(parts) > 3 else 0.0
+            vol = float(parts[2]) if len(parts) > 2 else 0.0
         except (ValueError, IndexError):
             continue
+        cum_vol += vol
+        cum_amount += price * vol
         ticks.append({
             "time": time_str,
             "price": round(price, 2),
             "volume": int(vol),
-            "avg_price": round(avg_price, 2),
+            "avg_price": round(cum_amount / cum_vol, 2) if cum_vol > 0 else 0.0,
             "amount": round(price * vol, 2),
         })
     return ticks
@@ -379,23 +388,23 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
             logger.warning("mootdx minute failed for %s (plain=%s): %s", symbol, plain, exc)
             _reset_mootdx_client()
             # TDX does not support minute data for indices.  Fall back to
-            # EastMoney HTTP API which provides index trend data.
+            # Tencent HTTP API which provides index minute data in JSON.
             if _is_index_code(symbol):
-                logger.info("falling back to eastmoney for index minute: %s", symbol)
-                secid = _to_eastmoney_secid(symbol)
-                em_ticks = _fetch_eastmoney_index_minute(secid)
-                if em_ticks:
-                    all_ticks.extend(em_ticks)
+                logger.info("falling back to tencent for index minute: %s", symbol)
+                tx_code = _to_tencent_code(symbol)
+                tx_ticks = _fetch_tencent_index_minute(tx_code)
+                if tx_ticks:
+                    all_ticks.extend(tx_ticks)
             continue
 
         if raw is None or len(raw) == 0:
-            # TDX may return empty for indices.  Try EastMoney as fallback.
+            # TDX may return empty for indices.  Try Tencent as fallback.
             if _is_index_code(symbol):
-                logger.info("mootdx returned empty for index %s, falling back to eastmoney", symbol)
-                secid = _to_eastmoney_secid(symbol)
-                em_ticks = _fetch_eastmoney_index_minute(secid)
-                if em_ticks:
-                    all_ticks.extend(em_ticks)
+                logger.info("mootdx returned empty for index %s, falling back to tencent", symbol)
+                tx_code = _to_tencent_code(symbol)
+                tx_ticks = _fetch_tencent_index_minute(tx_code)
+                if tx_ticks:
+                    all_ticks.extend(tx_ticks)
             continue
 
         df = pd.DataFrame(raw)
