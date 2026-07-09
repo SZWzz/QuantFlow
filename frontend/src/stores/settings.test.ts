@@ -44,4 +44,21 @@ describe('useSettingsStore', () => {
     const store = useSettingsStore()
     expect(store.settings.language).toBe('zh')
   })
+
+  it('should not contain API keys', () => {
+    const store = useSettingsStore()
+    expect(store.settings).not.toHaveProperty('llmOpenaiKey')
+    expect(store.settings).toHaveProperty('llmOpenaiConfigured')
+  })
+
+  it('should migrate old localStorage to new format on load', () => {
+    const oldData = JSON.stringify({ llmOpenaiKey: 'sk-old', llmAnthropicKey: 'sk-anthropic' })
+    localStorage.setItem('quantflow-settings', oldData)
+    setActivePinia(createPinia())
+    const store = useSettingsStore()
+    expect((store.settings as any).llmOpenaiKey).toBeUndefined()
+    expect(store.settings.llmOpenaiConfigured).toBe(true)
+    expect(store.settings.llmAnthropicConfigured).toBe(true)
+    expect(store.settings.llmDeepseekConfigured).toBe(false)
+  })
 })

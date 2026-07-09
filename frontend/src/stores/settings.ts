@@ -14,36 +14,33 @@ export interface SettingsState {
   telegramChatId: string
   dataSource: string
   cacheTtlDays: number
-  fredApiKey: string
-  finnhubApiKey: string
-  iwencaiApiKey: string
   colorScheme: string  // 'cn' = 红涨绿跌 (A股), 'us' = 绿涨红跌 (美股)
-  llmOpenaiKey: string
   llmOpenaiBaseUrl: string
-  llmAnthropicKey: string
   llmAnthropicBaseUrl: string
-  llmDeepseekKey: string
   llmDeepseekBaseUrl: string
   llmOllamaBaseUrl: string
-  llmGoogleKey: string
   llmGoogleBaseUrl: string
-  llmMistralKey: string
   llmMistralBaseUrl: string
-  llmGroqKey: string
   llmGroqBaseUrl: string
-  llmSiliconflowKey: string
   llmSiliconflowBaseUrl: string
-  llmZhipuKey: string
   llmZhipuBaseUrl: string
-  llmOpenrouterKey: string
   llmOpenrouterBaseUrl: string
-  llmOpencodeKey: string
   llmOpencodeBaseUrl: string
-  llmCustomKey: string
   llmCustomBaseUrl: string
   llmCustomName: string
   llmCustomModels: string
   llmDefaultModel: string
+  llmOpenaiConfigured: boolean
+  llmAnthropicConfigured: boolean
+  llmDeepseekConfigured: boolean
+  llmGoogleConfigured: boolean
+  llmMistralConfigured: boolean
+  llmGroqConfigured: boolean
+  llmSiliconflowConfigured: boolean
+  llmZhipuConfigured: boolean
+  llmOpenrouterConfigured: boolean
+  llmOpencodeConfigured: boolean
+  llmCustomConfigured: boolean
 }
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -53,7 +50,18 @@ export const useSettingsStore = defineStore('settings', () => {
     const saved = localStorage.getItem('quantflow-settings')
     if (saved) {
       try {
-        return { ...defaultSettings(), ...JSON.parse(saved) }
+        const parsed = JSON.parse(saved)
+        const migrated: any = { ...defaultSettings(), ...parsed }
+        for (const key of Object.keys(parsed)) {
+          if (key.endsWith('Key') && parsed[key]) {
+            const provider = key.replace('Key', '')
+            migrated[provider + 'Configured'] = true
+          }
+          if (key.endsWith('Key') || key === 'fredApiKey' || key === 'finnhubApiKey' || key === 'iwencaiApiKey') {
+            delete migrated[key]
+          }
+        }
+        return migrated as SettingsState
       } catch {
         return defaultSettings()
       }
@@ -75,36 +83,33 @@ export const useSettingsStore = defineStore('settings', () => {
       telegramChatId: '',
       dataSource: 'auto',
       cacheTtlDays: 30,
-      fredApiKey: '',
-      finnhubApiKey: '',
-      iwencaiApiKey: '',
       colorScheme: 'cn',
-      llmOpenaiKey: '',
       llmOpenaiBaseUrl: '',
-      llmAnthropicKey: '',
       llmAnthropicBaseUrl: '',
-      llmDeepseekKey: '',
       llmDeepseekBaseUrl: '',
       llmOllamaBaseUrl: '',
-      llmGoogleKey: '',
       llmGoogleBaseUrl: '',
-      llmMistralKey: '',
       llmMistralBaseUrl: '',
-      llmGroqKey: '',
       llmGroqBaseUrl: '',
-      llmSiliconflowKey: '',
       llmSiliconflowBaseUrl: '',
-      llmZhipuKey: '',
       llmZhipuBaseUrl: '',
-      llmOpenrouterKey: '',
       llmOpenrouterBaseUrl: '',
-      llmOpencodeKey: '',
       llmOpencodeBaseUrl: '',
-      llmCustomKey: '',
       llmCustomBaseUrl: '',
       llmCustomName: '',
       llmCustomModels: '',
       llmDefaultModel: '',
+      llmOpenaiConfigured: false,
+      llmAnthropicConfigured: false,
+      llmDeepseekConfigured: false,
+      llmGoogleConfigured: false,
+      llmMistralConfigured: false,
+      llmGroqConfigured: false,
+      llmSiliconflowConfigured: false,
+      llmZhipuConfigured: false,
+      llmOpenrouterConfigured: false,
+      llmOpencodeConfigured: false,
+      llmCustomConfigured: false,
     }
   }
 
