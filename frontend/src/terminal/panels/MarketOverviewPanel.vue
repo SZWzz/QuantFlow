@@ -162,7 +162,7 @@ async function loadIndexChart() {
     if (!app) return
     const mkt = activeMarket.value
     const end = Math.floor(Date.now() / 1000)
-    const lookbackDays = indexInterval.value === '1d' ? 5 : indexInterval.value === '5d' ? 30 : indexInterval.value === '1mo' ? 90 : 365
+    const lookbackDays = indexInterval.value === '1d' ? 60 : indexInterval.value === '5d' ? 180 : indexInterval.value === '1mo' ? 365 : 730
     const start = end - lookbackDays * 86400
     const [rawBars] = await app.FetchOHLCV(mkt, idx.symbol, '1D', 'qfq', start, end)
     if (!rawBars?.length) { chartOHLCV.value = []; return }
