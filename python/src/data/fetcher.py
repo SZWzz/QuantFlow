@@ -47,17 +47,31 @@ _CHUNK_SIZE = 800  # Max bars per TDX request
 
 
 def _normalize_code(symbol: str) -> str:
-    """Normalize a symbol to 6-digit plain code for mootdx."""
+    """Normalize a symbol to mootdx-compatible format.
+
+    Returns market-prefixed code (e.g. 'sh000001') when a suffix/prefix
+    explicitly specifies the market, so indices and stocks with ambiguous
+    leading digits resolve correctly. Plain 6-digit codes are returned as-is.
+    """
     s = (symbol or "").strip().upper()
-    for suffix in (".SH", ".SZ", ".BJ", ".SS"):
+    market = ""
+    # Detect market from suffix
+    for suffix, mkt in ((".SH", "sh"), (".SS", "sh"), (".SZ", "sz"), (".BJ", "bj")):
         if s.endswith(suffix):
             s = s[:-3]
+            market = mkt
             break
-    for prefix in ("SH", "SZ", "BJ"):
-        if s.startswith(prefix) and len(s) > 2:
-            s = s[2:]
-            break
-    return s.strip()
+    # Detect market from prefix (e.g. sh600519)
+    if not market:
+        for prefix, mkt in (("SH", "sh"), ("SZ", "sz"), ("BJ", "bj")):
+            if s.startswith(prefix) and len(s) > 2:
+                s = s[2:]
+                market = mkt
+                break
+    s = s.strip()
+    if market and len(s) == 6 and s.isdigit():
+        return market + s
+    return s
 
 
 def _init_mootdx_client():
