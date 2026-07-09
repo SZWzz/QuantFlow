@@ -100,14 +100,21 @@ func (p *QuotePoller) Run(ctx context.Context) {
 }
 
 func (p *QuotePoller) pollOnce(ctx context.Context) {
-	p.mu.RLock()
-	keys := make([]string, 0, len(p.subs))
-	for k := range p.subs {
-		keys = append(keys, k)
+	// Auto-detect active subscriptions from the WebSocket Hub so subscribers
+	// are picked up dynamically without explicit Subscribe calls.
+	topics := p.wsHub.GetTopics()
+	quotePrefix := "market:quote:"
+	seen := make(map[string]bool)
+	for _, topic := range topics {
+		if len(topic) > len(quotePrefix) && topic[:len(quotePrefix)] == quotePrefix {
+			key := topic[len(quotePrefix):] // e.g. "CN:000001.SH"
+			if key != "" && !seen[key] {
+				seen[key] = true
+			}
+		}
 	}
-	p.mu.RUnlock()
 
-	for _, key := range keys {
+	for key := range seen {
 		market, symbol := splitSubscriberKey(key)
 		if market == "" || symbol == "" {
 			continue

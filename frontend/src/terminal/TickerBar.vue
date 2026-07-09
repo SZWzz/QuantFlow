@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { detectMarket } from '@/lib/wails'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
+import { useWebSocket } from '@/lib/composables/useWebSocket'
 
 interface TickerItem {
   symbol: string
@@ -20,12 +21,15 @@ const SYMBOLS = computed(() => MARKET_SYMBOLS[activeMarket.value])
 
 const items = ref<TickerItem[]>([])
 const loading = ref(true)
-let pollTimer: ReturnType<typeof setInterval> | null = null
+const ws = useWebSocket()
+const wsUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/market`
+const wsTopics = computed(() => SYMBOLS.value.map(sym => `market:quote:${detectMarket(sym)}:${sym}`))
 
-async function resolveNames(results: TickerItem[]) {
+// Resolve names for symbols that don't have them yet
+async function resolveNames() {
   const app = (window as any).go?.main?.App
   if (!app?.SearchSymbols) return
-  for (const item of results) {
+  for (const item of items.value) {
     if (item.name !== item.symbol) continue
     try {
       const res = await app.SearchSymbols(item.symbol, 1)
@@ -36,7 +40,8 @@ async function resolveNames(results: TickerItem[]) {
   }
 }
 
-async function fetchTape() {
+// Initial load via IPC (gets full data + names)
+async function initialLoad() {
   const results: TickerItem[] = []
   for (const sym of SYMBOLS.value) {
     try {
@@ -48,25 +53,43 @@ async function fetchTape() {
         price: snapshot.last ?? 0,
         changePct: snapshot.change_pct ?? snapshot.changePct ?? 0,
       })
-    } catch { /* skip */ }
+    } catch { results.push({ symbol: sym, name: sym, price: 0, changePct: 0 }) }
   }
-  await resolveNames(results)
   items.value = results
   loading.value = false
+  resolveNames()
 }
 
 function switchMarket(mkt: 'CN' | 'HK' | 'US') {
   activeMarket.value = mkt
-  fetchTape()
+  initialLoad()
+}
+
+// WS handler: update individual quote in place
+function handleWSQuote(topic: string, data: any) {
+  const parts = topic.split(':')
+  const symbol = parts[parts.length - 1]
+  const idx = items.value.findIndex(i => i.symbol === symbol)
+  if (idx < 0) return
+  if (data.last !== undefined) items.value[idx].price = data.last
+  if (data.changePct !== undefined) items.value[idx].changePct = data.changePct
+  if (data.name && items.value[idx].name === items.value[idx].symbol) {
+    items.value[idx].name = data.name
+  }
 }
 
 onMounted(() => {
-  fetchTape()
-  pollTimer = setInterval(fetchTape, 10000)
+  initialLoad()
+  ws.connect(wsUrl, wsTopics.value)
+  ws.onMessage('*', (msg: any) => {
+    if (msg.topic?.startsWith('market:quote:')) {
+      handleWSQuote(msg.topic, msg.data)
+    }
+  })
 })
 
 onUnmounted(() => {
-  if (pollTimer) clearInterval(pollTimer)
+  ws.disconnect()
 })
 </script>
 
