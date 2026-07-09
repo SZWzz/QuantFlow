@@ -192,12 +192,7 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		return nil, "unavailable", fmt.Errorf("minute cache not initialized")
 	}
 
-	mkt := market.MarketForSymbol(symbol)
-
-	if mkt != "CN" {
-		return nil, "unavailable", fmt.Errorf("minute data not available for market %s, use 1d interval instead", mkt)
-	}
-
+	_ = market.MarketForSymbol(symbol) // reserved for future per-market logic
 	ticks, err := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
 	if err != nil {
 		slog.Warn("minute_cache: get failed", "symbol", symbol, "err", err)
@@ -554,9 +549,9 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	switch mkt {
 	case "HK":
 		indices = []idxDef{
-			{"^HSI", "恒生指数"},
-			{"^HSCE", "国企指数"},
-			{"^HSTECH", "恒生科技"},
+			{"HSI.HK", "恒生指数"},
+			{"HSCEI.HK", "国企指数"},
+			{"HSTECH.HK", "恒生科技"},
 		}
 	case "US":
 		indices = []idxDef{

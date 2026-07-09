@@ -258,6 +258,15 @@ func (a *YahooAdapter) HealthCheck(ctx context.Context) error {
 // normalizeYahooSymbol converts QuantFlow symbols to Yahoo Finance format.
 // "00700" → "0700.HK", "00005" → "0005.HK"
 func normalizeYahooSymbol(symbol string) string {
+	// HK index mapping: standard .HK format → Yahoo ^ format
+	hkIndexMap := map[string]string{
+		"HSI.HK":    "^HSI",
+		"HSCEI.HK":  "^HSCE",
+		"HSTECH.HK": "^HSTECH",
+	}
+	if mapped, ok := hkIndexMap[symbol]; ok {
+		return mapped
+	}
 	// Already has suffix: AAPL, TSLA, 0700.HK, 600519.SS
 	if strings.Contains(symbol, ".") {
 		return symbol

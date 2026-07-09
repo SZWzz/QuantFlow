@@ -263,8 +263,12 @@ def _fetch_mootdx_ohlcv(symbols: list[str], start_date: str, end_date: str, inte
 
 
 def _to_tencent_code(symbol: str) -> str:
-    """Convert a CN symbol to Tencent code format ('sh000001' for SH, 'sz399001' for SZ)."""
+    """Convert a symbol to Tencent code format ('sh000001' for SH, 'hkHSI' for HK)."""
     s = symbol.strip().upper()
+    # HK symbols
+    if s.endswith(".HK"):
+        return "hk" + s[:-3]
+    # CN symbols
     for suffix, mkt in ((".SH", "sh"), (".SS", "sh"), (".SZ", "sz"), (".BJ", "sz")):
         if s.endswith(suffix):
             return mkt + s[:-3]
@@ -275,8 +279,13 @@ def _to_tencent_code(symbol: str) -> str:
 
 
 def _is_index_code(symbol: str) -> bool:
-    """Check whether a CN symbol is a market index (not an individual stock)."""
+    """Check whether a symbol is a market index (not an individual stock)."""
     s = symbol.strip().upper()
+    # HK indices
+    if s.endswith(".HK"):
+        s = s[:-3]
+        return s in ("HSI", "HSCEI", "HSTECH")
+    # CN indices
     for suffix in (".SH", ".SS", ".SZ", ".BJ"):
         s = s.replace(suffix, "")
     return len(s) == 6 and s.isdigit() and s[:3] in ("000", "399", "688")
