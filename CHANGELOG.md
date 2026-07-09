@@ -9,6 +9,7 @@
 ### Added
 - [Python] gRPC Health Checking Protocol (GRPC-101) implementation for sidecar liveness polling via standard grpc_health.v1 package
 - [Docs] Phase 12 review specs (6 docs): Security Hardening (API keys, migration fatal), A-Share ST Price Limit Rules, Python Sidecar Overhaul (subprocess→direct), Test & Type Infrastructure Repair, Go Backend Quality (concurrency/financial), Frontend Architecture (type-safe bridge/i18n)
+- [Engine] GitHub Actions CI workflow with `go test -shuffle=on` for flaky detection
 - [Frontend] Wire ModelRegistryPanel to CredentialManager API key storage (replaces plaintext localStorage)
 - [Security] LLM API keys moved from plaintext localStorage to Go CredentialManager (AES-256-GCM + keychain)
 - [Security] GetCredential Wails IPC method for frontend to retrieve encrypted credentials
