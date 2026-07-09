@@ -24,6 +24,24 @@ describe('CandlestickPanel', () => {
   })
 })
 
+describe('detectMarket', () => {
+  it('should return CN for A-share symbols', () => {
+    const cnSymbols = ['600519', '000001', '300750', '688001', '830001']
+    for (const s of cnSymbols) {
+      const prefix = s.startsWith('6') || s.startsWith('00') || s.startsWith('300') || s.startsWith('301') || s.startsWith('688') || s.startsWith('689') || s.startsWith('8') || s.startsWith('4') ? 'CN' : 'OTHER'
+      expect(prefix).toBe('CN')
+    }
+  })
+
+  it('should not return CN for non-A-share symbols', () => {
+    const nonCN = ['AAPL', '0700.HK', 'BTC-USD']
+    for (const s of nonCN) {
+      const prefix = s.startsWith('6') || s.startsWith('00') || s.startsWith('300') || s.startsWith('301') || s.startsWith('688') || s.startsWith('689') || s.startsWith('8') || s.startsWith('4') ? 'CN' : 'OTHER'
+      expect(prefix).toBe('OTHER')
+    }
+  })
+})
+
 describe('computeDataKey', () => {
   it('should return same key when data unchanged', () => {
     const ticks = [

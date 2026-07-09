@@ -19,6 +19,8 @@ import type { EventMarker } from '@/lib/chart/EventMarker'
 import { useWebSocket, type KlineUpdate } from '@/lib/composables/useWebSocket'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { logger } from '@/lib/logger'
+import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -341,6 +343,10 @@ async function loadMinuteLine() {
 
 function startMinutePolling() {
   stopMinutePolling()
+  if (detectMarket(symbol.value) !== 'CN') {
+    logger.info('[Candlestick] minute chart only supports CN market, skipping', symbol.value)
+    return
+  }
   // Always load once so the user can see today's chart, even after close.
   loadMinuteLine()
   // Only auto-refresh during trading hours.
@@ -829,7 +835,10 @@ onUnmounted(() => {
       <template v-else-if="activeTab === 'minute'">
         <div class="minute-layout">
           <div class="minute-chart-area">
-            <KlineChart v-if="minuteTicks.length" :symbol="`${symbol}-minute`" :option="minuteChartOption" :loading="minuteLoading && !minuteTicks.length" />
+            <template v-if="minuteTicks.length">
+              <KlineChart :symbol="`${symbol}-minute`" :option="minuteChartOption" :loading="minuteLoading && !minuteTicks.length" />
+            </template>
+            <SkeletonPanel v-else-if="minuteLoading" type="chart" />
             <div v-else class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
           </div>
           <div v-if="showDepth" class="depth-sidebar">
