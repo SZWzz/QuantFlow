@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useDataStore } from '@/stores/data'
-import { useSymbolContext } from '@/stores/symbolContext'
 import { PanelHeader, LoadingState } from '@/terminal/components/panel'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
@@ -14,8 +13,6 @@ import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
-const ctx = useSymbolContext()
-const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 const theme = useChartTheme()
 const indicatorCache = createIndicatorCache()
@@ -109,14 +106,11 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString()
 }
 
-// Index card click: select index for K-line chart + link to other panels
+// Index card click: select index for K-line chart only (no cross-panel linkage)
 function onSelectIndex(idx: typeof indices.value[0]) {
   if (!idx) return
   dataStore.setSelectedIndex(idx.symbol)
   loadIndexChart()
-  // Link to other panels (e.g., WatchlistPanel switches to this index's constituents)
-  const code = idx.symbol.replace(/\.(SH|SZ|SS|CSI)$/i, '')
-  ctx.setGroupSymbol(pg.groupId, code)
 }
 
 async function loadIndexChart() {
