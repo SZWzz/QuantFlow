@@ -313,13 +313,11 @@ def _fetch_tencent_index_minute(tx_code: str) -> list[dict]:
         logger.warning("tencent minute parse failed for %s: %s", tx_code, exc)
         return []
 
-    # Structure: {code: "sh000001", data: {...}}
-    code_data = body.get("data") if "data" in body else body.get(tx_code, {}).get("data")
-    if not code_data:
-        return []
-
-    # Minute lines: each entry is "HH:MM price volume"
-    minutes = code_data.get("data", [])
+    # Structure: {code: 0, data: {sh000001: {data: {data: [...]}}}}
+    outer = body.get("data", {})
+    symbol_data = outer.get(tx_code, {}) if isinstance(outer, dict) else {}
+    inner = symbol_data.get("data", {}) if isinstance(symbol_data, dict) else {}
+    minutes = inner.get("data", []) if isinstance(inner, dict) else []
     if not minutes:
         return []
 
@@ -330,7 +328,9 @@ def _fetch_tencent_index_minute(tx_code: str) -> list[dict]:
         parts = line.split(" ")
         if len(parts) < 2:
             continue
-        time_str = parts[0].strip()
+        time_raw = parts[0].strip()
+        # Tencent returns "0930", normalise to "09:30"
+        time_str = time_raw[:2] + ":" + time_raw[2:4] if len(time_raw) >= 4 else time_raw
         try:
             price = float(parts[1])
             vol = float(parts[2]) if len(parts) > 2 else 0.0
