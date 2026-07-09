@@ -7,63 +7,59 @@
 ## [2026.7.9] - 2026-07-09
 
 ### Added
-- [Python] gRPC Health Checking Protocol (GRPC-101) implementation for sidecar liveness polling via standard grpc_health.v1 package
-- [Python] Module docstring + function docstrings for validate_dates and get_1m_bars in utils.py
-- [Docs] Phase 12 review specs (6 docs): Security Hardening (API keys, migration fatal), A-Share ST Price Limit Rules, Python Sidecar Overhaul (subprocess→direct), Test & Type Infrastructure Repair, Go Backend Quality (concurrency/financial), Frontend Architecture (type-safe bridge/i18n)
-- [Engine] GitHub Actions CI workflow with `go test -shuffle=on` for flaky detection
-- [Backtest] STStatusProvider interface for future real-time ST detection (ST stocks follow board limits under current regulations)
-- [Test] Integration tests for MarketDataProvider interface (subscribe/publish/unsubscribe, GetLatest, concurrent subscribers)
-- [Test] Python tests for: pyproject.toml structure, fetcher direct import path, health server, docstring hygiene
-- [Frontend] Logger utility with level-based filtering (`VITE_LOG_LEVEL`) replacing raw console.* calls
-- [Frontend] Wire ModelRegistryPanel to CredentialManager API key storage (replaces plaintext localStorage)
-- [Security] LLM API keys moved from plaintext localStorage to Go CredentialManager (AES-256-GCM + keychain)
-- [Security] GetCredential Wails IPC method for frontend to retrieve encrypted credentials
-- [Security] Config.GetAPIKey now checks CredentialManager first, then env vars, then config yaml
-- [Security] ModelRegistryPanel saves/loads API keys via CredentialManager; settings store tracks only Configured booleans + base URLs
+- [Python] 实现 gRPC Health Checking Protocol（GRPC-101），通过标准 grpc_health.v1 包轮询 sidecar 存活状态
+- [Python] utils.py 中 validate_dates 和 get_1m_bars 函数补充模块级 docstring 和函数级 docstring
+- [Docs] Phase 12 审查规范（6 篇）：安全加固（API 密钥/迁移致命错误）、A 股 ST 涨跌停规则、Python Sidecar 重构（子进程→直接调用）、测试与类型基础设施修复、Go 后端质量（并发/金融正确性）、前端架构（类型安全桥接/i18n）
+- [Engine] GitHub Actions CI 流水线，使用 `go test -shuffle=on` 检测 flaky 测试
+- [Backtest] STStatusProvider 接口，为未来实时 ST 检测做准备（现行规则下 ST 股票遵循板块涨跌幅限制）
+- [Test] MarketDataProvider 接口集成测试（订阅/发布/取消订阅/GetLatest/并发订阅者）
+- [Test] Python 测试：pyproject.toml 结构、fetcher 直接导入路径、health server、docstring 规范性
+- [Frontend] Logger 工具，支持基于级别的过滤（`VITE_LOG_LEVEL`），替代原始 console.* 调用
+- [Frontend] ModelRegistryPanel 接入 CredentialManager API 密钥存储（替代明文 localStorage）
+- [Security] LLM API 密钥从明文 localStorage 迁移至 Go CredentialManager（AES-256-GCM + 钥匙串）
+- [Security] 新增 GetCredential Wails IPC 方法，供前端获取加密凭据
+- [Security] Config.GetAPIKey 优先查 CredentialManager，其次环境变量，最后 config yaml
+- [Security] ModelRegistryPanel 通过 CredentialManager 保存/加载 API 密钥；settings store 仅追踪布尔配置状态和 base URL
 
 ### Changed
-- [Frontend] Minute chart no longer rebuilds ECharts option when tick data hasn't changed (computed cache guard + shallowRef skips 90%+ of useless re-renders)
-- [Frontend] Non-CN markets skip minute polling entirely (eliminates pointless IPC errors every 5s)
-- [Frontend] Minute chart shows loading skeleton (SkeletonPanel) instead of blank area during initial load
-- [Frontend] Minute chart indicator cache key includes lastPrice to avoid stale MACD/KDJ/RSI hits when tick count unchanged but price moved
-- [Config] GetAPIKey now only checks CredentialManager + env vars; YAML api_keys field deprecated and zeroed after migration
-- [Security] Config api_keys section automatically migrates to CredentialManager on first startup, then zeroed out
-- [Python] Replace subprocess-per-request with direct importlib + asyncio.to_thread in fetcher.py for akshare calls (~200ms cold start eliminated)
-- [Frontend] Replace console.log/warn/error across 24 files with structured logger (level-based filtering)
-- [Market] Extract MarketDataProvider interface from MarketDataHub struct for testability
+- [Frontend] MarketOverviewPanel 重构为彭博式 5 区布局（市场切换 → 指数卡片 → 涨跌家数/情绪条 → K线图 → 行业排行柱状图）
+- [Frontend] 新增指数 K 线图（复用 KlineChart.vue 组件，点击指数卡片切换，支持 1d/5d/1mo/1y 周期切换）
+- [Frontend] 涨跌家数条改为百分比宽度展示，数据源从硬编码 0 切换为新浪实时接口
+- [Frontend] 新增情绪指标条（涨停/跌停/北向资金/成交额）
+- [Frontend] 行业排行升级为涨跌前 10 名，带横向柱状图
+- [Frontend] 移除板块排行区域（数据与市场概况无关）
+- [Frontend] 指数卡片点击联动其他面板（通过 symbolContext 实现跨面板指数选择）
+- [Market] A 股涨跌家数数据源从硬编码 0 改为新浪实时接口（fetchSinaIndexBreadth）
+- [Frontend] 分时图 tick 数据未变化时不再重建 ECharts option（computed 缓存守卫 + shallowRef 跳过 90%+ 无意义重渲染）
+- [Frontend] 非 CN 市场完全跳过分时轮询（消除每 5 秒一次的无意义 IPC 报错）
+- [Frontend] 分时图初始加载时显示 skeleton 骨架屏（SkeletonPanel），替代空白区域
+- [Frontend] 分时图指标缓存 key 加入 lastPrice，避免 tick 数量不变但价格已变化时命中过期的 MACD/KDJ/RSI 缓存
+- [Config] GetAPIKey 仅查 CredentialManager + 环境变量；YAML api_keys 字段废弃并在迁移后清零
+- [Security] Config api_keys 段首次启动时自动迁移至 CredentialManager，随后清零
+- [Python] fetcher.py 中 akshare 调用从每次请求启子进程改为直接 importlib + asyncio.to_thread（消除 ~200ms 冷启动开销）
+- [Frontend] 24 个文件中 console.log/warn/error 替换为结构化 logger（支持级别过滤）
+- [Market] 从 MarketDataHub 结构体提取 MarketDataProvider 接口，提升可测试性
 
 ### Removed
-- [Backtest] Dead ST price limit code path (case branch for "ST" ticker prefix never fires — A-share tickers are purely numeric)
+- [Backtest] 移除无效的 ST 涨跌停代码路径（"ST" 前缀分支永不会触发——A 股代码为纯数字）
 
 ### Fixed
-- [Security] DB migration failure is now fatal — aborts startup with error instead of slog.Warn and silent schema corruption
-- [Terminal] Tear-off panels no longer stuck on "Loading panel..." — root cause was uninitialized `tearOffWindows` map in `App` struct causing nil-map panic + mutex deadlock; added `make()` init in `ServiceStartup()` and `defer Unlock` for panic safety in `app_tearoff.go`
+- [Security] 数据库迁移失败现为致命错误——启动时直接报错退出，而非 slog.Warn 后静默 schema 损坏
+- [Terminal] 分离窗口不再卡在"加载面板中..."——根因为 App 结构体中 `tearOffWindows` map 未初始化导致 nil-map panic + mutex 死锁；已在 `ServiceStartup()` 中添加 `make()` 初始化，并在 `app_tearoff.go` 中增加 `defer Unlock` 防止 panic 时死锁
 
 ## [2026.7.8] - 2026-07-08
 
 ### Added
-- [Storage] Migration 018 user_config table (key-value store for UI state)
-- [Storage] Data lifecycle management — ArchiveData/UnarchiveData with gzip+sha256,
-  CleanupData with dryRun preview, CSV/Parquet export/import, GetTableStats
-- [Terminal] StoragePanel — archive/export/cleanup UI with usage monitoring
-- [Terminal] Layout Template System — named layout save/load/delete via SQLite persistence,
-  LayoutTemplatePanel UI, Ctrl+Shift+1..9 shortcuts for quick switching
-- [Engine] Data normalization system — unified OHLCVBar type, NormalizeVolume helper,
-  FieldMapper interface, OrderStatus/Type mappers, OHLCVMapper, DataNormalizeNode workflow node
-- [MarketData] Normalize Phase 2 — all 6 A-share adapters route volume through
-  normalize.NormalizeVolume(); replaced 10 hardcoded *100 with unified function call;
-  added missing normalization to baidu/eastmoney Quote and tencent OHLCV volumes
-- [Broker] IBKR broker adapter via Client Portal REST API — Connect/Disconnect/SubmitOrder/
-  CancelOrder/ModifyOrder/GetOrders/GetPositions/GetAccount, session management with
-  4-minute auto-refresh, market/limit/stop order types, HTTP mock test suite (49 tests)
-- [Terminal] Tear-off windows — DockTab panels can be detached into independent OS windows
-  via Wails multi-window API (TearOffPanel.vue, app_tearoff.go, DockTab ↗ button)
-- [Engine] RiskModel workflow node — computes GARCH/GJR-GARCH/EGARCH volatility and
-  covariance matrix via Python sidecar gRPC; falls back to historical stddev when
-  sidecar is unavailable; NodeContext wired with MLClient injection
-- [Python] ML pipeline fix — _decode_arrow() adds JSON fallback for Go→Python data
-  transfer; AssessRisk now fetches real OHLCV data and computes daily returns;
-  frontend assessRisk wired to Go IPC
+- [Storage] Migration 018：新增 user_config 表（键值存储，用于 UI 状态持久化）
+- [Storage] 数据生命周期管理 — ArchiveData/UnarchiveData（gzip+sha256 压缩校验）、CleanupData（dryRun 预览）、CSV/Parquet 导出/导入、GetTableStats 表统计
+- [Terminal] StoragePanel — 归档/导出/清理 UI，带用量监控
+- [Terminal] 布局模板系统 — 命名布局的保存/加载/删除（SQLite 持久化），LayoutTemplatePanel UI，Ctrl+Shift+1..9 快捷键快速切换
+- [Engine] 数据标准化系统 — 统一 OHLCVBar 类型、NormalizeVolume 辅助函数、FieldMapper 接口、OrderStatus/Type 映射器、OHLCVMapper、DataNormalizeNode 工作流节点
+- [MarketData] 标准化 Phase 2 — 全部 6 个 A 股适配器成交量统一经由 normalize.NormalizeVolume() 处理；10 处硬编码 *100 替换为统一函数调用；baidu/eastmoney Quote 和 tencent OHLCV 成交量补全缺失的标准化
+- [Broker] IBKR 券商适配器（Client Portal REST API）— Connect/Disconnect/SubmitOrder/CancelOrder/ModifyOrder/GetOrders/GetPositions/GetAccount，会话管理含 4 分钟自动续期，市价/限价/止损单类型，HTTP mock 测试套件（49 个测试）
+- [Terminal] 分离窗口 — DockTab 面板可通过 Wails 多窗口 API 拆分为独立 OS 窗口（TearOffPanel.vue、app_tearoff.go、DockTab ↗ 按钮）
+- [Engine] RiskModel 工作流节点 — 通过 Python sidecar gRPC 计算 GARCH/GJR-GARCH/EGARCH 波动率和协方差矩阵；sidecar 不可用时回退到历史标准差；NodeContext 注入 MLClient
+- [Python] ML 管线修复 — _decode_arrow() 新增 JSON fallback 处理 Go→Python 数据传输；AssessRisk 现获取真实 OHLCV 数据并计算日收益率；前端 assessRisk 接入 Go IPC
 
 ## [2026.7.7] - 2026-07-07
 
