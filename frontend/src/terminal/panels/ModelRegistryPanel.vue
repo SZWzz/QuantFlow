@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { saveCredential, getCredential } from '@/lib/wails'
 
 const { t } = useI18n()
 const settingsStore = useSettingsStore()
@@ -85,61 +86,62 @@ const defaultUrlHint: Record<string, string> = {
   ollama: 'http://localhost:11434',
 }
 
-function loadFromStore() {
+async function loadFromStore() {
   const s = settingsStore.settings
-  form.value.openai.apiKey = s.llmOpenaiKey
   form.value.openai.baseUrl = s.llmOpenaiBaseUrl
-  form.value.anthropic.apiKey = s.llmAnthropicKey
   form.value.anthropic.baseUrl = s.llmAnthropicBaseUrl
-  form.value.deepseek.apiKey = s.llmDeepseekKey
   form.value.deepseek.baseUrl = s.llmDeepseekBaseUrl
-  form.value.google.apiKey = s.llmGoogleKey
   form.value.google.baseUrl = s.llmGoogleBaseUrl
-  form.value.mistral.apiKey = s.llmMistralKey
   form.value.mistral.baseUrl = s.llmMistralBaseUrl
-  form.value.groq.apiKey = s.llmGroqKey
   form.value.groq.baseUrl = s.llmGroqBaseUrl
-  form.value.siliconflow.apiKey = s.llmSiliconflowKey
   form.value.siliconflow.baseUrl = s.llmSiliconflowBaseUrl
-  form.value.zhipu.apiKey = s.llmZhipuKey
   form.value.zhipu.baseUrl = s.llmZhipuBaseUrl
-  form.value.openrouter.apiKey = s.llmOpenrouterKey
   form.value.openrouter.baseUrl = s.llmOpenrouterBaseUrl
-  form.value.opencode.apiKey = s.llmOpencodeKey
   form.value.opencode.baseUrl = s.llmOpencodeBaseUrl
-  form.value.custom.apiKey = s.llmCustomKey
   form.value.custom.baseUrl = s.llmCustomBaseUrl
   form.value.ollama.baseUrl = s.llmOllamaBaseUrl
+
+  for (const pid of providers.filter(p => p.needKey).map(p => p.id)) {
+    const cred = await getCredential(`${pid}_api_key`)
+    if (cred?.api_key) {
+      const f = form.value[pid as keyof typeof form.value] as any
+      if (f) f.apiKey = cred.api_key
+    }
+  }
 }
 
-function saveToStore() {
+async function saveToStore() {
   const f = form.value
-  settingsStore.update('llmOpenaiKey', f.openai.apiKey)
   settingsStore.update('llmOpenaiBaseUrl', f.openai.baseUrl)
-  settingsStore.update('llmAnthropicKey', f.anthropic.apiKey)
   settingsStore.update('llmAnthropicBaseUrl', f.anthropic.baseUrl)
-  settingsStore.update('llmDeepseekKey', f.deepseek.apiKey)
   settingsStore.update('llmDeepseekBaseUrl', f.deepseek.baseUrl)
-  settingsStore.update('llmGoogleKey', f.google.apiKey)
   settingsStore.update('llmGoogleBaseUrl', f.google.baseUrl)
-  settingsStore.update('llmMistralKey', f.mistral.apiKey)
   settingsStore.update('llmMistralBaseUrl', f.mistral.baseUrl)
-  settingsStore.update('llmGroqKey', f.groq.apiKey)
   settingsStore.update('llmGroqBaseUrl', f.groq.baseUrl)
-  settingsStore.update('llmSiliconflowKey', f.siliconflow.apiKey)
   settingsStore.update('llmSiliconflowBaseUrl', f.siliconflow.baseUrl)
-  settingsStore.update('llmZhipuKey', f.zhipu.apiKey)
   settingsStore.update('llmZhipuBaseUrl', f.zhipu.baseUrl)
-  settingsStore.update('llmOpenrouterKey', f.openrouter.apiKey)
   settingsStore.update('llmOpenrouterBaseUrl', f.openrouter.baseUrl)
-  settingsStore.update('llmOpencodeKey', f.opencode.apiKey)
   settingsStore.update('llmOpencodeBaseUrl', f.opencode.baseUrl)
-  settingsStore.update('llmCustomKey', f.custom.apiKey)
   settingsStore.update('llmCustomBaseUrl', f.custom.baseUrl)
   settingsStore.update('llmOllamaBaseUrl', f.ollama.baseUrl)
+
+  for (const pid of ['openai', 'anthropic', 'deepseek', 'google', 'mistral', 'groq',
+    'siliconflow', 'zhipu', 'openrouter', 'opencode', 'custom']) {
+    const formField = form.value[pid as keyof typeof form.value] as any
+    if (!formField) continue
+    const key = formField.apiKey
+    if (key) {
+      await saveCredential(`${pid}_api_key`, { api_key: key })
+      settingsStore.update(`llm${pid.charAt(0).toUpperCase() + pid.slice(1)}Configured` as any, true as any)
+    }
+  }
   saveMsg.value = t('settings.llm_save_hint')
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => { saveMsg.value = ''; saveTimer = null }, 3000)
+}
+
+async function onSave() {
+  await saveToStore()
 }
 
 onUnmounted(() => { if (saveTimer) clearTimeout(saveTimer) })
@@ -210,9 +212,9 @@ function addCustomModels() {
   }
 }
 
-function confirmSelect(modelId: string, pid: string) {
+async function confirmSelect(modelId: string, pid: string) {
   settingsStore.update('llmDefaultModel', modelId)
-  saveToStore()
+  await saveToStore()
   selectProvider.value = ''
   const m = models.value.find(x => x.id === modelId)
   saveMsg.value = `✅ 已选定 ${m?.display_name || modelId}`
@@ -272,7 +274,10 @@ function formatNumber(n: number): string {
   return String(n)
 }
 
-onMounted(loadFromStore)
+onMounted(async () => {
+  await loadFromStore()
+  fetchModels()
+})
 </script>
 
 <template>
@@ -280,7 +285,7 @@ onMounted(loadFromStore)
     <div class="panel-header">
       <h3>{{ t('settings.llm_providers') }}</h3>
       <div class="header-right">
-        <button class="btn btn-primary" @click="saveToStore">
+        <button class="btn btn-primary" @click="onSave">
           💾 {{ t('common.save') }}
         </button>
       </div>

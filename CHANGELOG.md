@@ -6,6 +6,10 @@
 
 ## [2026.7.9] - 2026-07-09
 
+### Added
+- [Docs] Phase 12 review specs (6 docs): Security Hardening (API keys, migration fatal), A-Share ST Price Limit Rules, Python Sidecar Overhaul (subprocess→direct), Test & Type Infrastructure Repair, Go Backend Quality (concurrency/financial), Frontend Architecture (type-safe bridge/i18n)
+- [Frontend] Wire ModelRegistryPanel to CredentialManager API key storage (replaces plaintext localStorage)
+
 ### Fixed
 - [Terminal] Tear-off panels no longer stuck on "Loading panel..." — root cause was uninitialized `tearOffWindows` map in `App` struct causing nil-map panic + mutex deadlock; added `make()` init in `ServiceStartup()` and `defer Unlock` for panic safety in `app_tearoff.go`
 
