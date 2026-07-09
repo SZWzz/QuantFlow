@@ -22,6 +22,12 @@
 - [Security] ModelRegistryPanel 通过 CredentialManager 保存/加载 API 密钥；settings store 仅追踪布尔配置状态和 base URL
 
 ### Changed
+- [Frontend] CandlestickPanel 分时图从 5s 轮询迁移到 WebSocket 实时推送（market:minute:*），MinutePoller 自动检测活跃订阅
+- [Frontend] TickerBar 从 10s 轮询迁移到 WebSocket 实时报价（market:quote:*）
+- [Market] QuotePoller 改为从 ws.Hub 自动检测活跃 topic，无需显式 Subscribe
+- [Market] 新增 MinutePoller——按 Hub 订阅自动拉取分时数据，通过 WS 增量推送
+- [Frontend] 新增 useRealtimeData 通用 WebSocket 订阅 hook
+- [Frontend] MarketOverview 指数卡片改为 WebSocket 实时报价（替代 15s 轮询）
 - [Frontend] MarketOverviewPanel 重构为彭博式 5 区布局（市场切换 → 指数卡片 → 涨跌家数/情绪条 → K线图 → 行业排行柱状图）
 - [Frontend] 新增指数 K 线图（复用 KlineChart.vue 组件，点击指数卡片切换，支持 1d/5d/1mo/1y 周期切换）
 - [Frontend] 涨跌家数条改为百分比宽度展示，数据源从硬编码 0 切换为新浪实时接口
