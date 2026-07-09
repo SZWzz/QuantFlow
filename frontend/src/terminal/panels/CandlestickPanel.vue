@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, inject, nextTick, reactive } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted, watch, inject, nextTick, reactive } from 'vue'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import InfoBar from '@/terminal/components/panel/InfoBar.vue'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
@@ -212,7 +212,12 @@ interface MinuteTick {
   avg_price: number
   amount: number
 }
-const minuteTicks = ref<MinuteTick[]>([])
+function computeDataKey(ticks: MinuteTick[]): string {
+  if (ticks.length === 0) return '0|'
+  const last = ticks[ticks.length - 1]
+  return `${ticks.length}|${last.time}|${last.price}`
+}
+const minuteTicks = shallowRef<MinuteTick[]>([])
 const prevClose = ref(0)
 const minuteLoading = ref(false)
 let minuteTimer: ReturnType<typeof setInterval> | null = null
@@ -487,9 +492,17 @@ const option = computed(() => {
   return buildKlineOption(ohlcvData.value, topOverlay.value, bottomMode.value, theme, indicatorCache, symbol.value, interval.value, eventMarkers.value, indexOverlayData.value)
 })
 
+const minuteOptionCache = ref<{ key: string; option: ECBasicOption | null }>({ key: '', option: null })
 const minuteChartOption = computed(() => {
-  if (!minuteTicks.value.length) return {} as ECBasicOption
-  return buildMinuteOption(minuteTicks.value, prevClose.value, minuteBottomMode.value, theme, indicatorCache, symbol.value)
+  const ticks = minuteTicks.value
+  if (!ticks.length) return {} as ECBasicOption
+  const key = computeDataKey(ticks)
+  if (key === minuteOptionCache.value.key && minuteOptionCache.value.option) {
+    return minuteOptionCache.value.option
+  }
+  const opt = buildMinuteOption(ticks, prevClose.value, minuteBottomMode.value, theme, indicatorCache, symbol.value)
+  minuteOptionCache.value = { key, option: opt }
+  return opt
 })
 
 function onKeyDown(e: KeyboardEvent) {
