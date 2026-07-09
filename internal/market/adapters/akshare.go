@@ -207,10 +207,15 @@ func toTencentCode(symbol string) string {
 	if len(symbol) > 3 && symbol[len(symbol)-3:] == ".HK" {
 		return "hk" + symbol[:len(symbol)-3]
 	}
-	// A-shares
+	// A-shares: preserve market from suffix if present, otherwise infer from code prefix.
+	// This ensures "000001.SH" → "sh000001" (上证指数), not "sz000001" (平安银行).
 	s := symbol
-	s = stripSuffix(s, ".SH")
-	s = stripSuffix(s, ".SZ")
+	if strings.HasSuffix(s, ".SH") {
+		return "sh" + s[:len(s)-3]
+	}
+	if strings.HasSuffix(s, ".SZ") {
+		return "sz" + s[:len(s)-3]
+	}
 	if len(s) >= 2 && (s[0] == '6' || s[0] == '5' || s[0] == '9') {
 		return "sh" + s
 	}
