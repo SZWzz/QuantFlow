@@ -194,6 +194,11 @@ async function loadMinuteChart() {
     // GetMinuteLine returns [ticks, symbol, error]
     const [ticks, _sym] = (await app.GetMinuteLine(idx.symbol, 0)) as [any[], string]
     if (!ticks?.length) { minuteTicks.value = []; return }
+    // DEBUG: log raw data to diagnose minute chart issues
+    console.log('[MarketOverview] minute raw ticks count:', ticks.length)
+    console.log('[MarketOverview] minute first tick:', JSON.stringify(ticks[0]))
+    console.log('[MarketOverview] minute last tick:', JSON.stringify(ticks[ticks.length - 1]))
+    console.log('[MarketOverview] prevClose from ohlcv:', idx.ohlcv ? idx.ohlcv[idx.ohlcv.length >= 2 ? idx.ohlcv.length - 2 : 0]?.close : 'N/A')
     minuteTicks.value = ticks.map((t: any) => ({
       time: t.time || '',
       price: t.price || 0,
