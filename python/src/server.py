@@ -43,6 +43,7 @@ from src.ml.engine import MLService
 from src.data.fetcher import DataService
 from src.llm.engine import LLMService
 from src.research.sentiment_service import SentimentService  # NEW
+from src.health.health_server import HealthServer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -51,6 +52,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DEFAULT_PORT = 50051
+DEFAULT_HEALTH_PORT = 50052
 
 
 class HealthService(health_pb2_grpc.HealthServiceServicer):
@@ -86,7 +88,7 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
         )
 
 
-async def serve(port: int = DEFAULT_PORT, max_workers: int = 10):
+async def serve(port: int = DEFAULT_PORT, health_port: int = DEFAULT_HEALTH_PORT, max_workers: int = 10):
     """Start the gRPC server and block until termination."""
     server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=max_workers))
 
@@ -103,16 +105,26 @@ async def serve(port: int = DEFAULT_PORT, max_workers: int = 10):
     logger.info("Registered services: FactorService, MLService, HealthService, DataService, LLMService, SentimentService")
 
     await server.start()
-    await server.wait_for_termination()
+
+    # Start standard gRPC health checking protocol server (GRPC-101)
+    health_server = HealthServer(port=health_port)
+    await health_server.start()
+    logger.info(f"Health check server (GRPC-101) listening on 0.0.0.0:{health_port}")
+
+    try:
+        await server.wait_for_termination()
+    finally:
+        await health_server.stop()
 
 
 def main():
     parser = argparse.ArgumentParser(description="QuantFlow Python gRPC Sidecar")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"Port to listen on (default: {DEFAULT_PORT})")
+    parser.add_argument("--health-port", type=int, default=DEFAULT_HEALTH_PORT, help=f"Health check port (default: {DEFAULT_HEALTH_PORT})")
     parser.add_argument("--workers", type=int, default=10, help="Max thread pool workers (default: 10)")
     args = parser.parse_args()
 
-    asyncio.run(serve(port=args.port, max_workers=args.workers))
+    asyncio.run(serve(port=args.port, health_port=args.health_port, max_workers=args.workers))
 
 
 if __name__ == "__main__":
