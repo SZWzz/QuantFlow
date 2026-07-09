@@ -91,7 +91,8 @@ func (p *MinutePoller) Run(ctx context.Context) {
 }
 
 func (p *MinutePoller) pollOnce() {
-	if !IsTradingHours("CN") {
+	// Poll when any supported market is in trading hours
+	if !IsTradingHours("CN") && !IsTradingHours("HK") {
 		return
 	}
 

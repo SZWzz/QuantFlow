@@ -7,6 +7,10 @@
 ## [2026.7.9] - 2026-07-09
 
 ### Added
+- [Market] 港股市场概况数据——恒生指数/国企指数/恒生科技实时报价、分时图、K线图、行业排行
+- [Market] HK 指数代码统一为 .HK 后缀格式（HSI.HK / HSCEI.HK / HSTECH.HK）
+- [Market] Yahoo 适配器新增港股指数 ^HSI 格式映射
+- [Market] GetMinuteLine 去除 CN-only 限制，港股指数走 Tencent 分时 API
 - [Python] 实现 gRPC Health Checking Protocol（GRPC-101），通过标准 grpc_health.v1 包轮询 sidecar 存活状态
 - [Python] utils.py 中 validate_dates 和 get_1m_bars 函数补充模块级 docstring 和函数级 docstring
 - [Docs] Phase 12 审查规范（6 篇）：安全加固（API 密钥/迁移致命错误）、A 股 ST 涨跌停规则、Python Sidecar 重构（子进程→直接调用）、测试与类型基础设施修复、Go 后端质量（并发/金融正确性）、前端架构（类型安全桥接/i18n）
