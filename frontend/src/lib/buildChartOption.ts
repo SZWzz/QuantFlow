@@ -321,7 +321,8 @@ export function buildMinuteOption(
   const downCol = marketDownColor(symbol)
   const isUp = prices.length > 0 && prices[prices.length - 1] >= prevClose
   const lineColor = isUp ? upCol : downCol
-  const cacheKey = `${ticks.length}-${bottomMode}`
+  const lastPrice = ticks.length > 0 ? ticks[ticks.length - 1].price : 0
+  const cacheKey = `${ticks.length}-${lastPrice}-${bottomMode}`
 
   const grid: any[] = []
   const xAxis: any[] = []
