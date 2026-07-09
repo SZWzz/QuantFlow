@@ -72,7 +72,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	migrations, migErr := storage.BuiltinMigrations()
 	if migErr == nil {
 		if err := storage.Run(db, migrations); err != nil {
-			slog.Warn("migrations failed", "error", err)
+			return fmt.Errorf("database migrations failed: %w", err)
 		}
 	}
 
