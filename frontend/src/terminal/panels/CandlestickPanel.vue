@@ -502,12 +502,13 @@ const minuteOptionCache = ref<{ key: string; option: ECBasicOption | null }>({ k
 const minuteChartOption = computed(() => {
   const ticks = minuteTicks.value
   if (!ticks.length) return {} as ECBasicOption
-  const key = computeDataKey(ticks)
-  if (key === minuteOptionCache.value.key && minuteOptionCache.value.option) {
+  const dataKey = computeDataKey(ticks)
+  const fullKey = `${dataKey}|${minuteBottomMode.value}`
+  if (fullKey === minuteOptionCache.value.key && minuteOptionCache.value.option) {
     return minuteOptionCache.value.option
   }
   const opt = buildMinuteOption(ticks, prevClose.value, minuteBottomMode.value, theme, indicatorCache, symbol.value)
-  minuteOptionCache.value = { key, option: opt }
+  minuteOptionCache.value = { key: fullKey, option: opt }
   return opt
 })
 
