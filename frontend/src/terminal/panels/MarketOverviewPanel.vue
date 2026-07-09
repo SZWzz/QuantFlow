@@ -4,18 +4,14 @@ import { useDataStore } from '@/stores/data'
 import { PanelHeader, LoadingState } from '@/terminal/components/panel'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
-import { buildKlineOption } from '@/lib/buildChartOption'
 import type { KlineDataItem } from '@/lib/buildChartOption'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
-import { useChartTheme } from '@/lib/composables/useChartTheme'
-import { createIndicatorCache } from '@/lib/composables/useIndicators'
+import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
-const theme = useChartTheme()
-const indicatorCache = createIndicatorCache()
 
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
@@ -65,19 +61,63 @@ const breadthUpPct = computed(() => (breadth.value.advancers / breadthTotal.valu
 const breadthFlatPct = computed(() => (breadth.value.unchanged / breadthTotal.value) * 100)
 const breadthDownPct = computed(() => (breadth.value.decliners / breadthTotal.value) * 100)
 
-// K-line chart option
+// Lightweight K-line option for compact market overview display.
+// Uses fixed pixel grid heights (not percentage) to avoid volume/K-line overlap
+// in the constrained panel space. No dataZoom slider to save vertical room.
 const chartOption = computed(() => {
-  if (!chartOHLCV.value.length) return {} as ECBasicOption
-  return buildKlineOption(
-    chartOHLCV.value,
-    'none',
-    'volume',
-    theme,
-    indicatorCache,
-    selectedIndex.value?.symbol || '',
-    indexInterval.value,
-    undefined, // eventMarkers
-  )
+  const data = chartOHLCV.value
+  if (!data.length) return {} as ECBasicOption
+
+  const symbol = selectedIndex.value?.symbol || ''
+  const upCol = marketUpColor(symbol)
+  const downCol = marketDownColor(symbol)
+
+  const dates = data.map(d => d.date)
+  const kdata = data.map(d => [d.open, d.close, d.low, d.high])
+  const vdata = data.map(d => ({
+    value: d.volume / 10000,
+    itemStyle: { color: d.close >= d.open ? upCol : downCol },
+  }))
+
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    grid: [
+      { left: 54, right: 12, top: 8, height: '58%' },
+      { left: 54, right: 12, top: '72%', height: '22%' },
+    ],
+    xAxis: [
+      { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false } },
+      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false } },
+    ],
+    yAxis: [
+      { type: 'value', gridIndex: 0, scale: true, axisLabel: { fontSize: 10, color: '#888' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }, splitNumber: 3 },
+      { type: 'value', gridIndex: 1, scale: true, axisLabel: { show: false }, splitLine: { show: false }, splitNumber: 2 },
+    ],
+    series: [
+      {
+        type: 'candlestick', name: 'K线',
+        data: kdata, gridIndex: 0, xAxisIndex: 0, yAxisIndex: 0,
+        itemStyle: { color: upCol, color0: downCol, borderColor: upCol, borderColor0: downCol },
+      },
+      {
+        type: 'bar', name: '成交量',
+        data: vdata, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1,
+      },
+    ],
+    tooltip: {
+      trigger: 'axis',
+      formatter: (ps: any[]) => {
+        if (!ps?.length) return ''
+        const item = data[ps[0].dataIndex]
+        if (!item) return ''
+        return `<div style="font-size:12px">${item.date}</div>
+<div>开: ${item.open.toFixed(2)} 收: ${item.close.toFixed(2)}</div>
+<div>高: ${item.high.toFixed(2)} 低: ${item.low.toFixed(2)}</div>
+<div>量: ${(item.volume / 10000).toFixed(0)}万</div>`
+      },
+    },
+  } as ECBasicOption
 })
 
 // Header controls
@@ -175,7 +215,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timer) { clearInterval(timer); timer = null }
-  indicatorCache.clear()
 })
 </script>
 
@@ -434,8 +473,8 @@ onUnmounted(() => {
 .kline-area {
   display: flex;
   flex-direction: column;
-  min-height: 200px;
-  flex: 1;
+  min-height: 240px;
+  flex: 1 0 auto;
   overflow: hidden;
 }
 
@@ -494,7 +533,7 @@ onUnmounted(() => {
   padding: var(--space-md) var(--panel-padding);
   border-top: 1px solid var(--color-border-strong);
   flex-shrink: 0;
-  max-height: 360px;
+  max-height: 200px;
   overflow: hidden;
 }
 
