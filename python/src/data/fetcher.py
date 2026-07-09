@@ -370,13 +370,6 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
             logger.info("using tencent for index minute: %s", symbol)
             tx_code = _to_tencent_code(symbol)
             tx_ticks = _fetch_tencent_index_minute(tx_code)
-            # DEBUG: write first/last tick to file for verification
-            if tx_ticks:
-                try:
-                    with open("/tmp/quantflow_minute_debug.json", "w") as f:
-                        json.dump({"count": len(tx_ticks), "first": tx_ticks[0], "last": tx_ticks[-1]}, f, ensure_ascii=False)
-                except:
-                    pass
             if tx_ticks:
                 all_ticks.extend(tx_ticks)
             continue
@@ -432,14 +425,6 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
             })
 
         all_ticks.extend(ticks_for_symbol)
-
-    # DEBUG: dump final result
-    if all_ticks:
-        try:
-            with open("/tmp/quantflow_minute_debug.json", "w") as f:
-                json.dump({"count": len(all_ticks), "first": all_ticks[0], "last": all_ticks[-1]}, f, ensure_ascii=False)
-        except:
-            pass
 
     return all_ticks  # empty on weekends/non-trading days — normal
 

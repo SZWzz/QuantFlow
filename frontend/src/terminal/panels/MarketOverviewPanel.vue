@@ -4,20 +4,15 @@ import { useDataStore } from '@/stores/data'
 import { PanelHeader, LoadingState } from '@/terminal/components/panel'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
-import { buildMinuteOption } from '@/lib/buildChartOption'
 import type { KlineDataItem } from '@/lib/buildChartOption'
 import type { MinuteTick } from '@/lib/composables/useWailsApp'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
-import { useChartTheme } from '@/lib/composables/useChartTheme'
-import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
-const theme = useChartTheme()
-const indicatorCache = createIndicatorCache()
 
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
@@ -132,17 +127,73 @@ const klineOption = computed(() => {
   } as ECBasicOption
 })
 
-// ── Minute chart option (reuses buildMinuteOption) ──
+// ── Minute chart option (lightweight, compact) ──
 const minuteOption = computed(() => {
-  if (!minuteTicks.value.length) return {} as ECBasicOption
-  return buildMinuteOption(
-    minuteTicks.value,
-    prevClose.value,
-    'volume',
-    theme,
-    indicatorCache,
-    selectedIndex.value?.symbol || '',
-  )
+  const ticks = minuteTicks.value
+  if (!ticks.length) return {} as ECBasicOption
+
+  const symbol = selectedIndex.value?.symbol || ''
+  const upCol = marketUpColor(symbol)
+  const downCol = marketDownColor(symbol)
+  const times = ticks.map(t => t.time)
+  const prices = ticks.map(t => t.price)
+  const isUp = prevClose.value > 0 && prices[prices.length - 1] >= prevClose.value
+  const lineColor = isUp ? upCol : downCol
+
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    grid: [{ left: 54, right: 12, top: 8, bottom: 20, height: 'auto' }],
+    xAxis: {
+      type: 'category', data: times,
+      axisLabel: { fontSize: 10, color: '#888', interval: 30 },
+      axisLine: { lineStyle: { color: '#333' } },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value', scale: true,
+      axisLabel: { fontSize: 10, color: '#888' },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+      splitNumber: 4,
+    },
+    series: [
+      {
+        type: 'line', name: '价格',
+        data: prices, smooth: false, symbol: 'none',
+        lineStyle: { color: lineColor, width: 1.5 },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: isUp ? upCol + '40' : downCol + '40' },
+              { offset: 1, color: 'rgba(0,0,0,0)' },
+            ],
+          },
+        },
+        markLine: prevClose.value > 0 ? {
+          silent: true, symbol: 'none',
+          lineStyle: { color: '#888', type: 'dashed', width: 1 },
+          data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: '#888', fontSize: 10, position: 'start' } }],
+        } : undefined,
+      },
+    ],
+    tooltip: {
+      trigger: 'axis',
+      formatter: (ps: any[]) => {
+        if (!ps?.length) return ''
+        const idx2 = ps[0].dataIndex
+        const t = ticks[idx2]
+        if (!t) return ''
+        const chg = prevClose.value > 0 ? t.price - prevClose.value : 0
+        const chgPct = prevClose.value > 0 ? (chg / prevClose.value) * 100 : 0
+        const chgColor = chg >= 0 ? '#ef5350' : '#66bb6a'
+        return `<div style="font-size:12px">${t.time}</div>
+<div>价格: <b>${t.price.toFixed(2)}</b></div>
+<div>涨跌: <span style="color:${chgColor}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%)</span></div>
+<div>均价: ${t.avg_price.toFixed(2)}</div>`
+      },
+    },
+  } as ECBasicOption
 })
 
 // ── Active chart option ──
@@ -194,11 +245,6 @@ async function loadMinuteChart() {
     // GetMinuteLine returns [ticks, symbol, error]
     const [ticks, _sym] = (await app.GetMinuteLine(idx.symbol, 0)) as [any[], string]
     if (!ticks?.length) { minuteTicks.value = []; return }
-    // DEBUG: log raw data to diagnose minute chart issues
-    console.log('[MarketOverview] minute raw ticks count:', ticks.length)
-    console.log('[MarketOverview] minute first tick:', JSON.stringify(ticks[0]))
-    console.log('[MarketOverview] minute last tick:', JSON.stringify(ticks[ticks.length - 1]))
-    console.log('[MarketOverview] prevClose from ohlcv:', idx.ohlcv ? idx.ohlcv[idx.ohlcv.length >= 2 ? idx.ohlcv.length - 2 : 0]?.close : 'N/A')
     minuteTicks.value = ticks.map((t: any) => ({
       time: t.time || '',
       price: t.price || 0,
@@ -206,8 +252,6 @@ async function loadMinuteChart() {
       avg_price: t.avg_price ?? t.avgPrice ?? 0,
       amount: t.amount ?? 0,
     })) as MinuteTick[]
-    console.log('[MarketOverview] minute mapped first:', JSON.stringify(minuteTicks.value[0]))
-    console.log('[MarketOverview] minute mapped last:', JSON.stringify(minuteTicks.value[minuteTicks.value.length - 1]))
     // Derive prevClose from OHLCV: use yesterday's close (second-to-last bar,
     // since the last bar may be today's incomplete candle).
     const ohlcv = idx.ohlcv
@@ -308,7 +352,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timer) { clearInterval(timer); timer = null }
-  indicatorCache.clear()
 })
 </script>
 
