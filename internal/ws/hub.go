@@ -77,6 +77,28 @@ func (h *Hub) Unsubscribe(client *Client, topic string) {
 	delete(client.topics, topic)
 }
 
+// GetTopics returns all currently-active topic names (topics with at least
+// one subscribed client). Safe for concurrent use.
+func (h *Hub) GetTopics() []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	out := make([]string, 0, len(h.topics))
+	for topic := range h.topics {
+		if len(h.topics[topic]) > 0 {
+			out = append(out, topic)
+		}
+	}
+	return out
+}
+
+// HasTopic returns true if at least one client is subscribed to the given topic.
+func (h *Hub) HasTopic(topic string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	subs := h.topics[topic]
+	return len(subs) > 0
+}
+
 func (h *Hub) Broadcast(topic string, data any) {
 	raw, err := json.Marshal(data)
 	if err != nil {

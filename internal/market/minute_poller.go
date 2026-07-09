@@ -9,14 +9,14 @@ import (
 	"quantflow/internal/ws"
 )
 
-// MinutePoller periodically fetches minute ticks for subscribed symbols
-// and broadcasts deltas to a ws.Hub under "market:minute:{symbol}" topics.
-// It tracks the last push timestamp per symbol so only new ticks are sent.
+// MinutePoller periodically fetches minute ticks for symbols that have
+// active WebSocket subscribers (via market:minute:* topics) and broadcasts
+// deltas to a ws.Hub.  Subscriptions are derived automatically from the Hub
+// — no explicit Subscribe/Unsubscribe needed.
 type MinutePoller struct {
 	wsHub    *ws.Hub
 	fetcher  func(symbol string, sinceTimestamp int64) ([]MinuteTick, error)
 	lastPush map[string]int64 // symbol → last push timestamp
-	subs     map[string]bool
 	mu       sync.Mutex
 	close    chan struct{}
 	running  bool
@@ -29,29 +29,27 @@ func NewMinutePoller(wsHub *ws.Hub, fetcher func(string, int64) ([]MinuteTick, e
 		wsHub:    wsHub,
 		fetcher:  fetcher,
 		lastPush: make(map[string]int64),
-		subs:     make(map[string]bool),
 		close:    make(chan struct{}),
 		interval: 5 * time.Second,
 	}
 }
 
-// Subscribe adds a symbol to the poll set.
-func (p *MinutePoller) Subscribe(symbol string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if !p.subs[symbol] {
-		p.subs[symbol] = true
-		slog.Info("minute_poller: subscribed", "symbol", symbol)
+// activeSymbols returns symbols currently subscribed via WS.
+func (p *MinutePoller) activeSymbols() []string {
+	topics := p.wsHub.GetTopics()
+	seen := make(map[string]bool)
+	var symbols []string
+	prefix := "market:minute:"
+	for _, topic := range topics {
+		if len(topic) > len(prefix) && topic[:len(prefix)] == prefix {
+			sym := topic[len(prefix):]
+			if !seen[sym] && sym != "" {
+				seen[sym] = true
+				symbols = append(symbols, sym)
+			}
+		}
 	}
-}
-
-// Unsubscribe removes a symbol.
-func (p *MinutePoller) Unsubscribe(symbol string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	delete(p.subs, symbol)
-	delete(p.lastPush, symbol)
-	slog.Info("minute_poller: unsubscribed", "symbol", symbol)
+	return symbols
 }
 
 // Run starts the polling loop. Blocks until ctx is cancelled or Stop is called.
@@ -97,13 +95,7 @@ func (p *MinutePoller) pollOnce() {
 		return
 	}
 
-	p.mu.Lock()
-	symbols := make([]string, 0, len(p.subs))
-	for sym := range p.subs {
-		symbols = append(symbols, sym)
-	}
-	p.mu.Unlock()
-
+	symbols := p.activeSymbols()
 	for _, sym := range symbols {
 		p.mu.Lock()
 		since := p.lastPush[sym]

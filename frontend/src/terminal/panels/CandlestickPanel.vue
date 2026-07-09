@@ -222,11 +222,11 @@ function computeDataKey(ticks: MinuteTick[]): string {
 const minuteTicks = shallowRef<MinuteTick[]>([])
 const prevClose = ref(0)
 const minuteLoading = ref(false)
-let minuteTimer: ReturnType<typeof setInterval> | null = null
 let klineTimer: ReturnType<typeof setInterval> | null = null
 let quoteTimer: ReturnType<typeof setInterval> | null = null
 const { connect: wsConnect, onMessage: wsOnMessage, connected: wsConnected } = useWebSocket()
 let symbolSubCleanup: (() => void) | null = null
+let minuteSubCleanup: (() => void) | null = null
 
 function getTodayDateString(): string {
   const d = new Date()
@@ -347,21 +347,29 @@ function startMinutePolling() {
     logger.info('[Candlestick] minute chart only supports CN market, skipping', symbol.value)
     return
   }
-  // Always load once so the user can see today's chart, even after close.
+  // Initial full load via IPC
   loadMinuteLine()
-  // Only auto-refresh during trading hours.
-  if (!isTradingHours()) return
-  minuteTimer = setInterval(() => {
-    if (!isTradingHours()) {
-      stopMinutePolling()
-      return
+
+  // Subscribe to real-time minute updates via WebSocket
+  const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
+  const topic = `market:minute:${symbol.value}`
+  wsConnect(wsUrl, [topic])
+  minuteSubCleanup = wsOnMessage(topic, (ticks: any[]) => {
+    if (!Array.isArray(ticks) || ticks.length === 0) return
+    // Merge incremental ticks (same logic as loadMinuteLine)
+    const existing = new Map(minuteTicks.value.map(t => [t.time, t]))
+    for (const t of ticks) {
+      existing.set(t.time, t as MinuteTick)
     }
-    loadMinuteLine()
-  }, 5000)
+    minuteTicks.value = Array.from(existing.values()).sort((a, b) => a.time.localeCompare(b.time))
+    if (prevClose.value === 0 && minuteTicks.value.length > 0) {
+      prevClose.value = minuteTicks.value[0].price
+    }
+  })
 }
 
 function stopMinutePolling() {
-  if (minuteTimer) { clearInterval(minuteTimer); minuteTimer = null }
+  if (minuteSubCleanup) { minuteSubCleanup(); minuteSubCleanup = null }
 }
 
 function startKlineRefresh() {
