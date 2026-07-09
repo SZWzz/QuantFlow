@@ -627,7 +627,18 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	close(ch)
 
 	result := make([]map[string]interface{}, 0, len(indices))
+		// Reorder results to match the original indices order (goroutines
+	// complete non-deterministically so channel order is random).
+	ordered := make([]idxResult, len(indices))
+	codePos := make(map[string]int, len(indices))
+	for i, idx := range indices {
+		codePos[idx.code] = i
+	}
 	for r := range ch {
+		ordered[codePos[r.code]] = r
+	}
+
+	for _, r := range ordered {
 		ohlcvArr := make([]map[string]interface{}, 0, len(r.ohlcv))
 		for _, b := range r.ohlcv {
 			ohlcvArr = append(ohlcvArr, map[string]interface{}{
