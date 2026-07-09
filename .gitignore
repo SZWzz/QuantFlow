@@ -3,6 +3,7 @@ quantflow
 
 # Build output
 build/
+dist/
 
 # Frontend build outputs
 frontend/dist/
@@ -63,7 +64,7 @@ vendor/
 1
 问题.md
 =*
-SKILL.md
 *_test_output*.txt
 *_result.txt
 .workbuddy/memory/
+**/node_modules/

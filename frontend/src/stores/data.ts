@@ -47,9 +47,17 @@ export interface SectorRanking {
   changePct: number
 }
 
+export interface MarketSentiment {
+  limitUp: number
+  limitDown: number
+  northboundFlow: number
+  totalVolume: number
+}
+
 export interface MarketOverview {
   indices: IndexSnapshot[]
   breadth: MarketBreadth
+  sentiment?: MarketSentiment
   sectors: SectorRanking[]
   updatedAt: number
 }
@@ -67,8 +75,13 @@ export const useDataStore = defineStore('data', () => {
   const isOffline = ref(false)
   const marketOverview = ref<MarketOverview | null>(null)
   const marketLoading = ref(false)
+  const selectedIndexSymbol = ref('')
   const error = ref<string | null>(null)
   const cache = ref<Map<string, CacheEntry>>(new Map())
+
+  function setSelectedIndex(symbol: string) {
+    selectedIndexSymbol.value = symbol
+  }
 
   function updateQuote(symbol: string, quote: QuoteSnapshot) {
     quotes.value.set(symbol, quote)
@@ -207,6 +220,8 @@ export const useDataStore = defineStore('data', () => {
     getCached,
     clearCached,
     fetchMarketOverview,
+    selectedIndexSymbol,
+    setSelectedIndex,
   }
 })
 
