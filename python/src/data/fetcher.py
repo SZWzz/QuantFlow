@@ -264,6 +264,11 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
     """Fetch minute-by-minute ticks for today via mootdx.
 
     Returns a list of dicts with keys: time, price, volume, avg_price.
+
+    For index symbols (e.g. 000001.SH → 上证指数), we bypass mootdx's
+    built-in minute() which misidentifies market from code prefix (e.g.
+    000001 → SZ stock 平安银行). Instead we call the TDX client directly
+    with the correct market code parsed from the symbol suffix.
     """
     import pandas as pd
 
@@ -271,11 +276,28 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
     all_ticks: list[dict] = []
 
     for symbol in symbols:
-        plain = _normalize_code(symbol)
+        # Determine market from suffix, then strip to plain 6-digit code.
+        s = symbol.strip().upper()
+        market_code = None  # 0=SZ, 1=SH; None → use mootdx default
+        for suffix, mkt in ((".SH", 1), (".SS", 1), (".SZ", 0), (".BJ", 2)):
+            if s.endswith(suffix):
+                s = s[:-3]
+                market_code = mkt
+                break
+
+        plain = s.strip()
+        if not (plain.isdigit() and len(plain) == 6):
+            plain = _normalize_code(symbol)  # fallback for non-CN symbols
+
         try:
-            raw = client.minute(symbol=plain)
+            if market_code is not None:
+                # Bypass mootdx minute() — use ExtQuotes-style direct call
+                # with explicit market code so indices resolve correctly.
+                raw = client.client.get_minute_time_data(market_code, plain)
+            else:
+                raw = client.minute(symbol=plain)
         except Exception as exc:
-            logger.warning("mootdx minute failed for %s: %s", plain, exc)
+            logger.warning("mootdx minute failed for %s (plain=%s): %s", symbol, plain, exc)
             _reset_mootdx_client()
             continue
 
@@ -283,11 +305,13 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
             continue
 
         df = pd.DataFrame(raw)
-        # Columns: price, vol, volume (mootdx 0.11.x)
-        # vol = per-minute volume, volume = cumulative. Use vol.
+        # Normalise column names: mootdx Quotes.minute() → to_data() tracks both
+        # 'vol' (per-minute) and 'volume' (cumulative).  The direct TDX client path
+        # returns only 'vol'.  Unify to 'volume' for the rest of the pipeline.
         if "vol" in df.columns and "volume" in df.columns:
             df = df.drop(columns=["volume"])
-        df = df.rename(columns={"vol": "volume"})
+        if "vol" in df.columns:
+            df = df.rename(columns={"vol": "volume"})
 
         if "price" not in df.columns:
             continue
