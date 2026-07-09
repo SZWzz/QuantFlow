@@ -206,6 +206,8 @@ async function loadMinuteChart() {
       avg_price: t.avg_price ?? t.avgPrice ?? 0,
       amount: t.amount ?? 0,
     })) as MinuteTick[]
+    console.log('[MarketOverview] minute mapped first:', JSON.stringify(minuteTicks.value[0]))
+    console.log('[MarketOverview] minute mapped last:', JSON.stringify(minuteTicks.value[minuteTicks.value.length - 1]))
     // Derive prevClose from OHLCV: use yesterday's close (second-to-last bar,
     // since the last bar may be today's incomplete candle).
     const ohlcv = idx.ohlcv
