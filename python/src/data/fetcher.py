@@ -1,6 +1,10 @@
-"""DataService gRPC implementation — Python-side data fetching via mootdx, akshare, tushare.
+"""
+Data fetching module for QuantFlow Python sidecar.
 
-Data is returned as JSON-encoded bytes for simplicity.
+Fetches market data from multiple sources (AKShare, TuShare, EastMoney)
+and returns normalized dicts via asyncio-compatible interface.
+AkShare calls use direct importlib import with subprocess fallback
+for environments where akshare is not installed.
 """
 
 import asyncio
