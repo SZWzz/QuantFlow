@@ -321,6 +321,23 @@ func (a *App) ListCredentialNames() ([]string, error) {
 	return a.credMgr.Names()
 }
 
+// GetCredential returns a single credential by name.
+func (a *App) GetCredential(name string) (*auth.Credential, error) {
+	if a.credMgr == nil {
+		return nil, fmt.Errorf("credential manager not initialized")
+	}
+	creds, err := a.credMgr.List()
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range creds {
+		if c.Name == name {
+			return &c, nil
+		}
+	}
+	return nil, fmt.Errorf("credential %q not found", name)
+}
+
 // RunBacktestWorkflow executes a walk-forward backtest from a workflow JSON definition.
 func (a *App) RunBacktestWorkflow(ctx context.Context, jsonDef string, cfg workflow.BacktestConfig) (*workflow.BacktestResult, error) {
 	if a.engine == nil {

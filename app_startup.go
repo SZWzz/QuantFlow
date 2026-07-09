@@ -288,6 +288,24 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Info("credential manager initialized")
 	}
 
+	// Migrate config api_keys to CredentialManager
+	if a.credMgr != nil {
+		for name, key := range a.cfg.APIKeys {
+			if key != "" {
+				if err := a.credMgr.Save(name+"_api_key", "api_key", map[string]string{"api_key": key}); err != nil {
+					slog.Warn("migrate config api_key to credential manager", "name", name, "error", err)
+				} else {
+					delete(a.cfg.APIKeys, name)
+					slog.Info("migrated config api_key to credential manager", "name", name)
+				}
+			}
+		}
+		if a.cfg.APIKeys == nil {
+			a.cfg.APIKeys = map[string]string{}
+		}
+		a.cfg.SetCredentialManager(a.credMgr)
+	}
+
 	// Initialize async execution queue
 	execQueue = workflow.NewExecutionQueue(a.engine)
 

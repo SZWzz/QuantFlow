@@ -5,12 +5,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"quantflow/internal/auth"
+
 	"gopkg.in/yaml.v3"
 )
 
 // Config holds all application configuration.
 type Config struct {
 	path string // resolved absolute path, set by Load
+	cm   *auth.CredentialManager // optional, set at startup
 
 	Version        string            `yaml:"version"`
 	LogLevel       string            `yaml:"log_level"`
@@ -44,14 +47,29 @@ func (c *Config) Save() error {
 	return nil
 }
 
-// GetAPIKey returns the value for a named API key, falling back to
-// the corresponding environment variable (e.g. "fred" → FRED_API_KEY).
+// SetCredentialManager injects a CredentialManager for CM-first key lookup.
+func (c *Config) SetCredentialManager(cm *auth.CredentialManager) {
+	c.cm = cm
+}
+
+// GetAPIKey returns the value for a named API key, checking the
+// CredentialManager first, then config file, then environment variable.
 func (c *Config) GetAPIKey(name string) string {
-	// Config file value takes precedence
+	if c.cm != nil {
+		creds, err := c.cm.List()
+		if err == nil {
+			for _, cred := range creds {
+				if cred.Name == name+"_api_key" {
+					if key, ok := cred.Keys["api_key"]; ok && key != "" {
+						return key
+					}
+				}
+			}
+		}
+	}
 	if val := c.APIKeys[name]; val != "" {
 		return val
 	}
-	// Fall back to environment variable
 	envKey := fmt.Sprintf("%s_API_KEY", toEnvName(name))
 	return os.Getenv(envKey)
 }
