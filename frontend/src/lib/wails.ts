@@ -365,3 +365,33 @@ export async function ListLayouts(): Promise<string[]> {
 export async function DeleteLayout(name: string): Promise<void> {
   return wailsCall<void>('DeleteLayout', name)
 }
+
+// ── Credential Management ──────────────────────────────────────────────
+
+export async function saveCredential(name: string, keys: Record<string, string>): Promise<void> {
+  const app = (window as any).go?.main?.App
+  if (!app?.SaveCredential) throw new Error('SaveCredential not available')
+  return app.SaveCredential(name, 'api_key', keys)
+}
+
+export async function getCredential(name: string): Promise<Record<string, string> | null> {
+  const app = (window as any).go?.main?.App
+  if (!app?.GetCredential) return null
+  try {
+    return app.GetCredential(name)
+  } catch {
+    return null
+  }
+}
+
+export async function deleteCredential(name: string): Promise<void> {
+  const app = (window as any).go?.main?.App
+  if (!app?.DeleteCredential) throw new Error('DeleteCredential not available')
+  return app.DeleteCredential(name)
+}
+
+export async function listCredentialNames(): Promise<string[]> {
+  const app = (window as any).go?.main?.App
+  if (!app?.ListCredentialNames) return []
+  return app.ListCredentialNames()
+}
