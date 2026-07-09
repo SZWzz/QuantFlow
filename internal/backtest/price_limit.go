@@ -4,33 +4,40 @@ import "strings"
 
 // PriceLimitRule defines the daily price limit rule for an A-share symbol.
 // A-share markets enforce ±Ratio around the previous closing price.
+// Under the registration-based reform, ST stocks follow their board's
+// standard limit — there is no special ±5% rule.
 //   - Main board (60xxxx, 00xxxx): ±10%
 //   - ChiNext / 创业板 (300xxx, 301xxx): ±20%
 //   - STAR / 科创板 (688xxx, 689xxx): ±20%
-//   - ST / *ST stocks: ±5% (detected via symbol contains "ST")
 //   - BSE / 北交所 (8xxxxx, 4xxxxx): ±30% (enforced)
 //
 // 首日上市、增发等无前收盘价的情形不限制（返回 0 表示不限）。
 type PriceLimitRule struct {
-	Ratio float64 // 0.10, 0.20, 0.05; 0 means no limit
+	Ratio float64 // 0.10, 0.20, 0.30; 0 means no limit
+}
+
+// STStatusProvider checks if a symbol is currently under ST/*ST risk warning.
+// Returns true if the stock is designated ST or *ST.
+// Implementation comes from market data adapters which return ST status
+// in their quote responses. When no provider is available, the default
+// assumption is false (see PriceLimitFor — ST stocks follow board limits).
+type STStatusProvider interface {
+	IsST(symbol string) (bool, error)
 }
 
 // PriceLimitFor returns the limit rule for a given A-share symbol code.
 // Symbol prefixes follow SSE/SZSE listing conventions.
+// Note: ST status is a name-level property, not encoded in the ticker.
+// ST stocks follow their board's standard limits under current regulations.
 func PriceLimitFor(symbol string) PriceLimitRule {
-	upper := strings.ToUpper(symbol)
-
-	// ST / *ST detection via symbol name containing "ST".
 	switch {
-	case strings.Contains(upper, "ST"): // ST / *ST stocks: ±5%
-		return PriceLimitRule{Ratio: 0.05}
-	case strings.HasPrefix(upper, "300"), strings.HasPrefix(upper, "301"): // ChiNext
+	case strings.HasPrefix(symbol, "300"), strings.HasPrefix(symbol, "301"): // ChiNext
 		return PriceLimitRule{Ratio: 0.20}
-	case strings.HasPrefix(upper, "688"), strings.HasPrefix(upper, "689"): // STAR
+	case strings.HasPrefix(symbol, "688"), strings.HasPrefix(symbol, "689"): // STAR
 		return PriceLimitRule{Ratio: 0.20}
-	case strings.HasPrefix(upper, "60"), strings.HasPrefix(upper, "00"): // main board
+	case strings.HasPrefix(symbol, "60"), strings.HasPrefix(symbol, "00"): // main board
 		return PriceLimitRule{Ratio: 0.10}
-	case strings.HasPrefix(upper, "8"), strings.HasPrefix(upper, "4"): // BSE
+	case strings.HasPrefix(symbol, "8"), strings.HasPrefix(symbol, "4"): // BSE
 		return PriceLimitRule{Ratio: 0.30}
 	default:
 		return PriceLimitRule{Ratio: 0.10} // safe default
