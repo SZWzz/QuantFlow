@@ -72,6 +72,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		if err := mc.Truncate(); err != nil {
 			slog.Warn("failed to truncate minute cache", "err", err)
 		}
+		// Also purge the JSON-persisted minute ticks file.
+		jsonPath := filepath.Join(filepath.Dir(a.resolvedDBPath), "last_minute_ticks.json")
+		os.Remove(jsonPath)
 	}
 
 	migrations, migErr := storage.BuiltinMigrations()
