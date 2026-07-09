@@ -4,6 +4,7 @@ import { useDataStore } from '@/stores/data'
 import { PanelHeader, LoadingState } from '@/terminal/components/panel'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWebSocket } from '@/lib/composables/useWebSocket'
 import { buildKlineOption } from '@/lib/buildChartOption'
 import type { KlineDataItem } from '@/lib/buildChartOption'
 import type { MinuteTick } from '@/lib/composables/useWailsApp'
@@ -15,6 +16,7 @@ import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
+const ws = useWebSocket()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 const theme = useChartTheme()
 const indicatorCache = createIndicatorCache()
@@ -22,11 +24,7 @@ const indicatorCache = createIndicatorCache()
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
-const autoRefresh = ref(true)
-const refreshInterval = ref(15)
-const countdown = ref(refreshInterval.value)
 const loadError = ref('')
-let timer: ReturnType<typeof setInterval> | null = null
 
 // Chart mode: 分时 | K线
 const chartMode = ref<'minute' | 'kline'>('minute')
@@ -168,7 +166,6 @@ const chartOption = computed(() => {
 const headerControls = computed(() => {
   const list: any[] = []
   if (addToWfControl.value) list.push(addToWfControl.value)
-  list.push({ label: autoRefresh.value ? `自动 (${countdown.value}s)` : '手动', action: toggleAutoRefresh, title: '切换自动刷新' })
   list.push({ icon: 'refresh', action: refresh, loading: loading.value, title: '刷新' })
   return list
 })
@@ -272,7 +269,6 @@ function switchChartMode(mode: 'minute' | 'kline') {
 function refresh() {
   loadError.value = ''
   dataStore.fetchMarketOverview(activeMarket.value)
-  countdown.value = refreshInterval.value
   loadChart()
 }
 
@@ -284,37 +280,55 @@ function switchMarket(mkt: string) {
   refresh()
 }
 
-function toggleAutoRefresh() {
-  autoRefresh.value = !autoRefresh.value
-  if (autoRefresh.value) {
-    countdown.value = refreshInterval.value
-  }
+// Detect market from symbol for WebSocket topic
+function detectMarket(symbol: string): string {
+  if (symbol.endsWith('.SH') || symbol.endsWith('.SZ') || symbol.endsWith('.BJ')) return 'CN'
+  if (symbol.endsWith('.HK')) return 'HK'
+  if (symbol.startsWith('^')) return 'US'
+  return 'CN'
 }
 
-// Auto-select first index when data loads
+// WebSocket setup
+let wsConnected = false
+const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
+
+function connectWS() {
+  const topics = indices.value.map(idx => `market:quote:${detectMarket(idx.symbol)}:${idx.symbol}`)
+  if (!topics.length) return
+  ws.disconnect()
+  ws.connect(wsUrl, topics)
+  wsConnected = true
+}
+
+ws.onMessage('*', (msg: any) => {
+  if (msg.topic?.startsWith('market:quote:') && dataStore.marketOverview) {
+    const parts = msg.topic.split(':')
+    const symbol = parts[parts.length - 1]
+    const idx = dataStore.marketOverview.indices.find(i => i.symbol === symbol)
+    if (idx && msg.data) {
+      if (msg.data.last !== undefined) idx.last = msg.data.last
+      if (msg.data.changePct !== undefined) idx.changePct = msg.data.changePct
+    }
+  }
+})
+
+// Auto-select first index when data loads, connect WebSocket
 watch(indices, (val) => {
-  if (val.length && !dataStore.selectedIndexSymbol) {
-    dataStore.setSelectedIndex(val[0].symbol)
-    loadChart()
+  if (val.length) {
+    if (!wsConnected) connectWS()
+    if (!dataStore.selectedIndexSymbol) {
+      dataStore.setSelectedIndex(val[0].symbol)
+      loadChart()
+    }
   }
 })
 
 onMounted(() => {
   refresh()
-  timer = setInterval(() => {
-    if (autoRefresh.value) {
-      if (countdown.value <= 0) {
-        refresh()
-        countdown.value = refreshInterval.value
-      } else {
-        countdown.value--
-      }
-    }
-  }, 1000)
 })
 
 onUnmounted(() => {
-  if (timer) { clearInterval(timer); timer = null }
+  ws.disconnect()
   indicatorCache.clear()
 })
 </script>
