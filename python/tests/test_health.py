@@ -1,6 +1,5 @@
 import pytest
-from grpc import aio
-from grpc_health.v1 import health_pb2, health_pb2_grpc
+pytest.importorskip("grpc_health", reason="grpcio-health-checking not installed")
 
 
 @pytest.mark.asyncio

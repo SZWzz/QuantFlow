@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useThemeStore } from '@/lib/theme'
 import { useSettingsStore } from '@/stores/settings'
 import { setLocale } from '@/lib/i18n'
 import { getIcon } from '@/lib/icons'
 import { APP_VERSION } from '@/version'
+import { saveCredential, getCredential, alertDialog } from '@/lib/wails'
+import { logger } from '@/lib/logger'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -40,21 +42,38 @@ const decimalOptions = [0, 2, 4]
 const brokerOptions = ['paper', 'futu', 'longbridge', 'ibkr', 'binance', 'okx']
 const saveMsg = ref('')
 
-async function onSaveApiKeys() {
-  const app = (window as any).go?.main?.App
-  if (!app?.UpdateConfig) { saveMsg.value = '后端不可用'; return }
-  try {
-    await app.UpdateConfig({
-      api_keys: {
-        fred: settingsStore.settings.fredApiKey,
-        finnhub: settingsStore.settings.finnhubApiKey,
-        iwencai: settingsStore.settings.iwencaiApiKey,
-      }
-    })
-    saveMsg.value = '已保存，重启后生效'
-    setTimeout(() => saveMsg.value = '', 3000)
-  } catch { saveMsg.value = '保存失败' }
+const apiKeys = ref({
+  fred: '',
+  finnhub: '',
+  iwencai: '',
+})
+
+async function loadApiKeys() {
+  for (const name of ['fred', 'finnhub', 'iwencai']) {
+    const cred = await getCredential(`${name}_api_key`)
+    if (cred?.api_key) {
+      apiKeys.value[name as keyof typeof apiKeys.value] = cred.api_key
+    }
+  }
 }
+
+async function onSaveApiKeys() {
+  try {
+    for (const [name, key] of Object.entries(apiKeys.value)) {
+      if (key) {
+        await saveCredential(`${name}_api_key`, { api_key: key })
+        logger.info(`[Settings] saved credential: ${name}`)
+      }
+    }
+    saveMsg.value = '已保存到加密存储'
+    setTimeout(() => saveMsg.value = '', 3000)
+  } catch (e) {
+    logger.error('[Settings] save api keys failed:', e)
+    await alertDialog('保存 API 密钥失败')
+  }
+}
+
+onMounted(() => { loadApiKeys() })
 
 function onExportData() {
   alert('Export data stub — not yet implemented')
@@ -215,36 +234,33 @@ function onExportData() {
           <span class="section-icon" v-html="getIcon('broker')" />
           {{ t('settings.api_keys') }}
         </h3>
-        <p class="form-hint" style="margin-bottom: 14px">配置第三方数据源 API 密钥，保存后写入 config.yaml 并在下次启动生效。</p>
+        <p class="form-hint" style="margin-bottom: 14px">配置第三方数据源 API 密钥，密钥经 AES-256-GCM 加密后存储于系统凭据管理器。</p>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.fred_key') }} <span class="api-source">(美联储经济数据)</span></label>
           <input type="password" class="form-input"
-            :value="settingsStore.settings.fredApiKey"
-            placeholder="从 https://fred.stlouisfed.org/docs/api/api_key.html 申请"
-            @input="(e) => settingsStore.update('fredApiKey', (e.target as HTMLInputElement).value)" />
+            v-model="apiKeys.fred"
+            placeholder="从 https://fred.stlouisfed.org/docs/api/api_key.html 申请" />
         </div>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.finnhub_key') }} <span class="api-source">(美股行情)</span></label>
           <input type="password" class="form-input"
-            :value="settingsStore.settings.finnhubApiKey"
-            placeholder="从 https://finnhub.io/register 免费注册"
-            @input="(e) => settingsStore.update('finnhubApiKey', (e.target as HTMLInputElement).value)" />
+            v-model="apiKeys.finnhub"
+            placeholder="从 https://finnhub.io/register 免费注册" />
         </div>
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.iwencai_key') }} <span class="api-source">(研报/公告搜索)</span></label>
           <input type="password" class="form-input"
-            :value="settingsStore.settings.iwencaiApiKey"
-            placeholder="从 https://www.iwencai.com/ 申请"
-            @input="(e) => settingsStore.update('iwencaiApiKey', (e.target as HTMLInputElement).value)" />
+            v-model="apiKeys.iwencai"
+            placeholder="从 https://www.iwencai.com/ 申请" />
         </div>
 
         <div class="form-group">
           <button class="action-btn" @click="onSaveApiKeys">
             <span class="btn-icon" v-html="getIcon('save')" />
-            保存到 config.yaml
+            保存 API 密钥
           </button>
           <span v-if="saveMsg" class="save-msg">{{ saveMsg }}</span>
         </div>

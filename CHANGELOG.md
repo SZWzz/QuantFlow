@@ -8,8 +8,13 @@
 
 ### Added
 - [Python] gRPC Health Checking Protocol (GRPC-101) implementation for sidecar liveness polling via standard grpc_health.v1 package
+- [Python] Module docstring + function docstrings for validate_dates and get_1m_bars in utils.py
 - [Docs] Phase 12 review specs (6 docs): Security Hardening (API keys, migration fatal), A-Share ST Price Limit Rules, Python Sidecar Overhaul (subprocess→direct), Test & Type Infrastructure Repair, Go Backend Quality (concurrency/financial), Frontend Architecture (type-safe bridge/i18n)
 - [Engine] GitHub Actions CI workflow with `go test -shuffle=on` for flaky detection
+- [Backtest] STStatusProvider interface for future real-time ST detection (ST stocks follow board limits under current regulations)
+- [Test] Integration tests for MarketDataProvider interface (subscribe/publish/unsubscribe, GetLatest, concurrent subscribers)
+- [Test] Python tests for: pyproject.toml structure, fetcher direct import path, health server, docstring hygiene
+- [Frontend] Logger utility with level-based filtering (`VITE_LOG_LEVEL`) replacing raw console.* calls
 - [Frontend] Wire ModelRegistryPanel to CredentialManager API key storage (replaces plaintext localStorage)
 - [Security] LLM API keys moved from plaintext localStorage to Go CredentialManager (AES-256-GCM + keychain)
 - [Security] GetCredential Wails IPC method for frontend to retrieve encrypted credentials
@@ -17,8 +22,14 @@
 - [Security] ModelRegistryPanel saves/loads API keys via CredentialManager; settings store tracks only Configured booleans + base URLs
 
 ### Changed
+- [Config] GetAPIKey now only checks CredentialManager + env vars; YAML api_keys field deprecated and zeroed after migration
 - [Security] Config api_keys section automatically migrates to CredentialManager on first startup, then zeroed out
 - [Python] Replace subprocess-per-request with direct importlib + asyncio.to_thread in fetcher.py for akshare calls (~200ms cold start eliminated)
+- [Frontend] Replace console.log/warn/error across 24 files with structured logger (level-based filtering)
+- [Market] Extract MarketDataProvider interface from MarketDataHub struct for testability
+
+### Removed
+- [Backtest] Dead ST price limit code path (case branch for "ST" ticker prefix never fires — A-share tickers are purely numeric)
 
 ### Fixed
 - [Security] DB migration failure is now fatal — aborts startup with error instead of slog.Warn and silent schema corruption

@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { logger } from '@/lib/logger'
 
 interface ScheduleTask {
   id: string
