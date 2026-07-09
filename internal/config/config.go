@@ -18,7 +18,13 @@ type Config struct {
 	Version        string            `yaml:"version"`
 	LogLevel       string            `yaml:"log_level"`
 	DBPath         string            `yaml:"db_path"`
-	APIKeys        map[string]string `yaml:"api_keys"`
+	// APIKeys stores optional API keys loaded from config YAML.
+	// Deprecated: API keys should be stored in the CredentialManager (AES-256-GCM
+	// encrypted). This field is populated during Config.Load() for backward
+	// compatibility and is migrated to CredentialManager at app startup.
+	// After migration, the map is emptied. New installations should use
+	// CredentialManager directly via the frontend's ModelRegistryPanel.
+	APIKeys map[string]string `yaml:"api_keys"`
 }
 
 // DefaultConfig returns sensible defaults.
@@ -27,7 +33,6 @@ func DefaultConfig() *Config {
 		Version:  "0.0.1",
 		LogLevel: "info",
 		DBPath:   "data/quantflow.db",
-		APIKeys:  map[string]string{},
 	}
 }
 
@@ -52,8 +57,11 @@ func (c *Config) SetCredentialManager(cm *auth.CredentialManager) {
 	c.cm = cm
 }
 
-// GetAPIKey returns the value for a named API key, checking the
-// CredentialManager first, then config file, then environment variable.
+// GetAPIKey retrieves an API key for the given provider name.
+// Checks CredentialManager first, then falls back to environment variables.
+// Does NOT check the deprecated Config.APIKeys map — API keys in YAML are
+// migrated to CredentialManager on first startup and should not be read from
+// config file after that point.
 func (c *Config) GetAPIKey(name string) string {
 	if c.cm != nil {
 		creds, err := c.cm.List()
@@ -66,9 +74,6 @@ func (c *Config) GetAPIKey(name string) string {
 				}
 			}
 		}
-	}
-	if val := c.APIKeys[name]; val != "" {
-		return val
 	}
 	envKey := fmt.Sprintf("%s_API_KEY", toEnvName(name))
 	return os.Getenv(envKey)

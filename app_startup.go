@@ -288,7 +288,11 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Info("credential manager initialized")
 	}
 
-	// Migrate config api_keys to CredentialManager
+	// Migrate config api_keys to CredentialManager.
+	// This is a one-time migration for existing config files.
+	// After migration, the api_keys map is emptied so no plaintext keys
+	// remain in the process memory from the YAML file.
+	// New installations should use CredentialManager directly.
 	if a.credMgr != nil {
 		for name, key := range a.cfg.APIKeys {
 			if key != "" {
