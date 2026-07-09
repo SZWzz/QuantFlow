@@ -492,22 +492,21 @@ onUnmounted(() => {
 /* ── Zone 2: Index Cards ── */
 .index-cards {
   display: flex;
-  gap: var(--space-sm);
-  overflow-x: auto;
-  padding: var(--space-md) var(--panel-padding);
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-strong) transparent;
+  gap: 6px;
+  padding: var(--space-sm) var(--panel-padding);
+  flex-wrap: wrap;
 }
 
 .index-card {
-  flex: 0 0 auto;
-  min-width: 110px;
-  padding: var(--space-sm) var(--space-md);
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 8px;
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
 }
 
 .index-card:hover {
@@ -588,14 +587,15 @@ onUnmounted(() => {
 .chart-area {
   display: flex;
   flex-direction: column;
-  min-height: 340px;
-  flex: 1 0 auto;
+  min-height: 300px;
+  flex: 0 0 auto;
+  height: 320px;
   overflow: hidden;
 }
 
 .chart-wrapper {
   flex: 1;
-  min-height: 280px;
+  min-height: 260px;
   position: relative;
 }
 
@@ -662,8 +662,8 @@ onUnmounted(() => {
   gap: var(--space-md);
   padding: var(--space-md) var(--panel-padding);
   border-top: 1px solid var(--color-border-strong);
-  flex-shrink: 0;
-  max-height: 200px;
+  flex: 1 1 0;
+  min-height: 0;
   overflow: hidden;
 }
 
