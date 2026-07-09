@@ -272,7 +272,7 @@ export default {
     paste: 'Paste', select_all: 'Select All', add_node: 'Add Node...',
     back: 'Back', sub_workflow: 'Sub-workflow',
     drag_hint: 'Drag nodes from the palette or press Ctrl+K',
-    add_to_workflow: '+ Workflow',
+    add_to_workflow: 'Workflow',
     switch_confirm_title: 'Switch to Workflow Mode?',
     switch_confirm_body: 'The node has been added to the workflow canvas. Switch to workflow mode to connect and configure it?',
   },

@@ -35,8 +35,8 @@ export function useAddToWorkflow(panelId: string, symbolRef?: Ref<string>) {
     if (!entry) return null
     return {
       icon: 'plus' as const,
-      label: safeT('workflow.add_to_workflow', '+ Workflow'),
-      title: `${safeT('workflow.add_to_workflow', '+ Workflow')}: ${entry.label}`,
+      label: safeT('workflow.add_to_workflow', 'Workflow'),
+      title: `${safeT('workflow.add_to_workflow', 'Workflow')}: ${entry.label}`,
       action: () => addToWorkflow(),
     }
   })

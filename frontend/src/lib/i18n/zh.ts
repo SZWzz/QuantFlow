@@ -292,7 +292,7 @@ export default {
     paste: '粘贴', select_all: '全选', add_node: '添加节点...',
     back: '返回', sub_workflow: '子工作流',
     drag_hint: '从面板拖入节点或按 Ctrl+K 添加',
-    add_to_workflow: '+ 工作流',
+    add_to_workflow: '工作流',
     switch_confirm_title: '切换到工作流模式？',
     switch_confirm_body: '节点已添加到工作流画布。是否切换到工作流模式进行连接和配置？',
   },
