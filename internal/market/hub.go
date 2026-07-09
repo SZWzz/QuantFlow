@@ -78,6 +78,18 @@ func (b *topicBroker) subscriberCount() int {
 	return len(b.subscribers)
 }
 
+// MarketDataProvider defines the public contract for market data pub/sub.
+// Implementations include MarketDataHub (production) and mock stubs for tests.
+type MarketDataProvider interface {
+	Subscribe(topic, subID string) (<-chan MarketMessage, func())
+	Publish(topic string, data any)
+	GetLatest(topic string) (*MarketMessage, bool)
+	SubscriberCount() int
+	TopicCount() int
+}
+
+var _ MarketDataProvider = (*MarketDataHub)(nil)
+
 // MarketDataHub is a Go channel-based publish/subscribe system for real-time market data.
 // Each topic has its own broker with cached latest message and TTL.
 type MarketDataHub struct {
