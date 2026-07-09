@@ -134,7 +134,7 @@ const klineOption = computed(() => {
 
 // ── Minute chart option (reuses buildMinuteOption) ──
 const minuteOption = computed(() => {
-  if (!minuteTicks.value.length || !prevClose.value) return {} as ECBasicOption
+  if (!minuteTicks.value.length) return {} as ECBasicOption
   return buildMinuteOption(
     minuteTicks.value,
     prevClose.value,
@@ -201,10 +201,13 @@ async function loadMinuteChart() {
       avg_price: t.avg_price ?? t.avgPrice ?? 0,
       amount: t.amount ?? 0,
     })) as MinuteTick[]
-    // Derive prevClose from OHLCV: yesterday's close
+    // Derive prevClose from OHLCV: use yesterday's close (second-to-last bar,
+    // since the last bar may be today's incomplete candle).
     const ohlcv = idx.ohlcv
-    if (ohlcv && ohlcv.length > 0) {
-      prevClose.value = ohlcv[ohlcv.length - 1].close
+    if (ohlcv && ohlcv.length >= 2) {
+      prevClose.value = ohlcv[ohlcv.length - 2].close
+    } else if (ohlcv && ohlcv.length === 1) {
+      prevClose.value = ohlcv[0].close
     }
   } catch (e) {
     logger.error('[MarketOverview] minute chart:', e)
