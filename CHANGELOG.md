@@ -9,8 +9,16 @@
 ### Added
 - [Docs] Phase 12 review specs (6 docs): Security Hardening (API keys, migration fatal), A-Share ST Price Limit Rules, Python Sidecar Overhaul (subprocess→direct), Test & Type Infrastructure Repair, Go Backend Quality (concurrency/financial), Frontend Architecture (type-safe bridge/i18n)
 - [Frontend] Wire ModelRegistryPanel to CredentialManager API key storage (replaces plaintext localStorage)
+- [Security] LLM API keys moved from plaintext localStorage to Go CredentialManager (AES-256-GCM + keychain)
+- [Security] GetCredential Wails IPC method for frontend to retrieve encrypted credentials
+- [Security] Config.GetAPIKey now checks CredentialManager first, then env vars, then config yaml
+- [Security] ModelRegistryPanel saves/loads API keys via CredentialManager; settings store tracks only Configured booleans + base URLs
+
+### Changed
+- [Security] Config api_keys section automatically migrates to CredentialManager on first startup, then zeroed out
 
 ### Fixed
+- [Security] DB migration failure is now fatal — aborts startup with error instead of slog.Warn and silent schema corruption
 - [Terminal] Tear-off panels no longer stuck on "Loading panel..." — root cause was uninitialized `tearOffWindows` map in `App` struct causing nil-map panic + mutex deadlock; added `make()` init in `ServiceStartup()` and `defer Unlock` for panic safety in `app_tearoff.go`
 
 ## [2026.7.8] - 2026-07-08
