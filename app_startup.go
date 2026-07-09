@@ -444,5 +444,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.satelliteSvc = research.NewSatelliteService(a.satelliteAdpt)
 	nctx.SatelliteService = a.satelliteSvc
 	slog.Info("satellite service initialized")
+
+	// Initialize tear-off window tracking map
+	a.tearOffWindows = make(map[string]*tearOffEntry)
+	slog.Info("tear-off window tracking initialized")
 	return nil
 }

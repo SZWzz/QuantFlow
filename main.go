@@ -18,11 +18,12 @@ func main() {
 	// App.ServiceStartup, before the HTTP server starts.
 	wsSvc := &ws.MarketWSService{}
 
+	appInstance := &App{wsSvc: wsSvc}
 	app := application.New(application.Options{
 		Name:        "quantflow",
 		Description: "QuantFlow Terminal — 双模式量化金融终端",
 		Services: []application.Service{
-			application.NewService(&App{wsSvc: wsSvc}),
+			application.NewService(appInstance),
 			application.NewServiceWithOptions(wsSvc, application.ServiceOptions{
 				Route: "/ws/market",
 			}),
@@ -34,6 +35,7 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
+	appInstance.wailsApp = app
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "QuantFlow Terminal",

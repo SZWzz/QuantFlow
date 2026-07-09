@@ -19,8 +19,10 @@ type tearOffEntry struct {
 
 // TearOffPanel creates a new OS window containing the specified panel.
 func (a *App) TearOffPanel(panelId, instanceId, label, paramsJson string) error {
-	app := application.Get()
-	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
+	if a.wailsApp == nil {
+		return fmt.Errorf("tearoff: wails app not initialized")
+	}
+	win := a.wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:      fmt.Sprintf("tearoff-%s", instanceId),
 		Title:     label,
 		Width:     800,
@@ -34,8 +36,8 @@ func (a *App) TearOffPanel(panelId, instanceId, label, paramsJson string) error 
 		InstanceID: instanceId, Label: label, Params: paramsJson,
 	}
 	a.tearOffWindowsMu.Lock()
+	defer a.tearOffWindowsMu.Unlock()
 	a.tearOffWindows[instanceId] = entry
-	a.tearOffWindowsMu.Unlock()
 
 	win.OnWindowEvent(events.Common.WindowClosing, func(_ *application.WindowEvent) {
 		slog.Debug("tear-off window closing", "instanceId", instanceId, "panelId", panelId)

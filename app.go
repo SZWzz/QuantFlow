@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"quantflow/internal/ai"
 	"quantflow/internal/auth"
 	"quantflow/internal/backtest"
@@ -129,6 +131,9 @@ type App struct {
 
 	// Python sidecar subprocess (auto-launched).
 	sidecar *python.SidecarProcess
+
+	// Wails application reference (set in main.go).
+	wailsApp *application.App
 
 	// Tear-off window tracking.
 	tearOffWindows   map[string]*tearOffEntry // instanceId → entry

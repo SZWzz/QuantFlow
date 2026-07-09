@@ -4,6 +4,11 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.9] - 2026-07-09
+
+### Fixed
+- [Terminal] Tear-off panels no longer stuck on "Loading panel..." — root cause was uninitialized `tearOffWindows` map in `App` struct causing nil-map panic + mutex deadlock; added `make()` init in `ServiceStartup()` and `defer Unlock` for panic safety in `app_tearoff.go`
+
 ## [2026.7.8] - 2026-07-08
 
 ### Added
