@@ -67,14 +67,6 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		slog.Error("failed to init minute cache", "err", err)
 	} else {
 		a.minuteCache = mc
-		// Clear stale cached data from previous runs (e.g. after symbol
-		// resolution fixes). The cache will be repopulated with fresh data.
-		if err := mc.Truncate(); err != nil {
-			slog.Warn("failed to truncate minute cache", "err", err)
-		}
-		// Also purge the JSON-persisted minute ticks file.
-		jsonPath := filepath.Join(filepath.Dir(a.resolvedDBPath), "last_minute_ticks.json")
-		os.Remove(jsonPath)
 	}
 
 	migrations, migErr := storage.BuiltinMigrations()

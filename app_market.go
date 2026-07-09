@@ -205,7 +205,7 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 
 	adpt := a.getMootdxAdapter()
 
-	// Outside trading hours: skip mootdx live fetch (always fails / produces
+	// Outside trading hours: prefer cached data; fall back to live fetch when caches are empty
 	// warnings).  Serve the most recent cached trading day's data instead.
 	if sinceTimestamp == 0 && !market.IsTradingHours("CN") {
 		if len(ticks) > 0 {
@@ -223,6 +223,19 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		if persisted := a.loadLastMinuteTicks(symbol); len(persisted) > 0 {
 			slog.Info("minute_cache: using persisted off-hours data", "symbol", symbol)
 			return persisted, "cache", nil
+		}
+		// All caches empty — try live fetch.  The TDX server may still
+		// serve today's minute data shortly after market close.
+		if adpt != nil {
+			if liveTicks, err := adpt.FetchMinuteLine(symbol); err == nil && len(liveTicks) > 0 {
+				today := time.Now().Format("2006-01-02")
+				if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
+					slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
+				} else {
+					a.saveLastMinuteTicks(symbol, liveTicks)
+				}
+				return liveTicks, "mootdx", nil
+			}
 		}
 		return nil, "unavailable", fmt.Errorf("no minute data available for %s (market closed)", symbol)
 	}
