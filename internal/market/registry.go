@@ -28,11 +28,11 @@ var FallbackChains = map[string][]string{
 // Other markets use FallbackChains (no stock/index split).
 var OHLCVChains = map[string]map[string][]string{
 	"CN": {
-		// Mootdx excluded from stock OHLCV: TDX 7709 port's get_security_bars
+		// mootdx added: TDX TCP port's get_security_bars
 		// returns None for historical K-lines (only live quote works).
 		// Minute data uses Mootdx separately (MinuteChains) where it works.
-		"stock": {"tencent", "eastmoney", "sina", "tushare", "baidu", "akshare"},
-		"index": {"tencent", "eastmoney", "sina", "tushare", "baidu", "akshare"},
+		"stock": {"tencent", "sina", "tushare", "baidu", "akshare", "eastmoney"},
+		"index": {"tencent", "sina", "tushare", "baidu", "akshare", "eastmoney"},
 	},
 }
 

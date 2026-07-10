@@ -122,6 +122,11 @@ async function loadQuote() {
       market_cap: snap.marketCap,
       pe_ratio: snap.pe_ratio ?? snap.pe,
     }
+    // Feed the actual previous close to useMinuteChart so the baseline
+    // is correct (indices can gap significantly from their prior close).
+    if (snap.prevClose && snap.prevClose > 0) {
+      prevClose.value = snap.prevClose
+    }
   } catch (e) {
     console.error('[Candlestick] loadQuote:', e)
   }
@@ -332,19 +337,41 @@ watch(ohlcvData, (data) => {
 // dataZoom expansion: when user scrolls near the start, load earlier data
 let expandThrottle: ReturnType<typeof setTimeout> | null = null
 function onDataZoom(params: any) {
-  if (!params.batch) return
-  const dz = params.batch[0]
-  if (!dz || dz.start > 5) return  // only trigger when near the beginning (<5%)
+  // ECharts 5.5+ may send { batch: [...] } with multiple zooms OR
+  // { start, end } directly depending on interaction type. Handle both.
+  const dz = (params.batch && params.batch[0]) ? params.batch[0] : params
+  const dzStart = dz?.start
+  // Debug: always log when dataZoom fires, so we know the event works.
+  if (dzStart != null && dzStart < 20) {
+    console.log('[Candlestick] datazoom event: start=%s, batch=%s', dzStart, params.batch ? 'present' : 'absent')
+  }
+  if (dzStart == null) return
+  if (dzStart > 5) return  // only trigger when near the beginning (<5%)
   if (ohlcvExpanding.value) return // guard: already expanding
   if (['1m','5m','15m','30m','1h'].includes(interval.value)) return // skip intraday
 
   if (expandThrottle) clearTimeout(expandThrottle)
   expandThrottle = setTimeout(async () => {
+    console.log('[Candlestick] expand trigger: start=%s expandStart=%s', dz.start, new Date(ohlcvExpandStart.value * 1000).toISOString().slice(0, 10))
     ohlcvExpanding.value = true
     const earlierStart = ohlcvExpandStart.value - 365 * 86400
     const app = useWailsApp()
     if (!app) { ohlcvExpanding.value = false; return }
     try {
+      // Snapshot current zoom (visible date range) so we can restore it
+      // after prepending older data — prevents the chart from jumping.
+      const chart = klineChartRef.value?.getEchartsInstance()
+      let anchorDate: string | null = null
+      if (chart) {
+        const opt = chart.getOption()
+        const dz0 = (opt as any)?.dataZoom?.[0]
+        if (dz0) {
+          const oldDates = ohlcvData.value
+          const visStartIdx = Math.floor((dz0.start / 100) * oldDates.length)
+          anchorDate = visStartIdx < oldDates.length ? oldDates[visStartIdx]?.date ?? null : null
+        }
+      }
+
       const [rawBars] = await app.FetchOHLCV(detectMarket(symbol.value), symbol.value, interval.value, 'qfq', earlierStart, ohlcvExpandStart.value)
       if (rawBars?.length) {
         const mergeMap = new Map(ohlcvData.value.map(b => [b.date, b]))
@@ -357,7 +384,27 @@ function onDataZoom(params: any) {
           mergeMap.set(date, { date, open: b.open, close: b.close, low: b.low, high: b.high, volume: b.volume })
         }
         ohlcvData.value = Array.from(mergeMap.values()).sort((a, b) => a.date.localeCompare(b.date))
-        ohlcvExpandStart.value = earlierStart
+        // Update to the actual earliest bar date, not the requested start.
+        // Adapters may return more data than requested (e.g. Tencent 2000-bar cap),
+        // so using earlierStart would skip chunks and create gaps on the next expansion.
+        if (ohlcvData.value.length > 0) {
+          const firstDate = ohlcvData.value[0].date
+          const ds = isIntraday ? firstDate.replace(' ', 'T') : firstDate + 'T00:00:00'
+          ohlcvExpandStart.value = Math.floor(new Date(ds).getTime() / 1000)
+        }
+
+        // Restore zoom to the same visible date range, now mapped to the
+        // new (larger) dataset so the chart does not visibly jump.
+        if (anchorDate && chart) {
+          await nextTick()
+          const newDates = ohlcvData.value
+          const newIdx = newDates.findIndex(b => b.date === anchorDate)
+          if (newIdx >= 0) {
+            const newStart = (newIdx / newDates.length) * 100
+            const newEnd = Math.min(100, newStart + ((chart.getOption() as any)?.dataZoom?.[0]?.end ?? 100) - ((chart.getOption() as any)?.dataZoom?.[0]?.start ?? 0))
+            chart.dispatchAction({ type: 'dataZoom', start: newStart, end: newEnd })
+          }
+        }
       }
     } catch (e) {
       console.error('[Candlestick] OHLCV expand:', e)

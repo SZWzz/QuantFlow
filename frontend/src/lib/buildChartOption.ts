@@ -216,10 +216,14 @@ export function buildKlineOption(
     })
   }
 
-  // Default zoom window: show last ~250 candles (~1 year for daily)
+  // Default zoom window: show last ~200 candles (~1 year for daily).
+  // Always leave at least 10% scroll room on the left so the user can drag
+  // to the beginning and trigger progressive OHLCV expansion (dataZoom start<5%).
   const totalPoints = data.length
-  const windowSize = Math.min(totalPoints, 250)
-  const startPct = totalPoints > windowSize ? ((totalPoints - windowSize) / totalPoints * 100) : 0
+  const windowSize = Math.min(totalPoints, 200)
+  const startPct = totalPoints > windowSize
+    ? ((totalPoints - windowSize) / totalPoints * 100)
+    : (totalPoints > 20 ? 10 : 0)
 
   const volUnit = '万'
   let bottomYAxis: any = { type: 'value', gridIndex: 1, axisLabel: { color: theme.axisColor, fontSize: 10 }, splitLine: { show: false } }

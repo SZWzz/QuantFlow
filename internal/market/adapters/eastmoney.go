@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -31,16 +32,28 @@ func NewEastMoneyAdapter() *EastMoneyAdapter {
 	}
 }
 
-// newEastMoneyHTTPClient creates an HTTP/1.1-only client for EastMoney APIs.
-// EastMoney CDN does not handle Go's HTTP/2 ALPN negotiation — connections get
-// dropped with EOF if HTTP/2 is allowed. TLSNextProto empty map prevents it.
+// newEastMoneyHTTPClient creates an HTTP/1.1+IPv4-only client for EastMoney APIs.
+//
+// Two workarounds for EastMoney's CDN:
+//  1. TLSNextProto empty map disables HTTP/2 — EastMoney's CDN drops HTTP/2
+//     connections with EOF during ALPN negotiation.
+//  2. DialContext forces tcp4 — EastMoney's IPv6 endpoints accept TLS handshakes
+//     but drop HTTP requests with Empty reply, while IPv4 works fine.
+//
 // All EastMoney adapters MUST use this helper.
 func newEastMoneyHTTPClient(timeout time.Duration) *http.Client {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
 	tr := &http.Transport{
 		TLSNextProto:    make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 		MaxIdleConns:    10,
 		IdleConnTimeout: 30 * time.Second,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialer.DialContext(ctx, "tcp4", addr)
+		},
 	}
 	return &http.Client{
 		Transport: tr,

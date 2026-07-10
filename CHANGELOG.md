@@ -9,10 +9,21 @@
 ### Added
 - [Frontend] 新增 useMinuteChart composable，封装分时图数据加载与轮询逻辑，供 MarketOverviewPanel 和 CandlestickPanel 复用
 - [Frontend] MarketOverviewPanel 交易时段 30s 自动刷新轮询——使用 `isTradingHours` 守卫，切换市场/进入交易时段自动启动，收盘后自动停止
+- [Python] 预置 VADER 词典（`python/nltk_data/sentiment/vader_lexicon.zip`），`nlp_pipeline` 优先从本地路径查找，彻底离线可用
 
 ### Changed
 - [Frontend] CandlestickPanel OHLCV 渐进式加载：初始回溯从 25 年缩减至 365 天，dataZoom 滚至起点时自动扩展加载更早数据
 - [Frontend] MarketOverviewPanel 改用 useMinuteChart composable 加载分时数据，移除内联的 loadMinuteChart 函数和内部分时状态
+- [Market] CN K 线适配器链重排：eastmoney 移至链末（被封时每次重试 4 次约 20s 浪费），当前链序 `tencent → sina → tushare → baidu → akshare → eastmoney`
+- [Market] CN K 线链移除 mootdx——所有已知 TDX 服务器（10 台）对 `get_security_bars` 返回 0 字节，分钟线不受影响
+
+### Fixed
+- [Market] EastMoney 适配器 IPv6 故障：`push2his.eastmoney.com` IPv6 接受 TLS 但不响应 HTTP 请求，强制 DialContext 走 tcp4
+- [Frontend] K 线渐进加载断点：`ohlcvExpandStart` 被设为请求的 `earlierStart` 而非合并后实际最早日期，导致后续扩展跳过数据段
+- [Frontend] K 线渐进加载不触发：365 天约 242 条 < 250 窗口，dataZoom slider 满宽无法拖动；窗口缩至 200，始终留 ≥10% 滚动余量
+- [Frontend] 渐进加载 ECharts 5.5 兼容：datazoom 事件 `params.batch` 在某些交互下不存在，改为直接取 `params.start`
+- [Frontend] 渐进加载图表跳动：扩展后保存/恢复可见日期位置，避免图表跳至新 `startPct`
+- [Frontend] 指数分时图 prevClose 错误：`useMinuteChart` 用第一个 tick 价格当昨收（指数可跳空），改为从 `GetQuote` 获取真实 prevClose
 
 ## [2026.7.9] - 2026-07-09
 

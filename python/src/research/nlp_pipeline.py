@@ -4,6 +4,7 @@ Degrades gracefully: VADER < TextBlob < simple keyword fallback for English,
 SnowNLP for Chinese. All dependencies are optional.
 """
 import logging
+import os
 import re
 import socket
 from typing import Optional
@@ -108,6 +109,14 @@ def _is_vader_ready() -> bool:
         return False
     try:
         import nltk
+        # Prefer bundled nltk_data (relative to python/ root) so the app
+        # works fully offline without downloading on first run.
+        _local_nltk = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            'nltk_data',
+        )
+        if os.path.isdir(_local_nltk) and _local_nltk not in nltk.data.path:
+            nltk.data.path.insert(0, _local_nltk)
         # socket timeout unreliable on Windows; use thread join timeout instead
         try:
             nltk.data.find('sentiment/vader_lexicon.zip')
