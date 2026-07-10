@@ -4,6 +4,11 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.10] - 2026-07-10
+
+### Added
+- [Frontend] MarketOverviewPanel 交易时段 30s 自动刷新轮询——使用 `isTradingHours` 守卫，切换市场/进入交易时段自动启动，收盘后自动停止
+
 ## [2026.7.9] - 2026-07-09
 
 ### Added
@@ -32,7 +37,6 @@
 - [Market] 新增 MinutePoller——按 Hub 订阅自动拉取分时数据，通过 WS 增量推送
 - [Frontend] 新增 useRealtimeData 通用 WebSocket 订阅 hook
 - [Frontend] MarketOverview 指数卡片改为 WebSocket 实时报价（替代 15s 轮询）
-- [Frontend] MarketOverviewPanel 重构为彭博式 5 区布局（市场切换 → 指数卡片 → 涨跌家数/情绪条 → K线图 → 行业排行柱状图）
 - [Frontend] 新增指数 K 线图（复用 KlineChart.vue 组件，点击指数卡片切换，支持 1d/5d/1mo/1y 周期切换）
 - [Frontend] 涨跌家数条改为百分比宽度展示，数据源从硬编码 0 切换为新浪实时接口
 - [Frontend] 新增情绪指标条（涨停/跌停/北向资金/成交额）

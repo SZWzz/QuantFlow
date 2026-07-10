@@ -13,6 +13,7 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
+import { isTradingHours } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -212,14 +213,9 @@ async function loadMinuteChart() {
       avg_price: t.avg_price ?? t.avgPrice ?? 0,
       amount: t.amount ?? 0,
     })) as MinuteTick[]
-    // Derive prevClose from OHLCV: use yesterday's close (second-to-last bar,
-    // since the last bar may be today's incomplete candle).
-    const ohlcv = idx.ohlcv
-    if (ohlcv && ohlcv.length >= 2) {
-      prevClose.value = ohlcv[ohlcv.length - 2].close
-    } else if (ohlcv && ohlcv.length === 1) {
-      prevClose.value = ohlcv[0].close
-    }
+    // Use prevClose from the quote snapshot (same source as card change_pct),
+    // so the minute chart and index card show consistent numbers.
+    prevClose.value = idx.prevClose || 0
   } catch (e) {
     logger.error('[MarketOverview] minute chart:', e)
     minuteTicks.value = []
@@ -272,12 +268,35 @@ function refresh() {
   loadChart()
 }
 
+// ── Auto-refresh polling (trading hours: 30s interval) ──
+let autoRefreshTimer: ReturnType<typeof setInterval> | null = null
+
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (!isTradingHours(activeMarket.value)) return
+  autoRefreshTimer = setInterval(() => {
+    if (!isTradingHours(activeMarket.value)) {
+      stopAutoRefresh()
+      return
+    }
+    dataStore.fetchMarketOverview(activeMarket.value)
+  }, 30000)
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer)
+    autoRefreshTimer = null
+  }
+}
+
 function switchMarket(mkt: string) {
   if (mkt !== 'CN' && mkt !== 'HK' && mkt !== 'US') return
   activeMarket.value = mkt as 'CN' | 'HK' | 'US'
   dataStore.setSelectedIndex('')
   chartMode.value = 'minute'
   refresh()
+  startAutoRefresh()
 }
 
 // Detect market from symbol for WebSocket topic
@@ -325,11 +344,13 @@ watch(indices, (val) => {
 
 onMounted(() => {
   refresh()
+  startAutoRefresh()
 })
 
 onUnmounted(() => {
   ws.disconnect()
   indicatorCache.clear()
+  stopAutoRefresh()
 })
 </script>
 
