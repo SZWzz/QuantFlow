@@ -11,7 +11,8 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { buildKlineOption, buildMinuteOption, type KlineDataItem } from '@/lib/buildChartOption'
-import { useWailsApp, type OHLCVBar, type QuoteData } from '@/lib/composables/useWailsApp'
+import { useWailsApp, type OHLCVBar, type QuoteData, type MinuteTick } from '@/lib/composables/useWailsApp'
+import { useMinuteChart } from '@/lib/composables/useMinuteChart'
 import { useDataStore } from '@/stores/data'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { detectLimitUpDown } from '@/lib/chart/EventMarker'
@@ -180,38 +181,23 @@ function toggleDepth() {
   }
 }
 
-// Minute chart data
-interface MinuteTick {
-  time: string
-  price: number
-  volume: number
-  avg_price: number
-  amount: number
-}
+// Minute chart data (powered by useMinuteChart composable)
 function computeDataKey(ticks: MinuteTick[]): string {
   if (ticks.length === 0) return '0|'
   const last = ticks[ticks.length - 1]
   return `${ticks.length}|${last.time}|${last.price}`
 }
-const minuteTicks = shallowRef<MinuteTick[]>([])
 const prevClose = ref(0)
-const minuteLoading = ref(false)
+const { minuteTicks, minuteLoading, loadMinuteLine, startPolling: startMinutePoll, stopPolling: stopMinutePoll } =
+  useMinuteChart(symbol, prevClose, { polling: true, pollingInterval: 5000 })
 let klineTimer: ReturnType<typeof setInterval> | null = null
 let quoteTimer: ReturnType<typeof setInterval> | null = null
 const { connect: wsConnect, onMessage: wsOnMessage, connected: wsConnected } = useWebSocket()
 let symbolSubCleanup: (() => void) | null = null
-let minuteSubCleanup: (() => void) | null = null
 
 function getTodayDateString(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function parseMinuteTimeToUnix(timeStr: string): number {
-  // timeStr like "09:30", combine with today's date
-  const today = getTodayDateString()
-  const d = new Date(`${today}T${timeStr}:00+08:00`)
-  return Math.floor(d.getTime() / 1000)
 }
 
 async function loadOHLCV(sym: string, incremental = false) {
@@ -265,85 +251,6 @@ async function loadOHLCV(sym: string, incremental = false) {
     if (!ohlcvData.value.length) ohlcvData.value = []
   }
   if (seq === loadSeq) loading.value = false
-}
-
-async function loadMinuteLine() {
-  const seq = ++loadSeq
-  const app = useWailsApp()
-  if (!app) return
-  minuteLoading.value = true
-  try {
-    // Calculate sinceTimestamp from last tick
-    const lastTick = minuteTicks.value.length > 0
-      ? minuteTicks.value[minuteTicks.value.length - 1]
-      : null
-    const sinceTimestamp = lastTick
-      ? parseMinuteTimeToUnix(lastTick.time)
-      : 0
-
-    const dataStore = useDataStore()
-    const result = await dataStore.fetchMinuteLine(symbol.value, sinceTimestamp)
-    if (seq !== loadSeq) return
-    const ticks: MinuteTick[] = Array.isArray(result) ? result[0] : result
-    if (!Array.isArray(ticks) || ticks.length === 0) {
-      return
-    }
-
-    if (sinceTimestamp === 0) {
-      // First load: full replacement
-      minuteTicks.value = ticks
-    } else {
-      // Incremental update: deduplicate and merge
-      const existing = new Map(minuteTicks.value.map(t => [t.time, t]))
-      for (const t of ticks) {
-        existing.set(t.time, t)
-      }
-      minuteTicks.value = Array.from(existing.values()).sort((a, b) => a.time.localeCompare(b.time))
-    }
-
-    if (prevClose.value === 0 && minuteTicks.value.length > 0) {
-      prevClose.value = minuteTicks.value[0].price
-    }
-
-    // Update shared cache
-    const cacheKey = `${symbol.value}:${getTodayDateString()}`
-    minuteDataCache.set(cacheKey, minuteTicks.value)
-  } catch(e) {
-    console.error('[Candlestick] minute fetch:', e)
-  } finally {
-    minuteLoading.value = false
-  }
-}
-
-function startMinutePolling() {
-  stopMinutePolling()
-  if (detectMarket(symbol.value) !== 'CN') {
-    logger.info('[Candlestick] minute chart only supports CN market, skipping', symbol.value)
-    return
-  }
-  // Initial full load via IPC
-  loadMinuteLine()
-
-  // Subscribe to real-time minute updates via WebSocket
-  const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
-  const topic = `market:minute:${symbol.value}`
-  wsConnect(wsUrl, [topic])
-  minuteSubCleanup = wsOnMessage(topic, (ticks: any[]) => {
-    if (!Array.isArray(ticks) || ticks.length === 0) return
-    // Merge incremental ticks (same logic as loadMinuteLine)
-    const existing = new Map(minuteTicks.value.map(t => [t.time, t]))
-    for (const t of ticks) {
-      existing.set(t.time, t as MinuteTick)
-    }
-    minuteTicks.value = Array.from(existing.values()).sort((a, b) => a.time.localeCompare(b.time))
-    if (prevClose.value === 0 && minuteTicks.value.length > 0) {
-      prevClose.value = minuteTicks.value[0].price
-    }
-  })
-}
-
-function stopMinutePolling() {
-  if (minuteSubCleanup) { minuteSubCleanup(); minuteSubCleanup = null }
 }
 
 function startKlineRefresh() {
@@ -443,9 +350,17 @@ watch(indexOverlaySymbol, async (sym) => {
 // Watch tab switch for minute polling
 watch(activeTab, (tab) => {
   if (tab === 'minute') {
-    startMinutePolling()
+    startMinutePoll()
   } else {
-    stopMinutePolling()
+    stopMinutePoll()
+  }
+})
+
+// Sync minute data to shared cache for other panels
+watch(minuteTicks, (ticks) => {
+  if (ticks.length) {
+    const cacheKey = `${symbol.value}:${getTodayDateString()}`
+    minuteDataCache.set(cacheKey, ticks)
   }
 })
 
@@ -696,7 +611,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  stopMinutePolling()
+  stopMinutePoll()
   stopKlineRefresh()
   if (quoteTimer) { clearInterval(quoteTimer); quoteTimer = null }
   // Save current data to shared cache so data survives component destruction
