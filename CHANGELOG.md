@@ -7,6 +7,7 @@
 ## [2026.7.10] - 2026-07-10
 
 ### Added
+- [Frontend] 新增 useMinuteChart composable，封装分时图数据加载与轮询逻辑，供 MarketOverviewPanel 和 CandlestickPanel 复用
 - [Frontend] MarketOverviewPanel 交易时段 30s 自动刷新轮询——使用 `isTradingHours` 守卫，切换市场/进入交易时段自动启动，收盘后自动停止
 
 ## [2026.7.9] - 2026-07-09
