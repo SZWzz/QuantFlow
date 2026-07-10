@@ -80,6 +80,11 @@ const loading = ref(false)
 const indicatorCache = createIndicatorCache()
 const errorMsg = ref('')
 let loadSeq = 0
+
+// OHLCV progressive loading state
+const ohlcvExpanding = ref(false)
+const ohlcvExpandStart = ref(0) // earliest loaded unix timestamp
+
 const theme = useChartTheme()
 
 // Tab state
@@ -211,7 +216,7 @@ async function loadOHLCV(sym: string, incremental = false) {
       const lastDate = ohlcvData.value[ohlcvData.value.length - 1].date
       start = Math.floor(new Date(lastDate.replace(' ', 'T')).getTime() / 1000)
     } else {
-      const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : 9125  // ~25 years covering all A-share history
+      const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : 365
       start = end - lookbackDays * 86400
     }
     const app = useWailsApp()
@@ -316,8 +321,51 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
 watch([symbol, interval], () => loadData(), { immediate: true })
 
 watch(ohlcvData, (data) => {
+  if (data.length > 0) {
+    const isIntraday = ['1m','5m','15m','30m','1h'].includes(interval.value)
+    const dateStr = isIntraday ? data[0].date.replace(' ', 'T') : data[0].date + 'T00:00:00'
+    ohlcvExpandStart.value = Math.floor(new Date(dateStr).getTime() / 1000)
+  }
   eventMarkers.value = data.length >= 2 ? detectLimitUpDown(data) : []
 }, { immediate: true })
+
+// dataZoom expansion: when user scrolls near the start, load earlier data
+let expandThrottle: ReturnType<typeof setTimeout> | null = null
+function onDataZoom(params: any) {
+  if (!params.batch) return
+  const dz = params.batch[0]
+  if (!dz || dz.start > 5) return  // only trigger when near the beginning (<5%)
+  if (ohlcvExpanding.value) return // guard: already expanding
+  if (['1m','5m','15m','30m','1h'].includes(interval.value)) return // skip intraday
+
+  if (expandThrottle) clearTimeout(expandThrottle)
+  expandThrottle = setTimeout(async () => {
+    ohlcvExpanding.value = true
+    const earlierStart = ohlcvExpandStart.value - 365 * 86400
+    const app = useWailsApp()
+    if (!app) { ohlcvExpanding.value = false; return }
+    try {
+      const [rawBars] = await app.FetchOHLCV(detectMarket(symbol.value), symbol.value, interval.value, 'qfq', earlierStart, ohlcvExpandStart.value)
+      if (rawBars?.length) {
+        const mergeMap = new Map(ohlcvData.value.map(b => [b.date, b]))
+        const isIntraday = ['1m','5m','15m','30m','1h'].includes(interval.value)
+        for (const b of rawBars) {
+          const d = new Date(b.date || '')
+          const date = isIntraday
+            ? d.toISOString().slice(0, 16).replace('T', ' ')
+            : d.toISOString().slice(0, 10)
+          mergeMap.set(date, { date, open: b.open, close: b.close, low: b.low, high: b.high, volume: b.volume })
+        }
+        ohlcvData.value = Array.from(mergeMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+        ohlcvExpandStart.value = earlierStart
+      }
+    } catch (e) {
+      console.error('[Candlestick] OHLCV expand:', e)
+    } finally {
+      ohlcvExpanding.value = false
+    }
+  }, 500)
+}
 
 watch(indexOverlaySymbol, async (sym) => {
   if (!sym) { indexOverlayData.value = null; return }
@@ -709,6 +757,7 @@ onUnmounted(() => {
           :option="option"
           :symbol="symbol"
           :loading="loading && !ohlcvData.length"
+          @dataZoom="onDataZoom"
         />
         <canvas
           ref="drawingCanvasRef"

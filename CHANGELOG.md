@@ -11,6 +11,7 @@
 - [Frontend] MarketOverviewPanel 交易时段 30s 自动刷新轮询——使用 `isTradingHours` 守卫，切换市场/进入交易时段自动启动，收盘后自动停止
 
 ### Changed
+- [Frontend] CandlestickPanel OHLCV 渐进式加载：初始回溯从 25 年缩减至 365 天，dataZoom 滚至起点时自动扩展加载更早数据
 - [Frontend] MarketOverviewPanel 改用 useMinuteChart composable 加载分时数据，移除内联的 loadMinuteChart 函数和内部分时状态
 
 ## [2026.7.9] - 2026-07-09

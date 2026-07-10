@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { shallowRef } from 'vue'
+import { shallowRef, watch, onUnmounted } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { CandlestickChart, BarChart, LineChart, ScatterChart } from 'echarts/charts'
@@ -15,6 +15,8 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
+const emit = defineEmits<{ dataZoom: [params: any] }>()
+
 const chartRef = shallowRef<InstanceType<typeof VChart>>()
 
 function refreshSize() {
@@ -23,6 +25,19 @@ function refreshSize() {
 
 const getEchartsInstance = () => (chartRef.value as any)?.chart ?? null
 defineExpose({ refreshSize, getEchartsInstance })
+
+// Watch for chart ready and bind datazoom event
+watch(chartRef, (ref) => {
+  const inst = (ref as any)?.chart
+  if (inst) {
+    inst.on('datazoom', (params: any) => emit('dataZoom', params))
+  }
+})
+
+onUnmounted(() => {
+  const inst = (chartRef.value as any)?.chart
+  if (inst) inst.off('datazoom')
+})
 </script>
 
 <template>
