@@ -6,7 +6,7 @@ import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { DrawingController } from '@/lib/chart/DrawingController'
 import { Crosshair } from '@/lib/chart/Crosshair'
 import { useSymbolContext } from '@/stores/symbolContext'
-import { detectMarket } from '@/lib/wails'
+import { detectMarket, isTradingHours } from '@/lib/wails'
 import { useStockName } from '@/lib/composables/useStockName'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
@@ -40,32 +40,6 @@ const drawingColor = ref('#58a6ff')
 let dc: DrawingController | null = null
 let crosshair: Crosshair | null = null
 const crosshairCanvasRef = ref<HTMLCanvasElement | null>(null)
-
-// Market-aware trading hours check (polling guard).
-function isTradingHours(): boolean {
-  const now = new Date()
-  const day = now.getDay()
-  if (day === 0 || day === 6) return false
-  const market = detectMarket(symbol.value)
-  if (market === 'CRYPTO') return true
-  if (market === 'HK') {
-    // HKEX: 09:30-12:00, 13:00-16:00 (Mon-Fri)
-    const h = now.getHours()
-    const m = now.getMinutes()
-    const t = h * 60 + m
-    return (t >= 9 * 60 + 30 && t <= 12 * 60) || (t >= 13 * 60 && t <= 16 * 60)
-  }
-  if (market === 'US') {
-    // NYSE/Nasdaq: 09:30-16:00 ET ≈ 13:30-21:00 UTC (DST + standard range)
-    const ut = now.getUTCHours() * 60 + now.getUTCMinutes()
-    return ut >= 13 * 60 + 30 && ut <= 21 * 60
-  }
-  // CN default: 09:30-11:30, 13:00-15:00 (Mon-Fri)
-  const h = now.getHours()
-  const m = now.getMinutes()
-  const t = h * 60 + m
-  return (t >= 9 * 60 + 30 && t <= 11 * 60 + 30) || (t >= 13 * 60 && t <= 15 * 60)
-}
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
@@ -374,6 +348,8 @@ function stopMinutePolling() {
 
 function startKlineRefresh() {
   stopKlineRefresh()
+  // Skip polling if outside trading hours (non-CN markets have live WebSocket)
+  if (detectMarket(symbol.value) !== 'CN' && !isTradingHours(detectMarket(symbol.value))) return
   loadOHLCV(symbol.value, true)
   if (wsConnected.value) return
   klineTimer = window.setInterval(() => loadOHLCV(symbol.value, true), 30000)

@@ -36,6 +36,31 @@ export function detectMarket(symbol: string): string {
   return 'US'
 }
 
+/** Check if the given market is currently in trading hours (local time). */
+export function isTradingHours(market: string): boolean {
+  const now = new Date()
+  const day = now.getDay()
+  if (day === 0 || day === 6) return false
+  if (market === 'CRYPTO') return true
+  if (market === 'HK') {
+    // HKEX: 09:30-12:00, 13:00-16:00 (Mon-Fri)
+    const h = now.getHours()
+    const m = now.getMinutes()
+    const t = h * 60 + m
+    return (t >= 9 * 60 + 30 && t <= 12 * 60) || (t >= 13 * 60 && t <= 16 * 60)
+  }
+  if (market === 'US') {
+    // NYSE/Nasdaq: 09:30-16:00 ET ≈ 13:30-21:00 UTC
+    const ut = now.getUTCHours() * 60 + now.getUTCMinutes()
+    return ut >= 13 * 60 + 30 && ut <= 21 * 60
+  }
+  // CN default: 09:30-11:30, 13:00-15:00 (Mon-Fri)
+  const h = now.getHours()
+  const m = now.getMinutes()
+  const t = h * 60 + m
+  return (t >= 9 * 60 + 30 && t <= 11 * 60 + 30) || (t >= 13 * 60 && t <= 15 * 60)
+}
+
 // ---------------------------------------------------------------------------
 // Internal call helper — delegates to Wails v3 Call.ByName
 // ---------------------------------------------------------------------------
