@@ -129,7 +129,7 @@ interface AppMethods {
   GetDragonTiger(symbol: string, endDate: string, lookBack: number): Promise<any[]>
   GetDailyDragonTiger(date: string, minNetBuy: number): Promise<any[]>
   GetLockupExpiry(symbol: string): Promise<any[]>
-  GetIndustryRanks(topN: number): Promise<any[]>
+  GetIndustryRanks(mkt: string, topN: number): Promise<any[]>
   GetConceptBlocks(symbol: string): Promise<any[]>
   GetCorrelationMatrix(symbols: string[], lookback: number): Promise<Record<string, Record<string, number>>>
   GetReturnDistribution(symbol: string, lookback: number, bins: number): Promise<Record<string, any>>

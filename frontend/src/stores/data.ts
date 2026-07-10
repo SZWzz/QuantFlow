@@ -42,6 +42,13 @@ export interface MarketBreadth {
   unchanged: number
 }
 
+export interface MarketSentiment {
+  limitUp: number
+  limitDown: number
+  northboundFlow: number
+  totalVolume: number
+}
+
 export interface SectorRanking {
   name: string
   changePct: number
@@ -50,6 +57,7 @@ export interface SectorRanking {
 export interface MarketOverview {
   indices: IndexSnapshot[]
   breadth: MarketBreadth
+  sentiment: MarketSentiment
   sectors: SectorRanking[]
   updatedAt: number
 }
@@ -69,6 +77,7 @@ export const useDataStore = defineStore('data', () => {
   const marketLoading = ref(false)
   const error = ref<string | null>(null)
   const cache = ref<Map<string, CacheEntry>>(new Map())
+  const selectedIndexSymbol = ref('')
 
   function updateQuote(symbol: string, quote: QuoteSnapshot) {
     quotes.value.set(symbol, quote)
@@ -109,6 +118,10 @@ export const useDataStore = defineStore('data', () => {
     else cache.value = new Map()
   }
 
+  function setSelectedIndex(symbol: string) {
+    selectedIndexSymbol.value = symbol
+  }
+
   async function fetchMarketOverview(market = 'CN') {
     const app = (window as any).go?.main?.App
     if (!app) return
@@ -142,6 +155,7 @@ export const useDataStore = defineStore('data', () => {
       // Process indices + breadth from market overview
       let indices: IndexSnapshot[] = []
       let breadth: MarketBreadth = { advancers: 0, decliners: 0, unchanged: 0 }
+      let sentiment: MarketSentiment = { limitUp: 0, limitDown: 0, northboundFlow: 0, totalVolume: 0 }
       if (overviewResult) {
         if (overviewResult.indices) {
           indices = (overviewResult.indices as any[]).map((idx: any) => ({
@@ -160,6 +174,14 @@ export const useDataStore = defineStore('data', () => {
             unchanged: overviewResult.breadth.unchanged ?? 0,
           }
         }
+        if (overviewResult.sentiment) {
+          sentiment = {
+            limitUp: overviewResult.sentiment.limit_up ?? overviewResult.sentiment.limitUp ?? 0,
+            limitDown: overviewResult.sentiment.limit_down ?? overviewResult.sentiment.limitDown ?? 0,
+            northboundFlow: overviewResult.sentiment.northbound_flow ?? overviewResult.sentiment.northboundFlow ?? 0,
+            totalVolume: overviewResult.sentiment.total_volume ?? overviewResult.sentiment.totalVolume ?? 0,
+          }
+        }
       }
 
       // Process sector ranks (use cache if fresh, otherwise use API result)
@@ -174,7 +196,7 @@ export const useDataStore = defineStore('data', () => {
         setCached(sectorsCacheKey, sectors, 5 * 60 * 1000)
       }
 
-      marketOverview.value = { indices, breadth, sectors, updatedAt: Date.now() }
+      marketOverview.value = { indices, breadth, sentiment, sectors, updatedAt: Date.now() }
     } catch (e) {
       error.value = String(e)
     } finally {
@@ -207,6 +229,8 @@ export const useDataStore = defineStore('data', () => {
     getCached,
     clearCached,
     fetchMarketOverview,
+    selectedIndexSymbol,
+    setSelectedIndex,
   }
 })
 
