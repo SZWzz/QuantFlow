@@ -215,7 +215,7 @@ func (oc *OHLCVCache) saveToDB(symbol, interval string, bars []OHLCVBar) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(
-		"INSERT OR IGNORE INTO ohlcv_cache (symbol, interval, ts, open, high, low, close, volume, fetched_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT OR REPLACE INTO ohlcv_cache (symbol, interval, ts, open, high, low, close, volume, fetched_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 	)
 	if err != nil {
 		return err

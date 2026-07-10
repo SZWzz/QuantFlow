@@ -112,8 +112,8 @@ func NewTransientErrorf(format string, args ...any) error {
 	return &transientError{msg: fmt.Sprintf(format, args...)}
 }
 
-// RequestCtx returns a context with a 10-second timeout for market data
+// RequestCtx returns a context with a 30-second timeout for market data
 // requests. Callers must call the returned cancel function to release resources.
 func RequestCtx() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 10*time.Second)
+	return context.WithTimeout(context.Background(), 30*time.Second)
 }

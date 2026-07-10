@@ -14,13 +14,103 @@ import (
 )
 
 // FallbackChains defines the priority-ordered list of adapter names for each market.
-// The first available adapter in the chain is used; if it fails, the next is tried.
-// Design aligned with astockpursue's FALLBACK_CHAINS.
+// Used by FetchQuoteWithFallback (quotes are symbol-type agnostic).
 var FallbackChains = map[string][]string{
-	"CN":     {"mootdx", "tencent", "eastmoney", "sina", "tushare", "baidu", "akshare"},
+	"CN":     {"tencent", "mootdx", "eastmoney", "sina", "tushare", "baidu", "akshare"},
 	"US":     {"yahoo", "sina", "finnhub"},
 	"HK":     {"yahoo", "tencent", "sina", "akshare"},
 	"CRYPTO": {"binance", "okx", "coingecko", "gateio"},
+}
+
+// OHLCVChains defines per-market, per-asset-type fallback chains for OHLCV data.
+// CN stocks: tencent first (fast HTTP), mootdx as fallback.
+// CN indices: tencent first, skip mootdx (TDX doesn't support index K-line).
+// Other markets use FallbackChains (no stock/index split).
+var OHLCVChains = map[string]map[string][]string{
+	"CN": {
+		// Mootdx excluded from stock OHLCV: TDX 7709 port's get_security_bars
+		// returns None for historical K-lines (only live quote works).
+		// Minute data uses Mootdx separately (MinuteChains) where it works.
+		"stock": {"tencent", "eastmoney", "sina", "tushare", "baidu", "akshare"},
+		"index": {"tencent", "eastmoney", "sina", "tushare", "baidu", "akshare"},
+	},
+}
+
+// MinuteChains defines per-market, per-asset-type fallback chains for minute data.
+// CN stocks: mootdx first (TDX near-real-time, no CDN cache), tencent as fallback.
+// Tencent's HTTP API has CDN caching (~30-60s) that prevents 5s poller refresh.
+// CN indices: tencent first (TDX doesn't support index minute data).
+var MinuteChains = map[string]map[string][]string{
+	"CN": {
+		"stock": {"mootdx", "tencent"},
+		"index": {"tencent", "mootdx"},
+	},
+}
+
+// IsIndexSymbol detects CN index codes (e.g. 上证指数 000001.SH, 深证成指 399001.SZ).
+// Returns false for non-CN symbols and individual stocks (e.g. 600519.SH, 000001.SZ).
+func IsIndexSymbol(symbol string) bool {
+	if MarketForSymbol(symbol) != "CN" {
+		return false
+	}
+	code := symbol
+	mkt := ""
+	if len(symbol) >= 3 {
+		switch suffix := symbol[len(symbol)-3:]; suffix {
+		case ".SH", ".SS":
+			code = symbol[:len(symbol)-3]
+			mkt = "SH"
+		case ".SZ":
+			code = symbol[:len(symbol)-3]
+			mkt = "SZ"
+		case ".BJ":
+			return false
+		}
+	}
+	if len(code) != 6 {
+		return false
+	}
+	for _, c := range code {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	if mkt == "" {
+		switch code[0] {
+		case '5', '6', '9':
+			mkt = "SH"
+		case '0', '3':
+			mkt = "SZ"
+		default:
+			return false
+		}
+	}
+	switch mkt {
+	case "SH":
+		return code[:2] == "00" || code[:2] == "88"
+	case "SZ":
+		return code[:3] == "399"
+	default:
+		return false
+	}
+}
+
+// chainForSymbol selects the asset-type-specific chain for the given symbol.
+// If the market has a type-split chain map (e.g. OHLCVChains), it picks stock
+// or index; otherwise it falls back to a default chain map (e.g. FallbackChains).
+func chainForSymbol(symbol string, typeChains map[string]map[string][]string, defaultChains map[string][]string) []string {
+	mkt := MarketForSymbol(symbol)
+	if typeMap, ok := typeChains[mkt]; ok {
+		if IsIndexSymbol(symbol) {
+			if chain, ok := typeMap["index"]; ok {
+				return chain
+			}
+		}
+		if chain, ok := typeMap["stock"]; ok {
+			return chain
+		}
+	}
+	return defaultChains[mkt]
 }
 
 // quoteCacheTTL is the maximum age of a cached quote before it's considered stale.
@@ -42,6 +132,13 @@ type AdapterRegistry struct {
 	lastQuotePath string   // if set, last quotes are persisted to this JSON file
 	saveMu        sync.Mutex
 	saveTimer     *time.Timer
+	ohlcvCache    *OHLCVCache // optional two-tier (LRU+SQLite) cache
+}
+
+// SetOHLCVCache attaches the OHLCV cache to the registry. Must be called
+// before any FetchOHLCVWithFallback calls.
+func (r *AdapterRegistry) SetOHLCVCache(c *OHLCVCache) {
+	r.ohlcvCache = c
 }
 
 // SetLastQuotePath sets a file path for persisting last known quotes.
@@ -277,15 +374,28 @@ func (r *AdapterRegistry) FetchIndustryRanksWithFallback(ctx context.Context, ma
 // FetchOHLCVWithFallback tries each adapter in the market's fallback chain
 // until one succeeds. Returns OHLCV bars, the adapter name, and any error.
 // fqfactor controls price adjustment: "" (不复权), "qfq" (前复权), "hfq" (后复权).
+//
+// If the first successful adapter returns data that doesn't cover the requested
+// start date (e.g. Tencent's 2000-bar cap), the function falls through to the
+// next adapter automatically for a more complete dataset.
 func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, symbol, interval, fqfactor string, start, end int64) ([]OHLCVBar, string, error) {
 	interval = NormalizeInterval(interval)
 
-	chain, ok := FallbackChains[market]
-	if !ok {
+	if r.ohlcvCache != nil {
+		if cached, err := r.ohlcvCache.Get(symbol, interval, start, end); err == nil && len(cached) > 0 {
+			slog.Debug("ohlcv cache hit", "symbol", symbol, "interval", interval, "bars", len(cached))
+			return cached, "cache", nil
+		}
+	}
+
+	chain := chainForSymbol(symbol, OHLCVChains, FallbackChains)
+	if len(chain) == 0 {
 		return nil, "", fmt.Errorf("unknown market: %q", market)
 	}
 
 	var lastErr error
+	var bestBars []OHLCVBar
+	var bestSource string
 	for _, name := range chain {
 		adapter := r.Get(name)
 		if adapter == nil {
@@ -306,14 +416,95 @@ func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, sy
 			continue
 		}
 
+		if len(bars) == 0 {
+			slog.Info("ohlcv empty, trying next", "adapter", name, "symbol", symbol)
+			continue
+		}
+
+		// Track the best (most complete) data seen so far.
+		if len(bars) > len(bestBars) {
+			bestBars = bars
+			bestSource = name
+		}
+
+		// Check if this adapter's data covers most of the requested range.
+		// A 90-day grace period accounts for stocks listed shortly after the
+		// requested start date (e.g. 茅台 listed 2001-08-27 vs requested 2001-07-16).
+		// If the data is clearly truncated (Tencent's 2000-bar cap), continue to
+		// the next adapter. Only cache data after confirming adequate coverage.
+		if start > 0 {
+			firstTs := dateToTs(bars[0].Date)
+			if firstTs == 0 || firstTs > start+90*86400 {
+				slog.Info("ohlcv partial, trying next for fuller history",
+					"adapter", name, "symbol", symbol, "bars", len(bars),
+					"first", bars[0].Date, "need_start", time.Unix(start, 0).Format("2006-01-02"))
+				continue
+			}
+		}
+
+		if r.ohlcvCache != nil {
+			if err := r.ohlcvCache.Set(symbol, interval, bars); err != nil {
+				slog.Warn("ohlcv cache set failed", "symbol", symbol, "error", err)
+			}
+		}
 		slog.Info("ohlcv fetched", "adapter", name, "symbol", symbol, "interval", interval, "bars", len(bars))
 		return bars, name, nil
+	}
+
+	// All adapters exhausted — return the best (most bars) data we found.
+	if len(bestBars) > 0 {
+		slog.Info("ohlcv using best partial data", "adapter", bestSource, "symbol", symbol, "bars", len(bestBars),
+			"first", bestBars[0].Date, "last", bestBars[len(bestBars)-1].Date)
+		if r.ohlcvCache != nil {
+			if err := r.ohlcvCache.Set(symbol, interval, bestBars); err != nil {
+				slog.Warn("ohlcv cache set failed", "symbol", symbol, "error", err)
+			}
+		}
+		return bestBars, bestSource, nil
 	}
 
 	if lastErr != nil {
 		return nil, "", fmt.Errorf("all adapters failed for market %q symbol %q: %w", market, symbol, lastErr)
 	}
 	return nil, "", fmt.Errorf("no available adapter found for market %q symbol %q", market, symbol)
+}
+
+// FetchMinuteWithFallback tries each adapter in the market's minute data fallback
+// chain until one succeeds. Uses MinuteChains which split by stock/index.
+func (r *AdapterRegistry) FetchMinuteWithFallback(ctx context.Context, market, symbol string) ([]MinuteTick, string, error) {
+	chain := chainForSymbol(symbol, MinuteChains, nil)
+	if len(chain) == 0 {
+		return nil, "", fmt.Errorf("no minute chain for market %q symbol %q", market, symbol)
+	}
+
+	var lastErr error
+	for _, name := range chain {
+		adapter := r.Get(name)
+		if adapter == nil {
+			slog.Debug("adapter not registered, skipping", "name", name, "market", market)
+			continue
+		}
+		mp, ok := adapter.(MinuteLineProvider)
+		if !ok {
+			slog.Debug("adapter does not implement MinuteLineProvider", "name", name)
+			continue
+		}
+
+		ticks, err := mp.FetchMinuteLine(symbol)
+		if err != nil {
+			slog.Warn("adapter fetch minute failed, trying next", "name", name, "symbol", symbol, "error", err)
+			lastErr = err
+			continue
+		}
+		if len(ticks) > 0 {
+			return ticks, name, nil
+		}
+	}
+
+	if lastErr != nil {
+		return nil, "", fmt.Errorf("all minute adapters failed for %s: %w", symbol, lastErr)
+	}
+	return nil, "", fmt.Errorf("no minute data available for %s (chain: %v)", symbol, chain)
 }
 
 // MarketForSymbol infers the market type from a symbol's suffix/prefix.

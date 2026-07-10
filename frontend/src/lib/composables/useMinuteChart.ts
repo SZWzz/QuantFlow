@@ -1,4 +1,4 @@
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, onUnmounted } from 'vue'
 import type { Ref, ShallowRef } from 'vue'
 import { useDataStore } from '@/stores/data'
 import { useWailsApp, type MinuteTick } from '@/lib/composables/useWailsApp'
@@ -40,11 +40,14 @@ export function useMinuteChart(
       const dataStore = useDataStore()
       const result = await dataStore.fetchMinuteLine(symbol.value, sinceTimestamp)
       if (seq !== loadSeq) return
-      const ticks: MinuteTick[] = Array.isArray(result) ? result[0] : result
+      const ticks: MinuteTick[] = result[0]
       if (!Array.isArray(ticks) || ticks.length === 0) return
 
       if (sinceTimestamp === 0) {
         minuteTicks.value = ticks
+        if (ticks.length > 0 && prevClose.value === 0) {
+          prevClose.value = ticks[0].price
+        }
       } else {
         const existing = new Map(minuteTicks.value.map(t => [t.time, t]))
         for (const t of ticks) {
@@ -73,6 +76,8 @@ export function useMinuteChart(
       minuteTimer = null
     }
   }
+
+  onUnmounted(() => stopPolling())
 
   return { minuteTicks, minuteLoading, loadMinuteLine, startPolling, stopPolling }
 }

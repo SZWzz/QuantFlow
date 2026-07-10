@@ -48,6 +48,7 @@ type App struct {
 	emitter     *ai.EventEmitter
 	profileMgr  *ai.ProfileManager
 	minuteCache *market.MinuteCache
+	ohlcvCache  *market.OHLCVCache
 
 	// Cache of last close prices for price-limit validation.
 	lastClose map[string]float64

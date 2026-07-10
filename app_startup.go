@@ -69,6 +69,13 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		a.minuteCache = mc
 	}
 
+	oc, err := market.NewOHLCVCache(a.db)
+	if err != nil {
+		slog.Error("failed to init ohlcv cache", "err", err)
+	} else {
+		a.ohlcvCache = oc
+	}
+
 	migrations, migErr := storage.BuiltinMigrations()
 	if migErr == nil {
 		if err := storage.Run(db, migrations); err != nil {
@@ -122,6 +129,10 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.registerMarketAdapters()
 	slog.Info("market adapter registry initialized", "count", a.marketReg.Count())
 	nctx.MarketReg = a.marketReg
+
+	if a.ohlcvCache != nil {
+		a.marketReg.SetOHLCVCache(a.ohlcvCache)
+	}
 
 	// Load persisted last quotes (weekend/off-hours display).
 	lastQuotePath := filepath.Join(filepath.Dir(a.resolvedDBPath), "last_quote.json")

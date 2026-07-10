@@ -32,6 +32,7 @@ export interface IndexSnapshot {
   name: string
   last: number
   changePct: number
+  prevClose: number
   sparkline: number[]
   ohlcv?: { open: number; high: number; low: number; close: number }[]
 }
@@ -78,11 +79,6 @@ export const useDataStore = defineStore('data', () => {
   const selectedIndexSymbol = ref('')
   const error = ref<string | null>(null)
   const cache = ref<Map<string, CacheEntry>>(new Map())
-  const selectedIndexSymbol = ref('')
-
-  function setSelectedIndex(symbol: string) {
-    selectedIndexSymbol.value = symbol
-  }
 
   function updateQuote(symbol: string, quote: QuoteSnapshot) {
     quotes.value.set(symbol, quote)

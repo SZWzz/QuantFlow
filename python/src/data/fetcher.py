@@ -17,6 +17,7 @@ import sys
 import threading
 import urllib.request
 import urllib.error
+from datetime import datetime
 
 from src.proto import data_pb2, data_pb2_grpc
 
@@ -373,20 +374,25 @@ def _fetch_mootdx_minute(symbols: list[str]) -> list[dict]:
     all_ticks: list[dict] = []
 
     for symbol in symbols:
-        # Index codes: TDX protocol does not support minute data for market
-        # indices.  Use Tencent HTTP API directly instead.
-        if _is_index_code(symbol):
-            logger.info("using tencent for index minute: %s", symbol)
-            tx_code = _to_tencent_code(symbol)
-            tx_ticks = _fetch_tencent_index_minute(tx_code)
-            if tx_ticks:
-                all_ticks.extend(tx_ticks)
-            continue
-
-        # Individual stocks: use mootdx (TDX) as normal.
         plain = _normalize_code(symbol)
+        is_index = _is_index_code(symbol)
+
+        # Determine TDX market code. mootdx's get_stock_market() misidentifies
+        # index codes (000001 → SZ 平安银行, not SH 上证指数).
+        if is_index:
+            market = 1 if symbol.upper().endswith('.SH') or (plain and plain[0] in ('5', '6', '9')) else 0
+        else:
+            from mootdx.quotes import get_stock_market
+            market = get_stock_market(plain)
+
         try:
-            raw = client.minute(symbol=plain)
+            if is_index:
+                # Use get_history_minute_time_data directly with correct market
+                # (mootdx minute() → minutes() infers wrong market for indices).
+                today = datetime.now().strftime('%Y%m%d')
+                raw = client.client.get_history_minute_time_data(market=market, code=plain, date=today)
+            else:
+                raw = client.minute(symbol=plain)
         except Exception as exc:
             logger.warning("mootdx minute failed for %s: %s", symbol, exc)
             _reset_mootdx_client()

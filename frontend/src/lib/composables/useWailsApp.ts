@@ -26,6 +26,7 @@ export interface QuoteData {
   pe?: number
   limit_up?: number
   limit_down?: number
+  prevClose?: number
 }
 
 export interface OHLCVBar {
@@ -45,14 +46,9 @@ export interface MinuteTick {
   amount: number
 }
 
-export interface GetMinuteLineResult {
-  ticks: MinuteTick[]
-  last_time?: string
-}
-
 export interface WailsApp {
   FetchOHLCV(market: string, symbol: string, interval: string, fq: string, start: number, end: number): Promise<[OHLCVBar[], string]>
-  GetMinuteLine(symbol: string, sinceTimestamp: number): Promise<GetMinuteLineResult>
+  GetMinuteLine(symbol: string, sinceTimestamp: number): Promise<[MinuteTick[], string]>
   GetQuote(market: string, symbol: string): Promise<[QuoteData, string]>
   GetAuditFindings(symbol: string): Promise<Record<string, any>>
   GetFinancialAnalysis(symbol: string): Promise<Record<string, any>>

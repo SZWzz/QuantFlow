@@ -186,52 +186,48 @@ func (a *App) GetQuote(ctx context.Context, marketName, symbol string) (*market.
 // GetMinuteLine returns today's intraday minute-by-minute ticks for a CN symbol.
 // If sinceTimestamp is 0, returns all ticks for today.
 // If sinceTimestamp > 0, returns only ticks after the given Unix timestamp.
-// Data is cached in SQLite + LRU; source data comes from mootdx when not cached.
+// Data is cached in SQLite + LRU. Live fetch uses the registry's MinuteChains
+// (stock: mootdx → tencent; index: tencent → mootdx).
 func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp int64) ([]market.MinuteTick, string, error) {
 	if a.minuteCache == nil {
 		return nil, "unavailable", fmt.Errorf("minute cache not initialized")
 	}
 
-	_ = market.MarketForSymbol(symbol) // reserved for future per-market logic
+	mkt := market.MarketForSymbol(symbol)
 	ticks, err := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
 	if err != nil {
 		slog.Warn("minute_cache: get failed", "symbol", symbol, "err", err)
 	}
 
-	adpt := a.getMootdxAdapter()
-
-	// Outside trading hours: prefer cached data; fall back to live fetch when caches are empty
-	// warnings).  Serve the most recent cached trading day's data instead.
+	// Outside trading hours: prefer cached data; fall back to live fetch when caches are empty.
 	if sinceTimestamp == 0 && !market.IsTradingHours("CN") {
 		if len(ticks) > 0 {
 			return ticks, "cache", nil
-			}
+		}
 		recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 10)
 		if err != nil {
 			slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)
-			}
+		}
 		if len(recentTicks) > 0 {
 			slog.Info("minute_cache: using off-hours data", "symbol", symbol, "date", recentDate)
 			return recentTicks, "cache", nil
-			}
-		// Final fallback: try JSON-persisted ticks from last trading day.
+		}
 		if persisted := a.loadLastMinuteTicks(symbol); len(persisted) > 0 {
 			slog.Info("minute_cache: using persisted off-hours data", "symbol", symbol)
 			return persisted, "cache", nil
-			}
-		// All caches empty — try live fetch.  The TDX server may still
-		// serve today's minute data shortly after market close.
-		if adpt != nil {
-			if liveTicks, err := adpt.FetchMinuteLine(symbol); err == nil && len(liveTicks) > 0 {
+		}
+		// All caches empty — try live fetch via MinuteChains.
+		if a.marketReg != nil {
+			if liveTicks, source, err := a.marketReg.FetchMinuteWithFallback(ctx, mkt, symbol); err == nil && len(liveTicks) > 0 {
 				today := time.Now().Format("2006-01-02")
 				if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
 					slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
 				} else {
 					a.saveLastMinuteTicks(symbol, liveTicks)
 				}
-				return liveTicks, "mootdx", nil
+				return liveTicks, source, nil
 			}
-			}
+		}
 		return nil, "unavailable", fmt.Errorf("no minute data available for %s (market closed)", symbol)
 	}
 
@@ -240,9 +236,9 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 	if sinceTimestamp > 0 {
 		if len(ticks) > 0 {
 			return ticks, "cache", nil
-			}
-		if adpt != nil {
-			if liveTicks, err := adpt.FetchMinuteLine(symbol); err == nil && len(liveTicks) > 0 {
+		}
+		if a.marketReg != nil {
+			if liveTicks, source, err := a.marketReg.FetchMinuteWithFallback(ctx, mkt, symbol); err == nil && len(liveTicks) > 0 {
 				today := time.Now().Format("2006-01-02")
 				if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
 					slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
@@ -250,46 +246,45 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 					a.saveLastMinuteTicks(symbol, liveTicks)
 				}
 				freshTicks, _ := a.minuteCache.GetIncremental(symbol, sinceTimestamp)
-				return freshTicks, "mootdx", nil
+				return freshTicks, source, nil
 			}
-			}
+		}
 		return ticks, "cache", nil
 	}
 
 	// Initial load (sinceTimestamp == 0, during trading hours): serve from
-	// cache if available, otherwise live-fetch via mootdx.
+	// cache if available, otherwise live-fetch via MinuteChains.
 	if len(ticks) > 0 {
 		return ticks, "cache", nil
 	}
 
-	if adpt == nil {
-		return nil, "unavailable", fmt.Errorf("mootdx adapter not available")
+	if a.marketReg == nil {
+		return nil, "unavailable", fmt.Errorf("market registry not available")
 	}
-	liveTicks, err := adpt.FetchMinuteLine(symbol)
+	liveTicks, source, err := a.marketReg.FetchMinuteWithFallback(ctx, mkt, symbol)
 	if err != nil {
-		return nil, "unavailable", err
+		recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 10)
+		if err != nil {
+			slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)
+		}
+		if len(recentTicks) > 0 {
+			slog.Info("minute_cache: using recent data", "symbol", symbol, "date", recentDate)
+			return recentTicks, "cache", nil
+		}
+		return nil, "unavailable", fmt.Errorf("no minute data available for %s", symbol)
 	}
 
 	if len(liveTicks) > 0 {
 		today := time.Now().Format("2006-01-02")
 		if saveErr := a.minuteCache.SaveTicks(symbol, today, liveTicks); saveErr != nil {
 			slog.Warn("minute_cache: save failed", "symbol", symbol, "err", saveErr)
-			} else {
+		} else {
 			a.saveLastMinuteTicks(symbol, liveTicks)
-			}
-		return liveTicks, "mootdx", nil
+		}
+		return liveTicks, source, nil
 	}
 
-	recentTicks, recentDate, err := a.minuteCache.GetRecentTicks(symbol, 10)
-	if err != nil {
-		slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", err)
-	}
-	if len(recentTicks) > 0 {
-		slog.Info("minute_cache: using recent data", "symbol", symbol, "date", recentDate)
-		return recentTicks, "cache", nil
-	}
-
-	return nil, "unavailable", fmt.Errorf("no minute data available for %s (market closed)", symbol)
+	return nil, "unavailable", fmt.Errorf("no minute data available for %s", symbol)
 }
 
 // FetchOHLCV fetches OHLCV bars for a symbol via the market's fallback chain.
@@ -582,7 +577,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	sinaAvail := mkt == "CN" && sina != nil && sina.IsAvailable(ctx)
 
 	now := time.Now()
-	start := now.AddDate(0, 0, -90).Unix()
+	start := now.AddDate(-10, 0, 0).Unix()
 	end := now.Unix()
 
 	for _, idx := range indices {
@@ -606,7 +601,9 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 				return
 			}
 
-			// Fetch daily OHLCV for mini K-line display (indices don't need fqfactor)
+			// Fetch daily OHLCV for mini K-line display (indices don't need fqfactor).
+			// Uses FetchOHLCVWithFallback which checks OHLCVCache first, then tries
+			// the CN fallback chain (tencent first, then mootdx/eastmoney/...).
 			var ohlcv []market.OHLCVBar
 			if cached, ok := indexOhlcvCache.get(idx.code); ok {
 				ohlcv = cached
@@ -652,6 +649,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			"price":      r.snap.Last,
 			"change":     r.snap.Change,
 			"change_pct": r.snap.ChangePct,
+			"prev_close": r.snap.PrevClose,
 			"ohlcv":      ohlcvArr,
 			})
 	}
