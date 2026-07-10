@@ -5,9 +5,9 @@ import { PanelHeader, LoadingState } from '@/terminal/components/panel'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
+import { useMinuteChart } from '@/lib/composables/useMinuteChart'
 import { buildKlineOption } from '@/lib/buildChartOption'
 import type { KlineDataItem } from '@/lib/buildChartOption'
-import type { MinuteTick } from '@/lib/composables/useWailsApp'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
@@ -35,10 +35,10 @@ const chartOHLCV = ref<KlineDataItem[]>([])
 const indexChartLoading = ref(false)
 const indexInterval = ref<'1d' | '5d' | '1mo' | '1y'>('1d')
 
-// Minute chart state
-const minuteTicks = ref<MinuteTick[]>([])
-const minuteLoading = ref(false)
-const prevClose = ref(0)
+// Minute chart state (via composable)
+const minuteSymbol = computed(() => selectedIndex.value?.symbol || '')
+const prevClose = computed(() => selectedIndex.value?.prevClose || 0)
+const { minuteTicks, minuteLoading, loadMinuteLine } = useMinuteChart(minuteSymbol, prevClose)
 
 // Computed from store
 const indices = computed(() => dataStore.marketOverview?.indices ?? [])
@@ -196,34 +196,6 @@ function onSelectIndex(idx: typeof indices.value[0]) {
 }
 
 // ── Data loading ──
-async function loadMinuteChart() {
-  const idx = selectedIndex.value
-  if (!idx) { minuteTicks.value = []; return }
-  minuteLoading.value = true
-  try {
-    const app = (window as any).go?.main?.App
-    if (!app) return
-    // GetMinuteLine returns [ticks, symbol, error]
-    const [ticks, _sym] = (await app.GetMinuteLine(idx.symbol, 0)) as [any[], string]
-    if (!ticks?.length) { minuteTicks.value = []; return }
-    minuteTicks.value = ticks.map((t: any) => ({
-      time: t.time || '',
-      price: t.price || 0,
-      volume: t.volume || 0,
-      avg_price: t.avg_price ?? t.avgPrice ?? 0,
-      amount: t.amount ?? 0,
-    })) as MinuteTick[]
-    // Use prevClose from the quote snapshot (same source as card change_pct),
-    // so the minute chart and index card show consistent numbers.
-    prevClose.value = idx.prevClose || 0
-  } catch (e) {
-    logger.error('[MarketOverview] minute chart:', e)
-    minuteTicks.value = []
-  } finally {
-    minuteLoading.value = false
-  }
-}
-
 async function loadKlineChart() {
   const idx = selectedIndex.value
   if (!idx) { chartOHLCV.value = []; return }
@@ -251,7 +223,7 @@ async function loadKlineChart() {
 
 function loadChart() {
   if (chartMode.value === 'minute') {
-    loadMinuteChart()
+    loadMinuteLine()
   } else {
     loadKlineChart()
   }
