@@ -8,8 +8,12 @@ import { getIcon } from '@/lib/icons'
 import { APP_VERSION } from '@/version'
 import { saveCredential, getCredential, alertDialog } from '@/lib/wails'
 import { logger } from '@/lib/logger'
+import StoragePanel from './StoragePanel.vue'
+import LogPanel from './LogPanel.vue'
+import LayoutTemplatePanel from './LayoutTemplatePanel.vue'
+import NotifyPanel from './NotifyPanel.vue'
 
-defineProps<{ panelId: string; params?: Record<string, any> }>()
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const { t } = useI18n()
 const themeStore = useThemeStore()
@@ -26,15 +30,25 @@ interface Section {
 const sections: Section[] = [
   { id: 'appearance', label: 'appearance', icon: getIcon('config') },
   { id: 'language', label: 'language', icon: getIcon('terminal') },
-  { id: 'notifications', label: 'notifications', icon: getIcon('notify') },
   { id: 'data', label: 'data', icon: getIcon('quote') },
   { id: 'api', label: 'api', icon: getIcon('broker') },
   { id: 'trading', label: 'trading', icon: getIcon('order') },
   { id: 'display', label: 'display', icon: getIcon('market') },
   { id: 'shortcuts', label: 'shortcuts', icon: getIcon('command') },
   { id: 'storage', label: 'storage', icon: getIcon('portfolio') },
+  { id: 'notify', label: 'notifications', icon: getIcon('notify') },
+  { id: 'logs', label: 'log_viewer', icon: getIcon('schedule') },
+  { id: 'layouts', label: 'layout_templates', icon: getIcon('layout') },
   { id: 'about', label: 'about', icon: getIcon('info') },
 ]
+
+// Map section IDs to embedded panel components
+const embeddedComponents: Record<string, any> = {
+  storage: StoragePanel,
+  notify: NotifyPanel,
+  logs: LogPanel,
+  layouts: LayoutTemplatePanel,
+}
 
 const dataSources = ['auto', 'yahoo', 'eastmoney', 'binance']
 const dateFormats = ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY']
@@ -167,35 +181,6 @@ function onExportData() {
         </div>
       </section>
 
-      <!-- Notifications -->
-      <section v-if="activeSection === 'notifications'" class="section">
-        <h3 class="section-title">
-          <span class="section-icon" v-html="getIcon('notify')" />
-          {{ t('settings.notifications') }}
-        </h3>
-
-        <div class="form-group">
-          <label class="form-label">{{ t('settings.telegram_token') }}</label>
-          <input
-            type="text"
-            class="form-input"
-            :value="settingsStore.settings.telegramToken"
-            placeholder="123456:ABC-DEF1234ghikl-zyx57W2v1u123ew11"
-            @input="(e) => settingsStore.update('telegramToken', (e.target as HTMLInputElement).value)"
-          />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">{{ t('settings.chat_id') }}</label>
-          <input
-            type="text"
-            class="form-input"
-            :value="settingsStore.settings.telegramChatId"
-            placeholder="-1001234567890"
-            @input="(e) => settingsStore.update('telegramChatId', (e.target as HTMLInputElement).value)"
-          />
-        </div>
-      </section>
 
       <!-- Data -->
       <section v-if="activeSection === 'data'" class="section">
@@ -377,24 +362,15 @@ function onExportData() {
         </div>
       </section>
 
-      <!-- Storage -->
-      <section v-if="activeSection === 'storage'" class="section">
-        <h3 class="section-title">
-          <span class="section-icon" v-html="getIcon('portfolio')" />
-          {{ t('settings.storage') }}
-        </h3>
-
-        <div class="form-group">
-          <label class="form-label">{{ t('settings.db_path') }}</label>
-          <input type="text" class="form-input" readonly value="~/.quantflow/quantflow.db" />
-        </div>
-
-        <div class="form-group">
-          <button class="action-btn" @click="onExportData">
-            <span class="btn-icon" v-html="getIcon('export')" />
-            {{ t('settings.export_data') }}
-          </button>
-        </div>
+      <!-- Embedded panels: Storage / Notify / Logs / Layouts -->
+      <section
+        v-if="embeddedComponents[activeSection]"
+        class="section embedded-section"
+      >
+        <component
+          :is="embeddedComponents[activeSection]"
+          :panel-id="`settings-${activeSection}`"
+        />
       </section>
 
       <!-- About -->
@@ -512,6 +488,12 @@ function onExportData() {
 .section {
   max-width: 520px;
   animation: fadeIn 0.3s ease;
+}
+
+.embedded-section {
+  max-width: none;
+  flex: 1;
+  overflow: auto;
 }
 
 @keyframes fadeIn {
