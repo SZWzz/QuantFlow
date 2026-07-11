@@ -113,19 +113,27 @@ func TestQuotePoller_FetchesAndPublishesData(t *testing.T) {
 	poller := NewQuotePoller(reg, marketHub, wsHub)
 	poller.interval = 10 * time.Millisecond
 
+	// Simulate a frontend WS client subscribing to the topic
+	client := ws.NewClient(wsHub, nil)
+	wsHub.Subscribe(client, "market:quote:CRYPTO:600519")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	go poller.Run(ctx)
 
-	poller.Subscribe("CRYPTO", "600519")
-
-	// Wait for multiple poll cycles
-	time.Sleep(60 * time.Millisecond)
+	// Poll until data arrives (max 500ms)
+	var msg *MarketMessage
+	var ok bool
+	for i := 0; i < 50; i++ {
+		msg, ok = marketHub.GetLatest("market:quote:CRYPTO:600519")
+		if ok {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	cancel()
 	poller.Stop()
 
-	// Verify the data was published to MarketDataHub
-	msg, ok := marketHub.GetLatest("market:quote:CRYPTO:600519")
 	if !ok {
 		t.Fatal("expected market data hub to have cached message")
 	}
