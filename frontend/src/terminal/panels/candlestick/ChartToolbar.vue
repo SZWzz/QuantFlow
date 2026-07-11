@@ -97,3 +97,112 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.chart-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; border-bottom: 1px solid var(--color-border);
+}
+.header-left {
+  display: flex; align-items: center; gap: 12px;
+}
+.symbol-display {
+  font-size: var(--font-lg); font-weight: 700;
+  color: var(--color-brand);
+}
+.watchlist-btn {
+  padding: 2px 10px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-accent); cursor: pointer;
+  font-size: 11px; white-space: nowrap; transition: all var(--transition-fast);
+}
+.watchlist-btn:hover { background: var(--color-accent); color: #fff; }
+.watchlist-btn.inList { border-color: var(--color-down); color: var(--color-down); }
+.watchlist-btn.inList:hover { background: var(--color-down); color: #fff; }
+.tab-btns { display: flex; gap: 4px; }
+.tab-btn {
+  padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
+}
+.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: var(--color-accent); }
+.interval-btns { display: flex; gap: 2px; }
+.interval-btn {
+  padding: 2px 8px; border: 1px solid var(--color-border);
+  background: transparent; color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-size: var(--font-xs); font-family: 'JetBrains Mono', monospace;
+  transition: all var(--transition-fast);
+}
+.interval-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.interval-btn.active {
+  background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
+}
+.indicator-bar {
+  display: flex; gap: 16px; align-items: center;
+  padding: 4px 10px; border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+.indicator-group { display: flex; align-items: center; gap: 4px; }
+.indicator-label { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-right: 4px; }
+.indicator-btn {
+  padding: 2px 8px; border: 1px solid var(--color-border);
+  background: transparent; color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-size: var(--font-xs); font-family: 'JetBrains Mono', monospace;
+  transition: all var(--transition-fast);
+}
+.indicator-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.indicator-btn.active {
+  background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
+}
+.depth-toggle { }
+.toolbar-select {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-xs);
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+}
+.toolbar-select:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.toolbar-select option { background: var(--color-bg-elevated); color: var(--color-text-primary); }
+.drawing-btn {
+  padding: 3px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+}
+.drawing-btn:hover { border-color: var(--color-text-secondary); }
+.drawing-btn.active {
+  border-color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.15);
+}
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.wf-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(88, 166, 255, 0.1);
+}
+</style>
