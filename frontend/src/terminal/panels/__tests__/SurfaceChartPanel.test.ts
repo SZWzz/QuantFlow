@@ -21,23 +21,22 @@ describe('SurfaceChartPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.text()).toContain('Volatility Surface')
+    expect(wrapper.find('.panel-header h3').text()).toContain('Volatility Surface')
   })
 
-  it('has symbol input', () => {
+  it('renders refresh button', () => {
     const wrapper = mount(SurfaceChartPanel, {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    const input = wrapper.find('.symbol-input')
-    expect(input.exists()).toBe(true)
+    expect(wrapper.find('.refresh-btn').exists()).toBe(true)
   })
 
-  it('has maturity slice selector', () => {
+  it('has data-panel-id attribute', () => {
     const wrapper = mount(SurfaceChartPanel, {
-      props: { panelId: 'test', params: {} },
+      props: { panelId: 'test-surface', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.find('.slice-select').exists()).toBe(true)
+    expect(wrapper.find('.surface-chart-panel').exists()).toBe(true)
   })
 })

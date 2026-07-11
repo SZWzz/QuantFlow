@@ -766,3 +766,55 @@ func (a *App) computeDelistingRisk(symbol, mkt string, isST bool, metrics *tradi
 		Summary:     summary,
 	}, nil
 }
+
+// OptionPriceRequest is the input for option pricing calculations.
+type OptionPriceRequest struct {
+	OptionType string  `json:"option_type"` // "call" or "put"
+	SpotPrice  float64 `json:"spot_price"`
+	Strike     float64 `json:"strike"`
+	TimeToExp  float64 `json:"time_to_expiry"` // years
+	RiskFree   float64 `json:"risk_free_rate"`
+	Volatility float64 `json:"volatility"`
+	MarketPrice float64 `json:"market_price,omitempty"` // for IV calculation
+	Steps      int    `json:"steps,omitempty"`          // binomial tree steps
+	American   bool   `json:"american,omitempty"`       // American exercise
+}
+
+// OptionPriceResult is the output of option pricing.
+type OptionPriceResult struct {
+	Price       float64              `json:"price"`
+	BinomialPrice float64            `json:"binomial_price,omitempty"`
+	Greeks      research.OptionGreeks `json:"greeks"`
+	ImpliedVol  float64              `json:"implied_vol,omitempty"`
+}
+
+// ComputeOptionPrice calculates option price, Greeks, binomial price, and implied volatility.
+func (a *App) ComputeOptionPrice(req OptionPriceRequest) (*OptionPriceResult, error) {
+	optType := research.Call
+	if req.OptionType == "put" {
+		optType = research.Put
+	}
+
+	price, greeks := research.OptionPrice(optType, req.SpotPrice, req.Strike, req.TimeToExp, req.RiskFree, req.Volatility)
+
+	result := &OptionPriceResult{
+		Price:  price,
+		Greeks: greeks,
+	}
+
+	// Binomial tree for American options or when steps specified
+	if req.American || req.Steps > 0 {
+		steps := req.Steps
+		if steps <= 0 {
+			steps = 100
+		}
+		result.BinomialPrice = research.BinomialPrice(optType, req.SpotPrice, req.Strike, req.TimeToExp, req.RiskFree, req.Volatility, steps, req.American)
+	}
+
+	// Implied volatility if market price is provided
+	if req.MarketPrice > 0 {
+		result.ImpliedVol = research.ImpliedVolatility(optType, req.MarketPrice, req.SpotPrice, req.Strike, req.TimeToExp, req.RiskFree)
+	}
+
+	return result, nil
+}

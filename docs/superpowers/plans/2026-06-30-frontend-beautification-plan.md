@@ -1,5 +1,7 @@
 # QuantFlow 前端美化执行计划
 
+> **STATUS: 🟡 MOSTLY COMPLETED** — Phase 1 ✅, Phase 2 ✅, Phase 3 ✅ (BacktestResultPanel was merged into BacktestPanel which already uses EmptyState; batch audit fixed 20+ panels' `.panel-error`/inline color hardcoding in 2026-07-11), Phase 4 🟡 (4.1 hardcoded colors audit/fix + 4.4 build verification done; 4.2/4.3/4.5 are manual visual checks TBD).
+
 > 基于 Spec: `docs/specs/2026-06-30-frontend-beautification-plan.md`
 > 阶段: Plan → Execute
 > 目标: 将 Spec 转化为可逐条执行的 checklist，含文件路径、验收标准、依赖关系

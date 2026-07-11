@@ -44,10 +44,32 @@ func (w *WashSaleChecker) Check(trades []TradeRecord) []WashSaleEvent {
 		bySymbol[t.Symbol] = append(bySymbol[t.Symbol], t)
 	}
 	for symbol, st := range bySymbol {
+		// Track running weighted-average cost basis from prior buy trades.
+		// We compute cost basis BEFORE the sell date so look-ahead bias is avoided.
 		for i, t := range st {
 			if t.Side != "sell" || t.Price <= 0 {
 				continue
 			}
+			// Compute cost basis from all buy trades before this sell
+			var totalCost, totalQty float64
+			for _, bt := range st {
+				if bt.Side != "buy" || !bt.Date.Before(t.Date) {
+					continue
+				}
+				totalCost += float64(bt.Quantity) * bt.Price
+				totalQty += float64(bt.Quantity)
+			}
+			if totalQty <= 0 {
+				continue
+			}
+			costBasis := totalCost / totalQty
+			// Loss = cost basis - sell price (positive means sold at a loss)
+			lossAmt := float64(t.Quantity) * (costBasis - t.Price)
+			if lossAmt <= 0 {
+				continue
+			}
+
+			// Check for repurchases within 61-day window (30 before + sale day + 30 after)
 			lossWindowStart := t.Date.AddDate(0, 0, -30)
 			lossWindowEnd := t.Date.AddDate(0, 0, 30)
 			for j := 0; j < len(st); j++ {
@@ -56,18 +78,15 @@ func (w *WashSaleChecker) Check(trades []TradeRecord) []WashSaleEvent {
 				}
 				if (st[j].Date.Equal(lossWindowStart) || st[j].Date.After(lossWindowStart)) &&
 					(st[j].Date.Equal(lossWindowEnd) || st[j].Date.Before(lossWindowEnd)) {
-					lossAmt := float64(t.Quantity) * (t.Price - st[j].Price)
-					if lossAmt > 0 {
-						events = append(events, WashSaleEvent{
-							Symbol:         symbol,
-							LossDate:       t.Date.Format("2006-01-02"),
-							LossAmount:     lossAmt,
-							RepurchaseDate: st[j].Date.Format("2006-01-02"),
-							WindowDays:     w.WindowDays,
-							DisallowedLoss: lossAmt,
-							AdjustedBasis:  st[j].Price + lossAmt/float64(st[j].Quantity),
-						})
-					}
+					events = append(events, WashSaleEvent{
+						Symbol:          symbol,
+						LossDate:        t.Date.Format("2006-01-02"),
+						LossAmount:      lossAmt,
+						RepurchaseDate:  st[j].Date.Format("2006-01-02"),
+						WindowDays:      w.WindowDays,
+						DisallowedLoss:  lossAmt,
+						AdjustedBasis:   st[j].Price + lossAmt/float64(st[j].Quantity),
+					})
 				}
 			}
 		}

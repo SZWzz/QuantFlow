@@ -3,6 +3,7 @@ package backtest
 import (
 	"context"
 	"log/slog"
+	"math"
 	"sort"
 
 	"quantflow/internal/trading"
@@ -26,19 +27,20 @@ func (s *FixedSlippage) Apply(order trading.Order, bar trading.OHLCVBar) float64
 	return bar.Close * s.Bps
 }
 
-// SquareRootSlippage models price impact proportional to sqrt(volume).
-// Formula: base + volRatio * sqrt(orderQty / barVolume)
-type SquareRootSlippage struct {
+// QuadraticSlippage models price impact proportional to (orderQty / volume)².
+// Formula: Base * (1 + impact²), where impact = VolRatio * qty / volume.
+// Larger orders in thin markets incur disproportionately higher costs.
+type QuadraticSlippage struct {
 	Base     float64
 	VolRatio float64
 }
 
-func (s *SquareRootSlippage) Apply(order trading.Order, bar trading.OHLCVBar) float64 {
+func (s *QuadraticSlippage) Apply(order trading.Order, bar trading.OHLCVBar) float64 {
 	if bar.Volume <= 0 {
 		return s.Base
 	}
 	impact := s.VolRatio * float64(order.Quantity) / bar.Volume
-	// sqrt impact: larger orders in thin markets cost more
+	// Quadratic impact: larger orders in thin markets cost more
 	if impact > 0 {
 		return s.Base * (1 + impact*impact)
 	}
@@ -75,9 +77,9 @@ func NewCNEngine(config Config) *CNEngine {
 	}
 }
 
-// stampDuty returns the stamp duty for a sell trade.
+// stampDuty returns the stamp duty for a sell trade, rounded to 0.01 CNY (fen).
 func (e *CNEngine) stampDuty(tradeValue float64) float64 {
-	return tradeValue * e.stampDutyRate
+	return math.Round(tradeValue*e.stampDutyRate*100) / 100
 }
 
 // Run executes the backtest with A-share market rules.
@@ -175,7 +177,7 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		prevBar = &bar
 	}
 
-	metrics := ComputeMetrics(equityCurve, tradeRecords)
+	metrics := ComputeMetrics(equityCurve, tradeRecords, e.config.RiskFreeRate)
 	return &Result{
 		Config:      e.config,
 		EquityCurve: equityCurve,

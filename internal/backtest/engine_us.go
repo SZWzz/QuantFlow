@@ -27,19 +27,35 @@ func (p *pdtTracker) recordDayTrade(date time.Time) {
 	p.trades = append(p.trades, date)
 }
 
-func (p *pdtTracker) dayTradesIn5Days(currentDate time.Time) int {
+func (p *pdtTracker) dayTradesIn5Days(currentDate time.Time, tradingDates []time.Time) int {
+	// Walk backwards through trading dates to find the boundary 5 trading days ago
+	fiveTradingDaysAgo := currentDate
+	daysBeforeCurrent := 0
+	for i := len(tradingDates) - 1; i >= 0; i-- {
+		if tradingDates[i].Equal(currentDate) {
+			continue
+		}
+		if tradingDates[i].After(currentDate) {
+			continue
+		}
+		daysBeforeCurrent++
+		fiveTradingDaysAgo = tradingDates[i]
+		if daysBeforeCurrent >= 5 {
+			break
+		}
+	}
+
 	count := 0
-	fiveDaysAgo := currentDate.AddDate(0, 0, -5)
 	for _, d := range p.trades {
-		if d.After(fiveDaysAgo) && !d.After(currentDate) {
+		if !d.Before(fiveTradingDaysAgo) && !d.After(currentDate) {
 			count++
 		}
 	}
 	return count
 }
 
-func (p *pdtTracker) isPDT(currentDate time.Time, equity float64) bool {
-	return p.dayTradesIn5Days(currentDate) >= 4 && equity < 25000
+func (p *pdtTracker) isPDT(currentDate time.Time, equity float64, tradingDates []time.Time) bool {
+	return p.dayTradesIn5Days(currentDate, tradingDates) >= 4 && equity < 25000
 }
 
 // ── US Engine ──────────────────────────────────────────────────────────────
@@ -75,6 +91,9 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 	}
 
 	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
+
+	// Build sorted unique trading dates for PDT 5-business-day window calculation
+	tradingDates := extractTradingDates(bars)
 
 	portfolio := NewPortfolio(e.config.InitialCash)
 	e.oms.GetCashLedger().Deposit(e.config.InitialCash)
@@ -154,7 +173,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 				if signal.Direction == "buy" {
 					// PDT check: block buy if PDT triggered and equity < $25k
 					barDate, _ := time.Parse("2006-01-02", bar.Date)
-					if !barDate.IsZero() && e.pdt.isPDT(barDate, currentEquity) {
+					if !barDate.IsZero() && e.pdt.isPDT(barDate, currentEquity, tradingDates) {
 						goto recordEquityUS
 					}
 					e.processUSBuySignal(bar, signal, portfolio, &tradeRecords, &dailyBuys)
@@ -177,7 +196,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		prevBar = &bar
 	}
 
-	metrics := ComputeMetrics(equityCurve, tradeRecords)
+	metrics := ComputeMetrics(equityCurve, tradeRecords, e.config.RiskFreeRate)
 
 	return &Result{
 		Config:      e.config,
@@ -190,7 +209,7 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 func (e *USEngine) processUSBuySignal(bar trading.OHLCVBar, signal *trading.Signal, portfolio *Portfolio, trades *[]TradeRecord, dailyBuys *map[string]bool) {
 	qty := signal.Quantity
 	if qty <= 0 {
-		qty = 100
+		qty = 1 // US fractional shares: default 1 share
 	}
 
 	effectivePrice := bar.Open * (1 + e.config.Slippage)
@@ -301,4 +320,22 @@ func (e *USEngine) processUSSellSignal(bar trading.OHLCVBar, signal *trading.Sig
 // The base Run() already includes PDT tracking and blocking.
 func (e *USEngine) RunWithPDT(ctx context.Context, strategy Strategy, bars []trading.OHLCVBar) (*Result, error) {
 	return e.Run(ctx, strategy, bars)
+}
+
+// extractTradingDates extracts unique sorted trading dates from OHLCV bars.
+// Used by PDT tracker to compute 5-business-day windows correctly.
+func extractTradingDates(bars []trading.OHLCVBar) []time.Time {
+	seen := make(map[string]bool)
+	var dates []time.Time
+	for _, bar := range bars {
+		if !seen[bar.Date] {
+			seen[bar.Date] = true
+			d, err := time.Parse("2006-01-02", bar.Date)
+			if err == nil {
+				dates = append(dates, d)
+			}
+		}
+	}
+	sort.Slice(dates, func(i, j int) bool { return dates[i].Before(dates[j]) })
+	return dates
 }

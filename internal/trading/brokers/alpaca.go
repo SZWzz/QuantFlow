@@ -18,9 +18,10 @@ import (
 
 // AlpacaConfig holds Alpaca Markets API credentials.
 type AlpacaConfig struct {
-	APIKey    string `json:"api_key"`
-	SecretKey string `json:"secret_key"`
-	BaseURL   string `json:"base_url"` // default: https://paper-api.alpaca.markets
+	APIKey      string `json:"api_key"`
+	SecretKey   string `json:"secret_key"`
+	BaseURL     string `json:"base_url"`    // default: https://paper-api.alpaca.markets
+	Environment string `json:"environment"` // "paper" (default) or "live"
 }
 
 // AlpacaBroker implements trading.Broker for Alpaca Markets (US equities).
@@ -35,6 +36,7 @@ type AlpacaBroker struct {
 
 // NewAlpacaBroker creates a new Alpaca broker. Defaults to paper trading.
 // Reads ALPACA_API_KEY and ALPACA_SECRET_KEY from env if not provided in config.
+// Set Environment to "live" for real-money trading (requires live API key).
 func NewAlpacaBroker(cfg AlpacaConfig) *AlpacaBroker {
 	if cfg.APIKey == "" {
 		cfg.APIKey = os.Getenv("ALPACA_API_KEY")
@@ -42,13 +44,47 @@ func NewAlpacaBroker(cfg AlpacaConfig) *AlpacaBroker {
 	if cfg.SecretKey == "" {
 		cfg.SecretKey = os.Getenv("ALPACA_SECRET_KEY")
 	}
+	if cfg.Environment == "" {
+		cfg.Environment = "paper"
+	}
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://paper-api.alpaca.markets"
+		if cfg.Environment == "live" {
+			cfg.BaseURL = "https://api.alpaca.markets"
+		} else {
+			cfg.BaseURL = "https://paper-api.alpaca.markets"
+		}
 		if v := os.Getenv("ALPACA_BASE_URL"); v != "" {
 			cfg.BaseURL = v
 		}
 	}
 	return &AlpacaBroker{cfg: cfg, client: &http.Client{Timeout: 30 * time.Second}}
+}
+
+// IsPaper returns true if this is a paper (simulated) trading account.
+func (a *AlpacaBroker) IsPaper() bool {
+	return a.cfg.Environment != "live"
+}
+
+// alpacaUserFacingError maps common Alpaca API errors to human-readable messages.
+func alpacaUserFacingError(statusCode int, body string) string {
+	switch {
+	case statusCode == 401:
+		return "API 密钥无效，请检查 Alpaca API Key/Secret"
+	case statusCode == 403:
+		return "权限不足：Paper Key 不能访问 Live 账户，反之亦然"
+	case statusCode == 422:
+		return fmt.Sprintf("订单参数无效：%s", body)
+	case statusCode == 429:
+		return "请求过于频繁，请稍后再试"
+	case strings.Contains(body, "insufficient"):
+		return "资金不足，无法下单"
+	case strings.Contains(body, "not found"):
+		return "标的代码不存在"
+	case strings.Contains(body, "market closed"):
+		return "市场已关闭，请在交易时段下单"
+	default:
+		return fmt.Sprintf("Alpaca 错误 (HTTP %d): %s", statusCode, body)
+	}
 }
 
 // Name returns the broker identifier.

@@ -43,17 +43,17 @@ const metrics = computed(() => analysis.value?.metrics || {})
 const anomalyFlags = computed(() => analysis.value?.anomaly_flags || [])
 
 function riskColor(grade: string): string {
-  if (grade.includes('高')) return '#ef4444'
+  if (grade.includes('高')) return 'var(--color-up)'
   if (grade.includes('中')) return '#f59e0b'
-  return '#22c55e'
+  return 'var(--color-down)'
 }
 
 function healthColor(score: number | null): string {
-  if (score === null) return '#6b7280'
-  if (score >= 80) return '#22c55e'
-  if (score >= 60) return '#60a5fa'
+  if (score === null) return 'var(--color-text-tertiary)'
+  if (score >= 80) return 'var(--color-down)'
+  if (score >= 60) return 'var(--color-accent)'
   if (score >= 40) return '#f59e0b'
-  return '#ef4444'
+  return 'var(--color-up)'
 }
 
 function levelIcon(level: string): string {
@@ -363,23 +363,23 @@ onMounted(() => {
       <div class="kpis">
         <div class="kpi">
           <span class="kpi-label">ROE</span>
-          <span class="kpi-val" :style="{ color: (latestPeriod.roe ?? 0) > 8 ? '#22c55e' : '#ef4444' }">{{ formatPct(latestPeriod.roe) }}</span>
+          <span class="kpi-val" :style="{ color: (latestPeriod.roe ?? 0) > 8 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.roe) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">负债率</span>
-          <span class="kpi-val" :style="{ color: (latestPeriod.debt_ratio ?? 100) < 60 ? '#22c55e' : '#ef4444' }">{{ formatPct(latestPeriod.debt_ratio) }}</span>
+          <span class="kpi-val" :style="{ color: (latestPeriod.debt_ratio ?? 100) < 60 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.debt_ratio) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">净利率</span>
-          <span class="kpi-val" :style="{ color: (latestPeriod.profit_margin ?? 0) > 10 ? '#22c55e' : '#ef4444' }">{{ formatPct(latestPeriod.profit_margin) }}</span>
+          <span class="kpi-val" :style="{ color: (latestPeriod.profit_margin ?? 0) > 10 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.profit_margin) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">毛利率</span>
-          <span class="kpi-val" :style="{ color: '#60a5fa' }">{{ formatPct(latestPeriod.gross_margin) }}</span>
+          <span class="kpi-val" :style="{ color: 'var(--color-accent)' }">{{ formatPct(latestPeriod.gross_margin) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">营收增长</span>
-          <span class="kpi-val" :style="{ color: (growthRate() ?? 0) > 0 ? '#22c55e' : '#ef4444' }">{{ formatChange(growthRate()) }}</span>
+          <span class="kpi-val" :style="{ color: (growthRate() ?? 0) > 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatChange(growthRate()) }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-label">商誉/净资产</span>
@@ -410,7 +410,7 @@ onMounted(() => {
         <div v-if="showBreakdown && breakdown.length" class="breakdown-list">
           <div v-for="(b, i) in breakdown" :key="i" class="br-item">
             <span class="br-name">{{ b.item }}</span>
-            <span class="br-effect" :style="{ color: (b.effect || 0) >= 0 ? '#22c55e' : '#ef4444' }">{{ (b.effect || 0) >= 0 ? '+' : '' }}{{ b.effect }}</span>
+            <span class="br-effect" :style="{ color: (b.effect || 0) >= 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ (b.effect || 0) >= 0 ? '+' : '' }}{{ b.effect }}</span>
             <span class="br-detail">{{ b.detail }}</span>
           </div>
           <div class="br-total">
@@ -484,8 +484,8 @@ onMounted(() => {
                 <td class="period">{{ p.period }}</td>
                 <td class="num">{{ formatNum(p.revenue) }}</td>
                 <td class="num">{{ formatNum(p.net_profit) }}</td>
-                <td class="num" :style="{ color: (p.roe ?? 0) > 0 ? '#22c55e' : '#ef4444' }">{{ formatPct(p.roe) }}</td>
-                <td class="num" :style="{ color: (p.debt_ratio ?? 0) < 60 ? '#22c55e' : '#ef4444' }">{{ formatPct(p.debt_ratio) }}</td>
+                <td class="num" :style="{ color: (p.roe ?? 0) > 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(p.roe) }}</td>
+                <td class="num" :style="{ color: (p.debt_ratio ?? 0) < 60 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(p.debt_ratio) }}</td>
                 <td class="num">{{ formatPct(p.gross_margin) }}</td>
               </tr>
             </tbody>
@@ -635,9 +635,9 @@ onMounted(() => {
 .dr-category { margin-bottom: 14px; }
 .dr-cat-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .dr-cat-dot { width: 8px; height: 8px; border-radius: 50%; }
-.dot-red { background: #ef4444; }
+.dot-red { background: var(--color-up); }
 .dot-yellow { background: #eab308; }
-.dot-green { background: #22c55e; }
+.dot-green { background: var(--color-down); }
 .dr-cat-name { font-weight: 600; font-size: 13px; }
 
 /* Items */
@@ -650,7 +650,7 @@ onMounted(() => {
 .dr-current { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .dr-threshold { color: var(--color-text-secondary); font-size: 11px; }
 .dr-detail { width: 100%; color: var(--color-text-secondary); font-size: 11px; padding-left: 18px; }
-.dr-item-danger { border-left: 3px solid #ef4444; }
+.dr-item-danger { border-left: 3px solid var(--color-up); }
 .dr-item-warn { border-left: 3px solid #eab308; }
-.dr-item-safe { border-left: 3px solid #22c55e; }
+.dr-item-safe { border-left: 3px solid var(--color-down); }
 </style>

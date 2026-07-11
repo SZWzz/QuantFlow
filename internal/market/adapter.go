@@ -51,3 +51,11 @@ type IndustryRankProvider interface {
 	// market is "CN", "HK", or "US".
 	FetchIndustryRanks(ctx context.Context, market string, topN int) ([]IndustryRank, error)
 }
+
+// WSCoverageChecker reports whether an exchange has an active WebSocket
+// connection that covers real-time data, allowing pollers to skip HTTP
+// requests for covered symbols.
+type WSCoverageChecker interface {
+	IsActive(exchangeName string) bool
+	ActiveExchanges() []string
+}

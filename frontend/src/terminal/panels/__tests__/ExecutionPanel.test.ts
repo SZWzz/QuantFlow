@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+import { mockWailsIPC } from '@/__tests__/mocks'
 import ExecutionPanel from '../ExecutionPanel.vue'
 
 describe('ExecutionPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockWailsIPC()
   })
 
   it('mounts without crashing', () => {
@@ -17,12 +19,11 @@ describe('ExecutionPanel', () => {
     expect(wrapper.html()).toBeTruthy()
   })
 
-  it('renders title text', () => {
+  it('renders table', () => {
     const wrapper = mount(ExecutionPanel, {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    // The panel should render trade data rows
     expect(wrapper.find('table').exists()).toBe(true)
   })
 
@@ -37,7 +38,7 @@ describe('ExecutionPanel', () => {
     expect(wrapper.text()).toContain('Symbol')
     expect(wrapper.text()).toContain('Side')
     expect(wrapper.text()).toContain('Price')
-    expect(wrapper.text()).toContain('Value')
+    expect(wrapper.text()).toContain('Amount')
   })
 
   it('renders Load More button when there are trades', async () => {
@@ -45,10 +46,8 @@ describe('ExecutionPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    // The mock store generates 35 trades; with pageSize=20, Load More should appear
+    // The mock store generates 4 trades; with pageSize=20
     await wrapper.vm.$nextTick()
-    const loadBtn = wrapper.find('.load-btn')
-    // Load More may or may not appear depending on initial render timing
     expect(wrapper.find('table').exists()).toBe(true)
   })
 })

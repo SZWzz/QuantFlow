@@ -1,5 +1,7 @@
 # Python Sidecar Overhaul Implementation Plan
 
+> **STATUS: ✅ COMPLETED** (2026-07-09) — All 4 tasks implemented. pyproject.toml fixed (build-system + mypy + dep groups), fetcher.py uses direct import with subprocess fallback, cross_sectional.py uses .transform.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace subprocess-per-request anti-pattern with direct module imports; fix pyproject.toml build system and dependency groups; optimize groupby.apply→transform.
@@ -22,7 +24,7 @@
 **Files:**
 - Modify: `python/pyproject.toml`
 
-- [ ] **Step 1: Write test for pyproject.toml validity**
+- [x] **Step 1: Write test for pyproject.toml validity**
 
 ```python
 # python/tests/test_pyproject.py
@@ -35,7 +37,7 @@ def test_pyproject_has_build_system():
     assert data["build-system"]["requires"] == ["setuptools>=64"]
 ```
 
-- [ ] **Step 2: Add [build-system] and fix deps**
+- [x] **Step 2: Add [build-system] and fix deps**
 
 ```toml
 [build-system]
@@ -73,14 +75,14 @@ warn_unused_configs = true
 
 Remove `mootdx` from `[project.optional-dependencies] dev` (it's now in `data`).
 
-- [ ] **Step 3: Run test**
+- [x] **Step 3: Run test**
 
 ```bash
 cd python && python -m pytest tests/test_pyproject.py -v
 ```
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add python/pyproject.toml
@@ -100,7 +102,7 @@ git commit -m "fix(python): add [build-system] to pyproject.toml, fix dep groups
 - Produces: same function, same return type, but calls `akshare` module directly
 - Fallback: `_handle_akshare_subprocess(endpoint, **params)` for modules not installed
 
-- [ ] **Step 1: Write test for direct import**
+- [x] **Step 1: Write test for direct import**
 
 ```python
 # python/tests/test_fetcher_direct.py
@@ -134,7 +136,7 @@ async def test_handle_akshare_fallback():
             assert result == [{"col": 1}]
 ```
 
-- [ ] **Step 2: Rewrite _handle_akshare**
+- [x] **Step 2: Rewrite _handle_akshare**
 
 ```python
 # python/src/data/fetcher.py — add near top
@@ -192,7 +194,7 @@ async def _run_akshare_subprocess(endpoint: str, **params) -> list[dict]:
         return []
 ```
 
-- [ ] **Step 3: Write test for macro_fetcher.py**
+- [x] **Step 3: Write test for macro_fetcher.py**
 
 ```python
 # python/tests/test_macro_fetcher_direct.py
@@ -204,7 +206,7 @@ async def test_handle_macro_import():
     assert result is not None or result == []
 ```
 
-- [ ] **Step 4: Same pattern for _handle_macro in macro_fetcher.py**
+- [x] **Step 4: Same pattern for _handle_macro in macro_fetcher.py**
 
 ```python
 # python/src/data/macro_fetcher.py — similar rewrite
@@ -221,14 +223,14 @@ async def _handle_macro(endpoint: str, **params) -> list[dict]:
         return await _run_macro_subprocess(endpoint, **params)
 ```
 
-- [ ] **Step 5: Run all fetcher tests**
+- [x] **Step 5: Run all fetcher tests**
 
 ```bash
 cd python && python -m pytest tests/test_fetcher_direct.py tests/test_macro_fetcher_direct.py -v
 ```
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add python/src/data/fetcher.py python/src/data/macro_fetcher.py python/tests/test_fetcher_direct.py python/tests/test_macro_fetcher_direct.py
@@ -243,7 +245,7 @@ git commit -m "perf(python): replace subprocess-per-request with direct imports 
 - Modify: `python/src/factor/cross_sectional.py`
 - Test: `python/tests/test_factor_cross_sectional.py`
 
-- [ ] **Step 1: Write test**
+- [x] **Step 1: Write test**
 
 ```python
 # python/tests/test_factor_cross_sectional.py
@@ -271,7 +273,7 @@ def test_zscore_volume_ratio_transform():
     assert result.isna().sum() == 8  # 4 NaN × 2 symbols
 ```
 
-- [ ] **Step 2: Replace groupby.apply with transform in cross_sectional.py**
+- [x] **Step 2: Replace groupby.apply with transform in cross_sectional.py**
 
 ```python
 # python/src/factor/cross_sectional.py
@@ -302,14 +304,14 @@ def zscore_volume_ratio_5d(close, volume, **kwargs):
     return zscore
 ```
 
-- [ ] **Step 3: Run test**
+- [x] **Step 3: Run test**
 
 ```bash
 cd python && python -m pytest tests/test_factor_cross_sectional.py -v
 ```
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add python/src/factor/cross_sectional.py python/tests/test_factor_cross_sectional.py
@@ -320,7 +322,7 @@ git commit -m "perf(python): replace groupby.apply with transform in cross-secti
 
 ### Task 4: Update CHANGELOG
 
-- [ ] **Step 1: Update CHANGELOG.md**
+- [x] **Step 1: Update CHANGELOG.md**
 
 ```markdown
 ### Changed
@@ -329,7 +331,7 @@ git commit -m "perf(python): replace groupby.apply with transform in cross-secti
 - [Python] pyproject.toml: add [build-system], move mootdx to data deps, torch to ml deps, add mypy config
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add CHANGELOG.md

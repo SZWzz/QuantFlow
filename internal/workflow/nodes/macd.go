@@ -77,6 +77,4 @@ func ema(data []float64, period int) []float64 {
 	return result
 }
 
-func extractFloatSlice(val any) []float64 {
-	return extractFloat64Slice(val)
-}
+// extractFloatSlice is defined in utils.go

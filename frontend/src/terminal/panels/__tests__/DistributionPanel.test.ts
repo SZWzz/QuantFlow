@@ -2,11 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
+import { mockWailsIPC } from '@/__tests__/mocks'
 import DistributionPanel from '../DistributionPanel.vue'
 
 describe('DistributionPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockWailsIPC()
   })
 
   it('mounts without crashing', () => {
@@ -22,7 +24,7 @@ describe('DistributionPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.text()).toContain('Return Distribution')
+    expect(wrapper.find('.panel-header h3').text()).toContain('Return Distribution')
   })
 
   it('renders placeholder before compute', () => {
@@ -30,7 +32,8 @@ describe('DistributionPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.text()).toContain('Enter a symbol and click Compute')
+    // Placeholder shows Chinese text as rendered
+    expect(wrapper.find('.placeholder-msg').exists()).toBe(true)
   })
 
   it('computes and shows stats after button click', async () => {

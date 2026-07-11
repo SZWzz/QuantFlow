@@ -49,7 +49,7 @@ func TestMetrics_AllPositive(t *testing.T) {
 		{Date: "2024-01-05", Equity: 105000, Cash: 100000},
 	}
 
-	metrics := ComputeMetrics(equity, nil)
+	metrics := ComputeMetrics(equity, nil, 0.02)
 	if metrics.TotalReturn <= 0 {
 		t.Errorf("Expected positive total return, got %f", metrics.TotalReturn)
 	}
@@ -67,7 +67,7 @@ func TestMetrics_MaxDrawdown(t *testing.T) {
 		{Date: "2024-01-05", Equity: 102000, Cash: 100000},
 	}
 
-	metrics := ComputeMetrics(equity, nil)
+	metrics := ComputeMetrics(equity, nil, 0.02)
 	expected := (95000.0 - 110000.0) / 110000.0
 	if math.Abs(metrics.MaxDrawdown-expected) > 0.001 {
 		t.Errorf("MaxDrawdown: got %f, want %f", metrics.MaxDrawdown, expected)
@@ -80,7 +80,7 @@ func TestMetrics_Flat(t *testing.T) {
 		{Date: "2024-01-02", Equity: 100000, Cash: 100000},
 	}
 
-	metrics := ComputeMetrics(equity, nil)
+	metrics := ComputeMetrics(equity, nil, 0.02)
 	if metrics.TotalReturn != 0 {
 		t.Errorf("Expected zero total return for flat equity, got %f", metrics.TotalReturn)
 	}

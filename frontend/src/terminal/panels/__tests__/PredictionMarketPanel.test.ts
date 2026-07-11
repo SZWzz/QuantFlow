@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
+import { mockWailsIPC } from '@/__tests__/mocks'
 import PredictionMarketPanel from '../PredictionMarketPanel.vue'
 
 // Mock vue-echarts (same pattern as other panel tests)
@@ -16,6 +17,7 @@ vi.mock('vue-echarts', () => ({
 describe('PredictionMarketPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockWailsIPC()
   })
 
   it('renders panel header with 预测市场', () => {

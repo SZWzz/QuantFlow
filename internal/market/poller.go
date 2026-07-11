@@ -15,12 +15,19 @@ type QuotePoller struct {
 	reg       *AdapterRegistry
 	marketHub *MarketDataHub
 	wsHub     *ws.Hub
+	wsChecker WSCoverageChecker // optional: if set, symbols covered by WS are skipped
 
 	mu       sync.RWMutex
 	subs     map[string]bool
 	close    chan struct{}
 	running  bool
 	interval time.Duration
+}
+
+// SetWSCoverageChecker sets an optional WS coverage checker.
+// When set, symbols covered by an active WS connection will be skipped during polling.
+func (p *QuotePoller) SetWSCoverageChecker(checker WSCoverageChecker) {
+	p.wsChecker = checker
 }
 
 // NewQuotePoller creates a QuotePoller. Call Run() to start processing.
@@ -120,6 +127,11 @@ func (p *QuotePoller) pollOnce(ctx context.Context) {
 			continue
 		}
 
+			// Skip HTTP poll if a WS connection covers this symbol's exchange
+			if p.wsChecker != nil && p.isCoveredByWS(market) {
+				continue
+			}
+
 		quote, adapter, err := p.reg.FetchQuoteWithFallback(ctx, market, symbol)
 		if err != nil {
 			slog.Debug("quote poller fetch failed", "key", key, "error", err)
@@ -147,6 +159,14 @@ func (p *QuotePoller) Stop() {
 	default:
 	}
 	slog.Info("quote poller stopped")
+}
+
+// isCoveredByWS returns true if the market has an active WS connection.
+func (p *QuotePoller) isCoveredByWS(market string) bool {
+	if market != "CRYPTO" {
+		return false // only crypto exchanges support WS push currently
+	}
+	return len(p.wsChecker.ActiveExchanges()) > 0
 }
 
 func splitSubscriberKey(key string) (string, string) {

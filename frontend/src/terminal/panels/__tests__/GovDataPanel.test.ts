@@ -56,7 +56,8 @@ describe('GovDataPanel', () => {
 
   it('renders source switch tabs (3 sources)', () => {
     const wrapper = mountPanel()
-    const sourceTabs = wrapper.findAll('.source-tab')
+    // First PanelTabs is source tabs with variant="pill"
+    const sourceTabs = wrapper.findAll('.panel-tabs.variant-pill .tab')
     expect(sourceTabs.length).toBe(3)
   })
 

@@ -22,6 +22,7 @@ import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { logger } from '@/lib/logger'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import ChartToolbar from './candlestick/ChartToolbar.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -724,71 +725,30 @@ onUnmounted(() => {
 
 <template>
   <div class="candlestick-panel">
-    <div class="chart-header">
-      <div class="header-left">
-        <span class="symbol-display">{{ symbol }} {{ name }}</span>
-        <button
-          class="watchlist-btn"
-          :class="{ inList: isInWatchlist }"
-          @click="toggleWatchlist"
-        >{{ isInWatchlist ? $t('watchlist.remove') : $t('watchlist.add') }}</button>
-        <div class="tab-btns">
-          <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="activeTab = 'kline'">{{ $t('kline.kline') }}</button>
-          <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="activeTab = 'minute'">{{ $t('kline.minute') }}</button>
-        </div>
-        <button class="drawing-btn" @click="toggleDrawingMode()" :class="{ active: drawingMode }" title="画线工具 (Shift+D)">
-          ✏️
-        </button>
-        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
-      </div>
-      <div v-if="activeTab === 'kline'" class="interval-btns">
-        <button v-for="i in ['1m','5m','15m','30m','1h','1d','1w']" :key="i"
-          :class="{ active: interval === i }" class="interval-btn"
-          @click="interval = i">{{ i }}</button>
-      </div>
-    </div>
-    <div v-if="activeTab === 'kline'" class="indicator-bar">
-      <div class="indicator-group">
-        <span class="indicator-label">{{ $t('kline.overlay') }}</span>
-        <button :class="{ active: topOverlay === 'none' }" class="indicator-btn" @click="topOverlay = 'none'">无</button>
-        <button :class="{ active: topOverlay === 'ma' }" class="indicator-btn" @click="topOverlay = 'ma'">MA</button>
-        <button :class="{ active: topOverlay === 'bb' }" class="indicator-btn" @click="topOverlay = 'bb'">{{ $t('kline.bb') }}</button>
-        <button :class="{ active: topOverlay === 'sar' }" class="indicator-btn" @click="topOverlay = 'sar'">SAR</button>
-        <button :class="{ active: topOverlay === 'ema' }" class="indicator-btn" @click="topOverlay = 'ema'">EMA</button>
-      </div>
-      <div class="indicator-group">
-        <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
-        <button :class="{ active: bottomMode === 'volume' }" class="indicator-btn" @click="bottomMode = 'volume'">{{ $t('kline.volume') }}</button>
-        <button :class="{ active: bottomMode === 'macd' }" class="indicator-btn" @click="bottomMode = 'macd'">MACD</button>
-        <button :class="{ active: bottomMode === 'kdj' }" class="indicator-btn" @click="bottomMode = 'kdj'">KDJ</button>
-        <button :class="{ active: bottomMode === 'rsi' }" class="indicator-btn" @click="bottomMode = 'rsi'">RSI</button>
-        <button :class="{ active: bottomMode === 'wr' }" class="indicator-btn" @click="bottomMode = 'wr'">WR</button>
-        <button :class="{ active: bottomMode === 'cci' }" class="indicator-btn" @click="bottomMode = 'cci'">CCI</button>
-        <button :class="{ active: bottomMode === 'obv' }" class="indicator-btn" @click="bottomMode = 'obv'">OBV</button>
-      </div>
-      <div class="indicator-group">
-        <span class="indicator-label">叠加指数</span>
-        <select v-model="indexOverlaySymbol" class="toolbar-select">
-          <option value="">不叠加</option>
-          <option value="000001">上证指数</option>
-          <option value="399001">深证成指</option>
-          <option value="399006">创业板指</option>
-        </select>
-      </div>
-    </div>
-    <div v-if="activeTab === 'minute'" class="indicator-bar">
-      <div class="indicator-group">
-        <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
-        <button :class="{ active: minuteBottomMode === 'volume' }" class="indicator-btn" @click="minuteBottomMode = 'volume'">{{ $t('kline.volume') }}</button>
-        <button :class="{ active: minuteBottomMode === 'macd' }" class="indicator-btn" @click="minuteBottomMode = 'macd'">MACD</button>
-        <button :class="{ active: minuteBottomMode === 'kdj' }" class="indicator-btn" @click="minuteBottomMode = 'kdj'">KDJ</button>
-        <button :class="{ active: minuteBottomMode === 'rsi' }" class="indicator-btn" @click="minuteBottomMode = 'rsi'">RSI</button>
-        <button :class="{ active: minuteBottomMode === 'obv' }" class="indicator-btn" @click="minuteBottomMode = 'obv'">OBV</button>
-      </div>
-      <div v-if="activeTab === 'minute'" class="indicator-group">
-        <button class="indicator-btn depth-toggle" :class="{ active: showDepth }" @click="toggleDepth">📊 {{ $t('misc.depth') }}</button>
-      </div>
-    </div>
+    <ChartToolbar
+      :symbol="symbol"
+      :name="name ?? ''"
+      :isInWatchlist="isInWatchlist"
+      :activeTab="activeTab"
+      :interval="interval"
+      :drawingMode="drawingMode"
+      :addToWfControl="addToWfControl"
+      :topOverlay="topOverlay"
+      :bottomMode="bottomMode"
+      :minuteBottomMode="minuteBottomMode"
+      :indexOverlaySymbol="indexOverlaySymbol"
+      :showDepth="showDepth"
+      @toggleWatchlist="toggleWatchlist"
+      @toggleDrawingMode="toggleDrawingMode"
+      @addToWorkflow="addToWorkflow"
+      @update:activeTab="activeTab = $event"
+      @update:interval="interval = $event"
+      @update:topOverlay="topOverlay = $event"
+      @update:bottomMode="bottomMode = $event"
+      @update:minuteBottomMode="minuteBottomMode = $event"
+      @update:indexOverlaySymbol="indexOverlaySymbol = $event"
+      @toggleDepth="toggleDepth"
+    />
     <div v-if="errorMsg" class="err-toast">{{ errorMsg }}</div>
     <InfoBar
       :quote="quoteData"
@@ -949,7 +909,7 @@ onUnmounted(() => {
 .indicator-btn.active {
   background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
 }
-.err-toast { padding: 6px 12px; background: rgba(239,68,68,0.15); color: #ef4444; font-size: 12px; border-radius: var(--radius-sm); margin-bottom: 8px; }
+.err-toast { padding: 6px 12px; background: var(--color-up-soft); color: var(--color-up); font-size: 12px; border-radius: var(--radius-sm); margin-bottom: 8px; }
 
 /* Depth sidebar */
 .depth-toggle { }

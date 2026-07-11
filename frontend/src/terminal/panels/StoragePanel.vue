@@ -175,7 +175,7 @@ onMounted(() => statsFetcher.execute())
   color: var(--text-secondary, #888);
   position: sticky;
   top: 0;
-  background: var(--bg-primary, #1a1a2e);
+  background: var(--color-bg-panel);
   white-space: nowrap;
 }
 .storage-table td.num {

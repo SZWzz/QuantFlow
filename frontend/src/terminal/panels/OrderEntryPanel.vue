@@ -134,7 +134,7 @@ function placeOrder() {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .order-panel { padding: 12px; background: var(--bg); height: 100%; }
 .order-form { display: flex; flex-direction: column; gap: 10px; }
 

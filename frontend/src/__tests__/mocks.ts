@@ -185,6 +185,7 @@ const t = (key: string) => {
     'correlation.title': 'Correlation Matrix',
     'correlation.placeholder': 'Enter symbols and click Compute',
     // Research
+    'research.title': 'Stock Research',
     'research.sentiment': 'Sentiment Analysis',
     'research.hint_enter_symbol': 'Enter a symbol and press ↵',
     'research.keywords': 'Keywords',
@@ -193,6 +194,15 @@ const t = (key: string) => {
     'misc.volatility_surface': 'Volatility Surface',
     'misc.heatmap': 'Heatmap',
     'misc.no_hk_sector_data': 'No HK sector data',
+    'misc.crypto_overview': 'Crypto Overview',
+    'misc.distribution': 'Return Distribution',
+    'misc.correlation': 'Correlation Matrix',
+    'misc.mean': 'Mean',
+    'misc.stddev': 'Std Dev',
+    'misc.skewness': 'Skewness',
+    'misc.kurtosis': 'Kurtosis',
+    'misc.jarque_bera': 'Jarque-Bera',
+    'misc.normal_fit': 'Normal Fit',
     // Panels
     'panels.ipo_calendar': 'IPO Calendar',
     'panels.today_apply': 'Today Apply',
@@ -236,8 +246,18 @@ export function mockWailsIPC() {
   const app = {
     SearchSymbols: vi.fn().mockResolvedValue({ data: [] }),
     GetQuote: vi.fn().mockImplementation((market: string, symbol: string) => {
+      const names: Record<string, string> = {
+        '600519': '贵州茅台',
+        '000001': '平安银行',
+        '300750': '宁德时代',
+        '601318': '中国平安',
+        '000858': '五粮液',
+        '600036': '招商银行',
+        '601166': '兴业银行',
+        '600276': '恒瑞医药',
+      }
       return {
-        symbol, last: 150.0, change: 1.5, changePct: 1.0, open: 148.0,
+        symbol, name: names[symbol] || symbol, last: 150.0, change: 1.5, changePct: 1.0, open: 148.0,
         high: 152.0, low: 147.5, volume: 1000000, turnover: 150000000,
         bid: 149.9, ask: 150.1, prevClose: 148.5,
       }
@@ -261,10 +281,17 @@ export function mockWailsIPC() {
     FetchBacktest: vi.fn().mockResolvedValue(null),
     GetPortfolioSummary: vi.fn().mockResolvedValue(null),
     GetOrders: vi.fn<[], any>().mockResolvedValue([
-      { order_id: 'ord_001', symbol: '600519', side: 'buy', status: 'filled', quantity: 100, price: 1800 },
+      { order_id: 'ord_001', symbol: '600519', name: '贵州茅台', side: 'buy', type: 'limit', quantity: 100, price: 1800, filled_qty: 100, status: 'filled', created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T10:30:00Z' },
+      { order_id: 'ord_002', symbol: '000001', name: '平安银行', side: 'buy', type: 'market', quantity: 200, price: 12.5, filled_qty: 200, status: 'filled', created_at: '2024-01-15T09:30:00Z', updated_at: '2024-01-15T09:31:00Z' },
+      { order_id: 'ord_003', symbol: 'AAPL', side: 'sell', type: 'limit', quantity: 50, price: 200, filled_qty: 50, status: 'filled', created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T11:00:00Z' },
+      { order_id: 'ord_004', symbol: '300750', side: 'buy', type: 'limit', quantity: 100, price: 220, filled_qty: 0, status: 'pending', created_at: '2024-01-15T11:00:00Z', updated_at: '2024-01-15T11:00:00Z' },
+      { order_id: 'ord_005', symbol: '00700.HK', side: 'buy', type: 'market', quantity: 200, price: 380, filled_qty: 200, status: 'filled', created_at: '2024-01-14T09:00:00Z', updated_at: '2024-01-14T09:15:00Z' },
     ]),
     GetTrades: vi.fn<[], any>().mockResolvedValue([
-      { trade_id: 'trd_001', symbol: '600519', side: 'buy', quantity: 100, price: 1800 },
+      { trade_id: 'trd_001', order_id: 'ord_001', symbol: '600519', name: '贵州茅台', side: 'buy', quantity: 100, price: 1800, value: 180000, fee: 18, executed_at: '2024-01-15T10:30:00Z' },
+      { trade_id: 'trd_002', order_id: 'ord_003', symbol: 'AAPL', name: 'Apple Inc.', side: 'sell', quantity: 50, price: 195, value: 9750, fee: 0, executed_at: '2024-01-15T11:00:00Z' },
+      { trade_id: 'trd_003', order_id: 'ord_005', symbol: '00700.HK', name: 'Tencent', side: 'buy', quantity: 200, price: 380, value: 76000, fee: 38, executed_at: '2024-01-14T09:15:00Z' },
+      { trade_id: 'trd_004', order_id: 'ord_007', symbol: '600519', name: '贵州茅台', side: 'sell', quantity: 50, price: 1820, value: 91000, fee: 9.1, executed_at: '2024-01-14T14:20:00Z' },
     ]),
     GetEquityCurve: vi.fn<[], any>().mockResolvedValue(
       Array.from({ length: 252 }, (_, i) => ({
@@ -289,16 +316,67 @@ export function mockWailsIPC() {
     ]),
     DismissEvent: vi.fn().mockResolvedValue(true),
     ApproveEvent: vi.fn().mockResolvedValue(true),
-    GetReturnDistribution: vi.fn().mockResolvedValue({ returns: [], mean: 0, std: 0, skewness: 0, kurtosis: 0 }),
+    GetReturnDistribution: vi.fn().mockResolvedValue({
+      bins: Array.from({ length: 30 }, (_, i) => -0.05 + i * 0.004),
+      counts: Array.from({ length: 30 }, () => Math.floor(Math.random() * 10)),
+      mean: 0.001, std: 0.02, skewness: 0.15, kurtosis: 3.2,
+    }),
     ListBacktestHistory: vi.fn().mockResolvedValue([]),
     GetSystemStats: vi.fn().mockResolvedValue({ cpu: 0, memory: 0, uptime: 0 }),
-    GetCryptoOverview: vi.fn().mockResolvedValue([
-      { symbol: 'BTCUSDT', last: 50000, changePct: 2.5, volume: 1e9 },
-      { symbol: 'ETHUSDT', last: 3000, changePct: 1.8, volume: 5e8 },
-    ]),
+    GetCryptoOverview: vi.fn().mockResolvedValue({
+      cryptos: [
+        { symbol: 'BTCUSDT', price: 50000, change_pct: 2.5, volume: 1e9 },
+        { symbol: 'ETHUSDT', price: 3000, change_pct: 1.8, volume: 5e8 },
+      ],
+    }),
     GetNews: vi.fn().mockResolvedValue([
       { id: 'n_001', title: 'Market News', source: 'Reuters', date: '2024-01-01' },
     ]),
+    // Geopolitics
+    GetGeopoliticsRisks: vi.fn().mockResolvedValue({
+      risks: [
+        { id: 'g001', title: 'US-China Tariff', title_cn: '中美关税', risk_level: 'high', tone: -3, tone_change: -1, vol_change: 25, associated: 'CN,US', updated_at: Date.now() },
+        { id: 'g002', title: 'Middle East Tensions', title_cn: '中东紧张', risk_level: 'high', tone: -5, tone_change: -2, vol_change: 40, associated: 'Oil,Gold', updated_at: Date.now() },
+        { id: 'g003', title: 'EU Regulation', title_cn: '欧盟监管', risk_level: 'medium', tone: -1, tone_change: 0.5, vol_change: 10, associated: 'EU', updated_at: Date.now() },
+        { id: 'g004', title: 'Japan Policy', title_cn: '日本政策', risk_level: 'low', tone: 2, tone_change: 1, vol_change: 5, associated: 'JP', updated_at: Date.now() },
+      ],
+    }),
+    GetGeopoliticsDetail: vi.fn().mockResolvedValue({ volumes: [], tones: [] }),
+    // Prediction Markets
+    GetPredictionMarkets: vi.fn().mockResolvedValue({
+      events: [
+        { id: 'pm001', title: 'Fed Rate Cut', category: 'economics', volume: 1000000, liquidity: 500000, end_date: '2024-12-31', status: 'active', outcomes: [], description: '' },
+        { id: 'pm002', title: 'BTC > 100k', category: 'crypto', volume: 2000000, liquidity: 1000000, end_date: '2024-12-31', status: 'active', outcomes: [], description: '' },
+        { id: 'pm003', title: 'Election 2024', category: 'politics', volume: 5000000, liquidity: 3000000, end_date: '2024-11-05', status: 'active', outcomes: [], description: '' },
+      ],
+    }),
+    GetPredictionEventDetail: vi.fn().mockResolvedValue({ prices: [] }),
+    GetPredictionSignals: vi.fn().mockResolvedValue({ signal: null }),
+    // Satellite
+    GetSatelliteSnapshots: vi.fn().mockResolvedValue({
+      regions: [
+        { id: 's001', name: 'Gobi Desert', name_cn: '戈壁沙漠', lat: 42.0, lon: 105.0, solar_ghi: 5.2, wind_speed: 7.8, trend: 'up', wildfires: 0, asset_link: 'CN' },
+        { id: 's002', name: 'North Sea', name_cn: '北海', lat: 56.0, lon: 3.0, solar_ghi: 2.1, wind_speed: 10.2, trend: 'stable', wildfires: 0, asset_link: 'EU' },
+        { id: 's003', name: 'Sahara', name_cn: '撒哈拉', lat: 23.0, lon: 13.0, solar_ghi: 6.8, wind_speed: 5.5, trend: 'up', wildfires: 1, asset_link: 'AF' },
+      ],
+    }),
+    GetSatelliteDetail: vi.fn().mockResolvedValue({ solar_data: [], wind_data: [] }),
+    // Volatility Surface
+    GetVolatilitySurface: vi.fn().mockResolvedValue({
+      data: [
+        [30, 0.25],
+        [60, 0.26],
+        [90, 0.24],
+        [180, 0.22],
+        [365, 0.20],
+      ],
+    }),
+    // Correlation
+    GetCorrelationMatrix: vi.fn().mockResolvedValue({
+      '600519': { '600519': 1, '000858': 0.65, '000001': 0.3 },
+      '000858': { '600519': 0.65, '000858': 1, '000001': 0.25 },
+      '000001': { '600519': 0.3, '000858': 0.25, '000001': 1 },
+    }),
   }
   ;(window as any).go = { main: { App: app } }
   return app

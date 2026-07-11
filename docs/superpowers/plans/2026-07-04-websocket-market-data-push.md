@@ -1,5 +1,7 @@
 # WebSocket Market Data Push — Implementation Plan
 
+> **STATUS: ✅ COMPLETED** (2026-07-04) — All 6 tasks implemented. handler.go refactored (no globals), MarketWSService + QuotePoller created, wired in app.go/main.go, WatchlistPanel uses WebSocket push.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace WatchlistPanel's 10s polling with WebSocket push — QuotePoller backend goroutine fetches quotes → broadcasts via ws.Hub → frontend `useWebSocket` receives and updates.
@@ -28,7 +30,7 @@
 - Produces: `ServeWS(w http.ResponseWriter, r *http.Request, hub *Hub)` — new signature with explicit hub param
 - Removes: `DefaultHub` global variable, `init()` function
 
-- [ ] **Step 1: Rewrite handler.go — remove globals, add hub parameter**
+- [x] **Step 1: Rewrite handler.go — remove globals, add hub parameter**
 
 Write `internal/ws/handler.go`:
 
@@ -63,7 +65,7 @@ func ServeWS(w http.ResponseWriter, r *http.Request, hub *Hub) {
 
 Remove `var DefaultHub = NewHub()` and `func init() { go DefaultHub.Run() }`.
 
-- [ ] **Step 2: Verify build and vet**
+- [x] **Step 2: Verify build and vet**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go build ./internal/ws/... && go vet ./internal/ws/...
@@ -71,7 +73,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go build ./internal/ws/... && go vet
 
 Expected: no errors
 
-- [ ] **Step 3: Run ws tests**
+- [x] **Step 3: Run ws tests**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/ws/... -v -count=1
@@ -79,7 +81,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/ws/... -v -count=
 
 Expected: `ok` or `no test files`
 
-- [ ] **Step 4: Confirm zero external references to removed symbols**
+- [x] **Step 4: Confirm zero external references to removed symbols**
 
 ```bash
 grep -rn "ws\.DefaultHub\|ws\.ServeWS" --include="*.go" . | grep -v "_test.go"
@@ -87,7 +89,7 @@ grep -rn "ws\.DefaultHub\|ws\.ServeWS" --include="*.go" . | grep -v "_test.go"
 
 Expected: only `internal/ws/handler.go` (now removed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add internal/ws/handler.go
@@ -105,7 +107,7 @@ git commit -m "refactor(ws): remove DefaultHub global, parameterize ServeWS"
 - Consumes: `ServeWS(w, r, hub)` from Task 1
 - Produces: `MarketWSService` struct with `ServeHTTP(w, r)` — implements `http.Handler`. Field `Hub *Hub` is set during startup before HTTP server starts.
 
-- [ ] **Step 1: Create service.go**
+- [x] **Step 1: Create service.go**
 
 Write `internal/ws/service.go`:
 
@@ -126,7 +128,7 @@ func (s *MarketWSService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go build ./internal/ws/...
@@ -134,7 +136,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go build ./internal/ws/...
 
 Expected: no errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add internal/ws/service.go
@@ -162,7 +164,7 @@ git commit -m "feat(ws): add MarketWSService for Wails Route registration"
   - `(*QuotePoller).Run(ctx context.Context)`
   - `(*QuotePoller).Stop()`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Write `internal/market/poller_test.go`:
 
@@ -298,7 +300,7 @@ func TestQuotePoller_FetchesAndPublishesData(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/market -count=1 -run TestQuotePoller -v
@@ -306,7 +308,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/market -count=1 -
 
 Expected: FAIL — "undefined: NewQuotePoller"
 
-- [ ] **Step 3: Write QuotePoller implementation**
+- [x] **Step 3: Write QuotePoller implementation**
 
 Write `internal/market/poller.go`:
 
@@ -455,7 +457,7 @@ func splitSubscriberKey(key string) (string, string) {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/market -count=1 -run TestQuotePoller -v
@@ -463,7 +465,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/market -count=1 -
 
 Expected: All 5 tests PASS
 
-- [ ] **Step 5: Run full market package tests**
+- [x] **Step 5: Run full market package tests**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/market -count=1 -v 2>&1 | tail -30
@@ -471,7 +473,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/market -count=1 -
 
 Expected: All tests PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add internal/market/poller.go internal/market/poller_test.go
@@ -491,7 +493,7 @@ git commit -m "feat(market): add QuotePoller for periodic quote fetching and bro
 - ws.Hub created in ServiceStartup, stored on MarketWSService and passed to QuotePoller
 - main.go: MarketWSService registered with Route `/ws/market`
 
-- [ ] **Step 1: Add fields to App struct**
+- [x] **Step 1: Add fields to App struct**
 
 In `app.go`, add after existing `marketReg` field (around line 75):
 
@@ -503,7 +505,7 @@ In `app.go`, add after existing `marketReg` field (around line 75):
 	quotePoller   *market.QuotePoller
 ```
 
-- [ ] **Step 2: Modify ServiceStartup to create and wire hubs**
+- [x] **Step 2: Modify ServiceStartup to create and wire hubs**
 
 In `app.go`, find (around line 202-205):
 ```go
@@ -536,7 +538,7 @@ Find after the market hub init block (before the CapabilityRegistry section arou
 	slog.Info("quote poller started on ws hub")
 ```
 
-- [ ] **Step 3: Add `wsSvc` field to App struct**
+- [x] **Step 3: Add `wsSvc` field to App struct**
 
 Add to App struct (before `marketReg` or in the market-related section around line 75):
 
@@ -545,7 +547,7 @@ Add to App struct (before `marketReg` or in the market-related section around li
 	wsSvc         *ws.MarketWSService
 ```
 
-- [ ] **Step 4: Update main.go**
+- [x] **Step 4: Update main.go**
 
 Write `main.go`:
 
@@ -603,7 +605,7 @@ func main() {
 }
 ```
 
-- [ ] **Step 5: Verify build**
+- [x] **Step 5: Verify build**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go build . 2>&1
@@ -611,7 +613,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go build . 2>&1
 
 Expected: success, binary at `./quantflow` or `build/quantflow`
 
-- [ ] **Step 6: Run all backend tests**
+- [x] **Step 6: Run all backend tests**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/... -count=1 2>&1 | tail -10
@@ -619,7 +621,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && go test ./internal/... -count=1 2>&1
 
 Expected: all packages `ok`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app.go main.go
@@ -638,7 +640,7 @@ git commit -m "feat: wire wsHub, QuotePoller, and MarketWSService into App"
 - Removes: `setInterval`, `startPolling()`, `stopPolling()`, `onVisibility()`, `pollTimer`
 - Adds: `useWebSocket().connect(url, topics)` on mount, `onMessage` handler that updates `quotes[sym]`
 
-- [ ] **Step 1: Add `useWebSocket` import**
+- [x] **Step 1: Add `useWebSocket` import**
 
 In `WatchlistPanel.vue`, add `useWebSocket` to the composables import line:
 
@@ -646,7 +648,7 @@ In `WatchlistPanel.vue`, add `useWebSocket` to the composables import line:
 import { useWebSocket } from '@/lib/composables/useWebSocket'
 ```
 
-- [ ] **Step 2: Initialize WebSocket in script setup**
+- [x] **Step 2: Initialize WebSocket in script setup**
 
 Add after `const { fetchWithCache } = usePanelCache()` (line 13):
 
@@ -655,7 +657,7 @@ const ws = useWebSocket()
 const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
 ```
 
-- [ ] **Step 3: Replace refreshQuote to also handle WS data**
+- [x] **Step 3: Replace refreshQuote to also handle WS data**
 
 Add a `handleWSQuote` function that updates quotes from WS messages:
 
@@ -688,7 +690,7 @@ function handleWSQuote(topic: string, data: any) {
 }
 ```
 
-- [ ] **Step 4: Replace onMounted — remove polling, add WS**
+- [x] **Step 4: Replace onMounted — remove polling, add WS**
 
 Replace the `onMounted` block (lines 299-323) with:
 
@@ -729,7 +731,7 @@ onMounted(async () => {
 })
 ```
 
-- [ ] **Step 5: Replace onUnmounted — stop WS instead of polling**
+- [x] **Step 5: Replace onUnmounted — stop WS instead of polling**
 
 Replace the `onUnmounted` block (lines 325-330) with:
 
@@ -742,11 +744,11 @@ onUnmounted(() => {
 })
 ```
 
-- [ ] **Step 6: Remove dead polling code**
+- [x] **Step 6: Remove dead polling code**
 
 Remove lines 272-286 (the `startPolling`, `stopPolling`, `onVisibility` functions) and the `pollTimer` variable (line 273).
 
-- [ ] **Step 7: Simplify updateVisibility function**
+- [x] **Step 7: Simplify updateVisibility function**
 
 Replace `onVisibility` with a simpler version that just tracks `pollingActive`:
 
@@ -760,7 +762,7 @@ function onVisibility() {
 }
 ```
 
-- [ ] **Step 8: Verify frontend builds**
+- [x] **Step 8: Verify frontend builds**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow/frontend && npx vue-tsc --noEmit 2>&1 | head -20
@@ -768,7 +770,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow/frontend && npx vue-tsc --noEmit 2>&1 |
 
 Expected: no type errors
 
-- [ ] **Step 9: Verify frontend tests**
+- [x] **Step 9: Verify frontend tests**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow/frontend && npx vitest run 2>&1 | tail -10
@@ -776,7 +778,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow/frontend && npx vitest run 2>&1 | tail 
 
 Expected: all tests PASS
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add frontend/src/terminal/panels/WatchlistPanel.vue
@@ -790,7 +792,7 @@ git commit -m "feat(frontend): WatchlistPanel uses WebSocket instead of polling"
 **Files:**
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 1: Update CHANGELOG.md**
+- [x] **Step 1: Update CHANGELOG.md**
 
 Add entry under `[2026.7.4]` section:
 
@@ -810,7 +812,7 @@ Add entry under `[2026.7.4]` section:
 - [Frontend] WatchlistPanel: setInterval polling mechanism removed
 ```
 
-- [ ] **Step 2: Full build + test**
+- [x] **Step 2: Full build + test**
 
 ```bash
 cd /Volumes/shenzy/vibe_coding/QuantFlow && \
@@ -823,7 +825,7 @@ cd /Volumes/shenzy/vibe_coding/QuantFlow && \
 
 Expected: everything passes
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add CHANGELOG.md

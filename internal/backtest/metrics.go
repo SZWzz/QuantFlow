@@ -20,7 +20,8 @@ type Metrics struct {
 }
 
 // ComputeMetrics calculates all performance metrics from equity curve and trades.
-func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord) Metrics {
+// riskFreeRate is the annual risk-free rate (e.g., 0.02 for 2%).
+func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord, riskFreeRate float64) Metrics {
 	if len(equityCurve) < 2 {
 		return Metrics{}
 	}
@@ -63,8 +64,7 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord) Metrics {
 	stdDaily := math.Sqrt(variance / denom)
 	annualVol := stdDaily * math.Sqrt(252)
 
-	// Sharpe ratio (arithmetic annualization - risk-free rate 2%)
-	const riskFreeRate = 0.02
+	// Sharpe ratio (arithmetic annualization)
 	sharpe := 0.0
 	if annualVol > 0 {
 		sharpe = (meanReturn*252 - riskFreeRate) / annualVol

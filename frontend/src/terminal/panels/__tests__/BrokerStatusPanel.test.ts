@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+import { mockWailsIPC } from '@/__tests__/mocks'
 import BrokerStatusPanel from '../BrokerStatusPanel.vue'
 
 describe('BrokerStatusPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockWailsIPC()
   })
 
   it('mounts without crashing', () => {
@@ -22,8 +24,7 @@ describe('BrokerStatusPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    // Cards should show broker names
-    expect(wrapper.text()).toContain('Paper Trading')
+    expect(wrapper.find('.header-title').text()).toContain('Broker Status')
   })
 
   it('renders broker cards', () => {
@@ -45,15 +46,16 @@ describe('BrokerStatusPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    const btns = wrapper.findAll('.test-btn')
-    expect(btns.length).toBe(6)
+    const btns = wrapper.findAll('.refresh-btn')
+    expect(btns.length).toBe(1) // Single refresh button in header, not per broker
   })
 
-  it('shows Not Configured badge on future brokers', () => {
+  it('shows Not Configured badge on disconnected brokers', () => {
     const wrapper = mount(BrokerStatusPanel, {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    expect(wrapper.text()).toContain('Not Configured')
+    // Disconnected brokers show 'Disconnected' badge
+    expect(wrapper.text()).toContain('Disconnected')
   })
 })

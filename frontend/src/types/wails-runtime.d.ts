@@ -134,6 +134,11 @@ interface AppMethods {
   GetCorrelationMatrix(symbols: string[], lookback: number): Promise<Record<string, Record<string, number>>>
   GetReturnDistribution(symbol: string, lookback: number, bins: number): Promise<Record<string, any>>
   GetVolatilitySurface(symbol: string): Promise<number[][]>
+  ComputeOptionPrice(req: {
+    option_type: string; spot_price: number; strike: number;
+    time_to_expiry: number; risk_free_rate: number; volatility: number;
+    market_price?: number; steps?: number; american?: boolean;
+  }): Promise<{ price: number; binomial_price?: number; greeks: { delta: number; gamma: number; theta: number; vega: number; rho: number }; implied_vol?: number }>
   GetNews(symbol: string, limit: number): Promise<any[]>
   GetIPOCalendar(startDate: string, endDate: string): Promise<any[]>
   GetExDividendCalendar(startDate: string, endDate: string): Promise<any[]>

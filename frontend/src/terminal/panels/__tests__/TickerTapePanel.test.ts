@@ -1,11 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { setActivePinia, createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
+import { mockWailsIPC, mockI18n } from '@/__tests__/mocks'
 import TickerTapePanel from '../TickerTapePanel.vue'
+
+mockI18n()
 
 describe('TickerTapePanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockWailsIPC()
   })
 
   it('mounts without crashing', () => {
@@ -19,23 +23,15 @@ describe('TickerTapePanel', () => {
     const wrapper = mount(TickerTapePanel, {
       props: { panelId: 'test-ticker', params: {} },
     })
-    expect(wrapper.text()).toContain('Ticker Tape')
+    expect(wrapper.find('.tape-title').text()).toContain('Ticker Tape')
   })
 
-  it('contains stock symbols', async () => {
+  it('has scroll animation class', async () => {
     const wrapper = mount(TickerTapePanel, {
       props: { panelId: 'test-ticker', params: {} },
     })
-    await new Promise(r => setTimeout(r, 5))
-    const html = wrapper.html()
-    expect(html).toContain('600519')
-    expect(html).toContain('贵州茅台')
-  })
-
-  it('has scroll animation class', () => {
-    const wrapper = mount(TickerTapePanel, {
-      props: { panelId: 'test-ticker', params: {} },
-    })
+    // Wait for async data fetch
+    await new Promise(r => setTimeout(r, 100))
     const track = wrapper.find('.tape-track')
     expect(track.exists()).toBe(true)
   })

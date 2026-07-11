@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
+import { mockWailsIPC } from '@/__tests__/mocks'
 import SatellitePanel from '../SatellitePanel.vue'
 
 // Mock vue-echarts (same pattern as other panel tests)
@@ -16,6 +17,7 @@ vi.mock('vue-echarts', () => ({
 describe('SatellitePanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockWailsIPC()
   })
 
   it('renders panel header with 卫星数据', () => {
@@ -30,8 +32,7 @@ describe('SatellitePanel', () => {
       props: { panelId: 'satellite-1' },
     })
     // Wait for onMounted async data loading (mock data loads)
-    await nextTick()
-    await nextTick()
+    await new Promise(r => setTimeout(r, 100))
     await nextTick()
     const cards = wrapper.findAll('.region-card')
     expect(cards.length).toBeGreaterThan(0)
@@ -41,8 +42,7 @@ describe('SatellitePanel', () => {
     const wrapper = mount(SatellitePanel, {
       props: { panelId: 'satellite-1' },
     })
-    await nextTick()
-    await nextTick()
+    await new Promise(r => setTimeout(r, 100))
     await nextTick()
     const trendBadges = wrapper.findAll('.trend-badge')
     expect(trendBadges.length).toBeGreaterThan(0)

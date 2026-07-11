@@ -82,18 +82,4 @@ func (n *FactorNode) Validate() error {
 	return nil
 }
 
-// getStringParam extracts a string parameter with a default value.
-func getStringParam(params map[string]any, key, defaultVal string) string {
-	if params == nil {
-		return defaultVal
-	}
-	if v, ok := params[key]; ok {
-		switch val := v.(type) {
-		case string:
-			return val
-		default:
-			return fmt.Sprintf("%v", val)
-		}
-	}
-	return defaultVal
-}
+// getStringParam is defined in utils.go

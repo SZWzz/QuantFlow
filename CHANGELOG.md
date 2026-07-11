@@ -7,28 +7,107 @@
 ## [2026.7.11] - 2026-07-11
 
 ### Changed
-- [Python] Refactor fincept module dispatch: replace subprocess.run() with direct
-  importlib.import_module() for all 19 AKShare data types and 3 macro sources
-  (BIS/WTO/EIA). Saves ~200ms per request and enables native async/await.
-  _call_fincept_module() centralized dispatch supports both ENDPOINTS-dict and
-  Wrapper-class module patterns.
-- [Python] Add call_endpoint_async() to macro_bis.py, macro_wto.py;
-  add call_endpoint() to macro_eia.py for programmatic direct-import entry points.
-- [Python] Remove subprocess fallback code from _handle_macro() and
-  _handle_akshare() gRPC handlers — 120 lines of dead env/cwd/timeout plumbing.
+- [Python] Fincept 模块调度重构：将 19 种 AKShare 数据类型和 3 个宏观数据源
+  (BIS/WTO/EIA) 的 subprocess.run() 替换为直接 importlib.import_module()。
+  每次请求节省约 200ms，启用原生 async/await。
+  统一的 _call_fincept_module() 调度同时支持 ENDPOINTS-dict 和 Wrapper-class
+  两种模块模式。
+- [Python] 为 macro_bis.py、macro_wto.py 添加 call_endpoint_async()；
+  为 macro_eia.py 添加 call_endpoint() 作为编程式直接导入入口。
+- [Python] 从 _handle_macro() 和 _handle_akshare() gRPC 处理器中移除
+  subprocess 回退代码——清除 120 行无用的环境变量/工作目录/超时胶水代码。
 
 ### Fixed
-- [Python] Macro BIS fetch command SDMX flatten: ported inline JSON parsing
-  logic from main() CLI to call_endpoint_async() so BIS data flow works
-  without subprocess.
+- [Python] Macro BIS 获取命令 SDMX 展平：将 main() CLI 中的内联 JSON 解析逻辑
+  移植到 call_endpoint_async()，使 BIS 数据流无需 subprocess 即可工作。
+- [Backtest] SquareRootSlippage 重命名为 QuadraticSlippage——实际公式为
+  二次冲击 (Base × (1+impact²))，原名与实现不符，误导回测滑点预期
+- [Backtest] PDT 日交易窗口改为交易日计数：原 AddDate(0,0,-5) 使用日历日，
+  周末/假期会错误触发或漏过 PDT 限制，改为基于回测日期数组的 5 个交易日窗口
+- [Workflow] 注销 19 个 stub 指标节点 (KDJ/DMI/ATR/WR/CCI/BIAS/OBV/MFI
+  /SAR/VWAP/AROON/ASI/BRAR/MASS/PSY/ROC/BBI)——节点代码保留，接通 Python
+  gRPC 后恢复注册
+- [Frontend] NodePalette 测试修复：createI18n 添加 legacy: false 匹配项目
+  Composition API 模式，消除 $t proxy 冲突
+- [Trading] Wash sale 亏损计算修复：原公式用卖出价-回购价，
+  改为成本价-卖出价 (IRS Rule 1091 正确语义)，新增成本基础跟踪
+- [Backtest] 印花税四舍五入到分 (0.01 CNY)，使用 math.Round 精确计算
+- [Backtest] 美股默认交易量改为 1 股 (原 100 股)，匹配零股交易现实
+- [Backtest] Sharpe/Sortino 无风险利率可配置：Config 新增 RiskFreeRate
+  字段 (默认 0.02)，ComputeMetrics 接受参数化利率
+- [Market] Hub subscriber 重构：新增 subscriber struct 封装 channel +
+  atomic closed flag，消除 unsubscribe 后的 send-on-closed-channel 竞态
+- [Workflow] ExecutionQueue 使用 sync.Cond 替换轮询：新增
+  WaitForCompletion 方法，状态变更时 Broadcast 唤醒等待者
+- [Workflow] 工具函数集中化：创建 nodes/utils.go 统一收纳
+  extractFloatSlice/extractFloat64Slice/getStringParam/getFloatParam/
+  getIntParam，消除 macd.go 的 56 处跨文件依赖和 floatutil.go 重复定义
+
+- [Market] QuotePoller WS 降级集成：新增 WSCoverageChecker 接口 +
+  SetWSCoverageChecker 方法，WS 活跃时自动跳过 HTTP 轮询（仅加密市场），
+  WS 断开后 QuotePoller 自动恢复轮询
+- [Broker] Alpaca 增强：AlpacaConfig 新增 Environment 字段 (paper/live)；
+  NewAlpacaBroker 根据 Environment 自动切换 BaseURL；新增 IsPaper 方法；
+  新增 alpacaUserFacingError 中文错误映射 (401/403/422/429/资金不足/停牌等)
+- [Broker] Alpaca Paper Trading 端到端集成测试 (//go:build integration)：
+  连接→账户→持仓→下单→查单→撤单 全生命周期验证，凭证缺失时自动 Skip
+- [Frontend] 面板虚拟化基础设施：新增 usePanelLifecycle composable +
+  DockTab provide isVisible，面板可注入可见性状态并自动暂停/恢复
+  WebSocket 订阅和轮询
+- [Frontend] CandlestickPanel 拆分：提取 ChartToolbar 子组件 (99 行)，
+  封装 K 线/分时切换、周期选择、指标叠加、深度图等工具栏逻辑
+
+### Changed
+- [Frontend] 前端美化 Phase 3/4: 批量修复 20+ 面板硬编码颜色——`.panel-error` 全部替换为 CSS 变量 (`var(--color-up)` / `var(--color-up-soft)` / `var(--color-up-glow)`)；AuditPanel 内联 `:style` 颜色绑定 / `.dot-red/green` / `.dr-item-danger/safe` 改用 CSS 变量；GovDataPanel/ValuationPanel/AnalystEstimatesPanel/CongressTradingPanel 的 JS 颜色映射函数改用 CSS 变量引用；MarketOverviewPanel 残留 `.panel-error` 修复；StoragePanel 移除 `#1a1a2e` 硬编码
 
 ### Added
-- [Frontend] Unified test mock layer (mocks.ts): structured Wails IPC mocks for
-  all panel data types, WebSocket mock, and i18n mock with title-case fallback.
-  80+ common i18n keys predefined; unknown keys auto-convert to readable
-  Title Case (e.g. 'actionCenter' → 'Action Center').
-- [Frontend] Deduplicate $t and t() i18n mocks: vitest.setup.ts now reuses
-  the single t() function from mocks.ts via config.global.mocks.$t.
+
+- [AI] 策略生成 Agent (internal/ai/strategy/)：自然语言→Workflow DAG
+  自动转换，LLM 注入节点目录+端口类型约束，多层验证 (JSON 解析/DAG 无环/
+  端口类型兼容/节点类型存在)，不合法时自动反馈错误重试 (最多 3 轮)
+- [AI] 策略迭代 Agent (internal/ai/strategy/)：回测指标分析→参数调优建议，
+  支持多轮迭代直到收敛或达到上限 (5 轮)，输出结构化 ParamChange
+- [Broker] Futu OpenD 适配器从 stub 升级为完整实现：通过 HTTP API 连接
+  本地 FutuOpenD 网关 (localhost:11111)，支持 Connect (心跳检测) /
+  SubmitOrder (港股+美股下单) / CancelOrder / GetOrders / GetPositions /
+  GetAccount，含中文错误映射 (未登录/资金不足/市场关闭等)
+- [Research] 期权定价引擎 (internal/research/options.go)：Go 原生 BS 定价 +
+  Greeks (Delta/Gamma/Theta/Vega/Rho) + 隐含波动率 (Newton-Raphson) +
+  CRR 二叉树 (欧式/美式)，无 Python 依赖；前端 ComputeOptionPrice 绑定 +
+  TypeScript 类型声明
+- [AI] 策略迭代 Agent (internal/ai/strategy/)：回测指标分析→参数调优建议，
+  支持多轮迭代直到收敛或达到上限 (5 轮)，输出结构化 ParamChange
+- [Research] 可转债分析模块：EastMoney 数据适配器 (eastmoney_cb.go) +
+  CBAnalyzer 分析器 (双低排名、BS 期权估值、下修概率估算、回售/强赎风险) +
+  cb_scanner workflow 节点 (参数化筛选 + 双低排序)
+- [Market] WebSocket 实时行情推送框架：新增 internal/market/wsconn 包
+  (Manager + WSConnector 接口)，支持交易所原生 WebSocket 推模式，
+  延迟从 5s HTTP 轮询降至 <100ms
+- [Market] Binance WebSocket 连接器 (binance_ws.go)：连接
+  wss://stream.binance.com:9443/ws，自动重连 (指数退避 1s-30s)、
+  心跳保活、断线自动回退 HTTP 轮询
+- [Market] OKX WebSocket 连接器 (okx_ws.go)：连接
+  wss://ws.okx.com:8443/ws/v5/public，订阅 SPOT tickers 频道
+- [Market] Gate.io WebSocket 连接器 (gateio_ws.go)：连接
+  wss://api.gateio.ws/ws/v4/，订阅 spot.tickers 频道
+- [Frontend] 统一测试模拟层 (mocks.ts)：为所有面板数据类型提供结构化
+  Wails IPC 模拟、WebSocket 模拟和带标题大小写回退的 i18n 模拟。
+  预定义 80+ 常用 i18n 键；未知键自动转换为可读的 Title Case
+  (如 'actionCenter' → 'Action Center')。
+- [Frontend] 去重 $t 和 t() i18n 模拟：vitest.setup.ts 通过
+  config.global.mocks.$t 复用 mocks.ts 中的单一 t() 函数。
+
+### Fixed
+- [Frontend] 修复 38 个面板测试失败：修正文本期望值以匹配实际组件输出
+  (硬编码中文标题、占位消息)；补充缺失的 i18n 键 (research.title、
+  misc.correlation、misc.distribution 等)；为 7 个测试文件添加
+  mockWailsIPC() 调用；添加模拟 Go API 端点 (GetSatelliteSnapshots、
+  GetPredictionMarkets、GetGeopoliticsRisks、GetCorrelationMatrix、
+  GetVolatilitySurface)；修复 GetCryptoOverview 模拟数据结构为
+  {cryptos: [...]}；丰富 GetTrades/GetOrders 模拟数据以包含完整的
+  Trade/Order 接口字段；修复 GetQuote 模拟返回股票名称。
+  重写 SurfaceChartPanel、ActionCenterPanel、WatchlistPanel 测试以匹配
+  实际组件模板。所有 45 个面板测试文件通过 (123 个测试)。
 
 ## [2026.7.10] - 2026-07-10
 

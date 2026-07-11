@@ -40,6 +40,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   stroke: vi.fn(),
   fill: vi.fn(),
   arc: vi.fn(),
+  measureText: vi.fn(() => ({ width: 10 })),
   canvas: { width: 0, height: 0 },
 })) as any
 

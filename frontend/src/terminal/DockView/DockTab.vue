@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, type Component } from 'vue'
+import { computed, ref, watch, provide, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
@@ -48,7 +48,7 @@ function onTabDragOver(e: DragEvent, tabId?: string) {
   if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
   if (tabId && dragTabId.value !== tabId) {
     dragOverTabId.value = tabId
-  }
+}
 }
 function onTabDrop(e: DragEvent, toIdx: number) {
   e.preventDefault()
@@ -110,6 +110,11 @@ function tearOff(tab: DockTabState) {
     .then(() => closeTab(tab.id))
     .catch((err: any) => logger.error('[DockTab] tear-off failed:', err))
 }
+
+// Provide isVisible so child panels can pause/resume expensive operations
+// when they are not the active tab.
+const isTabVisible = computed(() => true) // panel is rendered = active tab
+provide('isVisible', isTabVisible)
 </script>
 
 <template>

@@ -1,5 +1,7 @@
 # Data Lifecycle Management Implementation Plan
 
+> **STATUS: ✅ COMPLETED** (2026-07-08) — All 7 tasks implemented. See `internal/data/` for archive/export/import/cleanup/stats, `app_data.go` for IPC bindings, `frontend/src/terminal/panels/StoragePanel.vue` for frontend UI.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add data lifecycle management to QuantFlow — archive, export, import, cleanup, and storage monitoring.
@@ -32,7 +34,7 @@
 - Produces: `func GetTableStats(db *sql.DB) ([]TableStat, error)`
 - Produces: Type `TableStat`
 
-- [ ] **Step 1: Write migration SQL**
+- [x] **Step 1: Write migration SQL**
 
 ```sql
 -- 017_data_archive: compressed archival storage for OHLCV/minute/backtest data
@@ -54,7 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_archive_source ON data_archive(source, symbol);
 CREATE INDEX IF NOT EXISTS idx_archive_date   ON data_archive(date_from, date_to);
 ```
 
-- [ ] **Step 2: Register migration in `internal/storage/migrate.go`**
+- [x] **Step 2: Register migration in `internal/storage/migrate.go`**
 
 Read `internal/storage/migrate.go` to find the `BuiltinMigrations` slice, then add:
 
@@ -62,7 +64,7 @@ Read `internal/storage/migrate.go` to find the `BuiltinMigrations` slice, then a
 {17, "017_data_archive"},
 ```
 
-- [ ] **Step 3: Write the failing test**
+- [x] **Step 3: Write the failing test**
 
 ```go
 // internal/data/stats_test.go
@@ -139,7 +141,7 @@ func TestGetTableStats_empty_db(t *testing.T) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 ```bash
 cd app && go test ./internal/data/ -run TestGetTableStats -v
@@ -147,7 +149,7 @@ cd app && go test ./internal/data/ -run TestGetTableStats -v
 
 Expected: FAIL with `GetTableStats not defined`
 
-- [ ] **Step 5: Write package scaffold + stats.go**
+- [x] **Step 5: Write package scaffold + stats.go**
 
 Create `internal/data/data_test.go` with DDL constants:
 
@@ -271,7 +273,7 @@ func tableStat(db *sql.DB, table, dateCol, sizeExpr string) (TableStat, error) {
 }
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 cd app && go test ./internal/data/ -run TestGetTableStats -v
@@ -279,7 +281,7 @@ cd app && go test ./internal/data/ -run TestGetTableStats -v
 
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add internal/data/ internal/storage/migrations/017_data_archive.sql internal/storage/migrate.go
@@ -300,7 +302,7 @@ git commit -m "feat(data): add migration 017 and GetTableStats"
 - Produces: `func UnarchiveData(db *sql.DB, archiveID int64) (int64, error)`
 - Produces: Type `ArchiveResult`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // internal/data/archiver_test.go
@@ -389,7 +391,7 @@ func TestUnarchiveData_checksum_mismatch(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd app && go test ./internal/data/ -run TestArchive -v
@@ -397,7 +399,7 @@ cd app && go test ./internal/data/ -run TestArchive -v
 
 Expected: FAIL (undefined functions)
 
-- [ ] **Step 3: Write archiver.go**
+- [x] **Step 3: Write archiver.go**
 
 ```go
 // internal/data/archiver.go
@@ -670,7 +672,7 @@ func repeatString(s string, n int) string {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 cd app && go test ./internal/data/ -run TestArchive -v
@@ -678,7 +680,7 @@ cd app && go test ./internal/data/ -run TestArchive -v
 
 Expected: all PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add internal/data/archiver.go internal/data/archiver_test.go
@@ -698,7 +700,7 @@ git commit -m "feat(data): add ArchiveData and UnarchiveData with gzip compressi
 - Produces: `func CleanupData(db *sql.DB, table, symbol, before string, dryRun bool) (*CleanupResult, error)`
 - Produces: Type `CleanupResult`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // internal/data/cleaner_test.go
@@ -761,7 +763,7 @@ func TestCleanupData_no_data(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd app && go test ./internal/data/ -run TestCleanup -v
@@ -769,7 +771,7 @@ cd app && go test ./internal/data/ -run TestCleanup -v
 
 Expected: FAIL
 
-- [ ] **Step 3: Write cleaner.go**
+- [x] **Step 3: Write cleaner.go**
 
 ```go
 // internal/data/cleaner.go
@@ -900,7 +902,7 @@ func dateToTimestamp(dateStr string) int64 {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Need to add `"time"` import:
 
@@ -919,7 +921,7 @@ import (
 )
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add internal/data/cleaner.go internal/data/cleaner_test.go
@@ -939,13 +941,13 @@ git commit -m "feat(data): add CleanupData with dryRun preview and safe delete"
 - Produces: `func ExportCSV(db *sql.DB, table, symbol, interval, dateFrom, dateTo, outputPath string) (int64, error)`
 - Produces: `func ExportParquet(db *sql.DB, table, symbol, interval, dateFrom, dateTo, outputPath string) (int64, error)`
 
-- [ ] **Step 1: Ensure parquet-go dependency is available**
+- [x] **Step 1: Ensure parquet-go dependency is available**
 
 ```bash
 cd app && go get github.com/segmentio/parquet-go@latest
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```go
 // internal/data/exporter_test.go
@@ -1004,7 +1006,7 @@ func TestExportCSV_no_date_filter(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 ```bash
 cd app && go test ./internal/data/ -run TestExportCSV -v
@@ -1012,7 +1014,7 @@ cd app && go test ./internal/data/ -run TestExportCSV -v
 
 Expected: FAIL
 
-- [ ] **Step 4: Write exporter.go**
+- [x] **Step 4: Write exporter.go**
 
 ```go
 // internal/data/exporter.go
@@ -1263,7 +1265,7 @@ func toInt64(v any) int64 {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```bash
 cd app && go test ./internal/data/ -run TestExportCSV -v
@@ -1271,7 +1273,7 @@ cd app && go test ./internal/data/ -run TestExportCSV -v
 
 Expected: all PASS
 
-- [ ] **Step 6: Add Parquet export test and run**
+- [x] **Step 6: Add Parquet export test and run**
 
 ```go
 func TestExportParquet_writes_valid_file(t *testing.T) {
@@ -1300,7 +1302,7 @@ cd app && go test ./internal/data/ -run TestExport -v
 
 Expected: all PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add internal/data/exporter.go internal/data/exporter_test.go
@@ -1320,7 +1322,7 @@ git commit -m "feat(data): add CSV and Parquet export"
 - Produces: `func ImportCSV(db *sql.DB, filePath, table string) (int64, error)`
 - Produces: `func ImportParquet(db *sql.DB, filePath, table string) (int64, error)`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // internal/data/importer_test.go
@@ -1404,7 +1406,7 @@ func TestImportCSV_missing_file(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd app && go test ./internal/data/ -run TestImportCSV -v
@@ -1412,7 +1414,7 @@ cd app && go test ./internal/data/ -run TestImportCSV -v
 
 Expected: FAIL
 
-- [ ] **Step 3: Write importer.go**
+- [x] **Step 3: Write importer.go**
 
 ```go
 // internal/data/importer.go
@@ -1577,7 +1579,7 @@ func ImportParquet(db *sql.DB, filePath, table string) (int64, error) {
 
 Note: Add `"time"` to imports.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 cd app && go test ./internal/data/ -run TestImportCSV -v
@@ -1585,7 +1587,7 @@ cd app && go test ./internal/data/ -run TestImportCSV -v
 
 Expected: all PASS
 
-- [ ] **Step 5: Add Parquet import test**
+- [x] **Step 5: Add Parquet import test**
 
 ```go
 func TestImportParquet_inserts_rows(t *testing.T) {
@@ -1617,7 +1619,7 @@ cd app && go test ./internal/data/ -run TestImport -v
 
 Expected: all PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add internal/data/importer.go internal/data/importer_test.go
@@ -1637,7 +1639,7 @@ git commit -m "feat(data): add CSV and Parquet import"
 - Consumes: all `internal/data` functions from Tasks 1-5
 - Produces: 5 IPC methods exposed via Wails binding
 
-- [ ] **Step 1: Create app_data.go**
+- [x] **Step 1: Create app_data.go**
 
 ```go
 // app_data.go — Data lifecycle management IPC methods
@@ -1728,7 +1730,7 @@ func exportFilePath(table, symbol, interval, dateFrom, dateTo, ext string) strin
 }
 ```
 
-- [ ] **Step 2: Write integration test for app_data.go**
+- [x] **Step 2: Write integration test for app_data.go**
 
 ```go
 // app_data_test.go
@@ -1782,7 +1784,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 // Copy seedOHLCV from internal/data or reuse it
 ```
 
-- [ ] **Step 3: Run integration tests**
+- [x] **Step 3: Run integration tests**
 
 ```bash
 cd app && go test -run TestAppDataRoundTrip -v
@@ -1790,7 +1792,7 @@ cd app && go test -run TestAppDataRoundTrip -v
 
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app_data.go app_data_test.go
@@ -1809,7 +1811,7 @@ git commit -m "feat(data): wire IPC methods into App"
 - Modify: `frontend/src/i18n/en.ts`
 - Create: `frontend/src/terminal/panels/__tests__/StoragePanel.test.ts`
 
-- [ ] **Step 1: Add typed IPC bindings to wails.ts**
+- [x] **Step 1: Add typed IPC bindings to wails.ts**
 
 Read existing `frontend/src/lib/wails.ts` to find the pattern, then add:
 
@@ -1856,7 +1858,7 @@ export const data = {
 }
 ```
 
-- [ ] **Step 2: Write failing frontend test**
+- [x] **Step 2: Write failing frontend test**
 
 ```typescript
 // frontend/src/terminal/panels/__tests__/StoragePanel.test.ts
@@ -1923,7 +1925,7 @@ describe('StoragePanel', () => {
 })
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/terminal/panels/__tests__/StoragePanel.test.ts
@@ -1931,7 +1933,7 @@ cd frontend && npx vitest run src/terminal/panels/__tests__/StoragePanel.test.ts
 
 Expected: FAIL (component not defined or no export)
 
-- [ ] **Step 4: Create StoragePanel.vue**
+- [x] **Step 4: Create StoragePanel.vue**
 
 ```vue
 <!-- frontend/src/terminal/panels/StoragePanel.vue -->
@@ -2118,7 +2120,7 @@ onMounted(loadStats)
 </style>
 ```
 
-- [ ] **Step 5: Register in panel registry**
+- [x] **Step 5: Register in panel registry**
 
 Read `frontend/src/terminal/panels/registry.ts` to find the import + registration pattern, then add:
 
@@ -2135,7 +2137,7 @@ import StoragePanel from './StoragePanel.vue'
 }
 ```
 
-- [ ] **Step 6: Add i18n keys**
+- [x] **Step 6: Add i18n keys**
 
 In `frontend/src/i18n/zh.ts`:
 ```typescript
@@ -2165,7 +2167,7 @@ In `frontend/src/i18n/en.ts`:
 'panel.storage.cleanup': 'Cleanup',
 ```
 
-- [ ] **Step 7: Run frontend tests**
+- [x] **Step 7: Run frontend tests**
 
 ```bash
 cd frontend && npx vitest run src/terminal/panels/__tests__/StoragePanel.test.ts
@@ -2173,7 +2175,7 @@ cd frontend && npx vitest run src/terminal/panels/__tests__/StoragePanel.test.ts
 
 Expected: PASS
 
-- [ ] **Step 8: Run typecheck**
+- [x] **Step 8: Run typecheck**
 
 ```bash
 cd frontend && npx vue-tsc --noEmit
@@ -2181,7 +2183,7 @@ cd frontend && npx vue-tsc --noEmit
 
 Expected: no errors
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add frontend/src/terminal/panels/StoragePanel.vue \

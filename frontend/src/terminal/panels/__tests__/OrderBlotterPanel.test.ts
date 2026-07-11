@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+import { mockWailsIPC } from '@/__tests__/mocks'
 import OrderBlotterPanel from '../OrderBlotterPanel.vue'
 
 describe('OrderBlotterPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockWailsIPC()
   })
 
   it('mounts without crashing', () => {
@@ -40,8 +42,8 @@ describe('OrderBlotterPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    expect(wrapper.text()).toContain('Orders Today')
-    expect(wrapper.text()).toContain('Fill Rate')
-    expect(wrapper.text()).toContain('Total Traded Value')
+    expect(wrapper.text()).toContain("Today's Orders")
+    expect(wrapper.text()).toContain('Filled %')
+    expect(wrapper.text()).toContain('Total Value')
   })
 })

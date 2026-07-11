@@ -131,7 +131,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 		prevBar = &bar
 	}
 
-	metrics := ComputeMetrics(equityCurve, tradeRecords)
+	metrics := ComputeMetrics(equityCurve, tradeRecords, r.config.RiskFreeRate)
 
 	return &Result{
 		Config:      r.config,

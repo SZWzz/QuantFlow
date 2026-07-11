@@ -106,30 +106,34 @@ func RegisterAll(r *workflow.NodeRegistry) {
 	r.RegisterWithCategory("prediction_market", NewPredictionMarketNode, "alternative_data")
 	r.RegisterWithCategory("geopolitics", NewGeopoliticsNode, "alternative_data")
 
+	// Convertible bond scanner (A-share CB market)
+	r.RegisterWithCategory("cb_scanner", NewCBScannerNode, "research")
+
 	// GovData: FRED economic indicators + SEC EDGAR filings
 	r.RegisterWithCategory("gov_data", NewGovDataNode, "alternative_data")
 
 	// Satellite: NASA POWER solar/wind + FIRMS wildfire
 	r.RegisterWithCategory("satellite", NewSatelliteNode, "alternative_data")
 
-	// TDX indicator nodes
-	r.RegisterWithCategory("indicator_kdj", NewIndicatorKDJNode, "indicators")
-	r.RegisterWithCategory("indicator_dmi", NewIndicatorDMINode, "indicators")
-	r.RegisterWithCategory("indicator_atr", NewIndicatorATRNode, "indicators")
-	r.RegisterWithCategory("indicator_wr", NewIndicatorWRNode, "indicators")
-	r.RegisterWithCategory("indicator_cci", NewIndicatorCCINode, "indicators")
-	r.RegisterWithCategory("indicator_bias", NewIndicatorBIASNode, "indicators")
-	r.RegisterWithCategory("indicator_bias_signal", NewIndicatorBIASSignalNode, "indicators")
-	r.RegisterWithCategory("indicator_obv", NewIndicatorOBVNode, "indicators")
-	r.RegisterWithCategory("indicator_mfi", NewIndicatorMFINode, "indicators")
-	r.RegisterWithCategory("indicator_sar", NewIndicatorSARNode, "indicators")
-	r.RegisterWithCategory("indicator_vwap", NewIndicatorVWAPNode, "indicators")
-	r.RegisterWithCategory("indicator_zhuoyao", NewIndicatorZhuoyaoNode, "indicators")
-	r.RegisterWithCategory("indicator_aroon", NewIndicatorAroonNode, "indicators")
-	r.RegisterWithCategory("indicator_asi", NewIndicatorASINode, "indicators")
-	r.RegisterWithCategory("indicator_brar", NewIndicatorBRARNode, "indicators")
-	r.RegisterWithCategory("indicator_mass", NewIndicatorMASSNode, "indicators")
-	r.RegisterWithCategory("indicator_psy", NewIndicatorPSYNode, "indicators")
-	r.RegisterWithCategory("indicator_roc", NewIndicatorROCNode, "indicators")
-	r.RegisterWithCategory("indicator_bbi", NewIndicatorBBINode, "indicators")
+	// TODO: 以下 19 个 TDX 指标节点为 stub，需接通 Python gRPC 后恢复注册。
+	// 详见 docs/specs/2026-07-11-p0-emergency-fixes.md
+	// r.RegisterWithCategory("indicator_kdj", NewIndicatorKDJNode, "indicators")
+	// r.RegisterWithCategory("indicator_dmi", NewIndicatorDMINode, "indicators")
+	// r.RegisterWithCategory("indicator_atr", NewIndicatorATRNode, "indicators")
+	// r.RegisterWithCategory("indicator_wr", NewIndicatorWRNode, "indicators")
+	// r.RegisterWithCategory("indicator_cci", NewIndicatorCCINode, "indicators")
+	// r.RegisterWithCategory("indicator_bias", NewIndicatorBIASNode, "indicators")
+	// r.RegisterWithCategory("indicator_bias_signal", NewIndicatorBIASSignalNode, "indicators")
+	// r.RegisterWithCategory("indicator_obv", NewIndicatorOBVNode, "indicators")
+	// r.RegisterWithCategory("indicator_mfi", NewIndicatorMFINode, "indicators")
+	// r.RegisterWithCategory("indicator_sar", NewIndicatorSARNode, "indicators")
+	// r.RegisterWithCategory("indicator_vwap", NewIndicatorVWAPNode, "indicators")
+	// r.RegisterWithCategory("indicator_zhuoyao", NewIndicatorZhuoyaoNode, "indicators")
+	// r.RegisterWithCategory("indicator_aroon", NewIndicatorAroonNode, "indicators")
+	// r.RegisterWithCategory("indicator_asi", NewIndicatorASINode, "indicators")
+	// r.RegisterWithCategory("indicator_brar", NewIndicatorBRARNode, "indicators")
+	// r.RegisterWithCategory("indicator_mass", NewIndicatorMASSNode, "indicators")
+	// r.RegisterWithCategory("indicator_psy", NewIndicatorPSYNode, "indicators")
+	// r.RegisterWithCategory("indicator_roc", NewIndicatorROCNode, "indicators")
+	// r.RegisterWithCategory("indicator_bbi", NewIndicatorBBINode, "indicators")
 }

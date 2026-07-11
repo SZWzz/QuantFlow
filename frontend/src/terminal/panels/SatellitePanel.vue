@@ -352,7 +352,7 @@ function wildfireClass(count: number): string {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin: 8px 12px 0; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); color: #ef4444; font-size: 12px; }
+.panel-error { padding: 8px 12px; margin: 8px 12px 0; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .satellite-panel {
   display: flex;
   flex-direction: column;

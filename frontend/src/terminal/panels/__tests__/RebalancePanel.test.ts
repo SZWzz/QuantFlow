@@ -25,6 +25,6 @@ describe('RebalancePanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.text()).toContain('Portfolio Rebalance')
+    expect(wrapper.text()).toContain('组合再平衡')
   })
 })

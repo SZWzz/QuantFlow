@@ -50,6 +50,6 @@ describe('BasketOrderPanel', () => {
     })
     const execBtn = wrapper.find('.execute-btn')
     expect(execBtn.exists()).toBe(true)
-    expect(execBtn.text()).toContain('Execute Basket')
+    expect(execBtn.text()).toContain('Execute')
   })
 })

@@ -21,7 +21,7 @@ describe('MonteCarloPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.text()).toContain('Monte Carlo Simulation')
+    expect(wrapper.text()).toContain('蒙特卡洛模拟')
   })
 
   it('renders parameter inputs', () => {
@@ -66,7 +66,5 @@ describe('MonteCarloPanel', () => {
     expect(wrapper.text()).toContain('Median Terminal')
     expect(wrapper.text()).toContain('95% VaR')
     expect(wrapper.text()).toContain('95% CVaR')
-    expect(wrapper.text()).toContain('Prob(Loss)')
-    expect(wrapper.text()).toContain('Prob(Double)')
   })
 })

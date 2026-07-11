@@ -1,5 +1,7 @@
 # Performance Optimization Implementation Plan
 
+> **STATUS: ✅ COMPLETED** (2026-07-10) — All 7 tasks implemented. isTradingHours extracted, MarketOverview auto-refresh, useMinuteChart composable, OHLCV progressive loading (365d + dataZoom), bundle lazy loading verified.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Optimize four performance pain points: MarketOverview auto-refresh, minute chart composable dedup, OHLCV progressive loading, and bundle lazy loading.
@@ -38,7 +40,7 @@
 **Interfaces:**
 - Produces: `export function isTradingHours(market: string): boolean` — accepts 'CN' | 'HK' | 'US' | 'CRYPTO', returns true if currently within trading hours
 
-- [ ] **Step 1: Add `isTradingHours` to `wails.ts`**
+- [x] **Step 1: Add `isTradingHours` to `wails.ts`**
 
 Open `frontend/src/lib/wails.ts` and add after the `detectMarket` function:
 
@@ -69,7 +71,7 @@ export function isTradingHours(market: string): boolean {
 }
 ```
 
-- [ ] **Step 2: Replace CandlestickPanel's inline `isTradingHours` with import**
+- [x] **Step 2: Replace CandlestickPanel's inline `isTradingHours` with import**
 
 In `frontend/src/terminal/panels/CandlestickPanel.vue`:
 
@@ -97,7 +99,7 @@ if (detectMarket(symbol.value) !== 'CN') { ... return }
 // No change needed — minute guard doesn't call isTradingHours currently
 ```
 
-- [ ] **Step 3: Verify with Go vet + build**
+- [x] **Step 3: Verify with Go vet + build**
 
 ```bash
 cd frontend && npx vue-tsc --noEmit 2>&1 | head -20
@@ -105,7 +107,7 @@ cd frontend && npx vue-tsc --noEmit 2>&1 | head -20
 
 Expected: no new type errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/lib/wails.ts frontend/src/terminal/panels/CandlestickPanel.vue
@@ -123,7 +125,7 @@ git commit -m "refactor: extract isTradingHours to shared utility"
 - Consumes: `isTradingHours(market: string): boolean` from `@/lib/wails`
 - Produces: 30s polling timer during trading hours
 
-- [ ] **Step 1: Add auto-refresh timer with trading-hours guard**
+- [x] **Step 1: Add auto-refresh timer with trading-hours guard**
 
 In `frontend/src/terminal/panels/MarketOverviewPanel.vue`, add import:
 ```typescript
@@ -156,7 +158,7 @@ function stopAutoRefresh() {
 }
 ```
 
-- [ ] **Step 2: Wire into lifecycle and market switching**
+- [x] **Step 2: Wire into lifecycle and market switching**
 
 Modify `switchMarket` to restart polling:
 ```typescript
@@ -187,13 +189,13 @@ onUnmounted(() => {
 })
 ```
 
-- [ ] **Step 3: Verify build**
+- [x] **Step 3: Verify build**
 
 ```bash
 cd frontend && npx vue-tsc --noEmit 2>&1 | head -20
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/terminal/panels/MarketOverviewPanel.vue
@@ -222,7 +224,7 @@ git commit -m "feat: MarketOverview auto-refresh every 30s during trading hours"
   }
   ```
 
-- [ ] **Step 1: Write the composable**
+- [x] **Step 1: Write the composable**
 
 Create `frontend/src/lib/composables/useMinuteChart.ts`:
 
@@ -307,13 +309,13 @@ export function useMinuteChart(
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript compiles**
+- [x] **Step 2: Verify TypeScript compiles**
 
 ```bash
 cd frontend && npx vue-tsc --noEmit 2>&1 | head -20
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/lib/composables/useMinuteChart.ts
@@ -330,7 +332,7 @@ git commit -m "feat: add useMinuteChart composable for shared minute chart data"
 **Interfaces:**
 - Consumes: `useMinuteChart` from `@/lib/composables/useMinuteChart`
 
-- [ ] **Step 1: Replace inline minute state with composable**
+- [x] **Step 1: Replace inline minute state with composable**
 
 In `frontend/src/terminal/panels/MarketOverviewPanel.vue`, add import:
 ```typescript
@@ -353,7 +355,7 @@ const minutePrevClose = computed(() => selectedIndex.value?.prevClose || 0)
 const { minuteTicks, minuteLoading, loadMinuteLine } = useMinuteChart(minuteSymbol, minutePrevClose)
 ```
 
-- [ ] **Step 2: Replace `loadMinuteChart`**
+- [x] **Step 2: Replace `loadMinuteChart`**
 
 Delete the inline `loadMinuteChart` function (lines 198-229). Replace calls:
 
@@ -377,17 +379,17 @@ if (!dataStore.selectedIndexSymbol) {
 ```
 (No change needed here)
 
-- [ ] **Step 3: Keep the compact minute chart option**
+- [x] **Step 3: Keep the compact minute chart option**
 
 The MarketOverviewPanel's `minuteOption` computed stays as-is — it's the compact version specific to this panel. It reads from `minuteTicks.value` and `minutePrevClose.value` from the composable.
 
-- [ ] **Step 4: Verify build**
+- [x] **Step 4: Verify build**
 
 ```bash
 cd frontend && npx vue-tsc --noEmit 2>&1 | head -20
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/terminal/panels/MarketOverviewPanel.vue
@@ -404,7 +406,7 @@ git commit -m "refactor: MarketOverviewPanel uses useMinuteChart composable"
 **Interfaces:**
 - Consumes: `useMinuteChart` from `@/lib/composables/useMinuteChart`
 
-- [ ] **Step 1: Replace inline minute state with composable**
+- [x] **Step 1: Replace inline minute state with composable**
 
 In `frontend/src/terminal/panels/CandlestickPanel.vue`, add import:
 ```typescript
@@ -419,7 +421,7 @@ const { minuteTicks, minuteLoading, loadMinuteLine, startPolling: startMinutePol
   useMinuteChart(symbol, prevClose, { polling: true, pollingInterval: 5000 })
 ```
 
-- [ ] **Step 2: Update minute cache injection**
+- [x] **Step 2: Update minute cache injection**
 
 Remove the `minuteDataCache` usage in `loadMinuteLine` — the composable doesn't manage shared cache. Instead, add a watcher to sync:
 
@@ -435,7 +437,7 @@ watch(minuteTicks, (ticks) => {
 
 Keep `getTodayDateString` as a local function since it's still used by the cache key.
 
-- [ ] **Step 3: Update template references**
+- [x] **Step 3: Update template references**
 
 `startMinutePolling` → `startMinutePoll`
 `stopMinutePolling` → `stopMinutePoll`
@@ -453,13 +455,13 @@ watch(activeTab, (tab) => {
 
 In the symbol change watcher (line 471): update cache sync to use the new name.
 
-- [ ] **Step 4: Verify build**
+- [x] **Step 4: Verify build**
 
 ```bash
 cd frontend && npx vue-tsc --noEmit 2>&1 | head -20
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/terminal/panels/CandlestickPanel.vue
@@ -477,7 +479,7 @@ git commit -m "refactor: CandlestickPanel uses useMinuteChart composable"
 - Consumes: existing `loadOHLCV(sym, incremental)` function
 - Produces: dataZoom event handler that triggers OHLCV expansion
 
-- [ ] **Step 1: Reduce initial lookback to 365 days**
+- [x] **Step 1: Reduce initial lookback to 365 days**
 
 In `loadOHLCV`, change line 255:
 ```typescript
@@ -487,7 +489,7 @@ const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : 9125
 const lookbackDays = ['1m','5m','15m','30m','1h'].includes(iv) ? 5 : 365
 ```
 
-- [ ] **Step 2: Add dataZoom expansion handler**
+- [x] **Step 2: Add dataZoom expansion handler**
 
 Add state to track expansion:
 ```typescript
@@ -583,13 +585,13 @@ In `CandlestickPanel.vue`, add the handler to KlineChart:
 />
 ```
 
-- [ ] **Step 3: Verify build**
+- [x] **Step 3: Verify build**
 
 ```bash
 cd frontend && npx vue-tsc --noEmit 2>&1 | head -20
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/terminal/panels/CandlestickPanel.vue frontend/src/terminal/components/panel/KlineChart.vue
@@ -613,14 +615,14 @@ Vite automatically code-splits these into separate chunks (confirmed in build ou
 
 **`vendor-chart` (1MB)** is loaded eagerly because MarketOverviewPanel includes `KlineChart` which imports ECharts. This is acceptable — the landing page shows charts. Deferring would require removing the chart from the default view, which is a UX regression, not a performance win.
 
-- [ ] **Step 1: Verify current state**
+- [x] **Step 1: Verify current state**
 
 ```bash
 cat frontend/dist/index.html
 # Confirm only index, vendor-vue, vendor-wails are in modulepreload
 ```
 
-- [ ] **Step 2: Document and commit**
+- [x] **Step 2: Document and commit**
 
 Update CHANGELOG with the finding. No code changes needed.
 

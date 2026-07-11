@@ -107,7 +107,7 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		prevBar = &bar
 	}
 
-	metrics := ComputeMetrics(equityCurve, tradeRecords)
+	metrics := ComputeMetrics(equityCurve, tradeRecords, e.config.RiskFreeRate)
 	return &Result{
 		Config:      e.config,
 		EquityCurve: equityCurve,

@@ -18,9 +18,10 @@ type Config struct {
 	StartDate   time.Time `json:"start_date"`
 	EndDate     time.Time `json:"end_date"`
 	InitialCash float64   `json:"initial_cash"`
-	Commission  float64   `json:"commission"` // per-trade commission rate
-	Slippage    float64   `json:"slippage"`   // slippage as fraction of price
-	Benchmark   string    `json:"benchmark"`  // benchmark symbol for comparison
+	Commission   float64   `json:"commission"`    // per-trade commission rate
+	Slippage     float64   `json:"slippage"`      // slippage as fraction of price
+	Benchmark    string    `json:"benchmark"`     // benchmark symbol for comparison
+	RiskFreeRate float64   `json:"risk_free_rate"` // annual risk-free rate (default 0.02 = 2%)
 }
 
 // DefaultConfig returns sensible defaults for backtesting.
@@ -29,6 +30,7 @@ func DefaultConfig() Config {
 		InitialCash: 1_000_000,
 		Commission:  0.0003, // 万三
 		Slippage:    0.001,  // 10 bps
+		RiskFreeRate: 0.02,   // 2% annual risk-free rate
 	}
 }
 

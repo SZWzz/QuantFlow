@@ -104,32 +104,4 @@ func (n *StrategyNode) Validate() error {
 	return nil
 }
 
-func getIntParam(params map[string]any, key string, defaultVal int) int {
-	if params == nil {
-		return defaultVal
-	}
-	if v, ok := params[key]; ok {
-		switch val := v.(type) {
-		case float64:
-			return int(val)
-		case int:
-			return val
-		}
-	}
-	return defaultVal
-}
-
-func getFloatParam(params map[string]any, key string, defaultVal float64) float64 {
-	if params == nil {
-		return defaultVal
-	}
-	if v, ok := params[key]; ok {
-		switch val := v.(type) {
-		case float64:
-			return val
-		case int:
-			return float64(val)
-		}
-	}
-	return defaultVal
-}
+// getIntParam and getFloatParam are defined in utils.go

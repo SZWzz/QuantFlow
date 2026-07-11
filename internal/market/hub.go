@@ -2,19 +2,38 @@ package market
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
+// subscriber wraps a message channel with a closed flag to safely
+// prevent send-on-closed-channel panics during concurrent unsubscribe+publish.
+type subscriber struct {
+	ch     chan MarketMessage
+	closed atomic.Bool
+}
+
+func newSubscriber() *subscriber {
+	return &subscriber{ch: make(chan MarketMessage, 64)}
+}
+
+func (s *subscriber) close() {
+	s.closed.Store(true)
+	// Channel is intentionally NOT closed — closing would cause in-flight
+	// publish() sends to panic. The closed flag prevents future sends,
+	// and the GC collects the channel when all references are dropped.
+}
+
 // topicBroker manages subscribers for a single topic and stores the latest cached message.
 type topicBroker struct {
-	subscribers map[string]chan MarketMessage
+	subscribers map[string]*subscriber
 	latest      *CachedMessage
 	mu          sync.RWMutex
 }
 
 func newTopicBroker() *topicBroker {
 	return &topicBroker{
-		subscribers: make(map[string]chan MarketMessage),
+		subscribers: make(map[string]*subscriber),
 	}
 }
 
@@ -22,32 +41,25 @@ func (b *topicBroker) subscribe(subID string) (<-chan MarketMessage, func()) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	ch := make(chan MarketMessage, 64)
-	b.subscribers[subID] = ch
+	sub := newSubscriber()
+	b.subscribers[subID] = sub
 
 	// Send cached message if available
 	if b.latest != nil && !b.latest.Expired() {
 		select {
-		case ch <- b.latest.Msg:
+		case sub.ch <- b.latest.Msg:
 		default:
 		}
 	}
 
 	unsubscribe := func() {
 		b.mu.Lock()
-		defer b.mu.Unlock()
 		delete(b.subscribers, subID)
-		// We do NOT close the channel here — there is a known race with
-		// publish(), which snapshots the subscriber map under the lock but
-		// sends outside the lock. Closing while a send is in flight panics.
-		// Instead we rely on the GC to collect the channel after the
-		// subscriber stops reading and publish drops its reference.
-		// The delete above ensures no future publish will route to this
-		// subscriber, so the idle channel simply leaks once per subscription
-		// lifecycle (acceptable for a desktop app with bounded subscriptions).
+		b.mu.Unlock()
+		sub.close()
 	}
 
-	return ch, unsubscribe
+	return sub.ch, unsubscribe
 }
 
 func (b *topicBroker) publish(msg MarketMessage) {
@@ -57,15 +69,18 @@ func (b *topicBroker) publish(msg MarketMessage) {
 		CachedAt: time.Now(),
 		TTL:      30 * time.Second,
 	}
-	subs := make(map[string]chan MarketMessage)
-	for id, ch := range b.subscribers {
-		subs[id] = ch
+	subs := make(map[string]*subscriber)
+	for id, s := range b.subscribers {
+		subs[id] = s
 	}
 	b.mu.Unlock()
 
-	for _, ch := range subs {
+	for _, s := range subs {
+		if s.closed.Load() {
+			continue
+		}
 		select {
-		case ch <- msg:
+		case s.ch <- msg:
 		default:
 			// Slow consumer — drop message to avoid blocking
 		}

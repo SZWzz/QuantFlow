@@ -121,7 +121,7 @@ function formatTime(iso: string): string {
 
 <style scoped>
 .status { display: flex; align-items: center; justify-content: center; padding: 20px; color: var(--muted); font-size: 13px; }
-.panel-error { padding: 12px; margin-bottom: 10px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); font-size: 12px; }
+.panel-error { padding: 12px; margin-bottom: 10px; color: var(--color-up); background: var(--color-up-soft); border: 1px solid var(--color-up-glow); border-radius: var(--radius-md); font-size: 12px; }
 
 .action-center {
   padding: 10px;

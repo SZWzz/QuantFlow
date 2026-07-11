@@ -25,7 +25,7 @@ const maxPrice = computed(() => {
 
 const bsColor = computed(() => {
   const s = buySell.value?.suggestion
-  return s === '买入' ? '#22c55e' : s === '增持' ? '#3b82f6' : s === '减持' ? '#ef4444' : '#f59e0b'
+  return s === '买入' ? 'var(--color-down)' : s === '增持' ? '#3b82f6' : s === '减持' ? 'var(--color-up)' : '#f59e0b'
 })
 
 async function loadData() {

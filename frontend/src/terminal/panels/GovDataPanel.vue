@@ -418,8 +418,8 @@ const chartOption = computed(() => {
   const theme = useChartTheme()
 
   // Resolve signal colors from CSS variables
-  const upColor = '#ef4444'
-  const downColor = '#22c55e'
+  const upColor = 'var(--color-up)'
+  const downColor = 'var(--color-down)'
   const axisColor = theme.axisColor
 
   const lineColor = selectedSignal.value?.signal === 'bullish'

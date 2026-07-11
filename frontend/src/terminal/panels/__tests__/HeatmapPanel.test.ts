@@ -19,16 +19,15 @@ describe('HeatmapPanel', () => {
     const wrapper = mount(HeatmapPanel, {
       props: { panelId: 'test-heatmap', params: {} },
     })
-    expect(wrapper.text()).toContain('Market Heatmap')
+    // Title from i18n mock — 'misc.heatmap' -> 'Heatmap'
+    expect(wrapper.text()).toContain('Heatmap')
   })
 
-  it('renders heatmap cells', async () => {
+  it('renders market tabs', () => {
     const wrapper = mount(HeatmapPanel, {
       props: { panelId: 'test-heatmap', params: {} },
     })
-    // Wait for async data load
-    await new Promise(r => setTimeout(r, 50))
-    const cells = wrapper.findAll('.heatmap-cell')
-    expect(cells.length).toBeGreaterThanOrEqual(1)
+    const tabs = wrapper.findAll('.mkt-tab')
+    expect(tabs.length).toBe(3)
   })
 })

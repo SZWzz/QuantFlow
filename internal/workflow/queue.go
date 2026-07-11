@@ -24,7 +24,8 @@ type QueuedWorkflow struct {
 
 // ExecutionQueue manages asynchronous workflow execution.
 // Workflows are queued and executed sequentially by a background goroutine.
-// Callers poll GetStatus to track progress.
+// Callers can use WaitForCompletion to block until a workflow finishes,
+// or poll GetStatus for non-blocking progress checks.
 type ExecutionQueue struct {
 	mu      sync.Mutex
 	queue   []*QueuedWorkflow
@@ -32,12 +33,15 @@ type ExecutionQueue struct {
 	engine  *Engine
 	ctx     context.Context
 	cancel  context.CancelFunc
+	cond    *sync.Cond
 }
 
 // NewExecutionQueue creates an ExecutionQueue.
 func NewExecutionQueue(engine *Engine) *ExecutionQueue {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &ExecutionQueue{engine: engine, ctx: ctx, cancel: cancel}
+	q := &ExecutionQueue{engine: engine, ctx: ctx, cancel: cancel}
+	q.cond = sync.NewCond(&q.mu)
+	return q
 }
 
 func (q *ExecutionQueue) Shutdown() {
@@ -153,6 +157,41 @@ func (q *ExecutionQueue) processLoop() {
 				}
 			}
 		}
+		q.cond.Broadcast() // wake waiters on status change
 		q.mu.Unlock()
+	}
+}
+
+// WaitForCompletion blocks until the workflow with the given runID completes or fails.
+// Returns the final QueuedWorkflow state, or nil if the context is cancelled.
+func (q *ExecutionQueue) WaitForCompletion(ctx context.Context, runID string) *QueuedWorkflow {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	for {
+		for _, qw := range q.queue {
+			if qw.RunID == runID {
+				if qw.Status == "completed" || qw.Status == "failed" {
+					return qw
+				}
+				break
+			}
+		}
+
+		// Release lock and wait for signal with context awareness
+		done := make(chan struct{})
+		go func() {
+			q.cond.Wait()
+			close(done)
+		}()
+
+		q.mu.Unlock()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			q.mu.Lock()
+			return nil
+		}
+		q.mu.Lock()
 	}
 }

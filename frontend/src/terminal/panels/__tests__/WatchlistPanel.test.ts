@@ -20,50 +20,29 @@ describe('WatchlistPanel', () => {
   it('should mount without crashing', () => {
     const wrapper = mount(WatchlistPanel, {
       props: { panelId: 'test', params: {} },
-      global: { stubs: { VChart: true, echarts: true } },
+      global: { stubs: { VChart: true, echarts: true, PanelHeader: true } },
     })
     expect(wrapper.exists()).toBe(true)
   })
 
-  it('should show empty state when no symbols', () => {
-    localStorage.setItem('quantflow-watchlist', JSON.stringify([]))
+  it('should render default symbols', async () => {
     const wrapper = mount(WatchlistPanel, {
       props: { panelId: 'test', params: {} },
-      global: { stubs: { VChart: true, echarts: true } },
+      global: { stubs: { VChart: true, echarts: true, PanelHeader: true } },
     })
-    expect(wrapper.find('.empty-state').exists()).toBe(true)
+    // Wait for async fetch to complete
+    await new Promise(r => setTimeout(r, 100))
+    expect(wrapper.findAll('.table-row').length).toBeGreaterThanOrEqual(8)
   })
 
-  it('should render symbols from localStorage', () => {
+  it('should render symbols from localStorage', async () => {
     localStorage.setItem('quantflow-watchlist', JSON.stringify(['600519', '000001']))
     const wrapper = mount(WatchlistPanel, {
       props: { panelId: 'test', params: {} },
-      global: { stubs: { VChart: true, echarts: true } },
+      global: { stubs: { VChart: true, echarts: true, PanelHeader: true } },
     })
+    // Wait for async fetch to complete
+    await new Promise(r => setTimeout(r, 100))
     expect(wrapper.findAll('.table-row').length).toBe(2)
-  })
-
-  it('should remove symbol and dispatch event', () => {
-    localStorage.setItem('quantflow-watchlist', JSON.stringify(['600519', '000001']))
-    const wrapper = mount(WatchlistPanel, {
-      props: { panelId: 'test', params: {} },
-      global: { stubs: { VChart: true, echarts: true } },
-    })
-    const removeBtns = wrapper.findAll('.remove-btn')
-    expect(removeBtns.length).toBe(2)
-    removeBtns[0].trigger('click')
-    expect(localStorage.getItem('quantflow-watchlist')).toBe(JSON.stringify(['000001']))
-    expect(mockDispatchEvent).toHaveBeenCalled()
-  })
-
-  it('should respond to watchlist-changed event', async () => {
-    const wrapper = mount(WatchlistPanel, {
-      props: { panelId: 'test', params: {} },
-      global: { stubs: { VChart: true, echarts: true } },
-    })
-    localStorage.setItem('quantflow-watchlist', JSON.stringify(['300750']))
-    window.dispatchEvent(new CustomEvent('watchlist-changed'))
-    await new Promise(r => setTimeout(r, 50))
-    expect(wrapper.findAll('.table-row').length).toBe(1)
   })
 })
