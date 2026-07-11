@@ -83,8 +83,11 @@ const ctx = useSymbolContext()
 const groupOrder = ['group-1', 'group-2', 'group-3', 'group-4']
 
 function tabGroupDot(panelId: string): { show: boolean; color: string; groupId: string } {
+  const symbol = ctx.getActiveSymbolForPanel(panelId)
   const groupId = ctx.getPanelGroupId(panelId)
   const group = ctx.linkGroups[groupId]
+  // Only show dot if panel is actively linked AND has a symbol
+  if (!symbol) return { show: false, color: '', groupId }
   return { show: true, color: group?.color || '#666', groupId }
 }
 
