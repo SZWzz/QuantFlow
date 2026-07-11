@@ -38,19 +38,9 @@ export const useSymbolContext = defineStore('symbolContext', () => {
     if (linkGroups[groupId]) activeGroupId.value = groupId
   }
 
-  const groupIds = ['group-1', 'group-2', 'group-3', 'group-4']
-
   function getOrCreatePanelGroup(panelId: string): { groupId: string; linked: boolean } {
     if (!panelGroups[panelId]) {
-      // Assign panels round-robin across 4 groups so colors are naturally distributed
-      const counts = groupIds.map(id =>
-        Object.values(panelGroups).filter(pg => pg.groupId === id).length
-      )
-      let minIdx = 0
-      for (let i = 1; i < counts.length; i++) {
-        if (counts[i] < counts[minIdx]) minIdx = i
-      }
-      panelGroups[panelId] = { groupId: groupIds[minIdx], linked: true }
+      panelGroups[panelId] = { groupId: activeGroupId.value, linked: true }
     }
     return panelGroups[panelId]
   }
