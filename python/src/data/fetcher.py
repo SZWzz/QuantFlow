@@ -1108,79 +1108,62 @@ class DataService(data_pb2_grpc.DataServiceServicer):
     # -----------------------------------------------------------------------
 
     async def _handle_macro(self, data_type, symbols, start_date, end_date, params):
-        """Route macroeconomic data (BIS, WTO, EIA) via subprocess.
-
-        Uses the project venv Python (not sys.executable) because the gRPC
-        sidecar may be running under a different interpreter in some Wails
-        packaging scenarios, and macro_bis.py needs aiohttp which is only in
-        the venv. The venv is resolved relative to this file so it works
-        whether we're running from python/ (dev) or build/python/ (packaged).
-        """
-        import subprocess
-        import sys as _sys
-        import json as _json
-        import os
-
+        """Route macroeconomic data (BIS, WTO, EIA) via direct import (no subprocess)."""
         MACRO_ROUTES = {
             "bis": "macro_bis",
             "wto": "macro_wto",
             "eia": "macro_eia",
         }
-        MACRO_DEFAULT_CMDS = {
-            "bis": "get_available_datasets",
-            "wto": "get_all_endpoints",
-            "eia": "get_all_endpoints",
-        }
 
-        module = MACRO_ROUTES.get(data_type)
-        if module is None:
+        module_name = MACRO_ROUTES.get(data_type)
+        if module_name is None:
             return data_pb2.FetchDataResponse(
                 error=f"Macro: unknown data_type '{data_type}'. Supported: {list(MACRO_ROUTES.keys())}"
             )
 
-        # Use sys.executable (the venv python that the Go sidecar started)
-        # for the subprocess, and pass PYTHONPATH explicitly so the module
-        # is resolved regardless of cwd or environment inheritance.
-        # __file__ is .../<python_dir>/src/data/fetcher.py
-        _this_file = os.path.abspath(__file__)
-        _python_dir = os.path.dirname(os.path.dirname(os.path.dirname(_this_file)))
-        _python_exe = _sys.executable
-        _sub_env = os.environ.copy()
-        _sub_env.setdefault("PYTHONPATH", os.path.join(_python_dir, "src"))
+        cmd_name = (params or {}).get("cmd", "get_all_endpoints")
 
-        # Use explicit command from params, or fall back to default for this source
-        cmd_name = (params or {}).get("cmd", MACRO_DEFAULT_CMDS.get(data_type, "get_all_endpoints"))
-        cmd = [_python_exe, "-m", f"src.data.fincept.{module}", cmd_name]
-        # BIS: pass dataset ID + country code as extra arguments.
-        # 'fetch' needs <dataflow> <country_code> [start] [end]; 'get_data'
-        # needs <flow> [key] [start] [end]. Default country to 'all'.
-        if data_type == "bis" and params and params.get("dataset"):
-            cmd.append(params["dataset"])
-            # 'fetch' command requires a country_code arg (position 2)
-            if cmd_name == "fetch":
-                cmd.append(params.get("country", "all"))
+        mod = importlib.import_module(f"src.data.fincept.{module_name}")
+
+        # Build positional args for bis (dataflow + country)
+        args: list[str] = []
+        kwargs: dict = {}
+        if data_type == "bis":
+            if params and params.get("dataset"):
+                args.append(params["dataset"])
+                if cmd_name == "fetch":
+                    args.append(params.get("country", "all"))
+        elif data_type == "wto":
+            if symbols:
+                kwargs["member_code"] = symbols[0]
+            if params:
+                kwargs.update(params)
+
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=_python_dir,
-                env=_sub_env,
-            )
-            if result.returncode != 0:
-                return data_pb2.FetchDataResponse(
-                    error=f"Macro {data_type}: subprocess failed (rc={result.returncode}): {result.stderr[:500]}"
+            if hasattr(mod, "call_endpoint_async"):
+                result = await mod.call_endpoint_async(cmd_name, *args, **kwargs)
+            elif hasattr(mod, "call_endpoint"):
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(
+                    None, lambda: mod.call_endpoint(cmd_name, *args)
                 )
-
-            data = _json.loads(result.stdout)
-            return data_pb2.FetchDataResponse(
-                data=_json.dumps(data, default=str, ensure_ascii=False).encode("utf-8")
-            )
-        except subprocess.TimeoutExpired:
-            return data_pb2.FetchDataResponse(error=f"Macro {data_type}: timeout after 120s")
+            else:
+                return data_pb2.FetchDataResponse(
+                    error=f"Macro {data_type}: module has no call_endpoint entry point"
+                )
         except Exception as e:
-            return data_pb2.FetchDataResponse(error=f"Macro {data_type}: {str(e)}")
+            return data_pb2.FetchDataResponse(
+                error=f"Macro {data_type}: {e}"
+            )
+
+        if isinstance(result, dict) and not result.get("success", True):
+            return data_pb2.FetchDataResponse(
+                error=result.get("error", f"Macro {data_type}: unknown error")
+            )
+
+        return data_pb2.FetchDataResponse(
+            data=json.dumps(result, default=str, ensure_ascii=False).encode("utf-8")
+        )
 
     async def _handle_crypto_extras(self, data_type, symbols, params):
         """Route crypto extra data (DeFi TVL, whale, gas fees) via crypto_extras module."""

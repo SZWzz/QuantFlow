@@ -886,5 +886,54 @@ def main():
             "error": str(e)
         }))
 
+async def call_endpoint_async(command: str, **kwargs) -> dict:
+    """Programmatic entry point for direct import callers.
+
+    Returns the same dict structure the CLI main() would print to stdout.
+    Supports core commands: available_apis, qr_members, eping_search,
+    timeseries_data, tfad_data, overview, comprehensive_analysis.
+    """
+    wrapper = WTODataWrapper()
+
+    try:
+        if command == "available_apis":
+            return wrapper.get_available_apis()
+        elif command == "qr_members":
+            return await wrapper.get_qr_members(
+                kwargs.get("member_code"), kwargs.get("name"),
+                int(kwargs["page"]) if kwargs.get("page") else None
+            )
+        elif command == "eping_search":
+            return await wrapper.eping_search(**kwargs)
+        elif command == "timeseries_data":
+            indicator = kwargs.get("i") or kwargs.get("indicator", "TP_A_0010")
+            reporter = kwargs.get("r") or kwargs.get("reporter")
+            partner = kwargs.get("p") or kwargs.get("partner")
+            return await wrapper.get_timeseries_data(indicator, reporter, partner)
+        elif command == "tfad_data":
+            countries = kwargs.get("countries", "")
+            return await wrapper.get_tfad_data([int(c) for c in countries.split(",") if c.strip().isdigit()])
+        elif command == "overview":
+            member_code = kwargs.get("member_code")
+            return await wrapper.get_wto_overview(member_code)
+        elif command == "comprehensive_analysis":
+            member_code = kwargs.get("member_code")
+            indicator = kwargs.get("indicator", "TP_A_0010")
+            return await wrapper.get_comprehensive_wto_analysis(member_code, indicator)
+        elif command == "get_all_endpoints":
+            return {
+                "success": True,
+                "endpoints": [
+                    "available_apis", "qr_members", "qr_products", "qr_notifications",
+                    "eping_search", "timeseries_data", "tfad_data",
+                    "overview", "comprehensive_analysis"
+                ]
+            }
+        else:
+            return {"success": False, "error": f"Unknown WTO command: {command}"}
+    except Exception as e:
+        return {"success": False, "error": str(e), "command": command}
+
+
 if __name__ == "__main__":
     main()

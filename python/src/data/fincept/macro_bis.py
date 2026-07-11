@@ -1505,5 +1505,116 @@ async def main():
             print(json.dumps(error_response, indent=2))
 
 
+async def call_endpoint_async(command: str, *args) -> dict:
+    """Programmatic entry point for direct import callers.
+
+    Returns the same dict structure the CLI main() would print to stdout.
+    Supports core commands: get_available_datasets, fetch, get_summary,
+    get_data, get_economic_overview, search_datasets, get_dataset_metadata.
+    """
+    async with BISAPI() as bis:
+        try:
+            if command == "get_available_datasets":
+                return await bis.get_available_datasets()
+            elif command == "get_summary":
+                return await bis.get_summary()
+            elif command == "fetch":
+                if len(args) < 2:
+                    return {"success": False, "error": "fetch requires <dataflow> <country_code>"}
+                dataflow = args[0]
+                country_code = args[1]
+                start_period = args[2] if len(args) > 2 else None
+                end_period = args[3] if len(args) > 3 else None
+
+                KEY_PATTERNS = {
+                    "WS_CBPOL": "M.{cc}", "WS_EER": "M.N.B.{cc}", "WS_EER_R": "M.R.B.{cc}",
+                    "WS_XRU": "M.{cc}", "WS_LONG_CPI": "M.{cc}", "WS_CBTA": "Q.{cc}",
+                    "WS_CREDIT_GAP": "Q.{cc}", "WS_TC": "Q.{cc}", "WS_DSR": "Q.{cc}",
+                    "WS_GLI": "Q..{cc}", "WS_SPP": "Q.{cc}", "WS_CPP": "Q.{cc}",
+                    "WS_DPP": "Q.{cc}", "WS_CBS_PUB": "Q..{cc}", "WS_LBS_D_PUB": "Q..{cc}",
+                    "WS_DEBT_SEC2_PUB": "Q.{cc}", "WS_NA_SEC_DSS": "Q..{cc}",
+                    "WS_OTC_DERIV2": "H", "WS_DER_OTC_TOV": "T", "WS_XTD_DERIV": "Q",
+                    "WS_CPMI_MACRO": "A..{cc}", "WS_CPMI_CASHLESS": "A..{cc}",
+                    "WS_CPMI_CT1": "A..{cc}", "WS_CPMI_CT2": "A..{cc}",
+                    "WS_CPMI_DEVICES": "A..{cc}", "WS_CPMI_INSTITUT": "A..{cc}",
+                    "WS_CPMI_PARTICIP": "A..{cc}", "WS_CPMI_SYSTEMS": "A..{cc}",
+                }
+
+                pattern = KEY_PATTERNS.get(dataflow, "M.{cc}")
+                key = pattern.format(cc=country_code if country_code and country_code != "all" else "")
+                raw = await bis.get_data(dataflow, key, start_period, end_period)
+
+                if not raw.get("success"):
+                    return raw
+
+                flat_data = []
+                try:
+                    resp = raw.get("data", {})
+                    sdmx_data = resp.get("data", resp)
+                    datasets = sdmx_data.get("dataSets", [])
+                    structure = sdmx_data.get("structure", resp.get("structure", {}))
+                    obs_dims = structure.get("dimensions", {}).get("observation", [])
+
+                    time_values = {}
+                    if obs_dims:
+                        time_values = {str(i): v.get("id", v.get("name", str(i)))
+                                       for i, v in enumerate(obs_dims[0].get("values", []))}
+
+                    for ds in datasets:
+                        series_map = ds.get("series", {})
+                        for _series_key, series_val in series_map.items():
+                            observations = series_val.get("observations", {})
+                            for obs_key, obs_val in observations.items():
+                                period = time_values.get(obs_key, obs_key)
+                                value = obs_val[0] if isinstance(obs_val, list) and obs_val else None
+                                if value is not None:
+                                    try:
+                                        value = float(value)
+                                        import math
+                                        if math.isnan(value) or math.isinf(value):
+                                            continue
+                                    except (ValueError, TypeError):
+                                        continue
+                                    flat_data.append({"date": str(period), "value": value})
+
+                    from collections import defaultdict
+                    date_vals = defaultdict(list)
+                    for d in flat_data:
+                        date_vals[d["date"]].append(d["value"])
+                    flat_data = [{"date": dt, "value": round(sum(vs)/len(vs), 6)}
+                                 for dt, vs in sorted(date_vals.items())]
+                except Exception as parse_err:
+                    return {"success": False, "error": f"Failed to parse SDMX response: {str(parse_err)}"}
+
+                return {
+                    "success": True,
+                    "data": flat_data,
+                    "metadata": {"dataflow": dataflow, "country": country_code, "source": "BIS"}
+                }
+            elif command == "get_data":
+                flow = args[0] if len(args) > 0 else None
+                key = args[1] if len(args) > 1 else "all"
+                start_period = args[2] if len(args) > 2 else None
+                end_period = args[3] if len(args) > 3 else None
+                if flow is None:
+                    return {"success": False, "error": "get_data requires <flow>"}
+                return await bis.get_data(flow, key, start_period, end_period)
+            elif command == "get_economic_overview":
+                countries = list(args) if args else None
+                return await bis.get_economic_overview(countries=countries)
+            elif command == "search_datasets":
+                query = args[0] if args else ""
+                return await bis.search_datasets(query)
+            elif command == "get_dataset_metadata":
+                flow = args[0] if args else ""
+                return await bis.get_dataset_metadata(flow)
+            else:
+                return {"success": False, "error": f"Unknown BIS command: {command}"}
+        except BISError as e:
+            return {"success": False, "error": str(e), "endpoint": e.endpoint, "status_code": e.status_code}
+        except Exception as e:
+            return {"success": False, "error": str(e), "command": command}
+
+
 if __name__ == "__main__":
     asyncio.run(main())

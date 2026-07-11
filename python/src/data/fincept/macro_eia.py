@@ -397,11 +397,55 @@ class EIADataFetcher:
             "failed_fetches": len(errors)
         }
 
-def main(args=None):
+def call_endpoint(endpoint: str, *args) -> Any:
+    """Programmatic entry point for direct import callers.
     
+    Returns the same dict structure the CLI main() would print to stdout.
+    Supports: available_categories, available_steo_tables, energy_overview,
+    get_petroleum, get_steo, get_crude_stocks.
+    """
+    fetcher = EIADataFetcher()
+    try:
+        if endpoint == "available_categories":
+            return fetcher.get_available_categories()
+        elif endpoint == "available_steo_tables":
+            return fetcher.get_available_steo_tables()
+        elif endpoint == "energy_overview":
+            limit = int(args[0]) if args else None
+            return fetcher.get_energy_overview(limit)
+        elif endpoint == "get_petroleum":
+            category = args[0] if len(args) > 0 else "balance_sheet"
+            tables = args[1].split(',') if len(args) > 1 else None
+            start = args[2] if len(args) > 2 else None
+            end = args[3] if len(args) > 3 else None
+            return fetcher.get_petroleum_status_report(category, tables, start, end)
+        elif endpoint == "get_steo":
+            table = args[0] if len(args) > 0 else "01"
+            symbols = args[1].split(',') if len(args) > 1 else None
+            freq = args[2] if len(args) > 2 else "month"
+            start = args[3] if len(args) > 3 else None
+            end = args[4] if len(args) > 4 else None
+            return fetcher.get_short_term_energy_outlook(table, symbols, freq, start, end)
+        elif endpoint == "get_crude_stocks":
+            return fetcher.get_petroleum_status_report("crude_petroleum_stocks", ["stocks"])
+        elif endpoint == "get_all_endpoints":
+            return {
+                "success": True,
+                "endpoints": [
+                    "available_categories", "available_steo_tables", "energy_overview",
+                    "get_petroleum", "get_steo", "get_crude_stocks"
+                ]
+            }
+        else:
+            return {"success": False, "error": f"Unknown EIA endpoint: {endpoint}"}
+    except Exception as e:
+        return {"success": False, "error": str(e), "endpoint": endpoint}
+
+
+def main(args=None):
+    """CLI interface for EIA data wrapper"""
     if args is None:
         args = sys.argv[1:]
-    """CLI interface for EIA data wrapper"""
     if len(args) + 1 < 2:
         print(json.dumps({
             "success": False,
