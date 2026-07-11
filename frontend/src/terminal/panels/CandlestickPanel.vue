@@ -28,6 +28,9 @@ const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
+// Track current group reactively — pg.groupId is a snapshot, so use computed
+const currentGroupId = computed(() => ctx.getPanelGroupId(props.panelId))
+
 // Shared minute data cache from parent DockView
 const minuteDataCache = inject<Map<string, MinuteTick[]>>('minuteDataCache', new Map())
 
@@ -43,7 +46,7 @@ let dc: DrawingController | null = null
 let crosshair: Crosshair | null = null
 const crosshairCanvasRef = ref<HTMLCanvasElement | null>(null)
 
-const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(currentGroupId.value) || '600519')
 const { name } = useStockName(symbol)
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId, symbol)
 
@@ -316,8 +319,8 @@ function loadData() {
   }
 }
 
-// Subscribe to symbol context via link group
-watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSymbol) => {
+// Subscribe to symbol context via link group — tracks group changes reactively
+watch(() => ctx.linkGroups[currentGroupId.value]?.activeSymbol, (newSymbol) => {
   if (newSymbol && newSymbol !== symbol.value) {
     symbol.value = newSymbol
     loadOHLCV(newSymbol)
@@ -693,7 +696,7 @@ watch(symbol, () => {
 })
 
 onMounted(() => {
-  const groupSym = ctx.getGroupSymbol(pg.groupId)
+  const groupSym = ctx.getGroupSymbol(currentGroupId.value)
   if (groupSym && groupSym !== symbol.value) {
     symbol.value = groupSym
   }

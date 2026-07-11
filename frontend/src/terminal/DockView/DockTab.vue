@@ -80,12 +80,19 @@ function onDrop(e: DragEvent) {
 const terminal = useTerminalStore()
 const ctx = useSymbolContext()
 
-function tabGroupDot(panelId: string): { show: boolean; color: string } {
-  const symbol = ctx.getActiveSymbolForPanel(panelId)
-  if (!symbol) return { show: false, color: '' }
+const groupOrder = ['group-1', 'group-2', 'group-3', 'group-4']
+
+function tabGroupDot(panelId: string): { show: boolean; color: string; groupId: string } {
   const groupId = ctx.getPanelGroupId(panelId)
   const group = ctx.linkGroups[groupId]
-  return { show: true, color: group?.color || '' }
+  return { show: true, color: group?.color || '#666', groupId }
+}
+
+function cycleGroup(panelId: string) {
+  const currentId = ctx.getPanelGroupId(panelId)
+  const currentIdx = groupOrder.indexOf(currentId)
+  const nextId = groupOrder[(currentIdx + 1) % groupOrder.length]
+  ctx.setPanelGroup(panelId, nextId)
 }
 
 const activePanel = computed(() => props.tabs.find((t) => t.id === props.activeTab))
@@ -135,9 +142,10 @@ provide('isVisible', isTabVisible)
         >
           <span class="tab-icon" v-html="tab.icon" />
           <span
-            v-if="tabGroupDot(tab.panelId).show"
             class="tab-group-dot"
             :style="{ background: tabGroupDot(tab.panelId).color }"
+            :title="'颜色组: ' + (groupOrder.indexOf(tabGroupDot(tab.panelId).groupId) + 1) + '/4 — 点击切换'"
+            @click.stop="cycleGroup(tab.panelId)"
           ></span>
           <span class="tab-label">{{ tab.label }}</span>
           <span
