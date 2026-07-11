@@ -3,7 +3,6 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import SymbolSearch from './SymbolSearch.vue'
 import type { StockEntry } from '@/lib/symbolSearch'
 import { getIcon } from '@/lib/icons'
-import { computed } from 'vue'
 
 const ctx = useSymbolContext()
 
@@ -11,7 +10,7 @@ function onSelect(entry: StockEntry) {
   ctx.setGroupSymbol(ctx.activeGroupId, entry.code)
 }
 
-const groups = computed(() => Object.entries(ctx.linkGroups))
+const groups = Object.entries(ctx.linkGroups)
 </script>
 
 <template>
