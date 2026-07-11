@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 
 export interface LinkGroup {
   id: string
