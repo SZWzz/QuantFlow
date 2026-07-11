@@ -745,6 +745,56 @@ async def _handle_akshare(endpoint: str, **params) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Fincept module dispatch — direct import (no subprocess)
+# ---------------------------------------------------------------------------
+
+
+def _call_fincept_module(module_name: str, endpoint: str, *args) -> dict:
+    """Import a fincept module and call its endpoint function in-process.
+
+    Supports both ENDPOINTS-dict (financials, fundflow, margin, index) and
+    Wrapper-class (bonds, derivatives, hk, macro_cn) patterns. Returns the
+    same dict the module's main() would produce via JSON stdout.
+
+    No subprocess overhead — the module runs in the same Python process.
+    """
+    mod = importlib.import_module(f"src.data.fincept.{module_name}")
+
+    # Handle get_all_endpoints / get_all_available_endpoints
+    if endpoint in ("get_all_endpoints", "get_all_available_endpoints"):
+        fn = (
+            getattr(mod, "get_all_endpoints", None)
+            or getattr(mod, "get_all_available_endpoints", None)
+        )
+        if fn:
+            return {"success": True, "data": fn(), "timestamp": int(time.time())}
+
+    # Pattern A: ENDPOINTS dict
+    endpoints = getattr(mod, "ENDPOINTS", {})
+    if endpoint in endpoints:
+        func = endpoints[endpoint]["func"]
+        result = func(*args)
+        if isinstance(result, dict):
+            result["timestamp"] = int(time.time())
+        return result
+
+    # Pattern B: Wrapper class
+    for attr_name in dir(mod):
+        obj = getattr(mod, attr_name)
+        if isinstance(obj, type) and attr_name.endswith("Wrapper"):
+            wrapper = obj()
+            method_name = f"get_{endpoint}" if not endpoint.startswith("get_") else endpoint
+            method = getattr(wrapper, method_name, None)
+            if method:
+                result = method(*args) if args else method()
+                if isinstance(result, dict):
+                    result["timestamp"] = int(time.time())
+                return result
+
+    return {"success": False, "error": f"Unknown endpoint: {endpoint}"}
+
+
+# ---------------------------------------------------------------------------
 # gRPC Service
 # ---------------------------------------------------------------------------
 
@@ -857,12 +907,7 @@ class DataService(data_pb2_grpc.DataServiceServicer):
     }
 
     async def _handle_akshare(self, data_type, symbols, start_date, end_date, params):
-        """Route AKShare data types to fincept CLI modules via subprocess."""
-        import subprocess
-        import sys as _sys
-        import json as _json
-        import os
-
+        """Route AKShare data types to fincept modules via direct import (no subprocess)."""
         route = self._AKSHARE_ROUTES.get(data_type)
         if route is None:
             return data_pb2.FetchDataResponse(
@@ -871,52 +916,49 @@ class DataService(data_pb2_grpc.DataServiceServicer):
             )
 
         module_name, endpoint = route
-        # Allow params.cmd to override the default endpoint (e.g., "gdp" instead of "get_all_endpoints")
         if params and params.get("cmd"):
             endpoint = params["cmd"]
+
         symbol = symbols[0] if symbols else ""
-        cmd = [_sys.executable, "-m", f"src.data.fincept.{module_name}", endpoint]
-        # Only append symbol as arg for stock-specific data types. Macro summary
-        # takes no symbol; macro_cn_indicator carries the target endpoint name
-        # in symbols[0] and DOES need it appended (as the get_normalized arg).
-        if symbol and data_type not in ("macro_cn", "macro_cn_summary", "bonds", "cb_arbitrage", "cb_redeem", "hk_ipo", "hk_cbbc", "hk_warrants", "hk_trade_cal"):
-            cmd.append(symbol)
-        if start_date and data_type == "fundflow":
-            cmd.append(start_date)
 
-        # macro_cn_summary fans out to ~9 akshare endpoints in parallel inside
-        # macro_cn.py:get_summary(); allow extra headroom on slow links.
-        # macro_cn_indicator fetches a single endpoint for the detail chart —
-        # SLOW akshare endpoints (cpi_yearly, ppi_yearly, m2_yearly, ...) can
-        # legitimately take 60-120s, so give the detail path more rope.
+        # Build positional args matching the CLI contract of each fincept module.
+        # Most modules take the symbol as argv[2]; macro_cn.* take structured args.
+        args: list[str] = []
         if data_type == "macro_cn_summary":
-            timeout = 90
+            # get_summary(): symbolic arg is limit (default 12), symbol is never passed.
+            args.append(symbol if symbol else "12")
         elif data_type == "macro_cn_indicator":
-            timeout = 120
-        else:
-            timeout = 60
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                start_new_session=True,
-            )
-            if result.returncode != 0:
-                return data_pb2.FetchDataResponse(
-                    error=f"AKShare {data_type}: subprocess failed (rc={result.returncode}): {result.stderr[:2000]}"
-                )
+            # get_normalized(<endpoint>, <limit>): symbols[0] == target endpoint name.
+            target = symbol
+            limit = "24"
+            args = [target, limit] if target else ["24"]
+        elif symbol and data_type not in (
+            "macro_cn", "bonds", "cb_arbitrage", "cb_redeem",
+            "hk_ipo", "hk_cbbc", "hk_warrants", "hk_trade_cal"
+        ):
+            args.append(symbol)
 
-            data = _json.loads(result.stdout)
-            return data_pb2.FetchDataResponse(
-                data=_json.dumps(data, default=str, ensure_ascii=False).encode("utf-8")
+        if start_date and data_type == "fundflow":
+            args.append(start_date)
+
+        loop = asyncio.get_event_loop()
+        try:
+            result = await loop.run_in_executor(
+                None, lambda: _call_fincept_module(module_name, endpoint, *args)
             )
-        except subprocess.TimeoutExpired:
-            return data_pb2.FetchDataResponse(error=f"AKShare {data_type}: timeout after 60s")
         except Exception as e:
-            return data_pb2.FetchDataResponse(error=f"AKShare {data_type}: {str(e)}")
+            return data_pb2.FetchDataResponse(
+                error=f"AKShare {data_type}: {e}"
+            )
+
+        if isinstance(result, dict) and not result.get("success", True):
+            return data_pb2.FetchDataResponse(
+                error=result.get("error", f"AKShare {data_type}: unknown error")
+            )
+
+        return data_pb2.FetchDataResponse(
+            data=json.dumps(result, default=str, ensure_ascii=False).encode("utf-8")
+        )
 
     # -----------------------------------------------------------------------
     # CCXT handler — direct ccxt library calls
