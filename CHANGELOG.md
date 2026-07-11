@@ -4,6 +4,32 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.11] - 2026-07-11
+
+### Changed
+- [Python] Refactor fincept module dispatch: replace subprocess.run() with direct
+  importlib.import_module() for all 19 AKShare data types and 3 macro sources
+  (BIS/WTO/EIA). Saves ~200ms per request and enables native async/await.
+  _call_fincept_module() centralized dispatch supports both ENDPOINTS-dict and
+  Wrapper-class module patterns.
+- [Python] Add call_endpoint_async() to macro_bis.py, macro_wto.py;
+  add call_endpoint() to macro_eia.py for programmatic direct-import entry points.
+- [Python] Remove subprocess fallback code from _handle_macro() and
+  _handle_akshare() gRPC handlers — 120 lines of dead env/cwd/timeout plumbing.
+
+### Fixed
+- [Python] Macro BIS fetch command SDMX flatten: ported inline JSON parsing
+  logic from main() CLI to call_endpoint_async() so BIS data flow works
+  without subprocess.
+
+### Added
+- [Frontend] Unified test mock layer (mocks.ts): structured Wails IPC mocks for
+  all panel data types, WebSocket mock, and i18n mock with title-case fallback.
+  80+ common i18n keys predefined; unknown keys auto-convert to readable
+  Title Case (e.g. 'actionCenter' → 'Action Center').
+- [Frontend] Deduplicate $t and t() i18n mocks: vitest.setup.ts now reuses
+  the single t() function from mocks.ts via config.global.mocks.$t.
+
 ## [2026.7.10] - 2026-07-10
 
 ### Added
