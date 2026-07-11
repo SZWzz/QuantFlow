@@ -93,6 +93,9 @@ function cycleGroup(panelId: string) {
   const currentIdx = groupOrder.indexOf(currentId)
   const nextId = groupOrder[(currentIdx + 1) % groupOrder.length]
   ctx.setPanelGroup(panelId, nextId)
+  // Also switch the SymbolBar's active group so subsequent searches
+  // target the correct group
+  ctx.setActiveGroup(nextId)
 }
 
 const activePanel = computed(() => props.tabs.find((t) => t.id === props.activeTab))
