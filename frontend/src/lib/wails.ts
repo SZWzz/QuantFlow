@@ -32,6 +32,8 @@ export function detectMarket(symbol: string): string {
   if (['BTC', 'ETH', 'SOL', 'BNB'].includes(s)) return 'CRYPTO'
   // 6-digit numeric → CN A-share
   if (/^\d{6}$/.test(s)) return 'CN'
+  // 1-5 digit numeric → HK (e.g. 00700, 5, 9988)
+  if (/^\d{1,5}$/.test(s)) return 'HK'
   // Default → US
   return 'US'
 }
