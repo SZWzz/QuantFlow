@@ -51,6 +51,7 @@ func NewSymbolSearchService(ctx context.Context, db *sql.DB) (*SymbolSearchServi
 				slog.Info("symbol_search: loaded from cache",
 					"entries", len(entries), "age", age.Round(time.Hour))
 				svc.entries = entries
+				svc.ensureEmbeddedFallback()
 				return svc, nil
 			}
 			slog.Info("symbol_search: cache stale, refreshing", "age", age.Round(time.Hour))
@@ -67,6 +68,7 @@ func NewSymbolSearchService(ctx context.Context, db *sql.DB) (*SymbolSearchServi
 				slog.Warn("symbol_search: API fetch failed, using stale cache",
 					"entries", len(cached), "error", err)
 				svc.entries = cached
+				svc.ensureEmbeddedFallback()
 				return svc, nil
 			}
 		}
@@ -74,10 +76,11 @@ func NewSymbolSearchService(ctx context.Context, db *sql.DB) (*SymbolSearchServi
 	}
 
 	svc.entries = entries
+	svc.ensureEmbeddedFallback()
 
 	// Save to SQLite
 	if db != nil {
-		if err := svc.saveToDB(entries); err != nil {
+		if err := svc.saveToDB(svc.entries); err != nil {
 			slog.Warn("symbol_search: save to DB failed", "error", err)
 		}
 	}
@@ -500,4 +503,23 @@ var charPinyin = map[rune]string{
 	'州': "zhou", '珠': "zhu", '资': "zi", '自': "zi", '总': "zong", '作': "zuo",
 	'振': "zhen", '正': "zheng", '证': "zheng", '制': "zhi", '致': "zhi",
 	'置': "zhi", '装': "zhuang", '卓': "zhuo", '紫': "zi", '棕': "zong", '组': "zu",
+}
+
+// ensureEmbeddedFallback merges embedded HK and US stock lists into the
+// search index if they are missing (e.g. stale cache only has CN entries).
+func (s *SymbolSearchService) ensureEmbeddedFallback() {
+	hasHK, hasUS := false, false
+	for _, e := range s.entries {
+		if e.Market == "HK" { hasHK = true }
+		if e.Market == "US" { hasUS = true }
+	}
+	if !hasHK {
+		s.entries = append(s.entries, loadEmbeddedHKStockList()...)
+	}
+	if !hasUS {
+		s.entries = append(s.entries, loadEmbeddedUSStockList()...)
+	}
+	if !hasHK || !hasUS {
+		slog.Info("symbol_search: embedded fallback merged", "hasHK", hasHK, "hasUS", hasUS, "total", len(s.entries))
+	}
 }
