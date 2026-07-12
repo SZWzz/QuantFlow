@@ -248,6 +248,59 @@ func (a *YahooAdapter) fetchWithBase(ctx context.Context, baseURL, symbol, inter
 	return bars, nil
 }
 
+// FetchMinuteLine returns today's intraday minute ticks via Yahoo chart API.
+// Implements market.MinuteLineProvider.
+func (a *YahooAdapter) FetchMinuteLine(symbol string) ([]market.MinuteTick, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	now := time.Now()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	yahooSymbol := normalizeYahooSymbol(symbol)
+
+	url := fmt.Sprintf("%s/%s?interval=1m&period1=%d&period2=%d&includePrePost=false",
+		yahooChartURL, yahooSymbol, startOfDay.Unix(), now.Unix())
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	a.setHeaders(req)
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("yahoo minute: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if isHTMLBody(body) {
+		return nil, fmt.Errorf("yahoo minute: received HTML response")
+	}
+
+	var result yahooChartResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("yahoo minute parse: %w", err)
+	}
+	if len(result.Chart.Result) == 0 {
+		return nil, fmt.Errorf("yahoo minute: no data for %s", symbol)
+	}
+
+	r := result.Chart.Result[0]
+	timestamps := r.Timestamp
+	quote := r.Indicators.Quote[0]
+	closes := quote.Close
+	volumes := quote.Volume
+
+	ticks := make([]market.MinuteTick, 0, len(timestamps))
+	for i, ts := range timestamps {
+		if i >= len(closes) || closes[i] == 0 {
+			continue
+		}
+		ticks = append(ticks, market.MinuteTick{
+			Time:   time.Unix(ts, 0).Format("15:04"),
+			Price:  closes[i],
+			Volume: safeFloat(volumes, i),
+		})
+	}
+	return ticks, nil
+}
+
 func (a *YahooAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "AAPL")
 	return err
