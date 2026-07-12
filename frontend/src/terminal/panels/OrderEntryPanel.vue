@@ -13,7 +13,7 @@ const orderType = ref<'market' | 'limit' | 'stop'>('limit')
 const quantity = ref(100)
 const price = ref(195.50)
 const stopPrice = ref(190.00)
-const broker = ref<'paper' | 'binance' | 'futu'>('paper')
+const broker = ref<'paper' | 'binance' | 'futu' | 'ibkr' | 'alpaca'>('paper')
 const lastPrice = ref(0)
 const quoteLoading = ref(false)
 const loadError = ref('')
@@ -95,6 +95,8 @@ function placeOrder() {
           <option value="paper">{{ $t('trade.paper') }}</option>
           <option value="binance">{{ $t('trade.binance') }}</option>
           <option value="futu">{{ $t('trade.futu') }}</option>
+          <option value="ibkr">IBKR</option>
+          <option value="alpaca">Alpaca</option>
         </select>
       </div>
 
