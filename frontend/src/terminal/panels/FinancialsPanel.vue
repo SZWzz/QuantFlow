@@ -131,6 +131,9 @@ async function loadCNData() {
   }
 }
 
+const nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
+const nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
+
 const activeData = computed(() => {
   const stmts = nonUSStatements.value
   if (!stmts) return { periods: [] as string[], items: [] as string[], data: [] as FinPeriod[] }
@@ -361,8 +364,6 @@ const loading = computed(() => {
   return usLoading.value
 })
 
-const nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
-const nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
 
 function loadData() {
   if (market.value === 'CN') loadCNData()
