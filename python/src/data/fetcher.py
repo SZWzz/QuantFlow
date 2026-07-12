@@ -941,6 +941,9 @@ class DataService(data_pb2_grpc.DataServiceServicer):
 
         if start_date and data_type == "fundflow":
             args.append(start_date)
+        # HK financials: pass statement type as 2nd arg (params.symbol → 利润表/资产负债表/现金流量表)
+        if data_type == "stock_financial_hk_report_em" and params and params.get("symbol"):
+            args.append(params["symbol"])
 
         loop = asyncio.get_event_loop()
         try:

@@ -319,6 +319,11 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 
 	// Build cache key. Skip cache for mootdx (real-time quotes).
 	cacheKey := source + ":" + dataType + ":" + strings.Join(symbols, ",")
+	if params != nil {
+		for k, v := range params {
+			cacheKey += ":" + k + "=" + v
+		}
+	}
 	if a.dataCache != nil && source != "mootdx" {
 		if cached, ok := a.dataCache.Get(cacheKey); ok {
 			return cached, nil
