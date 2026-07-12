@@ -12,6 +12,10 @@
 - [Python] Fix pytest test collection (was 0 tests collected) — add `python/conftest.py` that inserts `python/src/` into `sys.path`, enabling `from src.*` imports in test files. 162 tests now discoverable and runnable
 - [Market] GDELT test rate-limit resilience — add `skipIfRateLimited` helper that skips integration tests on HTTP 429, preventing spurious test failures when the GDELT API throttles requests
 
+### Added
+
+- [Frontend] Playwright E2E testing foundation — installed `@playwright/test`, created `e2e/playwright.config.ts` with Vite webServer integration, added `test:e2e` and `test:e2e:ui` scripts, created mock fixture (`e2e/fixtures/mock-app.ts`) that injects mock `window.go.main.App` for all 3 core flows (trading/portfolio/backtest), created `e2e/fixtures/base-test.ts` with `mockPage` test fixture
+
 ### Changed
 
 - [Trading] Add `brokerName` parameter to `PlaceOrder` chain (OMS.PlaceOrder, App.PlaceOrder, frontend OrderEntryPanel) — when brokerName is non-empty and not "paper", routes the order through the attached live broker's `SubmitOrder` instead of the paper engine, enabling real broker order execution from the UI
