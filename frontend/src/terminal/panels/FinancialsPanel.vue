@@ -422,7 +422,7 @@ onMounted(loadCNData)
 
 /* ═══ KPI Summary Cards ═══ */
 .kpi-row {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 8px; flex-shrink: 0;
 }
 .kpi-card {
