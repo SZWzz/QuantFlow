@@ -555,31 +555,56 @@ func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, e
 // formatHKFinancialJSON parses an AKShare DataFrame JSON into the standard
 // [{report_date, items: [{item, value}]}] format used by FinancialsPanel.
 func formatHKFinancialJSON(jsonStr string) []map[string]interface{} {
+	// AKShare returns a DataFrame serialized as {"0": {cols...}, "1": {cols...}, ...}
+	// Each row has: REPORT_DATE, STD_ITEM_NAME, AMOUNT, DATE_TYPE_CODE
 	var raw map[string]map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {
 		return nil
 	}
-	periodSet := map[string]bool{}
-	for _, dateMap := range raw {
-		for date := range dateMap {
-			periodSet[date] = true
+
+	// Group items by period.
+	type item struct {
+		Name  string
+		Value interface{}
+	}
+	periodItems := map[string][]item{}
+	dateOrder := []string{}
+	seenDates := map[string]bool{}
+
+	for _, row := range raw {
+		// Only include annual reports (DATE_TYPE_CODE == "001")
+		if dt, _ := row["DATE_TYPE_CODE"].(string); dt != "001" {
+			continue
 		}
+		reportDate, _ := row["REPORT_DATE"].(string)
+		itemName, _ := row["STD_ITEM_NAME"].(string)
+		amount := row["AMOUNT"]
+		if reportDate == "" || itemName == "" {
+			continue
+		}
+		// Strip time portion: "2025-12-31 00:00:00" → "2025-12-31"
+		if len(reportDate) >= 10 {
+			reportDate = reportDate[:10]
+		}
+		if !seenDates[reportDate] {
+			seenDates[reportDate] = true
+			dateOrder = append(dateOrder, reportDate)
+		}
+		periodItems[reportDate] = append(periodItems[reportDate], item{
+			Name:  itemName,
+			Value: amount,
+		})
 	}
-	sorted := make([]string, 0, len(periodSet))
-	for p := range periodSet {
-		sorted = append(sorted, p)
-	}
-	sort.Strings(sorted)
-	result := make([]map[string]interface{}, 0, len(sorted))
-	for _, period := range sorted {
-		items := make([]map[string]interface{}, 0, len(raw))
-		for itemName, dateMap := range raw {
-			if val, ok := dateMap[period]; ok {
-				items = append(items, map[string]interface{}{
-					"item":  itemName,
-					"value": val,
-				})
-			}
+
+	sort.Strings(dateOrder)
+	result := make([]map[string]interface{}, 0, len(dateOrder))
+	for _, period := range dateOrder {
+		items := make([]map[string]interface{}, 0, len(periodItems[period]))
+		for _, it := range periodItems[period] {
+			items = append(items, map[string]interface{}{
+				"item":  it.Name,
+				"value": it.Value,
+			})
 		}
 		result = append(result, map[string]interface{}{
 			"report_date": period,
