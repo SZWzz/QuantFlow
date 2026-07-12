@@ -147,7 +147,10 @@ def get_stock_financial_report_sina(stock="sh600519", symbol="资产负债表"):
 
 def get_stock_financial_hk_report_em(stock="00700", symbol="资产负债表", date=""):
     """Get HK financial report (EastMoney)"""
-    return safe_call(ak.stock_financial_hk_report_em, stock=stock, symbol=symbol, date=date)
+    kwargs = {"stock": stock, "symbol": symbol}
+    if date:
+        kwargs["indicator"] = date
+    return safe_call(ak.stock_financial_hk_report_em, **kwargs)
 
 def get_stock_financial_hk_analysis_indicator_em(symbol="00700"):
     """Get HK financial analysis indicators (EastMoney)"""
