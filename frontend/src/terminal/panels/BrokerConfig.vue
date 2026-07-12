@@ -10,8 +10,29 @@ const binanceTestnet = ref(true)
 const futu主机 = ref('localhost')
 const futu端口 = ref(11111)
 
-function testConnection() { alert('Connection test: not yet wired to Go backend') }
-function saveConfig() { alert('Config saved: not yet wired to Go backend') }
+async function testConnection() {
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app?.TestBrokerConnection) return
+    const result = await app.TestBrokerConnection(broker.value, getCurrentConfig())
+  } catch (e) { console.warn('TestConnection:', e) }
+}
+
+async function saveConfig() {
+  try {
+    const app = (window as any).go?.main?.App
+    if (!app?.SaveCredential) return
+    await app.SaveCredential(`broker_${broker.value}`, broker.value, getCurrentConfig())
+  } catch (e) { console.warn('SaveConfig:', e) }
+}
+
+function getCurrentConfig(): Record<string, string> {
+  switch (broker.value) {
+    case 'binance': return { api_key: binanceKey.value, secret_key: binanceSecret.value, testnet: String(binanceTestnet.value) }
+    case 'futu': return { host: futu主机.value, port: String(futu端口.value) }
+    default: return {}
+  }
+}
 </script>
 
 <template>
