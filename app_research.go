@@ -517,7 +517,7 @@ func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, e
 	result := map[string]interface{}{}
 	var lastErr error
 	for key, cnName := range stmtTypes {
-		resp, err := a.FetchData("akshare", "stock_financial_hk_report_em", []string{symbol}, "", "", map[string]string{"symbol": cnName})
+		resp, err := a.FetchData("akshare", "financials", []string{symbol}, "", "", map[string]string{"cmd": "stock_financial_hk_report_em", "symbol": cnName})
 		if err != nil {
 			slog.Warn("hk_financial: fetch failed", "statement", cnName, "error", err)
 			lastErr = err
