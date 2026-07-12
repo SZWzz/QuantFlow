@@ -324,9 +324,9 @@ func normalizeYahooSymbol(symbol string) string {
 	if strings.Contains(symbol, ".") {
 		return symbol
 	}
-	// 5-digit HK stock code → strip leading zeros, add .HK
+	// 5-digit HK stock code → strip ONE leading zero (e.g. "00700" → "0700.HK")
 	if len(symbol) == 5 && isDigit(symbol) {
-		return strings.TrimLeft(symbol, "0") + ".HK"
+		return strings.TrimPrefix(symbol, "0") + ".HK"
 	}
 	// 6-digit CN stock code
 	if len(symbol) == 6 && isDigit(symbol) {
