@@ -21,7 +21,8 @@ const { fetchWithCache } = usePanelCache()
 // ══════ CN (A-share) financials ══════
 interface FinPeriod {
   report_date: string
-  [key: string]: string
+  items?: { item: string; value: number }[]
+  [key: string]: any
 }
 
 interface FinStatements {
@@ -35,18 +36,19 @@ const cnLoading = ref(false)
 const cnError = ref('')
 const statements = ref<FinStatements | null>(null)
 const activeTab = ref<'income' | 'balance' | 'cashflow'>('income')
+const showGrowth = ref(true)
 
 const tabs = [
-  { key: 'income', label: '利润表' },
-  { key: 'balance', label: '资产负债表' },
-  { key: 'cashflow', label: '现金流量表' },
-] as const
+  { key: 'income' as const, label: '利润表' },
+  { key: 'balance' as const, label: '资产负债表' },
+  { key: 'cashflow' as const, label: '现金流量表' },
+]
 
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
-function smartFormat(val: string): string {
-  const n = parseFloat(val)
-  if (isNaN(n)) return val
+function smartFormat(val: any): string {
+  const n = typeof val === 'string' ? parseFloat(val) : val
+  if (typeof n !== 'number' || isNaN(n)) return String(val ?? '')
   const abs = Math.abs(n)
   if (abs >= 1e12) return (n / 1e12).toFixed(2) + '万亿'
   if (abs >= 1e8) return (n / 1e8).toFixed(2) + '亿'
@@ -54,16 +56,41 @@ function smartFormat(val: string): string {
   return n.toLocaleString('zh-CN')
 }
 
-function getItemValue(data: any[], period: string, item: string): string {
+function getItemValue(data: any[], period: string, item: string): number | string {
   const periodData = data.find(d => d.report_date === period)
   if (!periodData) return ''
-  // New format: items array with {item, value} pairs
   if (Array.isArray(periodData.items)) {
     const found = periodData.items.find((it: any) => it.item === item)
     return found?.value ?? ''
   }
-  // Old format: flat key-value (backward compat)
   return periodData[item] ?? ''
+}
+
+function getYoY(data: any[], period: string, item: string): { pct: number | null; trend: 'up' | 'down' | 'flat' } {
+  const periods = data.map(p => p.report_date).sort()
+  const idx = periods.indexOf(period)
+  if (idx <= 0) return { pct: null, trend: 'flat' }
+  const prev = periods[idx - 1]
+  const cur = getItemValue(data, period, item)
+  const prv = getItemValue(data, prev, item)
+  const cn = typeof cur === 'string' ? parseFloat(cur) : (cur as number)
+  const pn = typeof prv === 'string' ? parseFloat(prv) : (prv as number)
+  if (isNaN(cn) || isNaN(pn) || pn === 0) return { pct: null, trend: 'flat' }
+  const pct = ((cn - pn) / Math.abs(pn)) * 100
+  return { pct, trend: pct > 0.5 ? 'up' : pct < -0.5 ? 'down' : 'flat' }
+}
+
+function isHighlightRow(item: string): boolean {
+  return item.includes('合计') || item.includes('总计') || item === '净利润' || item === '营业利润'
+    || item === '利润总额' || item === '营业收入' || item === '资产总计'
+    || item === '负债合计' || item === '所有者权益合计'
+    || item.includes('现金流量净额') || item === '期末现金及现金等价物余额'
+}
+
+function isSubtotalRow(item: string): boolean {
+  return item.endsWith('合计') || item.endsWith('净额') || item.endsWith('余额')
+    || item === '净利润' || item === '营业利润' || item === '利润总额'
+    || item === '资产总计' || item === '负债合计' || item === '所有者权益合计'
 }
 
 async function loadCNData() {
@@ -91,7 +118,6 @@ const activeData = computed(() => {
   const data = statements.value[activeTab.value]
   if (!data || data.length === 0) return { periods: [], items: [], data: [] }
   const periods = data.map(p => p.report_date)
-  // Build ordered item list from the first period's items array (all periods share same items)
   const itemList: string[] = []
   const firstItems = data[0]?.items
   if (Array.isArray(firstItems)) {
@@ -99,7 +125,6 @@ const activeData = computed(() => {
       if (it.item) itemList.push(it.item)
     }
   } else {
-    // Fallback: old format with flat keys (for backward compat during transition)
     const seen = new Set<string>()
     for (const p of data) {
       for (const k of Object.keys(p)) {
@@ -109,6 +134,24 @@ const activeData = computed(() => {
     }
   }
   return { periods, items: itemList, data }
+})
+
+// KPI summary from latest period
+const kpiSummary = computed(() => {
+  if (!activeData.value.data.length || !activeData.value.items.length) return []
+  const latest = activeData.value.data[0]
+  const items = activeData.value.items
+  const kpiKeys: Record<string, string[]> = {
+    income: ['营业收入', '营业利润', '利润总额', '净利润'],
+    balance: ['资产总计', '负债合计', '所有者权益合计'],
+    cashflow: ['经营活动产生的现金流量净额', '投资活动产生的现金流量净额', '筹资活动产生的现金流量净额', '期末现金及现金等价物余额'],
+  }
+  const keys = kpiKeys[activeTab.value] || []
+  return keys.filter(k => items.includes(k)).map(k => {
+    const val = getItemValue(activeData.value.data, latest.report_date, k)
+    const yoy = getYoY(activeData.value.data, latest.report_date, k)
+    return { item: k, value: val, yoy }
+  })
 })
 
 // ══════ US (SEC) financials ══════
@@ -173,7 +216,6 @@ function loadData() {
 
 function onMarketChange(newMarket: Market) {
   market.value = newMarket
-  // Use a sensible default symbol for the market
   if (newMarket === 'CN' && symbol.value === 'AAPL') symbol.value = '600519'
   if (newMarket === 'US' && symbol.value === '600519') symbol.value = 'AAPL'
   loadData()
@@ -188,12 +230,14 @@ onMounted(loadCNData)
 
 <template>
   <div class="fin-panel">
+    <!-- ═══ Header ═══ -->
     <div class="panel-header">
-      <h3>财务报表</h3>
-      <!-- Market selector -->
-      <div class="market-selector">
-        <button :class="['market-tab', { active: market === 'CN' }]" @click="onMarketChange('CN')">A股</button>
-        <button :class="['market-tab', { active: market === 'US' }]" @click="onMarketChange('US'); if (!rawData && !usLoading) loadUSData()">美股</button>
+      <div class="header-left">
+        <h3>财务报表</h3>
+        <div class="market-selector">
+          <button :class="['market-tab', { active: market === 'CN' }]" @click="onMarketChange('CN')">A股</button>
+          <button :class="['market-tab', { active: market === 'US' }]" @click="onMarketChange('US'); if (!rawData && !usLoading) loadUSData()">美股</button>
+        </div>
       </div>
       <div class="header-right">
         <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
@@ -202,33 +246,52 @@ onMounted(loadCNData)
       </div>
     </div>
 
-    <!-- ── CN content ── -->
+    <!-- ═══ CN: A-Share Content ═══ -->
     <template v-if="market === 'CN'">
-      <SkeletonPanel v-if="cnLoading && !statements" type="table" :rows="5" />
-      <div v-else-if="cnError" class="status error">{{ cnError }}</div>
-      <div v-else-if="!cnLoading && !statements?.income.length && !statements?.balance.length" class="status">暂无财务数据 — 输入 A 股代码查看</div>
+      <SkeletonPanel v-if="cnLoading && !statements" type="table" :rows="8" />
+      <div v-else-if="cnError" class="status error">
+        <span v-html="getIcon('warning')" />
+        <span>{{ cnError }}</span>
+        <button class="retry-btn" @click="loadCNData">重试</button>
+      </div>
+      <div v-else-if="!cnLoading && !statements?.income.length && !statements?.balance.length" class="status">
+        <span v-html="getIcon('search')" />
+        <span>暂无财务数据 — 输入 A 股代码查看</span>
+      </div>
 
       <template v-else>
-        <div class="tab-bar">
-          <button
-            v-for="t in tabs"
-            :key="t.key"
-            class="tab-btn"
-            :class="{ active: activeTab === t.key }"
-            @click="activeTab = t.key"
-          >{{ t.label }}</button>
+        <!-- Tab bar + controls -->
+        <div class="tab-row">
+          <div class="tab-bar">
+            <button v-for="t in tabs" :key="t.key" class="tab-btn" :class="{ active: activeTab === t.key }" @click="activeTab = t.key">{{ t.label }}</button>
+          </div>
+          <label class="growth-toggle" title="显示同比变化">
+            <input type="checkbox" v-model="showGrowth" />
+            <span class="toggle-label">同比</span>
+          </label>
         </div>
 
+        <!-- KPI summary cards -->
+        <div v-if="kpiSummary.length" class="kpi-row">
+          <div v-for="kpi in kpiSummary" :key="kpi.item" class="kpi-card" :class="{ highlight: isHighlightRow(kpi.item) }">
+            <div class="kpi-label">{{ kpi.item }}</div>
+            <div class="kpi-value">{{ smartFormat(kpi.value) }}</div>
+            <div v-if="showGrowth && kpi.yoy.pct !== null" class="kpi-yoy" :class="kpi.yoy.trend">
+              <span class="yoy-arrow">{{ kpi.yoy.trend === 'up' ? '↑' : kpi.yoy.trend === 'down' ? '↓' : '→' }}</span>
+              <span class="yoy-pct">{{ Math.abs(kpi.yoy.pct).toFixed(1) }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statement table -->
         <div class="table-container">
           <div class="table-inner">
             <div class="t-head">
               <div class="t-row">
                 <div class="t-cell t-h t-label">科目</div>
-                <div
-                  v-for="p in activeData.periods"
-                  :key="p"
-                  class="t-cell t-h t-period"
-                >{{ p.slice(0, 7) }}</div>
+                <div v-for="p in activeData.periods" :key="p" class="t-cell t-h t-period">
+                  <div class="period-label">{{ p.slice(0, 7) }}</div>
+                </div>
               </div>
             </div>
             <div class="t-body">
@@ -236,14 +299,28 @@ onMounted(loadCNData)
                 v-for="item in activeData.items"
                 :key="item"
                 class="t-row"
-                :class="{ 't-section': item.endsWith('合计') || item.endsWith('净额') }"
+                :class="{
+                  't-subtotal': isSubtotalRow(item),
+                  't-highlight': isHighlightRow(item),
+                }"
               >
-                <div class="t-cell t-label">{{ item }}</div>
-                <div
-                  v-for="p in activeData.periods"
-                  :key="p"
-                  class="t-cell t-val"
-                >{{ smartFormat(getItemValue(activeData.data, p, item)) }}</div>
+                <div class="t-cell t-label">
+                  <span class="label-text">{{ item }}</span>
+                </div>
+                <div v-for="p in activeData.periods" :key="p" class="t-cell t-val">
+                  <div class="val-row">
+                    <span class="val-main">{{ smartFormat(getItemValue(activeData.data, p, item)) }}</span>
+                    <span
+                      v-if="showGrowth"
+                      class="val-yoy"
+                      :class="getYoY(activeData.data, p, item).trend"
+                    >
+                      <template v-if="getYoY(activeData.data, p, item).pct !== null">
+                        {{ getYoY(activeData.data, p, item).trend === 'up' ? '+' : '' }}{{ (getYoY(activeData.data, p, item).pct!).toFixed(1) }}%
+                      </template>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -251,7 +328,7 @@ onMounted(loadCNData)
       </template>
     </template>
 
-    <!-- ── US content ── -->
+    <!-- ═══ US: SEC Content ═══ -->
     <template v-if="market === 'US'">
       <SkeletonPanel v-if="usLoading && sections.length === 0" type="table" :rows="6" />
       <div v-else-if="usError" class="status error">{{ usError }}</div>
@@ -272,73 +349,153 @@ onMounted(loadCNData)
 </template>
 
 <style scoped>
-.fin-panel { padding: 12px; height: 100%; display: flex; flex-direction: column; color: var(--color-text,var(--color-border)); background: var(--color-bg-panel,var(--color-bg-panel)); overflow: hidden; }
-.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 8px; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; white-space: nowrap; }
+/* ═══ Layout ═══ */
+.fin-panel {
+  padding: 12px; height: 100%; display: flex; flex-direction: column;
+  color: var(--color-text-primary); background: var(--color-bg-panel);
+  overflow: hidden; gap: 8px;
+}
+
+/* ═══ Header ═══ */
+.panel-header {
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.panel-header h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
 .header-right { display: flex; align-items: center; gap: 8px; }
 
-/* Market selector */
-.market-selector { display: flex; gap: 0; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); overflow: hidden; }
-.market-tab { padding: 2px 10px; border: none; background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px; font-weight: 500; }
+.market-selector { display: flex; border: 1px solid var(--color-border-strong); border-radius: 6px; overflow: hidden; }
+.market-tab {
+  padding: 3px 12px; border: none; background: transparent; color: var(--color-text-tertiary);
+  cursor: pointer; font-size: 12px; font-weight: 500; transition: all .15s;
+}
 .market-tab + .market-tab { border-left: 1px solid var(--color-border-strong); }
-.market-tab.active { color: var(--color-accent); background: rgba(59,130,246,0.1); }
+.market-tab.active { color: var(--color-accent); background: rgba(88,166,255,0.1); }
 
-.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; }
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
-.status { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
+.symbol-badge {
+  font-size: 11px; padding: 3px 10px; border-radius: 6px;
+  background: rgba(88,166,255,0.1); color: var(--color-accent); font-family: 'SF Mono', monospace; font-weight: 500;
+}
+.refresh-btn {
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-border-strong); border-radius: 6px;
+  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 14px;
+}
+.refresh-btn:disabled { opacity: 0.4; cursor: default; }
+.status {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  flex: 1; color: var(--color-text-tertiary); font-size: 13px;
+}
 .status.error { color: var(--color-error); }
+.retry-btn {
+  padding: 2px 10px; border: 1px solid var(--color-border-strong);
+  border-radius: 4px; background: transparent; color: var(--color-accent); cursor: pointer; font-size: 11px;
+}
 
-/* CN tabs */
-.tab-bar { display: flex; gap: 0; margin-bottom: 8px; border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0; }
-.tab-btn { padding: 6px 16px; border: none; border-bottom: 2px solid transparent; background: none; color: var(--color-text-tertiary); cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
+/* ═══ Tab Row ═══ */
+.tab-row {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0;
+}
+.tab-bar { display: flex; gap: 0; }
+.tab-btn {
+  padding: 7px 18px; border: none; border-bottom: 2px solid transparent;
+  background: none; color: var(--color-text-tertiary); cursor: pointer;
+  font-size: 13px; font-weight: 500; transition: all .15s;
+}
 .tab-btn:hover { color: var(--color-text-primary); }
 .tab-btn.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
 
+.growth-toggle {
+  display: flex; align-items: center; gap: 4px; padding: 4px 8px; margin-bottom: 4px;
+  cursor: pointer; font-size: 11px; color: var(--color-text-tertiary);
+  border-radius: 4px; transition: color .15s;
+}
+.growth-toggle:hover { color: var(--color-text-primary); }
+.growth-toggle input { accent-color: var(--color-accent); }
+.toggle-label { user-select: none; }
+
+/* ═══ KPI Summary Cards ═══ */
+.kpi-row {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px; flex-shrink: 0;
+}
+.kpi-card {
+  background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle);
+  border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
+}
+.kpi-card.highlight {
+  border-color: var(--color-accent-soft);
+  background: linear-gradient(135deg, rgba(88,166,255,0.06), rgba(88,166,255,0.02));
+}
+.kpi-label { font-size: 11px; color: var(--color-text-tertiary); }
+.kpi-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
+.kpi-yoy { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; }
+.kpi-yoy.up { color: var(--color-down); }
+.kpi-yoy.down { color: var(--color-up); }
+.kpi-yoy.flat { color: var(--color-text-tertiary); }
+.yoy-arrow { font-size: 10px; }
+.yoy-pct { font-variant-numeric: tabular-nums; }
+
+/* ═══ Statement Table ═══ */
 .table-container { flex: 1; overflow: auto; min-height: 0; }
 .table-inner { display: flex; flex-direction: column; min-width: max-content; font-size: 12px; }
-.t-head { flex-shrink: 0; position: sticky; top: 0; z-index: 1; background: var(--color-bg-panel,var(--color-bg-panel)); }
-.t-row { display: flex; border-bottom: 1px solid var(--color-border-subtle); }
+.t-head {
+  flex-shrink: 0; position: sticky; top: 0; z-index: 1;
+  background: var(--color-bg-panel);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.t-row { display: flex; border-bottom: 1px solid var(--color-border-subtle); transition: background .1s; }
 .t-row:hover { background: var(--color-bg-elevated); }
-.t-cell { padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.t-h { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; font-weight: 600; padding: 6px 8px; }
-.t-label { min-width: 140px; max-width: 140px; text-align: left; border-right: 1px solid var(--color-border-subtle); flex-shrink: 0; }
-.t-period { min-width: 100px; text-align: right; }
-.t-val { min-width: 100px; text-align: right; }
-.t-section { background: rgba(96,165,250,0.04); }
-.t-section .t-label { font-weight: 600; color: var(--color-accent); }
+.t-cell { padding: 5px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.t-h { font-size: 10px; color: var(--color-text-tertiary); font-weight: 600; padding: 7px 10px; letter-spacing: 0.3px; }
+.t-label { min-width: 155px; max-width: 155px; text-align: left; border-right: 1px solid var(--color-border-subtle); flex-shrink: 0; }
+.t-period { min-width: 110px; text-align: right; }
+.t-val { min-width: 135px; text-align: right; }
+.period-label { font-weight: 600; }
 
-/* US sections */
+/* Row highlighting */
+.t-subtotal { background: rgba(96,165,250,0.03); }
+.t-subtotal .t-label { font-weight: 600; color: var(--color-text-secondary); }
+.t-highlight { background: rgba(88,166,255,0.06); }
+.t-highlight .t-label { font-weight: 700; color: var(--color-accent); font-size: 12.5px; }
+.t-highlight .val-main { font-weight: 700; }
+
+/* Value display */
+.val-row { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.val-main { font-size: 12px; }
+.val-yoy { font-size: 10px; font-weight: 500; line-height: 1; }
+.val-yoy.up { color: var(--color-down); }
+.val-yoy.down { color: var(--color-up); }
+.val-yoy.flat { color: var(--color-text-tertiary); }
+
+/* ═══ US Sections ═══ */
 .sections-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.fin-section { background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
-.section-title { margin: 0; padding: 6px 12px; font-size: 10px; font-weight: 600; color: var(--color-text-secondary); background: var(--color-bg-subtle); border-bottom: 1px solid var(--color-border-subtle); text-transform: uppercase; letter-spacing: 0.5px; }
+.fin-section {
+  background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle);
+  border-radius: 8px; overflow: hidden;
+}
+.section-title {
+  margin: 0; padding: 8px 14px; font-size: 11px; font-weight: 600;
+  color: var(--color-text-secondary); background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
 .fin-table { padding: 2px 0; }
-.fin-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+.fin-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px; border-bottom: 1px solid var(--color-border-subtle); }
 .fin-row:last-child { border-bottom: none; }
 .fin-row:hover { background: var(--color-bg-hover); }
 .fin-label { font-size: 11px; color: var(--color-text-secondary); text-transform: capitalize; }
 .fin-value { font-size: 12px; font-weight: 500; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
 .fin-value.negative { color: var(--color-up); }
 
+/* ═══ Workflow button ═══ */
 .wf-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated);
-  color: var(--color-text-secondary);
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  line-height: 1;
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border: 1px solid var(--color-border-strong);
+  border-radius: 6px; background: var(--color-bg-elevated);
+  color: var(--color-text-secondary); font-size: 16px; font-weight: 600;
+  cursor: pointer; line-height: 1; transition: all var(--transition-fast); flex-shrink: 0;
 }
-.wf-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: rgba(88, 166, 255, 0.1);
-}
+.wf-btn:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(88,166,255,0.1); }
 </style>
