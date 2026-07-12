@@ -15,14 +15,19 @@ echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRendere
 
 // ══════ Shared ══════
 type Market = 'CN' | 'US'
-const market = ref<Market>('CN')
+function detectMarket(sym: string): Market {
+  if (/^\d{6}$/.test(sym)) return 'CN'
+  return 'US'
+}
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
-const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || (market.value === 'CN' ? '600519' : 'AAPL'))
+const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
 const { fetchWithCache } = usePanelCache()
+
+const market = computed<Market>(() => detectMarket(symbol.value))
 
 // ══════ CN (A-share) financials ══════
 interface FinPeriod {
@@ -328,18 +333,11 @@ function loadData() {
   else loadUSData()
 }
 
-function onMarketChange(newMarket: Market) {
-  market.value = newMarket
-  if (newMarket === 'CN' && symbol.value === 'AAPL') symbol.value = '600519'
-  if (newMarket === 'US' && symbol.value === '600519') symbol.value = 'AAPL'
-  loadData()
-}
-
 watch(symbol, loadData)
 watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (newSym) => {
   if (newSym && newSym !== symbol.value) { symbol.value = newSym; loadData() }
 })
-onMounted(loadCNData)
+onMounted(loadData)
 onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 </script>
 
@@ -349,10 +347,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
     <div class="panel-header">
       <div class="header-left">
         <h3>财务报表</h3>
-        <div class="market-selector">
-          <button :class="['market-tab', { active: market === 'CN' }]" @click="onMarketChange('CN')">A股</button>
-          <button :class="['market-tab', { active: market === 'US' }]" @click="onMarketChange('US'); if (!rawData && !usLoading) loadUSData()">美股</button>
-        </div>
+        <span class="market-badge">{{ market === 'CN' ? 'A股' : '美股' }}</span>
       </div>
       <div class="header-right">
         <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
@@ -489,10 +484,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 .header-left { display: flex; align-items: center; gap: 10px; }
 .panel-header h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
 .header-right { display: flex; align-items: center; gap: 8px; }
-.market-selector { display: flex; border: 1px solid var(--color-border-strong); border-radius: 6px; overflow: hidden; }
-.market-tab { padding: 3px 12px; border: none; background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 12px; font-weight: 500; transition: all .15s; }
-.market-tab + .market-tab { border-left: 1px solid var(--color-border-strong); }
-.market-tab.active { color: var(--color-accent); background: rgba(88,166,255,0.1); }
+.market-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(88,166,255,0.12); color: var(--color-accent); font-weight: 500; }
 .symbol-badge { font-size: 11px; padding: 3px 10px; border-radius: 6px; background: rgba(88,166,255,0.1); color: var(--color-accent); font-family: 'SF Mono', monospace; font-weight: 500; }
 .refresh-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 14px; }
 .refresh-btn:disabled { opacity: 0.4; cursor: default; }
