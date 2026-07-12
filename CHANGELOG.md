@@ -9,6 +9,8 @@
 ### Fixed
 
 - [Frontend] OrderEntryPanel market detection — replace hardcoded `'CN'` with `detectMarket()` that infers market from symbol format (CN/HK/US/CRYPTO), enabling fetchQuote to work for non-CN markets
+- [Python] Fix pytest test collection (was 0 tests collected) — add `python/conftest.py` that inserts `python/src/` into `sys.path`, enabling `from src.*` imports in test files. 162 tests now discoverable and runnable
+- [Market] GDELT test rate-limit resilience — add `skipIfRateLimited` helper that skips integration tests on HTTP 429, preventing spurious test failures when the GDELT API throttles requests
 
 ### Changed
 

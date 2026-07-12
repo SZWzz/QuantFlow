@@ -3,6 +3,7 @@ package adapters
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -22,6 +23,14 @@ func TestGDELTAdapter_IsAvailable(t *testing.T) {
 	// Test should not panic regardless of network state
 }
 
+// skipIfRateLimited calls t.Skip if err indicates an HTTP 429 rate limit.
+func skipIfRateLimited(t *testing.T, err error) {
+	t.Helper()
+	if err != nil && strings.Contains(err.Error(), "429") {
+		t.Skip("GDELT API rate limited (HTTP 429), skipping integration test")
+	}
+}
+
 func TestGDELTAdapter_FetchTopicVolume(t *testing.T) {
 	a := NewGDELTAdapter()
 	ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
@@ -32,6 +41,7 @@ func TestGDELTAdapter_FetchTopicVolume(t *testing.T) {
 	}
 
 	points, err := a.FetchTopicVolume(ctx, "taiwan-strait", "7d")
+	skipIfRateLimited(t, err)
 	if err != nil {
 		t.Fatalf("FetchTopicVolume error: %v", err)
 	}
@@ -51,6 +61,7 @@ func TestGDELTAdapter_FetchTopicTone(t *testing.T) {
 	}
 
 	points, err := a.FetchTopicTone(ctx, "taiwan-strait", "7d")
+	skipIfRateLimited(t, err)
 	if err != nil {
 		t.Fatalf("FetchTopicTone error: %v", err)
 	}
@@ -101,6 +112,7 @@ func TestGDELTAdapter_UnknownTopic(t *testing.T) {
 
 	// Fetch with a raw query string as topicID (not in pre-defined map)
 	points, err := a.FetchTopicVolume(ctx, "nonexistent-topic", "7d")
+	skipIfRateLimited(t, err)
 	if err != nil {
 		t.Fatalf("FetchTopicVolume with unknown topic should fall back to raw query: %v", err)
 	}
