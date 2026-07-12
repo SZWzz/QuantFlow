@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { nextTick } from 'vue'
-import { useSessionStore } from './session'
+import { useSessionStore } from '../session'
 
 describe('useSessionStore', () => {
   beforeEach(() => {

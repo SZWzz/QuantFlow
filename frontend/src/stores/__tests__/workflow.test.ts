@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useWorkflowStore } from './workflow'
-import type { WorkflowJSON } from './workflow'
+import { useWorkflowStore } from '../workflow'
+import type { WorkflowJSON } from '../workflow'
 
 describe('useWorkflowStore', () => {
   beforeEach(() => {

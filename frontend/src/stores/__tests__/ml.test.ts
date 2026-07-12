@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useMLStore } from './ml'
+import { useMLStore } from '../ml'
 
 describe('useMLStore', () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useDataStore } from './data'
+import { useDataStore } from '../data'
 
 describe('useDataStore', () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useTerminalStore } from './terminal'
+import { useTerminalStore } from '../terminal'
 
 describe('useTerminalStore', () => {
   beforeEach(() => {
