@@ -90,7 +90,7 @@ register('cross-asset-corr', () => import('./CorrelationPanel.vue'), { label: '�
 // ── 量化分析 ──
 register('backtest', () => import('./BacktestPanel.vue'), { label: '回测分析', category: '量化分析', description: '回测历史列表与详情（K线/净值/指标/交易记录）' })
 register('factor-analysis', () => import('./FactorAnalysisPanel.vue'), { label: '因子分析', category: '量化分析', description: '多因子分析' })
-register('model-registry', () => import('./ModelRegistryPanel.vue'), { label: '模型注册', category: '系统', description: 'ML 模型管理' })
+register('model-registry', () => import('./SettingsPanel.vue'), { label: '模型注册', category: '系统', description: 'ML 模型管理（在设置面板中管理）' })
 register('prediction-dashboard', () => import('./PredictionDashboardPanel.vue'), { label: '预测面板', category: '量化分析', description: '模型预测结果' })
 register('alpha-mining', () => import('./AlphaMiningWorkspacePanel.vue'), { label: 'Alpha 挖掘', category: '量化分析', description: 'Alpha 因子挖掘' })
 register('rl-monitor', () => import('./RLMonitorPanel.vue'), { label: 'RL 监控', category: '量化分析', description: '强化学习训练监控' })
