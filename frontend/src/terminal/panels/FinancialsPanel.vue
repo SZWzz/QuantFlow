@@ -14,9 +14,10 @@ import { CanvasRenderer } from 'echarts/renderers'
 echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 // ══════ Shared ══════
-type Market = 'CN' | 'US'
+type Market = 'CN' | 'HK' | 'US'
 function detectMarket(sym: string): Market {
   if (/^\d{6}$/.test(sym)) return 'CN'
+  if (/^\d{1,5}$/.test(sym)) return 'HK'
   return 'US'
 }
 
@@ -130,8 +131,9 @@ async function loadCNData() {
 }
 
 const activeData = computed(() => {
-  if (!statements.value) return { periods: [] as string[], items: [] as string[], data: [] as FinPeriod[] }
-  const data = statements.value[activeTab.value]
+  const stmts = nonUSStatements.value
+  if (!stmts) return { periods: [] as string[], items: [] as string[], data: [] as FinPeriod[] }
+  const data = stmts[activeTab.value]
   if (!data || data.length === 0) return { periods: [], items: [], data: [] }
   const sorted = [...data].sort((a, b) => a.report_date.localeCompare(b.report_date))
   const periods = sorted.map(p => p.report_date)
@@ -271,7 +273,7 @@ function buildChart() {
 }
 
 watch([activeTab, trendMetrics], () => nextTick(buildChart))
-watch(() => statements.value, () => nextTick(buildChart))
+watch(() => nonUSStatements.value, () => nextTick(buildChart))
 
 // ══════ US (SEC) financials ══════
 const usLoading = ref(false)
@@ -326,10 +328,42 @@ async function loadUSData() {
   finally { usLoading.value = false }
 }
 
-const loading = computed(() => market.value === 'CN' ? cnLoading.value : usLoading.value)
+// ══════ HK financials ══════
+const hkLoading = ref(false)
+const hkError = ref('')
+const hkStatements = ref<FinStatements | null>(null)
+const hkActiveTab = ref<'income' | 'balance' | 'cashflow'>('income')
+
+async function loadHKData() {
+  if (!symbol.value) return
+  hkLoading.value = true
+  hkError.value = ''
+  try {
+    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
+    hkStatements.value = {
+      income: res.income || [],
+      balance: res.balance || [],
+      cashflow: res.cashflow || [],
+    }
+  } catch (e: any) {
+    hkError.value = e?.message || String(e)
+  } finally {
+    hkLoading.value = false
+  }
+}
+
+const loading = computed(() => {
+  if (market.value === 'CN') return cnLoading.value
+  if (market.value === 'HK') return hkLoading.value
+  return usLoading.value
+})
+
+const nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
+const nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
 
 function loadData() {
   if (market.value === 'CN') loadCNData()
+  else if (market.value === 'HK') loadHKData()
   else loadUSData()
 }
 
@@ -347,7 +381,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
     <div class="panel-header">
       <div class="header-left">
         <h3>财务报表</h3>
-        <span class="market-badge">{{ market === 'CN' ? 'A股' : '美股' }}</span>
+        <span class="market-badge">{{ market === 'CN' ? 'A股' : market === 'HK' ? '港股' : '美股' }}</span>
       </div>
       <div class="header-right">
         <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
@@ -356,17 +390,17 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
       </div>
     </div>
 
-    <!-- ═══ CN: A-Share Content ═══ -->
-    <template v-if="market === 'CN'">
-      <SkeletonPanel v-if="cnLoading && !statements" type="table" :rows="8" />
-      <div v-else-if="cnError" class="status error">
+    <!-- ═══ CN/HK: A-Share + HK Content ═══ -->
+    <template v-if="market !== 'US'">
+      <SkeletonPanel v-if="loading && !nonUSStatements" type="table" :rows="8" />
+      <div v-else-if="nonUSError" class="status error">
         <span v-html="getIcon('warning')" />
-        <span>{{ cnError }}</span>
-        <button class="retry-btn" @click="loadCNData">重试</button>
+        <span>{{ nonUSError }}</span>
+        <button class="retry-btn" @click="loadData">重试</button>
       </div>
-      <div v-else-if="!cnLoading && !statements?.income.length && !statements?.balance.length" class="status">
+      <div v-else-if="!loading && !nonUSStatements?.income.length && !nonUSStatements?.balance.length" class="status">
         <span v-html="getIcon('search')" />
-        <span>暂无财务数据 — 输入 A 股代码查看</span>
+        <span>暂无财务数据 — 输入股票代码查看</span>
       </div>
 
       <template v-else>

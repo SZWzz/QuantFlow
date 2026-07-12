@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -509,6 +510,69 @@ func (a *App) GetForecast(symbol string) (map[string]interface{}, error) {
 	}
 	return a.FetchData("analyzer", "forecast", []string{finJSON}, "", "", nil)
 }
+
+// GetHKFinancialStatements returns HK stock financial statements via AKShare (EastMoney).
+func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, error) {
+	stmtTypes := map[string]string{"income": "利润表", "balance": "资产负债表", "cashflow": "现金流量表"}
+	result := map[string]interface{}{}
+	for key, cnName := range stmtTypes {
+		resp, err := a.FetchData("akshare", "stock_financial_hk_report_em", []string{symbol}, "", "", map[string]string{"symbol": cnName})
+		if err != nil {
+			continue
+		}
+		dataStr, _ := resp["data"].(string)
+		if dataStr == "" {
+			continue
+		}
+		parsed := formatHKFinancialJSON(dataStr)
+		if len(parsed) > 0 {
+			result[key] = parsed
+		}
+	}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no HK financial data for %s", symbol)
+	}
+	return result, nil
+}
+
+// formatHKFinancialJSON parses an AKShare DataFrame JSON into the standard
+// [{report_date, items: [{item, value}]}] format used by FinancialsPanel.
+func formatHKFinancialJSON(jsonStr string) []map[string]interface{} {
+	var raw map[string]map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {
+		return nil
+	}
+	periodSet := map[string]bool{}
+	for _, dateMap := range raw {
+		for date := range dateMap {
+			periodSet[date] = true
+		}
+	}
+	sorted := make([]string, 0, len(periodSet))
+	for p := range periodSet {
+		sorted = append(sorted, p)
+	}
+	sort.Strings(sorted)
+	result := make([]map[string]interface{}, 0, len(sorted))
+	for _, period := range sorted {
+		items := make([]map[string]interface{}, 0, len(raw))
+		for itemName, dateMap := range raw {
+			if val, ok := dateMap[period]; ok {
+				items = append(items, map[string]interface{}{
+					"item":  itemName,
+					"value": val,
+				})
+			}
+		}
+		result = append(result, map[string]interface{}{
+			"report_date": period,
+			"items":       items,
+		})
+	}
+	return result
+}
+
+
 
 // GetFinancialStatements returns raw financial statements (利润表/资产负债表/现金流量表) for a symbol.
 func (a *App) GetFinancialStatements(symbol string) (map[string]interface{}, error) {
