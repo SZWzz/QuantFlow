@@ -49,6 +49,7 @@ const cnError = ref('')
 const statements = ref<FinStatements | null>(null)
 const activeTab = ref<'income' | 'balance' | 'cashflow'>('income')
 const showGrowth = ref(true)
+const reportType = ref<'annual' | 'quarterly'>('annual')
 const chartContainer = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
@@ -135,7 +136,9 @@ const activeData = computed(() => {
   if (!stmts) return { periods: [] as string[], items: [] as string[], data: [] as FinPeriod[] }
   const data = stmts[activeTab.value]
   if (!data || data.length === 0) return { periods: [], items: [], data: [] }
-  const sorted = [...data].sort((a, b) => a.report_date.localeCompare(b.report_date))
+  const sorted = [...data]
+    .filter(p => reportType.value === 'annual' ? p.report_date.endsWith('-12-31') : !p.report_date.endsWith('-12-31'))
+    .sort((a, b) => a.report_date.localeCompare(b.report_date))
   const periods = sorted.map(p => p.report_date)
   const itemList: string[] = []
   const firstItems = sorted[0]?.items
@@ -413,6 +416,10 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
             <input type="checkbox" v-model="showGrowth" />
             <span class="toggle-label">同比</span>
           </label>
+          <div class="report-toggle">
+            <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
+            <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
+          </div>
         </div>
 
         <div class="body-scroll">
@@ -536,6 +543,14 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 .growth-toggle:hover { color: var(--color-text-primary); }
 .growth-toggle input { accent-color: var(--color-accent); }
 .toggle-label { user-select: none; }
+
+.report-toggle { display: flex; border: 1px solid var(--color-border-strong); border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
+.report-toggle button {
+  padding: 2px 10px; border: none; background: transparent; color: var(--color-text-tertiary);
+  cursor: pointer; font-size: 11px; font-weight: 500;
+}
+.report-toggle button + button { border-left: 1px solid var(--color-border-strong); }
+.report-toggle button.active { color: var(--color-accent); background: rgba(88,166,255,0.1); }
 
 /* Trend chart */
 .trend-section {
