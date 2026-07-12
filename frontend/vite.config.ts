@@ -6,8 +6,17 @@ import { readFileSync } from 'fs'
 
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'))
 
+const plugins: any = [vue()]
+// Bundle analyzer: run `npm run build:analyze` to open treemap
+if (process.env.ANALYZE) {
+  try {
+    const { visualizer } = require('rollup-plugin-visualizer') as any
+    plugins.push(visualizer({ open: true, filename: 'dist/stats.html', gzipSize: true, brotliSize: true }))
+  } catch { /* rollup-plugin-visualizer not installed — run: npm i -D rollup-plugin-visualizer */ }
+}
+
 export default defineConfig({
-  plugins: [vue()],
+  plugins,
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
@@ -32,6 +41,7 @@ export default defineConfig({
           'vendor-flow': ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls', '@vue-flow/minimap'],
           'vendor-chart': ['echarts', 'vue-echarts'],
           'vendor-wails': ['@wailsio/runtime'],
+          'vendor-markdown': ['marked', 'highlight.js'],
         },
       },
     },

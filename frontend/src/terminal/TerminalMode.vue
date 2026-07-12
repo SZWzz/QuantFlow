@@ -40,7 +40,13 @@ function onOpenPanel(panelId: string, params?: Record<string, any>) {
   terminal.openPanel(panelId, params)
 }
 
-onMounted(() => window.addEventListener('keydown', onGlobalKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onGlobalKeydown)
+  // Preload echarts in idle time — used by 19 panels, 1MB chunk
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => import('echarts'), { timeout: 5000 })
+  }
+})
 onUnmounted(() => window.removeEventListener('keydown', onGlobalKeydown))
 
 function onNavigate(path: string) {

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:analyze": "ANALYZE=true vite build",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.vue --fix",

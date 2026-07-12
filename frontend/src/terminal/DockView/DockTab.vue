@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch, provide, type Component } from 'vue'
+import { computed, ref, watch, provide, Suspense, type Component } from 'vue'
 import type { DockTabState } from './types'
 import { getPanelComponent } from '@/terminal/panels/registry'
 import ErrorBoundary from '@/terminal/components/ErrorBoundary.vue'
+import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { getIcon } from '@/lib/icons'
@@ -161,13 +162,18 @@ provide('isVisible', isTabVisible)
       </div>
       <ErrorBoundary v-else-if="activeComponent" :panel-id="activePanel?.panelId || ''">
         <KeepAlive :max="10">
-          <component
-            :is="activeComponent"
-            :key="activePanel?.id"
-            :panel-id="activePanel?.panelId"
-            :params="activeParams"
-            class="panel-instance"
-          />
+          <Suspense>
+            <component
+              :is="activeComponent"
+              :key="activePanel?.id"
+              :panel-id="activePanel?.panelId"
+              :params="activeParams"
+              class="panel-instance"
+            />
+            <template #fallback>
+              <SkeletonPanel type="table" :rows="8" />
+            </template>
+          </Suspense>
         </KeepAlive>
       </ErrorBoundary>
       <div v-else class="empty-content">
