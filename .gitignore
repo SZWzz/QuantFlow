@@ -71,4 +71,5 @@ vendor/
 *_test_output*.txt
 *_result.txt
 .workbuddy/memory/
-**/node_modules/
+**/node_modules/mcp
+bin/
