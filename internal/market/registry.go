@@ -555,5 +555,18 @@ func MarketForSymbol(symbol string) string {
 			return "CN"
 		}
 	}
+	// 1-5 digit numeric → HK (bare code, e.g. "00700", "5", "9988")
+	if len(symbol) >= 1 && len(symbol) <= 5 {
+		isNum := true
+		for _, c := range symbol {
+			if c < '0' || c > '9' {
+				isNum = false
+				break
+			}
+		}
+		if isNum {
+			return "HK"
+		}
+	}
 	return "US"
 }
