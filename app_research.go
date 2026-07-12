@@ -515,9 +515,12 @@ func (a *App) GetForecast(symbol string) (map[string]interface{}, error) {
 func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, error) {
 	stmtTypes := map[string]string{"income": "利润表", "balance": "资产负债表", "cashflow": "现金流量表"}
 	result := map[string]interface{}{}
+	var lastErr error
 	for key, cnName := range stmtTypes {
 		resp, err := a.FetchData("akshare", "stock_financial_hk_report_em", []string{symbol}, "", "", map[string]string{"symbol": cnName})
 		if err != nil {
+			slog.Warn("hk_financial: fetch failed", "statement", cnName, "error", err)
+			lastErr = err
 			continue
 		}
 		dataStr, _ := resp["data"].(string)
@@ -530,7 +533,11 @@ func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, e
 		}
 	}
 	if len(result) == 0 {
-		return nil, fmt.Errorf("no HK financial data for %s", symbol)
+		errMsg := fmt.Sprintf("no HK financial data for %s", symbol)
+		if lastErr != nil {
+			errMsg += ": " + lastErr.Error()
+		}
+		return nil, fmt.Errorf("%s", errMsg)
 	}
 	return result, nil
 }
