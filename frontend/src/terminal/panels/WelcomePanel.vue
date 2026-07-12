@@ -53,7 +53,7 @@ const panelCategories = computed(() => {
   const groups = getPanelsByCategory()
   const result: { title: string; items: PanelMeta[]; key: string }[] = []
   for (const [cat, panels] of Object.entries(groups)) {
-    const filtered = panels.filter(p => p.id !== 'welcome')
+    const filtered = panels.filter(p => p.id !== 'welcome' && !p.hidden)
     if (filtered.length === 0) continue
     result.push({
       title: cat,

@@ -5,6 +5,7 @@ export interface PanelMeta {
   label: string
   category: string
   description: string
+  hidden?: boolean  // hidden panels are not shown in WelcomePanel (redirected/merged IDs)
 }
 
 const panelRegistry = new Map<string, Component>()
@@ -22,8 +23,8 @@ register('market-overview', () => import('./MarketOverviewPanel.vue'), { label: 
 register('heatmap', () => import('./HeatmapPanel.vue'), { label: '板块热力图', category: '市场行情', description: '行业板块涨跌热力' })
 
 register('crypto-overview', () => import('./CryptoOverviewPanel.vue'), { label: '加密货币概览', category: '加密货币', description: '主流加密货币行情' })
-register('abnormal-stocks', () => import('./MarketScannerPanel.vue'), { label: '异动监控', category: '市场行情', description: '全市场异动股票实时监控（涨跌停/异动/龙虎榜）' })
-register('dragon-tiger', () => import('./MarketScannerPanel.vue'), { label: '龙虎榜', category: '市场行情', description: '龙虎榜日榜单与个股上榜记录（涨跌停/异动/龙虎榜）' })
+register('abnormal-stocks', () => import('./MarketScannerPanel.vue'), { label: '异动监控', category: '市场行情', description: '全市场异动股票实时监控（涨跌停/异动/龙虎榜）', hidden: true })
+register('dragon-tiger', () => import('./MarketScannerPanel.vue'), { label: '龙虎榜', category: '市场行情', description: '龙虎榜日榜单与个股上榜记录（涨跌停/异动/龙虎榜）', hidden: true })
 register('limit-up-down', () => import('./MarketScannerPanel.vue'), { label: '涨跌停监控', category: '市场行情', description: 'A 股涨停/跌停实时监控（涨跌停/异动/龙虎榜）' })
 register('hk-connect', () => import('./HKConnectPanel.vue'), { label: '港股通', category: '港股', description: '北向资金实时流向与额度概览' })
 register('funding-rate', () => import('./FundingRatePanel.vue'), { label: '资金费率', category: '加密货币', description: '加密货币永续合约资金费率' })
@@ -52,10 +53,10 @@ register('scenario-analysis', () => import('./ScenarioAnalysisPanel.vue'), { lab
 register('ipo-calendar', () => import('./IPOCalendarPanel.vue'), { label: '新股日历', category: '市场行情', description: 'A股新股发行申购上市日历' })
 register('ex-dividend', () => import('./ExDividendPanel.vue'), { label: '分红除权', category: '市场行情', description: 'A股除权除息日历与股息率' })
 register('cb-arbitrage', () => import('./CBArbitragePanel.vue'), { label: '可转债套利', category: '市场行情', description: '可转债溢价率套利与强赎预警' })
-register('hk-ipo', () => import('./IPOCalendarPanel.vue'), { label: '香港IPO', category: '港股', description: '港股新股认购与上市表现' })
+register('hk-ipo', () => import('./IPOCalendarPanel.vue'), { label: '香港IPO', category: '港股', description: '港股新股认购与上市表现', hidden: true })
 register('hk-derivatives', () => import('./HKDerivativesPanel.vue'), { label: '牛熊证/涡轮', category: '港股', description: '香港牛熊证与认股证行情' })
 register('hk-settlement', () => import('./HKSettlementPanel.vue'), { label: '港股交收', category: '港股', description: '港股交收规则与费用计算' })
-register('us-option-chain', () => import('./OptionsPanel.vue'), { label: '期权链', category: '美股', description: '美股期权链看涨/看跌矩阵' })
+register('us-option-chain', () => import('./OptionsPanel.vue'), { label: '期权链', category: '美股', description: '美股期权链看涨/看跌矩阵', hidden: true })
 register('wash-sale', () => import('./WashSalePanel.vue'), { label: 'Wash Sale', category: '美股', description: 'IRS 1091 洗售亏损检测' })
 register('institutional-trades', () => import('./DarkPoolPanel.vue'), { label: '机构交易', category: '美股', description: 'SEC 文件中的机构与内部人交易' })
 register('depth-comparison', () => import('./DepthComparisonPanel.vue'), { label: '多交易所深度对比', category: '加密货币', description: '跨交易所买卖盘深度对比' })
@@ -68,12 +69,12 @@ register('stock-research', () => import('./StockResearchPanel.vue'), { label: '�
 register('financials', () => import('./FinancialsPanel.vue'), { label: '财务报表', category: '研究分析', description: 'A股财报 + SEC XBRL 财务报表' })
 register('valuation', () => import('./ValuationPanel.vue'), { label: 'DCF 估值', category: '研究分析', description: '三情景 DCF 估值+买卖建议' })
 register('audit', () => import('./AuditPanel.vue'), { label: '财务审计', category: '研究分析', description: '收入质量/商誉/现金流审计风险检测' })
-register('forecast', () => import('./ValuationPanel.vue'), { label: '财务预测', category: '研究分析', description: '线性回归两年三情景预测' })
-register('peer-comparison', () => import('./StockResearchPanel.vue'), { label: '同业对比', category: '研究分析', description: '同行业公司对比' })
-register('analyst-estimates', () => import('./StockResearchPanel.vue'), { label: '分析师预测', category: '研究分析', description: '分析师一致预期' })
-register('insider-trading', () => import('./StockResearchPanel.vue'), { label: '内部交易', category: '研究分析', description: '高管/大股东交易' })
+register('forecast', () => import('./ValuationPanel.vue'), { label: '财务预测', category: '研究分析', description: '线性回归两年三情景预测', hidden: true })
+register('peer-comparison', () => import('./StockResearchPanel.vue'), { label: '同业对比', category: '研究分析', description: '同行业公司对比', hidden: true })
+register('analyst-estimates', () => import('./StockResearchPanel.vue'), { label: '分析师预测', category: '研究分析', description: '分析师一致预期', hidden: true })
+register('insider-trading', () => import('./StockResearchPanel.vue'), { label: '内部交易', category: '研究分析', description: '高管/大股东交易', hidden: true })
 register('congress-trading', () => import('./CongressTradingPanel.vue'), { label: '国会议员交易', category: '研究分析', description: '美国国会议员股票交易' })
-register('sentiment', () => import('./StockResearchPanel.vue'), { label: '市场情绪', category: '研究分析', description: '新闻/社交媒体情绪' })
+register('sentiment', () => import('./StockResearchPanel.vue'), { label: '市场情绪', category: '研究分析', description: '新闻/社交媒体情绪', hidden: true })
 register('options', () => import('./OptionsPanel.vue'), { label: '期权', category: '研究分析', description: 'BSM 期权定价与希腊值分析' })
 register('fundflow', () => import('./FundFlowPanel.vue'), { label: '资金流向', category: '市场行情', description: '龙虎榜、大宗交易、主力资金' })
 register('margin', () => import('./MarginPanel.vue'), { label: '融资融券', category: '市场行情', description: '两融余额与沪深港通' })
@@ -85,12 +86,12 @@ register('bonds', () => import('./BondsPanel.vue'), { label: '债券', category:
 register('sector-rotation', () => import('./SectorRotationPanel.vue'), { label: '板块轮动', category: '市场行情', description: 'RRG 板块相对强度轮动分析' })
 register('economic-calendar', () => import('./EconomicCalendarPanel.vue'), { label: '经济日历', category: '研究分析', description: '全球宏观经济数据发布日历' })
 register('earnings-calendar', () => import('./EarningsCalendarPanel.vue'), { label: '财报日历', category: '研究分析', description: '美股财报发布时间与超预期数据' })
-register('cross-asset-corr', () => import('./CorrelationPanel.vue'), { label: '跨资产相关性', category: '量化分析', description: '多资产类别相关系数矩阵' })
+register('cross-asset-corr', () => import('./CorrelationPanel.vue'), { label: '跨资产相关性', category: '量化分析', description: '多资产类别相关系数矩阵', hidden: true })
 
 // ── 量化分析 ──
 register('backtest', () => import('./BacktestPanel.vue'), { label: '回测分析', category: '量化分析', description: '回测历史列表与详情（K线/净值/指标/交易记录）' })
 register('factor-analysis', () => import('./FactorAnalysisPanel.vue'), { label: '因子分析', category: '量化分析', description: '多因子分析' })
-register('model-registry', () => import('./SettingsPanel.vue'), { label: '模型注册', category: '系统', description: 'ML 模型管理（在设置面板中管理）' })
+register('model-registry', () => import('./SettingsPanel.vue'), { label: '模型注册', category: '系统', description: 'ML 模型管理（在设置面板中管理）', hidden: true })
 register('prediction-dashboard', () => import('./PredictionDashboardPanel.vue'), { label: '预测面板', category: '量化分析', description: '模型预测结果' })
 register('alpha-mining', () => import('./AlphaMiningWorkspacePanel.vue'), { label: 'Alpha 挖掘', category: '量化分析', description: 'Alpha 因子挖掘' })
 register('rl-monitor', () => import('./RLMonitorPanel.vue'), { label: 'RL 监控', category: '量化分析', description: '强化学习训练监控' })
