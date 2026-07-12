@@ -284,6 +284,15 @@ func (a *App) GetMinuteLine(ctx context.Context, symbol string, sinceTimestamp i
 		return liveTicks, source, nil
 	}
 
+	// No live data (market closed) — try recent trading day cache
+	recentTicks, recentDate, cacheErr := a.minuteCache.GetRecentTicks(symbol, 10)
+	if cacheErr != nil {
+		slog.Warn("minute_cache: recent lookup failed", "symbol", symbol, "err", cacheErr)
+	}
+	if len(recentTicks) > 0 {
+		slog.Info("minute_cache: using recent data (market closed)", "symbol", symbol, "date", recentDate)
+		return recentTicks, "cache", nil
+	}
 	return nil, "unavailable", fmt.Errorf("no minute data available for %s", symbol)
 }
 
