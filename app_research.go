@@ -552,12 +552,12 @@ func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, e
 	return result, nil
 }
 
-// formatHKFinancialJSON parses an AKShare DataFrame JSON into the standard
-// [{report_date, items: [{item, value}]}] format used by FinancialsPanel.
+// formatHKFinancialJSON parses AKShare DataFrame JSON (orient='records') into
+// the standard [{report_date, items: [{item, value}]}] format.
 func formatHKFinancialJSON(jsonStr string) []map[string]interface{} {
 	// AKShare returns a DataFrame serialized as {"0": {cols...}, "1": {cols...}, ...}
-	// Each row has: REPORT_DATE, STD_ITEM_NAME, AMOUNT, DATE_TYPE_CODE
-	var raw map[string]map[string]interface{}
+	// safe_call serializes DataFrame as orient='records': []map[string]interface{}
+	var raw []map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {
 		return nil
 	}
