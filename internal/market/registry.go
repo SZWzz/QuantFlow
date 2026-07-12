@@ -41,11 +41,16 @@ var OHLCVChains = map[string]map[string][]string{
 // Tencent's HTTP API has CDN caching (~30-60s) that prevents 5s poller refresh.
 // CN indices: tencent first (TDX doesn't support index minute data).
 var MinuteChains = map[string]map[string][]string{
-	"CN": {
-		"stock": {"mootdx", "tencent"},
-		"index": {"tencent", "mootdx"},
-	},
-}
+		"CN": {
+			"stock": {"mootdx", "tencent"},
+			"index": {"tencent", "mootdx"},
+		},
+		"HK": {
+			"stock": {"tencent"},
+		},
+	}
+
+// HK minute: Tencent adapter via ifzq.gtimg.cn. US: no free source available.
 
 // IsIndexSymbol detects CN index codes (e.g. 上证指数 000001.SH, 深证成指 399001.SZ).
 // Returns false for non-CN symbols and individual stocks (e.g. 600519.SH, 000001.SZ).
