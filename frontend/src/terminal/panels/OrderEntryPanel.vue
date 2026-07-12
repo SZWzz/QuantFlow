@@ -67,7 +67,8 @@ function placeOrder() {
     const app = (window as any).go?.main?.App
     if (app?.PlaceOrder) {
       app.PlaceOrder(
-        symbol.value, side.value, orderType.value, quantity.value,
+        symbol.value, side.value, orderType.value, broker.value,
+        quantity.value,
         orderType.value === 'market' ? 0 : price.value
       )
     }

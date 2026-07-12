@@ -69,7 +69,7 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) || e.risk.CheckTakeProfit(pos, bar.Close) {
 				avgPrice := pos.AvgPrice // capture before FillOrder clears it
-				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
+				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
 				if err == nil {
 					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					revenue := bar.Close*pos.Quantity - e.stampDuty(bar.Close*pos.Quantity) - e.tradeFee(bar.Close*pos.Quantity) - bar.Close*pos.Quantity*e.config.Commission
@@ -162,7 +162,7 @@ func (e *HKEngine) processHKBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		return
 	}
 
-	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, "", qty, 0)
 	if err != nil {
 		return
 	}
@@ -205,7 +205,7 @@ func (e *HKEngine) processHKSellSignal(bar trading.OHLCVBar, signal *trading.Sig
 	// Sell: revenue after commission + stamp duty + trading fee
 	revenue := effectivePrice*qty - effectivePrice*qty*e.config.Commission - e.stampDuty(effectivePrice*qty) - e.tradeFee(effectivePrice*qty)
 
-	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)
+	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", qty, 0)
 	if err != nil {
 		return
 	}

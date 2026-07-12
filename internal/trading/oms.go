@@ -94,8 +94,9 @@ func (o *OMS) notifyTrade(trade *Trade) {
 	}
 }
 
-// PlaceOrder creates and registers a new order.
-func (o *OMS) PlaceOrder(symbol string, side OrderSide, orderType OrderType, qty, price float64) (*Order, error) {
+// PlaceOrder creates and registers a new order. If brokerName is non-empty and
+// not "paper", routes the order through the attached live broker.
+func (o *OMS) PlaceOrder(symbol string, side OrderSide, orderType OrderType, brokerName string, qty, price float64) (*Order, error) {
 	if qty <= 0 {
 		return nil, fmt.Errorf("quantity must be positive, got %f", qty)
 	}
@@ -103,6 +104,47 @@ func (o *OMS) PlaceOrder(symbol string, side OrderSide, orderType OrderType, qty
 		return nil, fmt.Errorf("limit order requires a positive price")
 	}
 
+	// Route to live broker if one is attached and brokerName is specified.
+	if brokerName != "" && brokerName != "paper" {
+		o.mu.RLock()
+		br := o.broker
+		o.mu.RUnlock()
+		if br == nil {
+			return nil, fmt.Errorf("broker %q not attached", brokerName)
+		}
+		if br.Name() != brokerName {
+			return nil, fmt.Errorf("broker %q not attached (active: %s)", brokerName, br.Name())
+		}
+		clientOrderID := uuid.New().String()
+		order := &Order{
+			ID:            clientOrderID[:12],
+			ClientOrderID: clientOrderID,
+			Symbol:        symbol,
+			Side:          side,
+			OrderType:     orderType,
+			Quantity:      qty,
+			Price:         price,
+			Status:        StatusPending,
+			PlacedAt:      time.Now(),
+		}
+		ctx := context.Background()
+		result, err := br.SubmitOrder(ctx, order)
+		if err != nil {
+			order.Status = StatusRejected
+			o.mu.Lock()
+			o.orders[order.ID] = order
+			o.mu.Unlock()
+			return order, fmt.Errorf("broker submit: %w", err)
+		}
+		order.ID = result.BrokerOrderID
+		order.Status = result.Status
+		o.mu.Lock()
+		o.orders[order.ID] = order
+		o.mu.Unlock()
+		return order, nil
+	}
+
+	// Paper trading path (existing logic).
 	o.mu.Lock()
 	defer o.mu.Unlock()
 

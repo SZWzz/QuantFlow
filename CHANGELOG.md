@@ -10,6 +10,10 @@
 
 - [Frontend] OrderEntryPanel market detection — replace hardcoded `'CN'` with `detectMarket()` that infers market from symbol format (CN/HK/US/CRYPTO), enabling fetchQuote to work for non-CN markets
 
+### Changed
+
+- [Trading] Add `brokerName` parameter to `PlaceOrder` chain (OMS.PlaceOrder, App.PlaceOrder, frontend OrderEntryPanel) — when brokerName is non-empty and not "paper", routes the order through the attached live broker's `SubmitOrder` instead of the paper engine, enabling real broker order execution from the UI
+
 ## [2026.7.11] - 2026-07-11
 
 ### Changed

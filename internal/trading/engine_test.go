@@ -70,7 +70,7 @@ func TestOMS_PlaceAndFill(t *testing.T) {
 	oms := NewOMS()
 
 	// Place a limit order
-	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeLimit, 100, 195.0)
+	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeLimit, "", 100, 195.0)
 	if err != nil {
 		t.Fatalf("PlaceOrder error: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestOMS_PlaceAndFill(t *testing.T) {
 func TestOMS_PartialFill(t *testing.T) {
 	oms := NewOMS()
 
-	order, _ := oms.PlaceOrder("AAPL", SideBuy, TypeLimit, 100, 195.0)
+	order, _ := oms.PlaceOrder("AAPL", SideBuy, TypeLimit, "", 100, 195.0)
 
 	// Partial fill
 	_, err := oms.FillOrder(order.ID, 40, 194.0)

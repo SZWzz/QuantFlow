@@ -38,7 +38,7 @@ func TestService_MultiplePositions_SortedByAllocation(t *testing.T) {
 		{"GOOGL", 50, 200.0},
 		{"MSFT", 200, 50.0},
 	} {
-		o, err := oms.PlaceOrder(order.sym, trading.SideBuy, trading.TypeMarket, order.qty, 0)
+		o, err := oms.PlaceOrder(order.sym, trading.SideBuy, trading.TypeMarket, "",  order.qty,  0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -74,7 +74,7 @@ func TestService_GetSummaryWithPositions(t *testing.T) {
 	oms := trading.NewOMS()
 	oms.GetCashLedger().Deposit(100000)
 
-	o, _ := oms.PlaceOrder("AAPL", trading.SideBuy, trading.TypeMarket, 100, 0)
+	o, _ := oms.PlaceOrder("AAPL", trading.SideBuy, trading.TypeMarket, "",  100,  0)
 	oms.FillOrder(o.ID, 100, 150.0)
 	oms.UpdateMarketPrice("AAPL", 160.0)
 
@@ -102,7 +102,7 @@ func TestService_GetAllocation(t *testing.T) {
 		{"00700.HK", 500, 50.0},
 		{"AAPL", 100, 150.0},
 	} {
-		o, _ := oms.PlaceOrder(order.sym, trading.SideBuy, trading.TypeMarket, order.qty, 0)
+		o, _ := oms.PlaceOrder(order.sym, trading.SideBuy, trading.TypeMarket, "",  order.qty,  0)
 		oms.FillOrder(o.ID, order.qty, order.price)
 	}
 

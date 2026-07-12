@@ -13,7 +13,7 @@ func TestFillOrder_SellOverPosition_ClipsBeforeBookUpdate(t *testing.T) {
 	oms.GetCashLedger().Deposit(50000)
 
 	// 先买入 100 股建立持仓
-	buyOrder, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, 100, 0)
+	buyOrder, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, "", 100, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder buy: %v", err)
 	}
@@ -25,7 +25,7 @@ func TestFillOrder_SellOverPosition_ClipsBeforeBookUpdate(t *testing.T) {
 	oms.ClearT1Lock()
 
 	// 下卖单 200 股（超过持仓 100）
-	sellOrder, err := oms.PlaceOrder("AAPL", SideSell, TypeMarket, 200, 0)
+	sellOrder, err := oms.PlaceOrder("AAPL", SideSell, TypeMarket, "", 200, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder sell: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestT1Lock_SameDaySellFails(t *testing.T) {
 	oms.GetCashLedger().Deposit(100000)
 
 	// Buy
-	buy, err := oms.PlaceOrder("000001.SZ", SideBuy, TypeMarket, 100, 0)
+	buy, err := oms.PlaceOrder("000001.SZ", SideBuy, TypeMarket, "", 100, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder buy: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestT1Lock_SameDaySellFails(t *testing.T) {
 	}
 
 	// Try to sell same day — must fail
-	sell, err := oms.PlaceOrder("000001.SZ", SideSell, TypeMarket, 50, 0)
+	sell, err := oms.PlaceOrder("000001.SZ", SideSell, TypeMarket, "", 50, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder sell: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestT1Lock_NextDaySellSucceeds(t *testing.T) {
 	oms.GetCashLedger().Deposit(100000)
 
 	// Buy
-	buy, err := oms.PlaceOrder("000001.SZ", SideBuy, TypeMarket, 100, 0)
+	buy, err := oms.PlaceOrder("000001.SZ", SideBuy, TypeMarket, "", 100, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder buy: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestT1Lock_NextDaySellSucceeds(t *testing.T) {
 	oms.ClearT1Lock()
 
 	// Sell should succeed
-	sell, err := oms.PlaceOrder("000001.SZ", SideSell, TypeMarket, 50, 0)
+	sell, err := oms.PlaceOrder("000001.SZ", SideSell, TypeMarket, "", 50, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder sell: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestPriceLimit_WithinLimitSucceeds(t *testing.T) {
 	// Set price limit: prevClose=100, maxPct=0.10 → [90, 110]
 	oms.SetPriceLimit("600519.SH", 100.0, 0.10)
 
-	order, err := oms.PlaceOrder("600519.SH", SideBuy, TypeLimit, 100, 105.0)
+	order, err := oms.PlaceOrder("600519.SH", SideBuy, TypeLimit, "", 100, 105.0)
 	if err != nil {
 		t.Fatalf("PlaceOrder: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestPriceLimit_OutsideLimitFails(t *testing.T) {
 	// Set price limit: prevClose=100, maxPct=0.10 → [90, 110]
 	oms.SetPriceLimit("600519.SH", 100.0, 0.10)
 
-	order, err := oms.PlaceOrder("600519.SH", SideBuy, TypeLimit, 100, 115.0)
+	order, err := oms.PlaceOrder("600519.SH", SideBuy, TypeLimit, "", 100, 115.0)
 	if err != nil {
 		t.Fatalf("PlaceOrder: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestPriceLimit_NoLimitConfigured(t *testing.T) {
 	oms := NewOMS()
 
 	// No price limit set — should succeed at any price
-	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, 100, 0)
+	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, "", 100, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestPriceLimit_NoLimitConfigured(t *testing.T) {
 func TestTradingCosts_BuyOnlyCommission(t *testing.T) {
 	oms := NewOMS()
 
-	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, 100, 0)
+	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, "", 100, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder: %v", err)
 	}
@@ -195,14 +195,14 @@ func TestTradingCosts_SellCommissionAndStampTax(t *testing.T) {
 	oms.GetCashLedger().Deposit(100000)
 
 	// Buy first to establish position
-	buy, _ := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, 100, 0)
+	buy, _ := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, "", 100, 0)
 	oms.FillOrder(buy.ID, 100, 150.0)
 
 	// Simulate next day for T+1
 	oms.ClearT1Lock()
 
 	// Sell
-	sell, _ := oms.PlaceOrder("AAPL", SideSell, TypeMarket, 100, 0)
+	sell, _ := oms.PlaceOrder("AAPL", SideSell, TypeMarket, "", 100, 0)
 	trade, err := oms.FillOrder(sell.ID, 100, 160.0)
 	if err != nil {
 		t.Fatalf("FillOrder sell: %v", err)
@@ -254,7 +254,7 @@ func TestCashLedger_BuyReducesBalance(t *testing.T) {
 	oms := NewOMS()
 	oms.GetCashLedger().Deposit(50000)
 
-	order, _ := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, 100, 0)
+	order, _ := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, "", 100, 0)
 	oms.FillOrder(order.ID, 100, 150.0)
 
 	// Cash = 50000 - 150*100 - 5(commission) = 50000 - 15005 = 34995
@@ -269,7 +269,7 @@ func TestCashLedger_SellIncreasesBalance(t *testing.T) {
 	oms.GetCashLedger().Deposit(50000)
 
 	// Buy
-	buy, _ := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, 100, 0)
+	buy, _ := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, "", 100, 0)
 	oms.FillOrder(buy.ID, 100, 150.0)
 	// Cash after buy: 50000 - 15005 = 34995
 
@@ -277,7 +277,7 @@ func TestCashLedger_SellIncreasesBalance(t *testing.T) {
 	oms.ClearT1Lock()
 
 	// Sell
-	sell, _ := oms.PlaceOrder("AAPL", SideSell, TypeMarket, 100, 0)
+	sell, _ := oms.PlaceOrder("AAPL", SideSell, TypeMarket, "", 100, 0)
 	oms.FillOrder(sell.ID, 100, 160.0)
 	// Cash after sell: 34995 + (16000 - 5 - 8) = 34995 + 15987 = 50982
 

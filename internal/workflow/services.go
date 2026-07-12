@@ -13,7 +13,7 @@ import (
 // OMSService exposes the subset of trading.OMS methods used by workflow nodes.
 type OMSService interface {
 	HasBroker() bool
-	PlaceOrder(symbol string, side trading.OrderSide, orderType trading.OrderType, qty, price float64) (*trading.Order, error)
+	PlaceOrder(symbol string, side trading.OrderSide, orderType trading.OrderType, brokerName string, qty, price float64) (*trading.Order, error)
 	PlaceOrderLive(ctx context.Context, symbol string, side trading.OrderSide, orderType trading.OrderType, qty, price, stopPrice float64) (*trading.Order, error)
 	CancelOrder(orderID string) error
 	GetOrders() []*trading.Order

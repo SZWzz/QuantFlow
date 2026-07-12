@@ -91,7 +91,7 @@ func TestOMS_HasBroker(t *testing.T) {
 
 func TestOMS_WithoutBroker_UsesPaper(t *testing.T) {
 	oms := NewOMS()
-	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, 100, 0)
+	order, err := oms.PlaceOrder("AAPL", SideBuy, TypeMarket, "", 100, 0)
 	if err != nil {
 		t.Fatalf("PlaceOrder error: %v", err)
 	}

@@ -78,7 +78,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 		if pos := r.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			avgPrice := pos.AvgPrice // capture before FillOrder clears it
 			if r.risk.CheckStopLoss(pos, bar.Close) {
-				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
+				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
 				if err == nil {
 					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					tradeRecords = append(tradeRecords, TradeRecord{
@@ -93,7 +93,7 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 				goto recordEquity
 			}
 			if r.risk.CheckTakeProfit(pos, bar.Close) {
-				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, pos.Quantity, 0)
+				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
 				if err == nil {
 					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 					tradeRecords = append(tradeRecords, TradeRecord{
@@ -172,7 +172,7 @@ func (r *Runner) processBuySignal(bar trading.OHLCVBar, signal *trading.Signal, 
 		return
 	}
 
-	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, "", qty, 0)
 	if err != nil {
 		return
 	}
@@ -214,7 +214,7 @@ func (r *Runner) processSellSignal(bar trading.OHLCVBar, signal *trading.Signal,
 	effectivePrice := bar.Open * (1 - r.config.Slippage)
 	revenue := effectivePrice*qty - effectivePrice*qty*r.config.Commission
 
-	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)
+	order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", qty, 0)
 	if err != nil {
 		return
 	}

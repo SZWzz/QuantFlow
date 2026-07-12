@@ -42,13 +42,13 @@ func (pe *PaperEngine) OnBar(bar OHLCVBar) []*Trade {
 			slog.Info("stop loss triggered", "symbol", pos.Symbol, "price", bar.Close, "pnl", pos.PnL)
 			// Close position at market
 			if pos.Quantity > 0 {
-				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, pos.Quantity, 0)
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, "", pos.Quantity, 0)
 				if err != nil { slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err); continue }
 				trade, err := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 				if err != nil { slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err); continue }
 				if trade != nil { trades = append(trades, trade) }
 			} else {
-				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, -pos.Quantity, 0)
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, "", -pos.Quantity, 0)
 				if err != nil { slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err); continue }
 				trade, err := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
 				if err != nil { slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err); continue }
@@ -60,13 +60,13 @@ func (pe *PaperEngine) OnBar(bar OHLCVBar) []*Trade {
 		if pe.riskPipeline.CheckTakeProfit(pos, bar.Close) {
 			slog.Info("take profit triggered", "symbol", pos.Symbol, "price", bar.Close, "pnl", pos.PnL)
 			if pos.Quantity > 0 {
-				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, pos.Quantity, 0)
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, "", pos.Quantity, 0)
 				if err != nil { slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err); continue }
 				trade, err := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
 				if err != nil { slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err); continue }
 				if trade != nil { trades = append(trades, trade) }
 			} else {
-				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, -pos.Quantity, 0)
+				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, "", -pos.Quantity, 0)
 				if err != nil { slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err); continue }
 				trade, err := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
 				if err != nil { slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err); continue }
@@ -118,7 +118,7 @@ func (pe *PaperEngine) PlaceOrder(symbol string, side OrderSide, orderType Order
 		return nil, fmt.Errorf("risk check failed: %w", err)
 	}
 
-	return pe.oms.PlaceOrder(symbol, side, orderType, qty, price)
+	return pe.oms.PlaceOrder(symbol, side, orderType, "", qty, price)
 }
 
 // GetOMS returns the underlying OMS.

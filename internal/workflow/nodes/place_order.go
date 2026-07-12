@@ -79,7 +79,7 @@ func (n *PlaceOrderNode) Execute(ctx context.Context, inputs map[string]any, par
 	if oms.HasBroker() {
 		order, err = oms.PlaceOrderLive(ctx, symbol, side, ot, qty, price, stopPrice)
 	} else {
-		order, err = oms.PlaceOrder(symbol, side, ot, qty, price)
+		order, err = oms.PlaceOrder(symbol, side, ot, "", qty, price)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("place_order: %w", err)

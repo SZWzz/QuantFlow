@@ -121,7 +121,7 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 					goto recordEquityCN
 				}
 				avgPrice := pos.AvgPrice // capture before FillOrder clears it
-				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, availableQty, 0)
+				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", availableQty, 0)
 				if err == nil {
 					e.oms.FillOrder(order.ID, availableQty, bar.Close)
 					portfolio.Cash = e.oms.GetCashBalance()
@@ -234,7 +234,7 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		return
 	}
 
-	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, qty, 0)
+	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideBuy, trading.TypeMarket, "", qty, 0)
 	if err != nil {
 		slog.Debug("buy signal order failed", "symbol", bar.Symbol, "error", err)
 		return
@@ -283,7 +283,7 @@ func (e *CNEngine) processCNSellSignal(bar trading.OHLCVBar, signal *trading.Sig
 	effectivePrice := bar.Open * (1 - slippage)
 	revenue := effectivePrice*qty - e.stampDuty(effectivePrice*qty) - effectivePrice*qty*e.config.Commission
 
-	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, qty, 0)
+	order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", qty, 0)
 	if err != nil {
 		slog.Debug("sell signal order failed", "symbol", bar.Symbol, "error", err)
 		return

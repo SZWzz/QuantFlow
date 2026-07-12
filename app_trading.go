@@ -10,7 +10,7 @@ import (
 )
 
 // PlaceOrder submits an order to the trading engine (paper or live broker).
-func (a *App) PlaceOrder(symbol, side, orderType string, qty, price float64) (*trading.Order, error) {
+func (a *App) PlaceOrder(symbol, side, orderType, brokerName string, qty, price float64) (*trading.Order, error) {
 	if a.oms == nil {
 		return nil, fmt.Errorf("OMS not initialized")
 	}
@@ -26,7 +26,7 @@ func (a *App) PlaceOrder(symbol, side, orderType string, qty, price float64) (*t
 		}
 	}
 
-	return a.oms.PlaceOrder(symbol, trading.OrderSide(side), trading.OrderType(orderType), qty, price)
+	return a.oms.PlaceOrder(symbol, trading.OrderSide(side), trading.OrderType(orderType), brokerName, qty, price)
 }
 
 // GetPositions returns all current positions.
