@@ -523,14 +523,24 @@ func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, e
 			lastErr = err
 			continue
 		}
+		if resp == nil {
+			slog.Warn("hk_financial: nil response", "statement", cnName)
+			lastErr = fmt.Errorf("nil response for %s", cnName)
+			continue
+		}
 		dataStr, _ := resp["data"].(string)
 		if dataStr == "" {
+			slog.Warn("hk_financial: empty data", "statement", cnName, "resp_len", len(resp))
+			lastErr = fmt.Errorf("empty data for %s", cnName)
 			continue
 		}
 		parsed := formatHKFinancialJSON(dataStr)
-		if len(parsed) > 0 {
-			result[key] = parsed
+		if len(parsed) == 0 {
+			slog.Warn("hk_financial: parse returned empty", "statement", cnName, "data_len", len(dataStr))
+			continue
 		}
+		result[key] = parsed
+		slog.Info("hk_financial: loaded", "statement", cnName, "periods", len(parsed))
 	}
 	if len(result) == 0 {
 		errMsg := fmt.Sprintf("no HK financial data for %s", symbol)
