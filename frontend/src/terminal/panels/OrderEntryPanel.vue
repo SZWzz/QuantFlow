@@ -86,7 +86,7 @@ function placeOrder() {
         <label>{{ $t('quote.symbol') }}
           <span v-if="name" class="quote-status">{{ name }}</span>
         </label>
-        <input v-model="symbol" type="text" class="form-input" />
+        <input v-model="symbol" type="text" class="form-input" data-testid="order-symbol-input" />
       </div>
 
       <div class="form-group">
@@ -101,13 +101,13 @@ function placeOrder() {
       </div>
 
       <div class="side-toggle">
-        <button :class="{ active: side === 'buy' }" @click="side = 'buy'">{{ $t('trade.buy') }}</button>
-        <button :class="{ active: side === 'sell' }" @click="side = 'sell'">{{ $t('trade.sell') }}</button>
+        <button :class="{ active: side === 'buy' }" @click="side = 'buy'" data-testid="order-side-buy">{{ $t('trade.buy') }}</button>
+        <button :class="{ active: side === 'sell' }" @click="side = 'sell'" data-testid="order-side-sell">{{ $t('trade.sell') }}</button>
       </div>
 
       <div class="form-group">
         <label>{{ $t('trade.order_type') }}</label>
-        <select v-model="orderType" class="form-input">
+        <select v-model="orderType" class="form-input" data-testid="order-type-select">
           <option value="market">{{ $t('trade.market') }}</option>
           <option value="limit">{{ $t('trade.limit') }}</option>
           <option value="stop">{{ $t('trade.stop') }}</option>
@@ -116,7 +116,7 @@ function placeOrder() {
 
       <div class="form-group">
         <label>{{ $t('trade.quantity') }}</label>
-        <input v-model.number="quantity" type="number" min="1" class="form-input" />
+        <input v-model.number="quantity" type="number" min="1" class="form-input" data-testid="order-quantity-input" />
       </div>
 
       <div v-if="orderType !== 'market'" class="form-group">
@@ -124,7 +124,7 @@ function placeOrder() {
           <span v-if="quoteLoading" class="quote-status">{{ $t('common.loading') }}</span>
           <span v-else-if="lastPrice > 0" class="quote-status">(实时)</span>
         </label>
-        <input v-model.number="price" type="number" step="0.01" class="form-input" />
+        <input v-model.number="price" type="number" step="0.01" class="form-input" data-testid="order-price-input" />
       </div>
 
       <div v-if="orderType === 'stop'" class="form-group">
@@ -141,6 +141,7 @@ function placeOrder() {
         class="place-order-btn"
         :class="side"
         @click="placeOrder"
+        data-testid="order-place-btn"
       >
         {{ side === 'buy' ? $t('trade.buy') : $t('trade.sell') }} {{ symbol }}
       </button>

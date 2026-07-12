@@ -36,7 +36,7 @@ onMounted(loadPositions)
 </script>
 
 <template>
-  <div class="position-panel">
+  <div class="position-panel" data-testid="position-panel">
     <div class="summary-row" v-if="!loading && positions.length > 0">
       <div class="summary-item">
         <span class="s-label">{{ $t('portfolio.total_pnl') }}</span>
@@ -49,10 +49,10 @@ onMounted(loadPositions)
     </div>
 
     <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
-    <div v-else-if="!positions.length" class="empty-state">{{ $t('portfolio.no_positions') }}</div>
+    <div v-else-if="!positions.length" class="empty-state" data-testid="position-empty">{{ $t('portfolio.no_positions') }}</div>
 
     <div v-else class="position-list">
-      <div v-for="pos in positions" :key="pos.Symbol" class="position-row">
+      <div v-for="pos in positions" :key="pos.Symbol" class="position-row" data-testid="position-row">
         <div class="pos-main">
           <span class="pos-symbol">{{ pos.Symbol }} - {{ pos.Name || '' }}</span>
           <span class="pos-qty">{{ pos.Quantity }} 手</span>

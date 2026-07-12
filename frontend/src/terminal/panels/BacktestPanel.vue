@@ -241,7 +241,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
 </script>
 
 <template>
-  <div class="backtest-panel">
+  <div class="backtest-panel" data-testid="backtest-panel">
     <template v-if="view === 'list'">
       <PanelHeader
         title="回测历史"
@@ -262,6 +262,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
             :data="items"
             :loading="loading"
             clickable
+            rowTestId="backtest-row"
             @rowClick="openRow"
           >
             <template #action="{ row }">
@@ -293,7 +294,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
           </div>
           <div v-if="metricCards.length" class="section">
             <div class="section-label">回测指标</div>
-            <div class="metrics-grid">
+            <div class="metrics-grid" data-testid="backtest-metrics">
               <PanelCard v-for="m in metricCards" :key="m.label" :title="m.label" :value="m.value" :format="m.format" />
             </div>
           </div>

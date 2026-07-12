@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<{
   striped?: boolean
   clickable?: boolean
   rowKey?: (row: any, idx: number) => string | number
+  rowTestId?: string
 }>(), {
   striped: true,
   loading: false,
@@ -83,6 +84,7 @@ const hasAction = computed(() => !!slots.action)
           'table-row',
           { striped: striped && idx % 2 === 1, clickable: clickable },
         ]"
+        :data-testid="rowTestId"
         @click="emit('rowClick', row)"
       >
         <span

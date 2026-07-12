@@ -15,6 +15,9 @@
 ### Added
 
 - [Frontend] Playwright E2E testing foundation — installed `@playwright/test`, created `e2e/playwright.config.ts` with Vite webServer integration, added `test:e2e` and `test:e2e:ui` scripts, created mock fixture (`e2e/fixtures/mock-app.ts`) that injects mock `window.go.main.App` for all 3 core flows (trading/portfolio/backtest), created `e2e/fixtures/base-test.ts` with `mockPage` test fixture
+- [Frontend] E2E test data-testid attributes — added `data-testid` to 4 core panels (WatchlistPanel, OrderEntryPanel, PositionPanel, BacktestPanel) and PanelTable component for testability
+- [Frontend] E2E test specs — added 15 test cases across 3 spec files (market-watch.spec.ts: 6 tests, order-entry.spec.ts: 5 tests, review.spec.ts: 4 tests) covering market watch, order entry, and app review flows
+- [CI] E2E job — added 4th CI job `e2e` that installs Chromium and runs Playwright tests in CI pipeline
 
 ### Changed
 

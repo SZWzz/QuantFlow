@@ -370,14 +370,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="watchlist-panel">
+  <div class="watchlist-panel" data-testid="watchlist-panel">
     <PanelHeader
       :title="$t('watchlist.title')"
       :controls="controls"
     />
 
     <!-- Empty state -->
-    <div v-if="symbols.length === 0" class="empty-state">
+    <div v-if="symbols.length === 0" class="empty-state" data-testid="watchlist-empty">
       <div class="empty-icon">📋</div>
       <div class="empty-text">{{ $t('watchlist.empty') }}</div>
     </div>
@@ -422,7 +422,7 @@ onUnmounted(() => {
 
           <!-- Data rows -->
           <div v-for="sym in syms" v-else :key="sym"
-            class="table-row" :class="rowClasses(sym)"
+            class="table-row" :class="rowClasses(sym)" data-testid="watchlist-row"
             :style="{ gridTemplateColumns: gridTemplateCols }"
             @click="selectSymbol(sym)"
             @contextmenu.prevent="openContextMenu($event, sym)"
