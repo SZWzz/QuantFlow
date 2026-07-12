@@ -18,6 +18,17 @@ const lastPrice = ref(0)
 const quoteLoading = ref(false)
 const loadError = ref('')
 
+function detectMarket(sym: string): string {
+  // Crypto: explicit pairs like BTC/USDT, ETH/USDT
+  if (sym.includes('/')) return 'CRYPTO'
+  // US: 1-5 uppercase letters (AAPL, TSLA, BRK.A)
+  if (/^[A-Z]{1,5}(\.[A-Z])?$/.test(sym)) return 'US'
+  // HK: 4-5 digits with leading zeros (00001, 00700)
+  if (/^\d{4,5}$/.test(sym)) return 'HK'
+  // Default: CN (6 digits, or any other format)
+  return 'CN'
+}
+
 const estimatedTotal = computed(() => {
   const p = orderType.value === 'market' ? (lastPrice.value || price.value) : price.value
   return quantity.value * p
@@ -29,7 +40,8 @@ async function fetchQuote() {
   quoteLoading.value = true
   loadError.value = ''
   try {
-    const { data: result } = await fetchWithCache<any>(`quote:${symbol.value}`, () => app.GetQuote('CN', symbol.value), 60 * 1000)
+    const market = detectMarket(symbol.value)
+    const { data: result } = await fetchWithCache<any>(`quote:${symbol.value}`, () => app.GetQuote(market, symbol.value), 60 * 1000)
     const quote = Array.isArray(result) ? result[0] : result
     if (quote?.last) {
       lastPrice.value = quote.last

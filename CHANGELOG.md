@@ -4,6 +4,12 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.12] - 2026-07-12
+
+### Fixed
+
+- [Frontend] OrderEntryPanel market detection — replace hardcoded `'CN'` with `detectMarket()` that infers market from symbol format (CN/HK/US/CRYPTO), enabling fetchQuote to work for non-CN markets
+
 ## [2026.7.11] - 2026-07-11
 
 ### Changed
