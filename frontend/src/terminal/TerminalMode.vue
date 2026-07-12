@@ -67,18 +67,6 @@ function onSwitchToWorkflow() {
         </div>
         <span class="title">QuantFlow</span>
       </div>
-      <div class="header-center">
-        <div class="market-tabs">
-          <button
-            v-for="m in (['CN', 'HK', 'US'] as const)"
-            :key="m"
-            :class="['mkt-btn', { active: session.ui.activeMarket === m }]"
-            @click="session.setActiveMarket(m)"
-          >
-            {{ m }}
-          </button>
-        </div>
-      </div>
       <div class="header-actions">
         <button class="header-btn action-btn" @click="showCommandBar = true" title="Command Bar (Ctrl+K)">
           <span class="btn-icon" v-html="getIcon('command')" />
@@ -183,50 +171,6 @@ function onSwitchToWorkflow() {
   font-size: var(--font-base);
   color: var(--color-text-primary);
   letter-spacing: 0.5px;
-}
-
-.header-center {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  flex: 1;
-  justify-content: center;
-}
-
-.market-tabs {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-  background: var(--color-bg-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 2px;
-}
-
-.mkt-btn {
-  padding: 3px 12px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: 'JetBrains Mono', monospace;
-  transition: all var(--transition-fast);
-  letter-spacing: 0.5px;
-}
-
-.mkt-btn:hover {
-  color: var(--color-text-secondary);
-  background: var(--color-bg-hover);
-}
-
-.mkt-btn.active {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .header-actions {
