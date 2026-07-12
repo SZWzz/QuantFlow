@@ -146,11 +146,27 @@ def get_stock_financial_report_sina(stock="sh600519", symbol="资产负债表"):
 # ==================== HK FINANCIAL ====================
 
 def get_stock_financial_hk_report_em(stock="00700", symbol="资产负债表", date=""):
-    """Get HK financial report (EastMoney)"""
+    """Get HK financial report (EastMoney) — returns JSON in FinancialsPanel format."""
     kwargs = {"stock": stock, "symbol": symbol}
     if date:
         kwargs["indicator"] = date
-    return safe_call(ak.stock_financial_hk_report_em, **kwargs)
+    try:
+        df = ak.stock_financial_hk_report_em(**kwargs)
+    except Exception as e:
+        return {"success": False, "error": str(e), "data": []}
+    if df is None or (hasattr(df, 'empty') and df.empty):
+        return {"success": True, "data": [], "count": 0}
+    # Convert to standard format: [{report_date, items: [{item, value}]}]
+    df = df[df['DATE_TYPE_CODE'] == '001']  # annual reports only
+    df['REPORT_DATE'] = df['REPORT_DATE'].astype(str).str[:10]
+    periods = {}
+    for _, row in df.iterrows():
+        d = row['REPORT_DATE']
+        if d not in periods:
+            periods[d] = []
+        periods[d].append({"item": str(row['STD_ITEM_NAME']), "value": float(row['AMOUNT']) if pd.notna(row['AMOUNT']) else 0})
+    result = [{"report_date": k, "items": v} for k, v in sorted(periods.items())]
+    return {"success": True, "data": result, "count": len(result)}
 
 def get_stock_financial_hk_analysis_indicator_em(symbol="00700"):
     """Get HK financial analysis indicators (EastMoney)"""

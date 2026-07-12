@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -555,8 +554,8 @@ func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, e
 // formatHKFinancialJSON parses the safe_call wrapper JSON into the standard
 // [{report_date, items: [{item, value}]}] format.
 func formatHKFinancialJSON(jsonStr string) []map[string]interface{} {
-	// AKShare returns a DataFrame serialized as {"0": {cols...}, "1": {cols...}, ...}
-	// safe_call wraps data as {"success": true, "data": [...], "count": N}
+	// Python get_stock_financial_hk_report_em already returns data in
+	// the standard [{report_date, items: [{item, value}]}] format.
 	var wrapper struct {
 		Success bool                     `json:"success"`
 		Data    []map[string]interface{} `json:"data"`
@@ -564,63 +563,9 @@ func formatHKFinancialJSON(jsonStr string) []map[string]interface{} {
 	if err := json.Unmarshal([]byte(jsonStr), &wrapper); err != nil || !wrapper.Success {
 		return nil
 	}
-	raw := wrapper.Data
-
-	// Group items by period.
-	type item struct {
-		Name  string
-		Value interface{}
-	}
-	periodItems := map[string][]item{}
-	dateOrder := []string{}
-	seenDates := map[string]bool{}
-
-	for _, row := range raw {
-		// Only include annual reports (DATE_TYPE_CODE == "001")
-		if dt, _ := row["DATE_TYPE_CODE"].(string); dt != "001" {
-			continue
-		}
-		reportDate, _ := row["REPORT_DATE"].(string)
-		itemName, _ := row["STD_ITEM_NAME"].(string)
-		amount := row["AMOUNT"]
-		if reportDate == "" || itemName == "" {
-			continue
-		}
-		// Strip time portion: "2025-12-31 00:00:00" → "2025-12-31"
-		if len(reportDate) >= 10 {
-			reportDate = reportDate[:10]
-		}
-		if !seenDates[reportDate] {
-			seenDates[reportDate] = true
-			dateOrder = append(dateOrder, reportDate)
-		}
-		periodItems[reportDate] = append(periodItems[reportDate], item{
-			Name:  itemName,
-			Value: amount,
-		})
-	}
-
-	sort.Strings(dateOrder)
-	result := make([]map[string]interface{}, 0, len(dateOrder))
-	for _, period := range dateOrder {
-		items := make([]map[string]interface{}, 0, len(periodItems[period]))
-		for _, it := range periodItems[period] {
-			items = append(items, map[string]interface{}{
-				"item":  it.Name,
-				"value": it.Value,
-			})
-		}
-		result = append(result, map[string]interface{}{
-			"report_date": period,
-			"items":       items,
-		})
-	}
-	return result
+	return wrapper.Data
 }
 
-
-
-// GetFinancialStatements returns raw financial statements (利润表/资产负债表/现金流量表) for a symbol.
 func (a *App) GetFinancialStatements(symbol string) (map[string]interface{}, error) {
 	if a.sinaFinAdpt == nil {
 		return nil, fmt.Errorf("sina financials adapter not available")
