@@ -167,8 +167,6 @@ interface AppMethods {
   GetPortfolioAllocation(): Promise<any>
   GetRebalanceSuggestions(): Promise<Array<Record<string, any>>>
   GetBrokerStatuses(): Promise<any[]>
-  RunBacktest(jsonDef: string): Promise<Record<string, any>>
-
   // --- Workflow ---
   ListNodes(): Promise<Array<{ node_type: string; category: string }>>
   GetNodePorts(nodeType: string): Promise<{ inputs: Array<{ name: string; type: string }>; outputs: Array<{ name: string; type: string }> }>

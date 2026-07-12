@@ -149,12 +149,6 @@ func (a *App) GetBrokerStatuses() []BrokerStatus {
 	return statuses
 }
 
-// RunBacktest executes a backtest from a workflow JSON definition.
-func (a *App) RunBacktest(jsonDef string) (map[string]interface{}, error) {
-	_ = jsonDef
-	return nil, fmt.Errorf("backtest engine available but RunBacktest not yet wired — see internal/backtest/runner.go")
-}
-
 // CheckWashSale detects wash sale events for a symbol using trade history.
 func (a *App) CheckWashSale(symbol string) ([]trading.WashSaleEvent, error) {
 	if a.oms == nil {
