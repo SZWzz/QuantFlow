@@ -32,7 +32,7 @@ const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || 'AAPL')
 const { name } = useStockName(symbol)
-const activeTab = ref('overview')
+const activeTab = ref(props.params?.tab || 'overview')
 
 const tabs = [
   { id: 'overview', key: 'research.overview' },
