@@ -157,6 +157,9 @@ func (a *YahooAdapter) FetchOHLCV(ctx context.Context, symbol string, interval s
 	// Normalize symbol for Yahoo: Yahoo uses .HK suffix for Hong Kong stocks.
 	// If symbol is a 5-digit HK code (e.g., "00700"), convert to "0700.HK".
 	yahooSymbol := normalizeYahooSymbol(symbol)
+	// Yahoo requires lowercase interval (1d not 1D). The registry normalizes "1d"→"1D",
+	// so we lowercase it back here. Also handles minute intervals.
+	interval = strings.ToLower(interval)
 
 	// Crumb is optional — the chart API works without it, and the crumb
 	// endpoint frequently returns Unauthorized. Skip to avoid slow startup.
