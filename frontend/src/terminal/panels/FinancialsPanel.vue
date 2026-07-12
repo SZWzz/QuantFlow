@@ -131,8 +131,10 @@ async function loadCNData() {
   }
 }
 
-const nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
-const nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
+// Use let (not const) to avoid TDZ with hkStatements defined later in the file.
+// Rollup/Vite production build may reorder const declarations.
+let nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
+let nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
 
 const activeData = computed(() => {
   const stmts = nonUSStatements.value
