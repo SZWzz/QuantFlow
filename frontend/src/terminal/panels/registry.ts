@@ -36,16 +36,13 @@ register('basket-order', () => import('./BasketOrderPanel.vue'), { label: '篮�
 register('broker-status', () => import('./BrokerStatusPanel.vue'), { label: '券商状态', category: '交易执行', description: '券商连接状态' })
 
 // ── 组合风控 ──
-register('position', () => import('./PositionPanel.vue'), { label: '持仓明细', category: '组合与风控', description: '当前持仓列表' })
-register('position-detail', () => import('./PositionDetail.vue'), { label: '持仓详情', category: '组合与风控', description: '单只持仓详细分析' })
-register('portfolio-summary', () => import('./PortfolioSummary.vue'), { label: '组合概况', category: '组合与风控', description: '组合整体表现' })
+register('position', () => import('./PositionPanel.vue'), { label: '持仓明细', category: '组合与风控', description: '当前持仓列表，点击展开详情' })
+register('portfolio-summary', () => import('./PortfolioSummary.vue'), { label: '组合概况', category: '组合与风控', description: '组合整体表现、风险指标、净值曲线（含概览/风险/图表标签页）' })
 register('trade-history', () => import('./TradeHistory.vue'), { label: '交易记录', category: '组合与风控', description: '成交明细与委托订单管理' })
-register('risk-dashboard', () => import('./RiskDashboard.vue'), { label: '风险仪表盘', category: '组合与风控', description: '组合风险指标一览' })
 register('rebalance', () => import('./RebalancePanel.vue'), { label: '再平衡', category: '组合与风控', description: '组合再平衡建议' })
 register('broker-config', () => import('./BrokerConfig.vue'), { label: '券商配置', category: '交易执行', description: '券商账户设置' })
 
 // ── 图表分析 ──
-register('equity-curve', () => import('./EquityCurvePanel.vue'), { label: '权益曲线', category: '组合与风控', description: '净值曲线' })
 register('surface-chart', () => import('./SurfaceChartPanel.vue'), { label: '波动率曲面', category: '美股', description: '隐含波动率曲面' })
 register('correlation', () => import('./CorrelationPanel.vue'), { label: '相关性矩阵', category: '图表分析', description: '多标的相关性' })
 register('distribution', () => import('./DistributionPanel.vue'), { label: '收益分布', category: '量化分析', description: '收益率分布直方图' })
@@ -55,10 +52,10 @@ register('scenario-analysis', () => import('./ScenarioAnalysisPanel.vue'), { lab
 register('ipo-calendar', () => import('./IPOCalendarPanel.vue'), { label: '新股日历', category: '市场行情', description: 'A股新股发行申购上市日历' })
 register('ex-dividend', () => import('./ExDividendPanel.vue'), { label: '分红除权', category: '市场行情', description: 'A股除权除息日历与股息率' })
 register('cb-arbitrage', () => import('./CBArbitragePanel.vue'), { label: '可转债套利', category: '市场行情', description: '可转债溢价率套利与强赎预警' })
-register('hk-ipo', () => import('./HKIPOPanel.vue'), { label: '香港IPO', category: '港股', description: '港股新股认购与上市表现' })
+register('hk-ipo', () => import('./IPOCalendarPanel.vue'), { label: '香港IPO', category: '港股', description: '港股新股认购与上市表现' })
 register('hk-derivatives', () => import('./HKDerivativesPanel.vue'), { label: '牛熊证/涡轮', category: '港股', description: '香港牛熊证与认股证行情' })
 register('hk-settlement', () => import('./HKSettlementPanel.vue'), { label: '港股交收', category: '港股', description: '港股交收规则与费用计算' })
-register('us-option-chain', () => import('./USOptionsPanel.vue'), { label: '期权链', category: '美股', description: '美股期权链看涨/看跌矩阵' })
+register('us-option-chain', () => import('./OptionsPanel.vue'), { label: '期权链', category: '美股', description: '美股期权链看涨/看跌矩阵' })
 register('wash-sale', () => import('./WashSalePanel.vue'), { label: 'Wash Sale', category: '美股', description: 'IRS 1091 洗售亏损检测' })
 register('institutional-trades', () => import('./DarkPoolPanel.vue'), { label: '机构交易', category: '美股', description: 'SEC 文件中的机构与内部人交易' })
 register('depth-comparison', () => import('./DepthComparisonPanel.vue'), { label: '多交易所深度对比', category: '加密货币', description: '跨交易所买卖盘深度对比' })
@@ -68,10 +65,10 @@ register('gas-tracker', () => import('./GasFeePanel.vue'), { label: '燃料费�
 
 // ── 研究分析 ──
 register('stock-research', () => import('./StockResearchPanel.vue'), { label: '股票研究', category: '研究分析', description: '多维度个股研究' })
-register('financials', () => import('./FinancialsPanel.vue'), { label: '财务报表', category: '研究分析', description: '三年对比+健康评分+异常检测' })
+register('financials', () => import('./FinancialsPanel.vue'), { label: '财务报表', category: '研究分析', description: 'A股财报 + SEC XBRL 财务报表' })
 register('valuation', () => import('./ValuationPanel.vue'), { label: 'DCF 估值', category: '研究分析', description: '三情景 DCF 估值+买卖建议' })
 register('audit', () => import('./AuditPanel.vue'), { label: '财务审计', category: '研究分析', description: '收入质量/商誉/现金流审计风险检测' })
-register('forecast', () => import('./ForecastPanel.vue'), { label: '财务预测', category: '研究分析', description: '线性回归两年三情景预测' })
+register('forecast', () => import('./ValuationPanel.vue'), { label: '财务预测', category: '研究分析', description: '线性回归两年三情景预测' })
 register('peer-comparison', () => import('./StockResearchPanel.vue'), { label: '同业对比', category: '研究分析', description: '同行业公司对比' })
 register('analyst-estimates', () => import('./StockResearchPanel.vue'), { label: '分析师预测', category: '研究分析', description: '分析师一致预期' })
 register('insider-trading', () => import('./StockResearchPanel.vue'), { label: '内部交易', category: '研究分析', description: '高管/大股东交易' })
@@ -88,7 +85,7 @@ register('bonds', () => import('./BondsPanel.vue'), { label: '债券', category:
 register('sector-rotation', () => import('./SectorRotationPanel.vue'), { label: '板块轮动', category: '市场行情', description: 'RRG 板块相对强度轮动分析' })
 register('economic-calendar', () => import('./EconomicCalendarPanel.vue'), { label: '经济日历', category: '研究分析', description: '全球宏观经济数据发布日历' })
 register('earnings-calendar', () => import('./EarningsCalendarPanel.vue'), { label: '财报日历', category: '研究分析', description: '美股财报发布时间与超预期数据' })
-register('cross-asset-corr', () => import('./CrossAssetCorrelationPanel.vue'), { label: '跨资产相关性', category: '量化分析', description: '多资产类别相关系数矩阵' })
+register('cross-asset-corr', () => import('./CorrelationPanel.vue'), { label: '跨资产相关性', category: '量化分析', description: '多资产类别相关系数矩阵' })
 
 // ── 量化分析 ──
 register('backtest', () => import('./BacktestPanel.vue'), { label: '回测分析', category: '量化分析', description: '回测历史列表与详情（K线/净值/指标/交易记录）' })
@@ -104,7 +101,7 @@ register('geopolitics', () => import('./GeopoliticsPanel.vue'), { label: '地缘
 register('satellite', () => import('./SatellitePanel.vue'), { label: '卫星数据', category: '另类数据', description: 'NASA 能源/火灾监测' })
 
 // ── 美股 ──
-register('sec_financials', () => import('./SECFinancialsPanel.vue'), { label: 'SEC财报', category: '美股', description: '美股 XBRL 财务报表' })
+
 register('sec_13f', () => import('./SEC13FPanel.vue'), { label: '13F持仓', category: '美股', description: '机构 13F 持仓报告' })
 
 // ── 系统 ──

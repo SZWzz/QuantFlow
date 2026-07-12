@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { HeatmapChart } from 'echarts/charts'
@@ -17,6 +17,7 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 use([HeatmapChart, TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, CanvasRenderer])
 
@@ -28,6 +29,11 @@ const props = defineProps<{
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 
+// ── Tabs: Custom / Presets ──
+type CorrelationTab = 'custom' | 'presets'
+const activeView = ref<CorrelationTab>('custom')
+
+// ══════ Custom correlation ══════
 const symbolText = ref(
   props.params?.symbols ??
     '600519\n000858\n000001\n300750\n002594\n601318\n600036\n000002',
@@ -36,8 +42,8 @@ const lookback = ref(props.params?.lookback ?? 60)
 const matrix = ref<number[][] | null>(null)
 const symbols = ref<string[]>([])
 const { fetchWithCache } = usePanelCache()
-const loading = ref(false)
-const loadError = ref('')
+const customLoading = ref(false)
+const customError = ref('')
 const hasECharts = ref(false)
 
 const firstSymbol = computed(() => symbols.value.length > 0 ? symbols.value[0] : undefined)
@@ -63,22 +69,21 @@ async function compute() {
   }
   const app = (window as any).go?.main?.App
   if (!app) { matrix.value = null; return }
-  loading.value = true
-  loadError.value = ''
+  customLoading.value = true
+  customError.value = ''
   try {
     const key = 'correlation:' + syms.join(',') + ':' + lookback.value
     type CorrMap = Record<string, Record<string, number>>
     const { data: corrMatrix } = await fetchWithCache<CorrMap>(key, () => app.GetCorrelationMatrix(syms, lookback.value))
-    // Convert map[string]map[string]float64 to 2D array ordered by syms
     const m: number[][] = syms.map(si =>
       syms.map(sj => corrMatrix?.[si]?.[sj] ?? 0)
     )
     matrix.value = m
   } catch (e: any) {
-    loadError.value = e?.message || String(e)
+    customError.value = e?.message || String(e)
     matrix.value = null
   } finally {
-    loading.value = false
+    customLoading.value = false
   }
 }
 
@@ -88,7 +93,6 @@ const chartOption = computed(() => {
   const syms = symbols.value
   const n = syms.length
 
-  // Build heatmap data showing only lower triangle
   const heatData: { value: [number, number, number]; itemStyle?: Record<string, unknown> }[] = []
 
   for (let i = 0; i < n; i++) {
@@ -185,85 +189,238 @@ function cellBg(r: number): string {
   return 'rgba(59,130,246,0.45)'
 }
 
+// ══════ Presets (cross-asset) correlation ══════
+interface AssetGroup {
+  label: string
+  symbols: string[]
+  color: string
+}
+
+const assetPresets: AssetGroup[] = [
+  { label: '美股-科技', symbols: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'], color: '#3b82f6' },
+  { label: '美股-金融', symbols: ['JPM', 'GS', 'BAC', 'WFC', 'C'], color: '#8b5cf6' },
+  { label: '中美', symbols: ['AAPL', 'BABA', 'JD', 'NIO', 'MSFT'], color: '#22c55e' },
+  { label: '跨资产', symbols: ['SPY', 'QQQ', 'TLT', 'GLD', 'USO'], color: '#f59e0b' },
+  { label: 'A股-板块', symbols: ['000001', '600519', '300750', '601318', '600036'], color: '#ef4444' },
+  { label: '加密+美股', symbols: ['BTCUSDT', 'ETHUSDT', 'MSTR', 'COIN', 'SQ'], color: '#ec4899' },
+]
+
+const presetSymbols = ref<string[]>(assetPresets[0].symbols)
+const presetLookback = ref(60)
+const presetLoading = ref(false)
+const presetError = ref('')
+const presetMatrix = ref<Record<string, Record<string, number>>>({})
+const presetAssetList = ref<string[]>([])
+const activePreset = ref(0)
+let chartInstance: any = null
+let renderTimer: ReturnType<typeof setTimeout> | null = null
+
+const colorScale = computed(() => {
+  const values = Object.values(presetMatrix.value).flatMap(r => Object.values(r))
+  const max = Math.max(...values.map(Math.abs), 0.01)
+  return { max }
+})
+
+async function fetchPresetData() {
+  const app = (window as any).go?.main?.App
+  if (!app?.GetCorrelationMatrix || presetSymbols.value.length < 2) return
+  presetLoading.value = true
+  presetError.value = ''
+  try {
+    const key = 'correlation:' + presetSymbols.value.join(',') + ':' + presetLookback.value
+    const result = await fetchWithCache<any>(key, () => app.GetCorrelationMatrix(presetSymbols.value, presetLookback.value)).then(r => r.data)
+    presetMatrix.value = result || {}
+    presetAssetList.value = presetSymbols.value
+  } catch (e) {
+    presetError.value = (e as any)?.message || String(e)
+    presetMatrix.value = {}
+  } finally {
+    presetLoading.value = false
+  }
+  renderTimer = setTimeout(renderPresetChart, 300)
+}
+
+function renderPresetChart() {
+  if (typeof window === 'undefined' || !(window as any).echarts) return
+  const echarts = (window as any).echarts
+  const el = document.getElementById('correlation-preset-chart')
+  if (!el) return
+  if (!chartInstance) chartInstance = echarts.init(el)
+
+  const syms = presetAssetList.value
+  const data: number[] = []
+  const source: string[] = []
+  const target: string[] = []
+
+  for (let i = 0; i < syms.length; i++) {
+    for (let j = 0; j < syms.length; j++) {
+      if (i === j) continue
+      const val = presetMatrix.value[syms[i]]?.[syms[j]]
+      if (val !== undefined) {
+        data.push(val)
+        source.push(syms[i])
+        target.push(syms[j])
+      }
+    }
+  }
+
+  const option = {
+    tooltip: {
+      formatter: (params: any) => {
+        const idx = params.dataIndex
+        return `${source[idx]} → ${target[idx]}: ${(data[idx] || 0).toFixed(3)}`
+      },
+    },
+    series: [{
+      type: 'heatmap',
+      data: syms.flatMap((s, i) =>
+        syms.map((t, j) => [i, j, presetMatrix.value[s]?.[t] || 0])
+      ),
+      label: { show: true, formatter: (p: any) => (p.data[2] || 0).toFixed(2), fontSize: 9, color: '#9ca3af' },
+      itemStyle: {
+        color: (p: any) => {
+          const v = p.data[2]
+          if (v > 0.7) return '#dc2626'
+          if (v > 0.4) return '#f97316'
+          if (v > 0.1) return '#fbbf24'
+          if (v < -0.3) return '#3b82f6'
+          if (v < -0.1) return '#60a5fa'
+          return '#374151'
+        },
+      },
+    }],
+    xAxis: { type: 'category', data: syms, axisLabel: { fontSize: 9, color: '#9ca3af', rotate: 45 } },
+    yAxis: { type: 'category', data: syms, axisLabel: { fontSize: 9, color: '#9ca3af' } },
+    grid: { left: 60, right: 20, top: 20, bottom: 60 },
+  }
+  chartInstance.setOption(option, true)
+}
+
+function selectPreset(idx: number) {
+  activePreset.value = idx
+  presetSymbols.value = assetPresets[idx].symbols
+  fetchPresetData()
+}
+
 onMounted(() => {
   try {
-    // ECharts is already loaded via static import above,
-    // but we verify it resolved (won't throw in build).
     hasECharts.value = true
   } catch {
     hasECharts.value = false
   }
+})
+
+onUnmounted(() => {
+  if (renderTimer) clearTimeout(renderTimer)
 })
 </script>
 
 <template>
   <div class="correlation-panel">
     <div class="panel-header">
-      <h3>{{ $t('misc.correlation') }}{{ name ? ` — ${firstSymbol} ${name}` : '' }}</h3>
+      <h3>{{ $t('misc.correlation') }}{{ activeView === 'custom' && name ? ` — ${firstSymbol} ${name}` : '' }}</h3>
+      <div class="view-tabs">
+        <button :class="['view-tab', { active: activeView === 'custom' }]" @click="activeView = 'custom'">自定义</button>
+        <button :class="['view-tab', { active: activeView === 'presets' }]" @click="activeView = 'presets'; if (!presetAssetList.length) fetchPresetData()">预设</button>
+      </div>
       <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
     </div>
 
-    <div class="controls-row">
-      <textarea
-        v-model="symbolText"
-        class="symbol-input"
-        rows="4"
-        placeholder="输入代码，每行一个"
-      ></textarea>
+    <!-- ── Custom ── -->
+    <template v-if="activeView === 'custom'">
+      <div class="controls-row">
+        <textarea
+          v-model="symbolText"
+          class="symbol-input"
+          rows="4"
+          placeholder="输入代码，每行一个"
+        ></textarea>
 
-      <div class="controls-right">
-        <label class="control-label">
-          回溯
-          <select v-model="lookback" class="lookback-select">
-            <option v-for="opt in lookbackOptions" :key="opt" :value="opt">
-              {{ opt }}d
-            </option>
-          </select>
-        </label>
+        <div class="controls-right">
+          <label class="control-label">
+            回溯
+            <select v-model="lookback" class="lookback-select">
+              <option v-for="opt in lookbackOptions" :key="opt" :value="opt">
+                {{ opt }}d
+              </option>
+            </select>
+          </label>
 
-        <button class="compute-btn" @click="compute">
-          计算
-        </button>
-      </div>
-    </div>
-
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <div class="chart-body">
-      <div v-if="loading" class="chart-fallback">{{ $t('common.loading') }}</div>
-      <div v-else-if="!matrix" class="placeholder-msg">
-        Enter symbols and click 计算
+          <button class="compute-btn" @click="compute">
+            计算
+          </button>
+        </div>
       </div>
 
-      <template v-else-if="hasECharts">
-        <VChart v-if="chartOption" :option="chartOption" autoresize class="echarts-container" />
+      <div v-if="customError" class="panel-error">{{ customError }}</div>
+      <div class="chart-body">
+        <div v-if="customLoading" class="chart-fallback">{{ $t('common.loading') }}</div>
+        <div v-else-if="!matrix" class="placeholder-msg">
+          Enter symbols and click 计算
+        </div>
+
+        <template v-else-if="hasECharts">
+          <VChart v-if="chartOption" :option="chartOption" autoresize class="echarts-container" />
+        </template>
+
+        <!-- Fallback HTML table -->
+        <div v-else class="fallback-table-wrap">
+          <table class="corr-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th v-for="s in symbols" :key="s">{{ s }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, i) in matrix" :key="symbols[i]">
+                <td class="row-label">{{ symbols[i] }}</td>
+                <td
+                  v-for="(val, j) in row"
+                  :key="`${i}-${j}`"
+                  class="corr-cell"
+                  :style="j <= i ? { background: cellBg(val) } : { opacity: 0.2 }"
+                >
+                  <template v-if="j <= i">{{ val.toFixed(2) }}</template>
+                  <template v-else>-</template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- ── Presets ── -->
+    <template v-if="activeView === 'presets'">
+      <div class="presets-header">
+        <div class="preset-scroll">
+          <button v-for="(p, idx) in assetPresets" :key="p.label"
+            :class="['preset-tab', { active: activePreset === idx }]"
+            :style="activePreset === idx ? { borderColor: p.color, color: p.color } : {}"
+            @click="selectPreset(idx)">
+            {{ p.label }}
+          </button>
+        </div>
+        <button class="refresh-btn" @click="fetchPresetData" :disabled="presetLoading">⟳</button>
+      </div>
+
+      <div v-if="presetError" class="panel-error">{{ presetError }}</div>
+      <SkeletonPanel v-if="presetLoading && presetAssetList.length === 0" type="chart" />
+
+      <template v-else-if="presetAssetList.length > 0">
+        <div id="correlation-preset-chart" class="corr-chart"></div>
+        <div class="corr-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#dc2626" />&gt;0.7</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#f97316" />0.4~0.7</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#fbbf24" />0.1~0.4</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#60a5fa" />-0.3~-0.1</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#3b82f6" />&lt;-0.3</span>
+        </div>
       </template>
 
-      <!-- Fallback HTML table -->
-      <div v-else class="fallback-table-wrap">
-        <table class="corr-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th v-for="s in symbols" :key="s">{{ s }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, i) in matrix" :key="symbols[i]">
-              <td class="row-label">{{ symbols[i] }}</td>
-              <td
-                v-for="(val, j) in row"
-                :key="`${i}-${j}`"
-                class="corr-cell"
-                :style="j <= i ? { background: cellBg(val) } : { opacity: 0.2 }"
-              >
-                <template v-if="j <= i">{{ val.toFixed(2) }}</template>
-                <template v-else>-</template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <div v-else class="empty-state">{{ $t('common.no_data') }}</div>
+    </template>
   </div>
 </template>
 
@@ -290,6 +447,26 @@ onMounted(() => {
   font-weight: 600;
 }
 
+/* View tabs */
+.view-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.view-tab {
+  padding: 3px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: 11px;
+}
+.view-tab + .view-tab { border-left: 1px solid var(--color-border-strong); }
+.view-tab.active { color: var(--color-accent); background: rgba(59,130,246,0.1); }
+
+/* Custom controls */
 .controls-row {
   display: flex;
   gap: 10px;
@@ -408,6 +585,37 @@ onMounted(() => {
   border: 1px solid transparent;
   font-variant-numeric: tabular-nums;
 }
+
+/* Presets */
+.presets-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-strong);
+  flex-shrink: 0;
+}
+.preset-scroll { display: flex; gap: 4px; overflow-x: auto; flex: 1; }
+.preset-tab {
+  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; white-space: nowrap;
+}
+.preset-tab.active { background: rgba(59,130,246,0.1); }
+
+.refresh-btn {
+  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
+}
+.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
+.corr-chart { flex: 1; min-height: 200px; }
+.corr-legend { display: flex; gap: 16px; justify-content: center; padding: 8px 0; font-size: 10px; color: var(--color-text-tertiary); flex-shrink: 0; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+.panel-error { color: var(--color-warning, var(--color-up)); font-size: 11px; padding: 8px 14px; flex-shrink: 0; }
+.chart-fallback { color: var(--color-text-tertiary); font-size: 13px; }
+
 .wf-btn {
   display: inline-flex;
   align-items: center;

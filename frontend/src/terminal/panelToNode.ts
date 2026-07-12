@@ -24,7 +24,6 @@ export const PANEL_TO_NODE: Record<string, PanelToNodeEntry> = {
   'geopolitics':         { nodeType: 'geopolitics',   label: 'Geopolitics' },
   'satellite':           { nodeType: 'satellite',     label: 'Satellite' },
   'macro':               { nodeType: 'gov_data',      label: 'Gov Data' },
-  'risk-dashboard':      { nodeType: 'risk_metrics',  label: 'Risk Metrics' },
   'fundflow':            { nodeType: 'data_loader',   label: 'Data Loader' },
   'market-overview':     { nodeType: 'data_loader',   label: 'Data Loader' },
 }

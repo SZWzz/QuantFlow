@@ -2,7 +2,7 @@
  * stats.ts — Pure frontend statistical functions for QuantFlow panels.
  * Zero external dependencies. All functions are synchronous and non-blocking.
  *
- * Used by: CorrelationPanel, DistributionPanel, MonteCarloPanel, EquityCurvePanel
+ * Used by: CorrelationPanel, DistributionPanel, MonteCarloPanel, PortfolioSummary
  */
 
 // ---------------------------------------------------------------------------
