@@ -133,7 +133,12 @@ const activeData = computed(() => {
       }
     }
   }
-  return { periods, items: itemList, data }
+  return { periods, items: itemList.filter(item => data.some(p => {
+    const v = getItemValue(data, p.report_date, item)
+    if (v === '' || v === undefined || v === null) return false
+    const n = typeof v === 'string' ? parseFloat(v) : (v as number)
+    return !isNaN(n) && n !== 0
+  })), data }
 })
 
 // KPI summary from latest period
