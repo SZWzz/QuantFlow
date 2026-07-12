@@ -50,6 +50,16 @@ const statements = ref<FinStatements | null>(null)
 const activeTab = ref<'income' | 'balance' | 'cashflow'>('income')
 const showGrowth = ref(true)
 const reportType = ref<'annual' | 'quarterly'>('annual')
+
+// ══════ HK financials ══════
+const hkLoading = ref(false)
+const hkError = ref('')
+const hkStatements = ref<FinStatements | null>(null)
+const hkActiveTab = ref<'income' | 'balance' | 'cashflow'>('income')
+const nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
+const nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
+const loading = computed(() => {
+
 const chartContainer = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
@@ -131,8 +141,7 @@ async function loadCNData() {
   }
 }
 
-const nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
-const nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
+
 
 const activeData = computed(() => {
   const stmts = nonUSStatements.value
@@ -334,12 +343,6 @@ async function loadUSData() {
   finally { usLoading.value = false }
 }
 
-// ══════ HK financials ══════
-const hkLoading = ref(false)
-const hkError = ref('')
-const hkStatements = ref<FinStatements | null>(null)
-const hkActiveTab = ref<'income' | 'balance' | 'cashflow'>('income')
-
 async function loadHKData() {
   if (!symbol.value) return
   hkLoading.value = true
@@ -358,7 +361,6 @@ async function loadHKData() {
   }
 }
 
-const loading = computed(() => {
   if (market.value === 'CN') return cnLoading.value
   if (market.value === 'HK') return hkLoading.value
   return usLoading.value
