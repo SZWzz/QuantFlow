@@ -104,21 +104,28 @@ func (s *SymbolSearchService) fetchAll(ctx context.Context) ([]StockEntry, error
 	// HK stocks
 	hk, err := fetchHKStockList(ctx)
 	if err != nil {
-		slog.Warn("symbol_search: HK stock list fetch failed", "error", err)
-	} else {
-		for i := range hk {
+		slog.Warn("symbol_search: HK stock list API fetch failed, using embedded list", "error", err)
+		hk = loadEmbeddedHKStockList()
+	}
+	for i := range hk {
+		if hk[i].Pinyin == "" {
 			hk[i].Pinyin = pinyinAbbr(hk[i].Name)
 		}
-		all = append(all, hk...)
 	}
+	all = append(all, hk...)
 
 	// US stocks
 	us, err := fetchUSStockList(ctx)
 	if err != nil {
-		slog.Warn("symbol_search: US stock list fetch failed", "error", err)
-	} else {
-		all = append(all, us...)
+		slog.Warn("symbol_search: US stock list API fetch failed, using embedded list", "error", err)
+		us = loadEmbeddedUSStockList()
 	}
+	for i := range us {
+		if us[i].Pinyin == "" {
+			us[i].Pinyin = pinyinAbbr(us[i].Name)
+		}
+	}
+	all = append(all, us...)
 
 	if len(all) == 0 {
 		return nil, fmt.Errorf("symbol_search: all market fetches failed")
