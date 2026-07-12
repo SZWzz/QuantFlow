@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import * as echarts from 'echarts/core'
+import { BarChart, LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+
+echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 // ══════ Shared ══════
 type Market = 'CN' | 'US'
@@ -37,6 +43,8 @@ const cnError = ref('')
 const statements = ref<FinStatements | null>(null)
 const activeTab = ref<'income' | 'balance' | 'cashflow'>('income')
 const showGrowth = ref(true)
+const chartContainer = ref<HTMLElement | null>(null)
+let chartInstance: echarts.ECharts | null = null
 
 const tabs = [
   { key: 'income' as const, label: '利润表' },
@@ -46,9 +54,14 @@ const tabs = [
 
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
+function parseNum(v: any): number {
+  const n = typeof v === 'string' ? parseFloat(v) : v
+  return (typeof n === 'number' && !isNaN(n)) ? n : 0
+}
+
 function smartFormat(val: any): string {
-  const n = typeof val === 'string' ? parseFloat(val) : val
-  if (typeof n !== 'number' || isNaN(n)) return String(val ?? '')
+  const n = parseNum(val)
+  if (n === 0 && val !== 0 && String(val) !== '0') return String(val ?? '')
   const abs = Math.abs(n)
   if (abs >= 1e12) return (n / 1e12).toFixed(2) + '万亿'
   if (abs >= 1e8) return (n / 1e8).toFixed(2) + '亿'
@@ -71,13 +84,17 @@ function getYoY(data: any[], period: string, item: string): { pct: number | null
   const idx = periods.indexOf(period)
   if (idx <= 0) return { pct: null, trend: 'flat' }
   const prev = periods[idx - 1]
-  const cur = getItemValue(data, period, item)
-  const prv = getItemValue(data, prev, item)
-  const cn = typeof cur === 'string' ? parseFloat(cur) : (cur as number)
-  const pn = typeof prv === 'string' ? parseFloat(prv) : (prv as number)
-  if (isNaN(cn) || isNaN(pn) || pn === 0) return { pct: null, trend: 'flat' }
-  const pct = ((cn - pn) / Math.abs(pn)) * 100
+  const cur = parseNum(getItemValue(data, period, item))
+  const prv = parseNum(getItemValue(data, prev, item))
+  if (cur === 0 || prv === 0) return { pct: null, trend: 'flat' }
+  const pct = ((cur - prv) / Math.abs(prv)) * 100
   return { pct, trend: pct > 0.5 ? 'up' : pct < -0.5 ? 'down' : 'flat' }
+}
+
+function isSubtotalRow(item: string): boolean {
+  return item.endsWith('合计') || item.endsWith('净额') || item.endsWith('余额')
+    || item === '净利润' || item === '营业利润' || item === '利润总额'
+    || item === '资产总计' || item === '负债合计' || item === '所有者权益合计'
 }
 
 function isHighlightRow(item: string): boolean {
@@ -85,12 +102,6 @@ function isHighlightRow(item: string): boolean {
     || item === '利润总额' || item === '营业收入' || item === '资产总计'
     || item === '负债合计' || item === '所有者权益合计'
     || item.includes('现金流量净额') || item === '期末现金及现金等价物余额'
-}
-
-function isSubtotalRow(item: string): boolean {
-  return item.endsWith('合计') || item.endsWith('净额') || item.endsWith('余额')
-    || item === '净利润' || item === '营业利润' || item === '利润总额'
-    || item === '资产总计' || item === '负债合计' || item === '所有者权益合计'
 }
 
 async function loadCNData() {
@@ -117,34 +128,34 @@ const activeData = computed(() => {
   if (!statements.value) return { periods: [] as string[], items: [] as string[], data: [] as FinPeriod[] }
   const data = statements.value[activeTab.value]
   if (!data || data.length === 0) return { periods: [], items: [], data: [] }
-  const periods = data.map(p => p.report_date)
+  const sorted = [...data].sort((a, b) => a.report_date.localeCompare(b.report_date))
+  const periods = sorted.map(p => p.report_date)
   const itemList: string[] = []
-  const firstItems = data[0]?.items
+  const firstItems = sorted[0]?.items
   if (Array.isArray(firstItems)) {
     for (const it of firstItems) {
       if (it.item) itemList.push(it.item)
     }
   } else {
     const seen = new Set<string>()
-    for (const p of data) {
+    for (const p of sorted) {
       for (const k of Object.keys(p)) {
         if (k === 'report_date' || k === 'items') continue
         if (!seen.has(k)) { seen.add(k); itemList.push(k) }
       }
     }
   }
-  return { periods, items: itemList.filter(item => data.some(p => {
-    const v = getItemValue(data, p.report_date, item)
-    if (v === '' || v === undefined || v === null) return false
-    const n = typeof v === 'string' ? parseFloat(v) : (v as number)
-    return !isNaN(n) && n !== 0
-  })), data }
+  return { periods, items: itemList.filter(item => sorted.some(p => {
+    const v = getItemValue(sorted, p.report_date, item)
+    return parseNum(v) !== 0
+  })), data: sorted }
 })
 
 // KPI summary from latest period
 const kpiSummary = computed(() => {
   if (!activeData.value.data.length || !activeData.value.items.length) return []
-  const latest = activeData.value.data[0]
+  const sortedData = activeData.value.data
+  const latest = sortedData[sortedData.length - 1]
   const items = activeData.value.items
   const kpiKeys: Record<string, string[]> = {
     income: ['营业收入', '营业利润', '利润总额', '净利润'],
@@ -153,11 +164,109 @@ const kpiSummary = computed(() => {
   }
   const keys = kpiKeys[activeTab.value] || []
   return keys.filter(k => items.includes(k)).map(k => {
-    const val = getItemValue(activeData.value.data, latest.report_date, k)
-    const yoy = getYoY(activeData.value.data, latest.report_date, k)
+    const val = getItemValue(sortedData, latest.report_date, k)
+    const yoy = getYoY(sortedData, latest.report_date, k)
     return { item: k, value: val, yoy }
   })
 })
+
+// Computed financial ratios
+const ratios = computed(() => {
+  const data = activeData.value.data
+  if (!data.length) return []
+  const latest = data[data.length - 1]
+  const items = activeData.value.items
+
+  function val(name: string): number {
+    return parseNum(getItemValue(data, latest.report_date, name))
+  }
+
+  const result: { label: string; value: string; desc: string }[] = []
+
+  if (activeTab.value === 'income') {
+    const revenue = val('营业收入')
+    const cost = val('营业成本')
+    const profit = val('净利润')
+    if (revenue > 0 && cost > 0) {
+      result.push({ label: '毛利率', value: (((revenue - cost) / revenue) * 100).toFixed(1) + '%', desc: '(收入-成本)/收入' })
+    }
+    if (revenue > 0 && profit !== 0) {
+      result.push({ label: '净利率', value: ((profit / revenue) * 100).toFixed(1) + '%', desc: '净利润/收入' })
+    }
+  }
+
+  if (activeTab.value === 'balance') {
+    const assets = val('资产总计')
+    const debt = val('负债合计')
+    const equity = val('所有者权益合计')
+    if (assets > 0 && debt > 0) {
+      result.push({ label: '资产负债率', value: ((debt / assets) * 100).toFixed(1) + '%', desc: '负债/总资产' })
+    }
+    if (equity > 0 && assets > 0) {
+      result.push({ label: '权益乘数', value: (assets / equity).toFixed(2), desc: '总资产/净资产' })
+    }
+  }
+
+  return result
+})
+
+// Trend chart
+const trendMetrics = computed(() => {
+  const data = activeData.value.data
+  if (!data.length) return { series: [] as string[], chartData: [] as any[] }
+  const items = activeData.value.items
+  const map: Record<string, string[]> = {
+    income: ['营业收入', '净利润'],
+    balance: ['资产总计', '负债合计', '所有者权益合计'],
+    cashflow: ['经营活动产生的现金流量净额'],
+  }
+  const keys = (map[activeTab.value] || []).filter(k => items.includes(k))
+  const chartData = data.map(p => {
+    const row: any = { date: p.report_date.slice(0, 7) }
+    for (const k of keys) row[k] = parseNum(getItemValue(data, p.report_date, k))
+    return row
+  })
+  return { series: keys, chartData }
+})
+
+function buildChart() {
+  if (!chartContainer.value) return
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartContainer.value)
+  }
+  const { series, chartData } = trendMetrics.value
+  if (!series.length || !chartData.length) return
+
+  const isDark = document.documentElement.classList.contains('dark')
+  const textColor = isDark ? '#8b949e' : '#666'
+  const borderColor = isDark ? '#30363d' : '#e5e7eb'
+
+  chartInstance.setOption({
+    grid: { left: 10, right: 20, top: 20, bottom: 30 },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category', data: chartData.map(d => d.date),
+      axisLabel: { fontSize: 10, color: textColor }, axisLine: { lineStyle: { color: borderColor } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize: 10, color: textColor, formatter: (v: number) => smartFormat(v) },
+      splitLine: { lineStyle: { color: borderColor, type: 'dashed' } },
+    },
+    series: series.map((name, i) => ({
+      name,
+      type: i === 0 ? 'bar' : 'line',
+      data: chartData.map(d => d[name] || 0),
+      itemStyle: { color: i === 0 ? '#58a6ff' : '#f0883e' },
+      lineStyle: { width: 2 },
+      symbol: 'circle', symbolSize: 4,
+      smooth: true,
+    })),
+  }, true)
+}
+
+watch([activeTab, trendMetrics], () => nextTick(buildChart))
+watch(() => statements.value, () => nextTick(buildChart))
 
 // ══════ US (SEC) financials ══════
 const usLoading = ref(false)
@@ -231,6 +340,7 @@ watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (newSym) => {
   if (newSym && newSym !== symbol.value) { symbol.value = newSym; loadData() }
 })
 onMounted(loadCNData)
+onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 </script>
 
 <template>
@@ -265,7 +375,7 @@ onMounted(loadCNData)
       </div>
 
       <template v-else>
-        <!-- Tab bar + controls -->
+        <!-- Tab bar + toggle -->
         <div class="tab-row">
           <div class="tab-bar">
             <button v-for="t in tabs" :key="t.key" class="tab-btn" :class="{ active: activeTab === t.key }" @click="activeTab = t.key">{{ t.label }}</button>
@@ -276,54 +386,63 @@ onMounted(loadCNData)
           </label>
         </div>
 
-        <!-- KPI summary cards -->
-        <div v-if="kpiSummary.length" class="kpi-row">
-          <div v-for="kpi in kpiSummary" :key="kpi.item" class="kpi-card" :class="{ highlight: isHighlightRow(kpi.item) }">
-            <div class="kpi-label">{{ kpi.item }}</div>
-            <div class="kpi-value">{{ smartFormat(kpi.value) }}</div>
-            <div v-if="showGrowth && kpi.yoy.pct !== null" class="kpi-yoy" :class="kpi.yoy.trend">
-              <span class="yoy-arrow">{{ kpi.yoy.trend === 'up' ? '↑' : kpi.yoy.trend === 'down' ? '↓' : '→' }}</span>
-              <span class="yoy-pct">{{ Math.abs(kpi.yoy.pct).toFixed(1) }}%</span>
-            </div>
+        <div class="body-scroll">
+          <!-- Trend chart -->
+          <div v-if="trendMetrics.series.length" class="trend-section">
+            <div ref="chartContainer" class="trend-chart" />
           </div>
-        </div>
 
-        <!-- Statement table -->
-        <div class="table-container">
-          <div class="table-inner">
-            <div class="t-head">
-              <div class="t-row">
-                <div class="t-cell t-h t-label">科目</div>
-                <div v-for="p in activeData.periods" :key="p" class="t-cell t-h t-period">
-                  <div class="period-label">{{ p.slice(0, 7) }}</div>
+          <!-- KPI cards + ratios -->
+          <div class="kpi-section">
+            <div v-if="kpiSummary.length" class="kpi-row">
+              <div v-for="kpi in kpiSummary" :key="kpi.item" class="kpi-card" :class="{ highlight: isHighlightRow(kpi.item) }">
+                <div class="kpi-label">{{ kpi.item }}</div>
+                <div class="kpi-value">
+                  {{ smartFormat(kpi.value) }}
+                  <span v-if="showGrowth && kpi.yoy.pct !== null" class="kpi-yoy-inline" :class="kpi.yoy.trend">
+                    {{ kpi.yoy.trend === 'up' ? '↑' : kpi.yoy.trend === 'down' ? '↓' : '' }}{{ Math.abs(kpi.yoy.pct).toFixed(1) }}%
+                  </span>
                 </div>
               </div>
             </div>
-            <div class="t-body">
-              <div
-                v-for="item in activeData.items"
-                :key="item"
-                class="t-row"
-                :class="{
-                  't-subtotal': isSubtotalRow(item),
-                  't-highlight': isHighlightRow(item),
-                }"
-              >
-                <div class="t-cell t-label">
-                  <span class="label-text">{{ item }}</span>
+
+            <!-- Ratios -->
+            <div v-if="ratios.length" class="ratio-row">
+              <div v-for="r in ratios" :key="r.label" class="ratio-card" :title="r.desc">
+                <div class="ratio-label">{{ r.label }}</div>
+                <div class="ratio-value">{{ r.value }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statement table -->
+          <div class="table-container">
+            <div class="table-inner">
+              <div class="t-head">
+                <div class="t-row">
+                  <div class="t-cell t-h t-label">科目</div>
+                  <div v-for="p in activeData.periods" :key="p" class="t-cell t-h t-period">
+                    <div class="period-label">{{ p.slice(0, 7) }}</div>
+                  </div>
                 </div>
-                <div v-for="p in activeData.periods" :key="p" class="t-cell t-val">
-                  <div class="val-row">
-                    <span class="val-main">{{ smartFormat(getItemValue(activeData.data, p, item)) }}</span>
-                    <span
-                      v-if="showGrowth"
-                      class="val-yoy"
-                      :class="getYoY(activeData.data, p, item).trend"
-                    >
-                      <template v-if="getYoY(activeData.data, p, item).pct !== null">
-                        {{ getYoY(activeData.data, p, item).trend === 'up' ? '+' : '' }}{{ (getYoY(activeData.data, p, item).pct!).toFixed(1) }}%
-                      </template>
-                    </span>
+              </div>
+              <div class="t-body">
+                <div
+                  v-for="item in activeData.items"
+                  :key="item"
+                  class="t-row"
+                  :class="{ 't-subtotal': isSubtotalRow(item), 't-highlight': isHighlightRow(item) }"
+                >
+                  <div class="t-cell t-label">{{ item }}</div>
+                  <div v-for="p in activeData.periods" :key="p" class="t-cell t-val">
+                    <div class="val-row">
+                      <span class="val-main">{{ smartFormat(getItemValue(activeData.data, p, item)) }}</span>
+                      <span v-if="showGrowth" class="val-yoy" :class="getYoY(activeData.data, p, item).trend">
+                        <template v-if="getYoY(activeData.data, p, item).pct !== null">
+                          {{ getYoY(activeData.data, p, item).trend === 'up' ? '+' : '' }}{{ (getYoY(activeData.data, p, item).pct!).toFixed(1) }}%
+                        </template>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -354,102 +473,83 @@ onMounted(loadCNData)
 </template>
 
 <style scoped>
-/* ═══ Layout ═══ */
 .fin-panel {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
   color: var(--color-text-primary); background: var(--color-bg-panel);
-  overflow: hidden; gap: 8px;
+  overflow: hidden; gap: 6px;
+}
+.body-scroll {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 0;
 }
 
-/* ═══ Header ═══ */
+/* Header */
 .panel-header {
   display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 8px;
 }
 .header-left { display: flex; align-items: center; gap: 10px; }
 .panel-header h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
 .header-right { display: flex; align-items: center; gap: 8px; }
-
 .market-selector { display: flex; border: 1px solid var(--color-border-strong); border-radius: 6px; overflow: hidden; }
-.market-tab {
-  padding: 3px 12px; border: none; background: transparent; color: var(--color-text-tertiary);
-  cursor: pointer; font-size: 12px; font-weight: 500; transition: all .15s;
-}
+.market-tab { padding: 3px 12px; border: none; background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 12px; font-weight: 500; transition: all .15s; }
 .market-tab + .market-tab { border-left: 1px solid var(--color-border-strong); }
 .market-tab.active { color: var(--color-accent); background: rgba(88,166,255,0.1); }
-
-.symbol-badge {
-  font-size: 11px; padding: 3px 10px; border-radius: 6px;
-  background: rgba(88,166,255,0.1); color: var(--color-accent); font-family: 'SF Mono', monospace; font-weight: 500;
-}
-.refresh-btn {
-  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--color-border-strong); border-radius: 6px;
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 14px;
-}
+.symbol-badge { font-size: 11px; padding: 3px 10px; border-radius: 6px; background: rgba(88,166,255,0.1); color: var(--color-accent); font-family: 'SF Mono', monospace; font-weight: 500; }
+.refresh-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 14px; }
 .refresh-btn:disabled { opacity: 0.4; cursor: default; }
-.status {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  flex: 1; color: var(--color-text-tertiary); font-size: 13px;
-}
+.status { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
 .status.error { color: var(--color-error); }
-.retry-btn {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong);
-  border-radius: 4px; background: transparent; color: var(--color-accent); cursor: pointer; font-size: 11px;
-}
+.retry-btn { padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: transparent; color: var(--color-accent); cursor: pointer; font-size: 11px; }
 
-/* ═══ Tab Row ═══ */
-.tab-row {
-  display: flex; justify-content: space-between; align-items: flex-end;
-  border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0;
-}
+/* Tab Row */
+.tab-row { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0; }
 .tab-bar { display: flex; gap: 0; }
-.tab-btn {
-  padding: 7px 18px; border: none; border-bottom: 2px solid transparent;
-  background: none; color: var(--color-text-tertiary); cursor: pointer;
-  font-size: 13px; font-weight: 500; transition: all .15s;
-}
+.tab-btn { padding: 7px 18px; border: none; border-bottom: 2px solid transparent; background: none; color: var(--color-text-tertiary); cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
 .tab-btn:hover { color: var(--color-text-primary); }
 .tab-btn.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
-
-.growth-toggle {
-  display: flex; align-items: center; gap: 4px; padding: 4px 8px; margin-bottom: 4px;
-  cursor: pointer; font-size: 11px; color: var(--color-text-tertiary);
-  border-radius: 4px; transition: color .15s;
-}
+.growth-toggle { display: flex; align-items: center; gap: 4px; padding: 4px 8px; margin-bottom: 4px; cursor: pointer; font-size: 11px; color: var(--color-text-tertiary); border-radius: 4px; }
 .growth-toggle:hover { color: var(--color-text-primary); }
 .growth-toggle input { accent-color: var(--color-accent); }
 .toggle-label { user-select: none; }
 
-/* ═══ KPI Summary Cards ═══ */
-.kpi-row {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 8px; flex-shrink: 0;
+/* Trend chart */
+.trend-section {
+  flex-shrink: 0; background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle); border-radius: 8px;
+  padding: 8px 4px 0 4px;
 }
+.trend-chart { width: 100%; height: 140px; }
+
+/* KPI Section */
+.kpi-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
 .kpi-card {
   background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle);
-  border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
+  border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;
 }
 .kpi-card.highlight {
   border-color: var(--color-accent-soft);
   background: linear-gradient(135deg, rgba(88,166,255,0.06), rgba(88,166,255,0.02));
 }
 .kpi-label { font-size: 11px; color: var(--color-text-tertiary); }
-.kpi-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
-.kpi-yoy { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; }
-.kpi-yoy.up { color: var(--color-down); }
-.kpi-yoy.down { color: var(--color-up); }
-.kpi-yoy.flat { color: var(--color-text-tertiary); }
-.yoy-arrow { font-size: 10px; }
-.yoy-pct { font-variant-numeric: tabular-nums; }
+.kpi-value { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; display: flex; align-items: baseline; gap: 6px; }
+.kpi-yoy-inline { font-size: 12px; font-weight: 500; }
+.kpi-yoy-inline.up { color: var(--color-down); }
+.kpi-yoy-inline.down { color: var(--color-up); }
+.kpi-yoy-inline.flat { color: var(--color-text-tertiary); }
 
-/* ═══ Statement Table ═══ */
-.table-container { flex: 1; overflow: auto; min-height: 0; }
-.table-inner { display: flex; flex-direction: column; min-width: max-content; font-size: 12px; }
-.t-head {
-  flex-shrink: 0; position: sticky; top: 0; z-index: 1;
-  background: var(--color-bg-panel);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+/* Ratio cards */
+.ratio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ratio-card {
+  background: var(--color-bg-subtle); border: 1px solid var(--color-border-subtle);
+  border-radius: 6px; padding: 6px 12px; display: flex; flex-direction: column; gap: 2px;
 }
+.ratio-label { font-size: 10px; color: var(--color-text-tertiary); }
+.ratio-value { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-accent); }
+
+/* Table */
+.table-container { flex-shrink: 0; }
+.table-inner { display: flex; flex-direction: column; min-width: max-content; font-size: 12px; }
+.t-head { flex-shrink: 0; position: sticky; top: 0; z-index: 1; background: var(--color-bg-panel); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .t-row { display: flex; border-bottom: 1px solid var(--color-border-subtle); transition: background .1s; }
 .t-row:hover { background: var(--color-bg-elevated); }
 .t-cell { padding: 5px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
@@ -458,15 +558,11 @@ onMounted(loadCNData)
 .t-period { min-width: 110px; text-align: right; }
 .t-val { min-width: 135px; text-align: right; }
 .period-label { font-weight: 600; }
-
-/* Row highlighting */
 .t-subtotal { background: rgba(96,165,250,0.03); }
 .t-subtotal .t-label { font-weight: 600; color: var(--color-text-secondary); }
 .t-highlight { background: rgba(88,166,255,0.06); }
 .t-highlight .t-label { font-weight: 700; color: var(--color-accent); font-size: 12.5px; }
 .t-highlight .val-main { font-weight: 700; }
-
-/* Value display */
 .val-row { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .val-main { font-size: 12px; }
 .val-yoy { font-size: 10px; font-weight: 500; line-height: 1; }
@@ -474,18 +570,10 @@ onMounted(loadCNData)
 .val-yoy.down { color: var(--color-up); }
 .val-yoy.flat { color: var(--color-text-tertiary); }
 
-/* ═══ US Sections ═══ */
+/* US Sections */
 .sections-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.fin-section {
-  background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle);
-  border-radius: 8px; overflow: hidden;
-}
-.section-title {
-  margin: 0; padding: 8px 14px; font-size: 11px; font-weight: 600;
-  color: var(--color-text-secondary); background: var(--color-bg-subtle);
-  border-bottom: 1px solid var(--color-border-subtle);
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
+.fin-section { background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle); border-radius: 8px; overflow: hidden; }
+.section-title { margin: 0; padding: 8px 14px; font-size: 11px; font-weight: 600; color: var(--color-text-secondary); background: var(--color-bg-subtle); border-bottom: 1px solid var(--color-border-subtle); text-transform: uppercase; letter-spacing: 0.5px; }
 .fin-table { padding: 2px 0; }
 .fin-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px; border-bottom: 1px solid var(--color-border-subtle); }
 .fin-row:last-child { border-bottom: none; }
@@ -493,14 +581,6 @@ onMounted(loadCNData)
 .fin-label { font-size: 11px; color: var(--color-text-secondary); text-transform: capitalize; }
 .fin-value { font-size: 12px; font-weight: 500; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
 .fin-value.negative { color: var(--color-up); }
-
-/* ═══ Workflow button ═══ */
-.wf-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; border: 1px solid var(--color-border-strong);
-  border-radius: 6px; background: var(--color-bg-elevated);
-  color: var(--color-text-secondary); font-size: 16px; font-weight: 600;
-  cursor: pointer; line-height: 1; transition: all var(--transition-fast); flex-shrink: 0;
-}
+.wf-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 16px; font-weight: 600; cursor: pointer; line-height: 1; transition: all var(--transition-fast); flex-shrink: 0; }
 .wf-btn:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(88,166,255,0.1); }
 </style>
