@@ -109,7 +109,7 @@ async function execute篮子() {
       await app.PlaceOrder(
         row.symbol, 'buy',
         execMode.value === 'market' ? 'market' : 'limit',
-        row.quantity, row.price || 0, 'paper'
+        'paper', row.quantity, row.price || 0
       )
       entry.status = 'filled'
       entry.message = `Filled ${row.symbol}: ${row.quantity} @ ${(row.price || 0).toFixed(2)}`
