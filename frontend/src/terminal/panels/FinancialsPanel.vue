@@ -54,6 +54,18 @@ function smartFormat(val: string): string {
   return n.toLocaleString('zh-CN')
 }
 
+function getItemValue(data: any[], period: string, item: string): string {
+  const periodData = data.find(d => d.report_date === period)
+  if (!periodData) return ''
+  // New format: items array with {item, value} pairs
+  if (Array.isArray(periodData.items)) {
+    const found = periodData.items.find((it: any) => it.item === item)
+    return found?.value ?? ''
+  }
+  // Old format: flat key-value (backward compat)
+  return periodData[item] ?? ''
+}
+
 async function loadCNData() {
   if (!symbol.value) return
   const seq = ++loadSeq
@@ -79,15 +91,24 @@ const activeData = computed(() => {
   const data = statements.value[activeTab.value]
   if (!data || data.length === 0) return { periods: [], items: [], data: [] }
   const periods = data.map(p => p.report_date)
-  const items: string[] = []
-  const seen = new Set<string>()
-  for (const p of data) {
-    for (const k of Object.keys(p)) {
-      if (k === 'report_date') continue
-      if (!seen.has(k)) { seen.add(k); items.push(k) }
+  // Build ordered item list from the first period's items array (all periods share same items)
+  const itemList: string[] = []
+  const firstItems = data[0]?.items
+  if (Array.isArray(firstItems)) {
+    for (const it of firstItems) {
+      if (it.item) itemList.push(it.item)
+    }
+  } else {
+    // Fallback: old format with flat keys (for backward compat during transition)
+    const seen = new Set<string>()
+    for (const p of data) {
+      for (const k of Object.keys(p)) {
+        if (k === 'report_date' || k === 'items') continue
+        if (!seen.has(k)) { seen.add(k); itemList.push(k) }
+      }
     }
   }
-  return { periods, items, data }
+  return { periods, items: itemList, data }
 })
 
 // ══════ US (SEC) financials ══════
@@ -222,7 +243,7 @@ onMounted(loadCNData)
                   v-for="p in activeData.periods"
                   :key="p"
                   class="t-cell t-val"
-                >{{ smartFormat(activeData.data.find(d => d.report_date === p)?.[item] || '') }}</div>
+                >{{ smartFormat(getItemValue(activeData.data, p, item)) }}</div>
               </div>
             </div>
           </div>

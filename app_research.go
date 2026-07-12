@@ -643,19 +643,25 @@ func formatFinPeriods(periods []adapters.FinancialStatementPeriod) []map[string]
 	return result
 }
 
-// formatFinPeriodsRaw converts FinancialStatementPeriod slice to a map-slice format
-// that preserves the original Chinese item titles (no mapping to analyzer names).
+// formatFinPeriodsRaw converts FinancialStatementPeriod slice to a row-per-period format
+// with ordered items (preserves standard financial statement line-item order).
 func formatFinPeriodsRaw(periods []adapters.FinancialStatementPeriod) []map[string]interface{} {
 	if periods == nil {
 		return nil
 	}
 	result := make([]map[string]interface{}, 0, len(periods))
 	for _, p := range periods {
-		row := map[string]interface{}{"report_date": p.Period}
+		items := make([]map[string]interface{}, 0, len(p.Items))
 		for _, item := range p.Items {
-			row[item.Title] = item.Value
+			items = append(items, map[string]interface{}{
+				"item":  item.Title,
+				"value": item.Value,
+			})
 		}
-		result = append(result, row)
+		result = append(result, map[string]interface{}{
+			"report_date": p.Period,
+			"items":       items,
+		})
 	}
 	return result
 }
