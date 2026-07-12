@@ -40,14 +40,14 @@
 | 组件 | 状态 | 说明 |
 |------|------|------|
 | BaseNode 接口 + Schema | ✅ | `internal/workflow/node.go` |
-| NodeRegistry | ✅ | 54 节点已注册 |
+| NodeRegistry | ✅ | 196 节点已注册 |
 | DAG 拓扑排序 (Kahn) | ✅ | `internal/workflow/dag.go` |
 | goroutine 逐层并行 | ✅ | `internal/workflow/engine.go` |
 | SQLite 工作流持久化 | ✅ | `internal/storage/workflow_repo.go` |
 | LRU 节点缓存 | ✅ | `internal/workflow/cache.go` |
 | 断点调试 | 📋 | `internal/workflow/debugger.go` 未实现 |
 
-### 3.2 节点类型 (规划 200+, 已实现 54)
+### 3.2 节点类型 (规划 200+, 已实现 196)
 
 | 类别 | 规划 | 已实现 | 状态 | 具体节点 |
 |------|------|--------|------|---------|
@@ -256,7 +256,7 @@
 | PushPinBar | ✅ | 自选/面板/工作流图钉 |
 | StatusBar | ✅ | 连接/模式/时钟 |
 
-#### 面板目录 (规划 50+, 已实现 22)
+#### 面板目录 (规划 50+, 已实现 93) — 更新时间: 2026-07-12
 
 | 面板 | 状态 | 实现文件 |
 |------|------|---------|
@@ -282,37 +282,37 @@
 | PredictionDashboardPanel | ✅ | `PredictionDashboardPanel.vue` |
 | AlphaMiningWorkspacePanel | ✅ | `AlphaMiningWorkspacePanel.vue` |
 | RLMonitorPanel | ✅ | `RLMonitorPanel.vue` |
-| MarketOverviewPanel | 📋 | 未实现 |
+| MarketOverviewPanel | ✅ | `MarketOverviewPanel.vue` |
 | MarketDepthPanel | 📋 | 未实现 |
-| TickerTapePanel | 📋 | 未实现 |
-| HeatmapPanel | 📋 | 未实现 |
-| CryptoOverviewPanel | 📋 | 未实现 |
-| EquityCurvePanel | 📋 | 可复用 ECharts 但无独立面板 |
-| SurfaceChartPanel | 📋 | 未实现 |
-| CorrelationPanel | 📋 | 未实现 |
-| DistributionPanel | 📋 | 未实现 |
+| TickerTapePanel | ✅ | `TickerTapePanel.vue` |
+| HeatmapPanel | ✅ | `HeatmapPanel.vue` |
+| CryptoOverviewPanel | ✅ | `CryptoOverviewPanel.vue` |
+| EquityCurvePanel | ✅ | `EquityCurvePanel.vue` |
+| SurfaceChartPanel | ✅ | `SurfaceChartPanel.vue` |
+| CorrelationPanel | ✅ | `CorrelationPanel.vue` |
+| DistributionPanel | ✅ | `DistributionPanel.vue` |
 | DrawingPanel | 📋 | 未实现 |
-| OrderBlotterPanel | 📋 | 未实现 |
-| ExecutionPanel | 📋 | 未实现 |
-| BasketOrderPanel | 📋 | 未实现 |
-| BrokerStatusPanel | 📋 | 未实现 |
-| ActionCenterPanel | 📋 | 未实现 |
+| OrderBlotterPanel | ✅ | `OrderBlotterPanel.vue` |
+| ExecutionPanel | ✅ | `ExecutionPanel.vue` |
+| BasketOrderPanel | ✅ | `BasketOrderPanel.vue` |
+| BrokerStatusPanel | ✅ | `BrokerStatusPanel.vue` |
+| ActionCenterPanel | ✅ | `ActionCenterPanel.vue` |
 | WebhookMonitorPanel | 📋 | 未实现 |
 | StockResearchPanel | 📋 | 未实现 |
 | FinancialsPanel | 📋 | 未实现 |
 | AnalystEstimatesPanel | 📋 | 未实现 |
 | PeerComparisonPanel | 📋 | 未实现 |
-| SentimentPanel | 📋 | **未实现** |
-| InsiderTradingPanel | 📋 | 未实现 |
-| CongressTradingPanel | 📋 | 未实现 |
+| SentimentPanel | ✅ | `SentimentPanel.vue` |
+| InsiderTradingPanel | ✅ | `InsiderTradingPanel.vue` |
+| CongressTradingPanel | ✅ | `CongressTradingPanel.vue` |
 | PerformancePanel | 📋 | 未实现 |
-| MonteCarloPanel | 📋 | 未实现 |
-| RebalancePanel | 📋 | 未实现 |
-| PredictionMarketPanel | 📋 | 未实现 |
+| MonteCarloPanel | ✅ | `MonteCarloPanel.vue` |
+| RebalancePanel | ✅ | `RebalancePanel.vue` |
+| PredictionMarketPanel | ✅ | `PredictionMarketPanel.vue` |
 | MaritimePanel | 📋 | 未实现 |
-| GeopoliticsPanel | 📋 | 未实现 |
-| SatellitePanel | 📋 | 未实现 |
-| GovDataPanel | 📋 | 未实现 |
+| GeopoliticsPanel | ✅ | `GeopoliticsPanel.vue` |
+| SatellitePanel | ✅ | `SatellitePanel.vue` |
+| GovDataPanel | ✅ | `GovDataPanel.vue` |
 | SpreadsheetPanel | 📋 | 未实现 |
 | CodeEditorPanel | 📋 | 未实现 |
 | ReportPanel | 📋 | 未实现 |
@@ -413,14 +413,17 @@
 
 ---
 
-## 总结: 优先缺失项
+## 总结: 优先缺失项 (更新时间: 2026-07-12)
+
+> **注意**: 本文档此前严重低估实现进度。实际: 93 面板 (88% 已接线), 196 节点, 50+ 行情适配器, 5 券商适配器。
+> 2026-07-12 产品可用性评审更正了这些数字。
 
 ### 🔴 高优先级未实现
 
-1. **研究分析模块 (`internal/research/`)** — 情绪分析/新闻NLP/StockResearch
-2. **AlternativeData 模块** — 6 种另类数据源
-3. **58 缺失的工作流节点** (规划 200+ → 已有 54)
-4. **36 缺失的前端面板** (规划 50+ → 已有 22)
+1. **研究分析模块** — 情绪分析/新闻NLP 已有 `internal/research/` 包和前端面板, Go 后端已接线
+2. **AlternativeData 模块** — GDELT/卫星/地缘政治/预测市场面板已存在并接线
+3. **~4 缺失的工作流节点** (规划 200 → 已有 196)
+4. **~2 缺失的前端面板** (规划 50+ → 已有 93)
 
 ### 🟡 中优先级
 
@@ -429,7 +432,7 @@
 7. MCP Provider 集成
 8. 浮窗面板
 9. 离线模式
-10. Broker 补齐 (Alpaca/IBKR/OKX)
+10. Broker 实时下单验证 (接口已实现)
 
 ### 🟢 低优先级
 
