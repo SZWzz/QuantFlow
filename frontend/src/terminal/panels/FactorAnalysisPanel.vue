@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { PanelHeader } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
@@ -11,9 +11,10 @@ const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 
 const searchQuery = ref('')
 const selectedCategory = ref<string | null>(null)
+const factorsLoading = ref(false)
 
 // Factor catalog — mirrors Python sidecar's registered factors
-const factors = ref([
+const DEFAULT_FACTORS: any[] = [
   { name: 'momentum_20d', category: 'momentum', description: '20-day price momentum', params: { period: '20' } },
   { name: 'momentum_60d', category: 'momentum', description: '60-day price momentum', params: { period: '60' } },
   { name: 'momentum_120d', category: 'momentum', description: '120-day price momentum', params: { period: '120' } },
@@ -39,7 +40,26 @@ const factors = ref([
   { name: 'zscore_volatility_20d', category: 'cross_sectional', description: 'Z-score of volatility (cross-section)', params: {} },
   { name: 'zscore_volume_ratio_5d', category: 'cross_sectional', description: 'Z-score of volume ratio', params: {} },
   { name: 'size_factor', category: 'cross_sectional', description: 'Log turnover size proxy', params: {} },
-])
+]
+
+const factors = ref<any[]>([...DEFAULT_FACTORS])
+
+async function loadFactors() {
+  factorsLoading.value = true
+  try {
+    const app = (window as any).go?.main?.App
+    if (app?.ListFactors) {
+      const result = await app.ListFactors()
+      if (Array.isArray(result) && result.length > 0) {
+        factors.value = result
+        return
+      }
+    }
+  } catch (e) { console.warn('Factor list fetch failed:', e) }
+  finally { factorsLoading.value = false }
+}
+
+onMounted(loadFactors)
 
 const categories = computed(() => {
   const cats = new Map<string, number>()
