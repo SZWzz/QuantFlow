@@ -521,8 +521,9 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 
 /* KPI Section */
 .kpi-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
-.kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.kpi-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .kpi-card {
+  flex: 0 0 170px;
   background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle);
   border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;
 }
