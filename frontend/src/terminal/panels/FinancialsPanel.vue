@@ -131,13 +131,8 @@ async function loadCNData() {
   }
 }
 
-// Use let (not const) to avoid TDZ with hkStatements defined later in the file.
-// Rollup/Vite production build may reorder const declarations.
-let nonUSStatements = computed(() => market.value === 'HK' ? hkStatements.value : statements.value)
-let nonUSError = computed(() => market.value === 'HK' ? hkError.value : cnError.value)
-
 const activeData = computed(() => {
-  const stmts = nonUSStatements.value
+  const stmts = statements.value
   if (!stmts) return { periods: [] as string[], items: [] as string[], data: [] as FinPeriod[] }
   const data = stmts[activeTab.value]
   if (!data || data.length === 0) return { periods: [], items: [], data: [] }
@@ -281,7 +276,7 @@ function buildChart() {
 }
 
 watch([activeTab, trendMetrics], () => nextTick(buildChart))
-watch(() => nonUSStatements.value, () => nextTick(buildChart))
+watch(() => statements.value, () => nextTick(buildChart))
 
 // ══════ US (SEC) financials ══════
 const usLoading = ref(false)
@@ -339,8 +334,6 @@ async function loadUSData() {
 // ══════ HK financials ══════
 const hkLoading = ref(false)
 const hkError = ref('')
-const hkStatements = ref<FinStatements | null>(null)
-const hkActiveTab = ref<'income' | 'balance' | 'cashflow'>('income')
 
 async function loadHKData() {
   if (!symbol.value) return
@@ -348,7 +341,7 @@ async function loadHKData() {
   hkError.value = ''
   try {
     const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
-    hkStatements.value = {
+    statements.value = {
       income: res.income || [],
       balance: res.balance || [],
       cashflow: res.cashflow || [],
@@ -398,13 +391,13 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 
     <!-- ═══ CN/HK: A-Share + HK Content ═══ -->
     <template v-if="market !== 'US'">
-      <SkeletonPanel v-if="loading && !nonUSStatements" type="table" :rows="8" />
-      <div v-else-if="nonUSError" class="status error">
+      <SkeletonPanel v-if="loading && !statements" type="table" :rows="8" />
+      <div v-else-if="cnError || hkError" class="status error">
         <span v-html="getIcon('warning')" />
-        <span>{{ nonUSError }}</span>
+        <span>{{ cnError || hkError }}</span>
         <button class="retry-btn" @click="loadData">重试</button>
       </div>
-      <div v-else-if="!loading && !nonUSStatements?.income.length && !nonUSStatements?.balance.length" class="status">
+      <div v-else-if="!loading && !statements?.income.length && !statements?.balance.length" class="status">
         <span v-html="getIcon('search')" />
         <span>暂无财务数据 — 输入股票代码查看</span>
       </div>
