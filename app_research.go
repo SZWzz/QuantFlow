@@ -552,15 +552,19 @@ func (a *App) GetHKFinancialStatements(symbol string) (map[string]interface{}, e
 	return result, nil
 }
 
-// formatHKFinancialJSON parses AKShare DataFrame JSON (orient='records') into
-// the standard [{report_date, items: [{item, value}]}] format.
+// formatHKFinancialJSON parses the safe_call wrapper JSON into the standard
+// [{report_date, items: [{item, value}]}] format.
 func formatHKFinancialJSON(jsonStr string) []map[string]interface{} {
 	// AKShare returns a DataFrame serialized as {"0": {cols...}, "1": {cols...}, ...}
-	// safe_call serializes DataFrame as orient='records': []map[string]interface{}
-	var raw []map[string]interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {
+	// safe_call wraps data as {"success": true, "data": [...], "count": N}
+	var wrapper struct {
+		Success bool                     `json:"success"`
+		Data    []map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(jsonStr), &wrapper); err != nil || !wrapper.Success {
 		return nil
 	}
+	raw := wrapper.Data
 
 	// Group items by period.
 	type item struct {
