@@ -158,11 +158,9 @@ func (a *YahooAdapter) FetchOHLCV(ctx context.Context, symbol string, interval s
 	// If symbol is a 5-digit HK code (e.g., "00700"), convert to "0700.HK".
 	yahooSymbol := normalizeYahooSymbol(symbol)
 
-	crumb, err := a.getCrumb(ctx)
-	if err != nil {
-		// Crumb is optional — some endpoints work without it. Log and continue.
-		crumb = ""
-	}
+	// Crumb is optional — the chart API works without it, and the crumb
+	// endpoint frequently returns Unauthorized. Skip to avoid slow startup.
+	crumb := ""
 
 	bars, err := a.fetchWithBase(ctx, yahooChartURL, yahooSymbol, interval, start, end, crumb)
 	if err != nil {
