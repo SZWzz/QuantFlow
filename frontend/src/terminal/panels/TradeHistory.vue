@@ -1,99 +1,66 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { exportCSV } from '@/lib/export'
+import { confirmDialog } from '@/lib/wails'
 import { usePortfolioStore } from '@/stores/portfolio'
+import type { Trade, Order } from '@/stores/portfolio'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const store = usePortfolioStore()
 
-// -- Raw Go types (from Wails IPC) --
-interface GoTrade {
-  ID: string; Symbol: string; Name?: string; Side: string; Quantity: number
-  Price: number; Timestamp: string; PnL: number
-}
+// -- Pagination --
+const pageSize = 20
+const tradeVisibleCount = ref(pageSize)
 
-interface GoOrder {
-  ID: string; Symbol: string; Name?: string; Side: string; Quantity: number
-  Price: number; Status: string; PlacedAt: string
-}
+// -- Auto-refresh --
+let tradesTimer: ReturnType<typeof setInterval> | null = null
+let ordersTimer: ReturnType<typeof setInterval> | null = null
 
-// -- Display types (panel-native) --
-interface Trade {
-  date: string; symbol: string; name?: string; side: 'buy' | 'sell'
-  qty: number; price: number; total: number; orderId: string
-}
+const loadError = ref('')
 
-interface Order {
-  placed: string; symbol: string; name?: string; side: 'buy' | 'sell'
-  type: string; qty: number; filled: number
-  price: number; status: 'filled' | 'pending' | 'cancelled' | 'rejected'
-}
-
-const DISPLAY_LIMIT = 20
-
-// -- Convert Go Trade → panel Trade --
-function adaptTrade(t: GoTrade): Trade {
-  const side = (t.Side || '').toLowerCase() as 'buy' | 'sell'
-  return {
-    date: t.Timestamp || '--',
-    symbol: t.Symbol || '--',
-    name: t.Name || '',
-    side,
-    qty: t.Quantity ?? 0,
-    price: t.Price ?? 0,
-    total: (t.Price ?? 0) * (t.Quantity ?? 0),
-    orderId: t.ID || '--',
-  }
-}
-
-// -- Convert Go Order → panel Order --
-function adaptOrder(o: GoOrder): Order {
-  const side = (o.Side || '').toLowerCase() as 'buy' | 'sell'
-  const status = (o.Status || 'pending').toLowerCase() as Order['status']
-  const isFilled = status === 'filled'
-  return {
-    placed: o.PlacedAt || '--',
-    symbol: o.Symbol || '--',
-    name: o.Name || '',
-    side,
-    type: '--',
-    qty: o.Quantity ?? 0,
-    filled: isFilled ? (o.Quantity ?? 0) : 0,
-    price: o.Price ?? 0,
-    status,
-  }
-}
-
-// -- Computed data from store --
-const trades = computed<Trade[]>(() => {
-  const raw = (store.trades as unknown) as GoTrade[] | null
-  if (!raw || raw.length === 0) return []
-  return raw.slice(0, DISPLAY_LIMIT).map(adaptTrade)
-})
-
-const orders = computed<Order[]>(() => {
-  const raw = (store.orders as unknown) as GoOrder[] | null
-  if (!raw || raw.length === 0) return []
-  return raw.slice(0, DISPLAY_LIMIT).map(adaptOrder)
-})
-
-// -- Lifecycle --
 onMounted(async () => {
-  store.fetchOrders()
-  store.fetchTrades()
+  loadError.value = ''
+  try {
+    await store.fetchOrders()
+    await store.fetchTrades()
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+  }
+  tradesTimer = setInterval(async () => {
+    try { await store.fetchTrades() } catch (e: any) { loadError.value = e?.message || String(e) }
+  }, 5000)
+  ordersTimer = setInterval(async () => {
+    try { await store.fetchOrders() } catch (e: any) { loadError.value = e?.message || String(e) }
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (tradesTimer) clearInterval(tradesTimer)
+  if (ordersTimer) clearInterval(ordersTimer)
 })
 
 // -- State --
 const activeTab = ref<'trades' | 'orders'>('trades')
 const symbolFilter = ref('')
 const orderStatusFilter = ref('')
+const orderStatusOptions = ['', 'filled', 'partial', 'cancelled', 'pending', 'rejected']
 
-const orderStatusOptions = ['', 'filled', 'pending', 'cancelled', 'rejected']
+// -- Computed --
+const visibleTrades = computed(() => {
+  return (store.trades as Trade[]).slice(0, tradeVisibleCount.value)
+})
 
-// -- Computed filters --
-const filtered成交 = computed(() => {
-  let rows = trades.value
+const hasMoreTrades = computed(() => {
+  return tradeVisibleCount.value < store.trades.length
+})
+
+function loadMoreTrades() {
+  tradeVisibleCount.value = Math.min(tradeVisibleCount.value + pageSize, store.trades.length)
+}
+
+const filteredTrades = computed(() => {
+  let rows = visibleTrades.value
   if (symbolFilter.value) {
     const q = symbolFilter.value.toUpperCase()
     rows = rows.filter(t => t.symbol.toUpperCase().includes(q))
@@ -101,8 +68,8 @@ const filtered成交 = computed(() => {
   return rows
 })
 
-const filtered委托 = computed(() => {
-  let rows = orders.value
+const filteredOrders = computed(() => {
+  let rows = store.orders as Order[]
   if (symbolFilter.value) {
     const q = symbolFilter.value.toUpperCase()
     rows = rows.filter(o => o.symbol.toUpperCase().includes(q))
@@ -113,7 +80,22 @@ const filtered委托 = computed(() => {
   return rows
 })
 
+const orderStats = computed(() => {
+  const all = store.orders as Order[]
+  const total = all.length
+  const filledQty = all.reduce((s, o) => s + o.filled_qty, 0)
+  const totalQty = all.reduce((s, o) => s + o.quantity, 0)
+  const fillRate = totalQty > 0 ? ((filledQty / totalQty) * 100) : 0
+  const totalValue = all.filter(o => o.status === 'filled' || o.status === 'partial')
+    .reduce((s, o) => s + o.price * o.filled_qty, 0)
+  return { total, fillRate: Math.round(fillRate * 10) / 10, totalValue }
+})
+
 // -- Helpers --
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleString('zh-CN', { hour12: false })
+}
+
 function fmt(n: number, dec = 2): string {
   return n.toFixed(dec)
 }
@@ -122,17 +104,36 @@ function statusLabel(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+function filledPct(o: Order): string {
+  return o.quantity > 0 ? ((o.filled_qty / o.quantity) * 100).toFixed(0) + '%' : '0%'
+}
+
+function fmtMoney(n: number): string {
+  if (Math.abs(n) >= 1e8) return '$' + (n / 1e8).toFixed(2) + '亿'
+  if (Math.abs(n) >= 1e4) return '$' + (n / 1e4).toFixed(1) + '万'
+  return '$' + n.toFixed(2)
+}
+
+async function cancelOrder(orderId: string) {
+  const ok = await confirmDialog('确认撤销此委托订单？', '撤销订单')
+  if (!ok) return
+  store.cancelOrder(orderId)
+}
+
+// -- CSV export --
 function exportData() {
   if (activeTab.value === 'trades') {
-    const headers = ['Date', 'Symbol', 'Side', 'Qty', 'Price', 'Total', 'OrderID']
-    const rows = filtered成交.value.map(t => [
-      t.date, t.symbol, t.side, String(t.qty), fmt(t.price), fmt(t.total), t.orderId,
+    const headers = ['Time', 'Symbol', 'Side', 'Price', 'Qty', 'Amount', 'Fee', 'OrderID']
+    const rows = filteredTrades.value.map(t => [
+      formatTime(t.executed_at), t.symbol, t.side, fmt(t.price),
+      String(t.quantity), fmt(t.value), fmt(t.fee, 4), t.order_id,
     ])
     exportCSV('trades.csv', headers, rows)
   } else {
-    const headers = ['Placed', 'Symbol', 'Side', 'Type', 'Qty', 'Filled', 'Price', 'Status']
-    const rows = filtered委托.value.map(o => [
-      o.placed, o.symbol, o.side, o.type, String(o.qty), String(o.filled), fmt(o.price), o.status,
+    const headers = ['Time', 'OrderID', 'Symbol', 'Side', 'Type', 'Qty', 'Filled', 'Price', 'Status']
+    const rows = filteredOrders.value.map(o => [
+      formatTime(o.created_at), o.order_id, o.symbol, o.side, o.type,
+      String(o.quantity), String(o.filled_qty), fmt(o.price), o.status,
     ])
     exportCSV('orders.csv', headers, rows)
   }
@@ -141,6 +142,8 @@ function exportData() {
 
 <template>
   <div class="trade-history">
+    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
+
     <!-- Filters -->
     <div class="filter-bar">
       <input
@@ -171,68 +174,112 @@ function exportData() {
       <button class="export-btn" @click="exportData">{{ $t('misc.csv_export') }}</button>
     </div>
 
-    <!-- 成交 Table -->
+    <!-- Trades Table -->
     <div v-if="activeTab === 'trades'" class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>{{ $t('common.date') }}</th>
+            <th>{{ $t('common.time') }}</th>
             <th>{{ $t('quote.symbol') }}</th>
             <th>{{ $t('trade.side') }}</th>
-            <th class="num">{{ $t('trade.quantity') }}</th>
             <th class="num">{{ $t('common.price') }}</th>
-            <th class="num">{{ $t('common.total') }}</th>
+            <th class="num">{{ $t('trade.quantity') }}</th>
+            <th class="num">{{ $t('common.amount') }}</th>
+            <th class="num">{{ $t('workflow.fee') }}</th>
             <th>{{ $t('trade.order_id') }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="t in filtered成交" :key="t.orderId">
-            <td class="muted">{{ t.date }}</td>
+          <tr v-for="t in filteredTrades" :key="t.trade_id">
+            <td class="muted">{{ formatTime(t.executed_at) }}</td>
             <td class="symbol">{{ t.symbol }} - {{ t.name || '' }}</td>
-            <td :class="t.side === 'buy' ? 'up' : 'down'">{{ t.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}</td>
-            <td class="num">{{ t.qty.toLocaleString() }}</td>
+            <td :class="t.side === 'buy' ? 'up' : 'down'">
+              {{ t.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}
+            </td>
             <td class="num">{{ fmt(t.price) }}</td>
-            <td class="num">{{ fmt(t.total) }}</td>
-            <td class="muted">{{ t.orderId }}</td>
+            <td class="num">{{ t.quantity.toLocaleString() }}</td>
+            <td class="num">{{ fmt(t.value) }}</td>
+            <td class="num muted">{{ fmt(t.fee, 4) }}</td>
+            <td class="muted">{{ t.order_id }}</td>
           </tr>
-          <tr v-if="filtered成交.length === 0">
-            <td colspan="7" class="empty">{{ $t('common.no_data') }}</td>
+          <tr v-if="filteredTrades.length === 0">
+            <td colspan="8" class="empty">{{ $t('common.no_data') }}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 委托 Table -->
+    <!-- Trades pagination -->
+    <div v-if="activeTab === 'trades' && hasMoreTrades" class="load-more-bar">
+      <span class="load-count">
+        Showing {{ tradeVisibleCount }} of {{ store.trades.length }}
+      </span>
+      <button class="load-btn" @click="loadMoreTrades">{{ $t('workflow.load_more') }}</button>
+    </div>
+
+    <!-- Orders Table -->
     <div v-if="activeTab === 'orders'" class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>{{ $t('common.date') }}</th>
+            <th>{{ $t('common.time') }}</th>
+            <th>{{ $t('trade.order_id') }}</th>
             <th>{{ $t('quote.symbol') }}</th>
             <th>{{ $t('trade.side') }}</th>
             <th>{{ $t('common.type') }}</th>
             <th class="num">{{ $t('trade.quantity') }}</th>
+            <th class="num">{{ $t('trade.filled_pct') }}</th>
             <th class="num">{{ $t('common.price') }}</th>
             <th>{{ $t('common.status') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="o in filtered委托" :key="`${o.symbol}-${o.placed}`">
-            <td class="muted">{{ o.placed }}</td>
+          <tr v-for="o in filteredOrders" :key="o.order_id">
+            <td class="muted">{{ formatTime(o.created_at) }}</td>
+            <td class="muted">{{ o.order_id }}</td>
             <td class="symbol">{{ o.symbol }} - {{ o.name || '' }}</td>
-            <td :class="o.side === 'buy' ? 'up' : 'down'">{{ o.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}</td>
+            <td :class="o.side === 'buy' ? 'up' : 'down'">
+              {{ o.side === 'buy' ? $t('trade.buy') : $t('trade.sell') }}
+            </td>
             <td>{{ o.type }}</td>
-            <td class="num">{{ o.qty }}<span class="muted">/{{ o.filled }}</span></td>
+            <td class="num">{{ o.quantity.toLocaleString() }}</td>
+            <td class="num">{{ filledPct(o) }}</td>
             <td class="num">{{ fmt(o.price) }}</td>
             <td>
               <span :class="['badge', o.status]">{{ statusLabel(o.status) }}</span>
             </td>
+            <td>
+              <button
+                v-if="o.status === 'pending' || o.status === 'partial'"
+                class="cancel-btn"
+                @click="cancelOrder(o.order_id)"
+              >
+                {{ $t('trade.cancel_order') }}
+              </button>
+            </td>
           </tr>
-          <tr v-if="filtered委托.length === 0">
-            <td colspan="7" class="empty">{{ $t('common.no_data') }}</td>
+          <tr v-if="filteredOrders.length === 0">
+            <td colspan="10" class="empty">{{ $t('trade.no_orders') }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Orders stats footer -->
+    <div v-if="activeTab === 'orders'" class="stats-footer">
+      <div class="stat-item">
+        <span class="stat-label">{{ $t('trade.today_orders') }}</span>
+        <span class="stat-value">{{ orderStats.total }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">{{ $t('trade.filled_pct') }}</span>
+        <span class="stat-value">{{ orderStats.fillRate }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">{{ $t('trade.total_value') }}</span>
+        <span class="stat-value">{{ fmtMoney(orderStats.totalValue) }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -246,6 +293,17 @@ function exportData() {
   flex-direction: column;
   gap: var(--spacing);
   font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.panel-error {
+  padding: 8px 12px;
+  color: var(--color-up);
+  background: var(--color-up-soft);
+  border: 1px solid var(--color-up-glow);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 /* -- Filter bar -- */
@@ -354,14 +412,42 @@ td {
 .symbol { font-weight: 600; color: var(--text); }
 
 .muted { color: var(--muted); font-size: 11px; }
-.up   { color: var(--up); }
-.down { color: var(--down); }
+.up   { color: var(--up); font-weight: 600; }
+.down { color: var(--down); font-weight: 600; }
 
 .empty {
   text-align: center;
   color: var(--muted);
   padding: 24px;
 }
+
+/* -- Pagination -- */
+.load-more-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+}
+
+.load-count {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.load-btn {
+  padding: 5px 14px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.load-btn:hover { background: var(--card); }
 
 /* -- Status badges -- */
 .badge {
@@ -379,6 +465,11 @@ td {
   color: var(--up);
 }
 
+.badge.partial {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
 .badge.pending {
   background: var(--color-accent-soft);
   color: var(--color-accent);
@@ -392,5 +483,47 @@ td {
 .badge.rejected {
   background: var(--color-up-bg, rgba(220,38,38,0.08));
   color: var(--down);
+}
+
+/* -- Cancel button -- */
+.cancel-btn {
+  padding: 2px 8px;
+  background: var(--color-up-bg, rgba(220,38,38,0.08));
+  border: 1px solid var(--down);
+  border-radius: var(--radius-sm);
+  color: var(--down);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.cancel-btn:hover { opacity: 0.75; }
+
+/* -- Stats footer -- */
+.stats-footer {
+  display: flex;
+  gap: 16px;
+  padding: 8px 12px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: var(--font-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 </style>

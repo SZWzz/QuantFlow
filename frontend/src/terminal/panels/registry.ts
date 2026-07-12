@@ -22,9 +22,9 @@ register('market-overview', () => import('./MarketOverviewPanel.vue'), { label: 
 register('heatmap', () => import('./HeatmapPanel.vue'), { label: '板块热力图', category: '市场行情', description: '行业板块涨跌热力' })
 
 register('crypto-overview', () => import('./CryptoOverviewPanel.vue'), { label: '加密货币概览', category: '加密货币', description: '主流加密货币行情' })
-register('abnormal-stocks', () => import('./AbnormalStocksPanel.vue'), { label: '异动监控', category: '市场行情', description: '全市场异动股票实时监控' })
-register('dragon-tiger', () => import('./DragonTigerPanel.vue'), { label: '龙虎榜', category: '市场行情', description: '龙虎榜日榜单与个股上榜记录' })
-register('limit-up-down', () => import('./LimitUpDownPanel.vue'), { label: '涨跌停监控', category: '市场行情', description: 'A 股涨停/跌停实时监控' })
+register('abnormal-stocks', () => import('./MarketScannerPanel.vue'), { label: '异动监控', category: '市场行情', description: '全市场异动股票实时监控（涨跌停/异动/龙虎榜）' })
+register('dragon-tiger', () => import('./MarketScannerPanel.vue'), { label: '龙虎榜', category: '市场行情', description: '龙虎榜日榜单与个股上榜记录（涨跌停/异动/龙虎榜）' })
+register('limit-up-down', () => import('./MarketScannerPanel.vue'), { label: '涨跌停监控', category: '市场行情', description: 'A 股涨停/跌停实时监控（涨跌停/异动/龙虎榜）' })
 register('hk-connect', () => import('./HKConnectPanel.vue'), { label: '港股通', category: '港股', description: '北向资金实时流向与额度概览' })
 register('funding-rate', () => import('./FundingRatePanel.vue'), { label: '资金费率', category: '加密货币', description: '加密货币永续合约资金费率' })
 register('liquidation', () => import('./LiquidationPanel.vue'), { label: '爆仓追踪', category: '加密货币', description: '加密货币爆仓实时追踪' })
@@ -32,17 +32,14 @@ register('short-interest', () => import('./ShortInterestPanel.vue'), { label: '�
 
 // ── 交易执行 ──
 register('order-entry', () => import('./OrderEntryPanel.vue'), { label: '下单面板', category: '交易执行', description: '买入/卖出下单' })
-register('order-blotter', () => import('./OrderBlotterPanel.vue'), { label: '订单簿', category: '交易执行', description: '委托订单列表' })
-register('execution', () => import('./ExecutionPanel.vue'), { label: '成交明细', category: '交易执行', description: '成交执行详情' })
 register('basket-order', () => import('./BasketOrderPanel.vue'), { label: '篮子订单', category: '交易执行', description: '批量下单' })
 register('broker-status', () => import('./BrokerStatusPanel.vue'), { label: '券商状态', category: '交易执行', description: '券商连接状态' })
-register('action-center', () => import('./ActionCenterPanel.vue'), { label: '操作中心', category: '交易执行', description: '交易通知和操作' })
 
 // ── 组合风控 ──
 register('position', () => import('./PositionPanel.vue'), { label: '持仓明细', category: '组合与风控', description: '当前持仓列表' })
 register('position-detail', () => import('./PositionDetail.vue'), { label: '持仓详情', category: '组合与风控', description: '单只持仓详细分析' })
 register('portfolio-summary', () => import('./PortfolioSummary.vue'), { label: '组合概况', category: '组合与风控', description: '组合整体表现' })
-register('trade-history', () => import('./TradeHistory.vue'), { label: '交易记录', category: '组合与风控', description: '历史交易成交记录' })
+register('trade-history', () => import('./TradeHistory.vue'), { label: '交易记录', category: '组合与风控', description: '成交明细与委托订单管理' })
 register('risk-dashboard', () => import('./RiskDashboard.vue'), { label: '风险仪表盘', category: '组合与风控', description: '组合风险指标一览' })
 register('rebalance', () => import('./RebalancePanel.vue'), { label: '再平衡', category: '组合与风控', description: '组合再平衡建议' })
 register('broker-config', () => import('./BrokerConfig.vue'), { label: '券商配置', category: '交易执行', description: '券商账户设置' })
@@ -53,7 +50,7 @@ register('surface-chart', () => import('./SurfaceChartPanel.vue'), { label: '波
 register('correlation', () => import('./CorrelationPanel.vue'), { label: '相关性矩阵', category: '图表分析', description: '多标的相关性' })
 register('distribution', () => import('./DistributionPanel.vue'), { label: '收益分布', category: '量化分析', description: '收益率分布直方图' })
 register('monte-carlo', () => import('./MonteCarloPanel.vue'), { label: '蒙特卡洛', category: '量化分析', description: '蒙特卡洛模拟' })
-register('trading-journal', () => import('./TradingJournalPanel.vue'), { label: '交易日志', category: '组合与风控', description: '逐日 P&L 归因与交易分析' })
+register('trading-journal', () => import('./TradingJournalPanel.vue'), { label: '交易日志', category: '组合与风控', description: '逐日 P&L 归因、交易分析与事件通知' })
 register('scenario-analysis', () => import('./ScenarioAnalysisPanel.vue'), { label: '情景分析', category: '组合与风控', description: '组合压力测试与情景模拟' })
 register('ipo-calendar', () => import('./IPOCalendarPanel.vue'), { label: '新股日历', category: '市场行情', description: 'A股新股发行申购上市日历' })
 register('ex-dividend', () => import('./ExDividendPanel.vue'), { label: '分红除权', category: '市场行情', description: 'A股除权除息日历与股息率' })

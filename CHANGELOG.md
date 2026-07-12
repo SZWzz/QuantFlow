@@ -23,6 +23,7 @@
 
 - [Trading] Add `brokerName` parameter to `PlaceOrder` chain (OMS.PlaceOrder, App.PlaceOrder, frontend OrderEntryPanel) — when brokerName is non-empty and not "paper", routes the order through the attached live broker's `SubmitOrder` instead of the paper engine, enabling real broker order execution from the UI
 - [Trading] Replace hardcoded `GetBrokerStatuses()` with dynamic broker probing — adds `brokers` map to App struct, `brokerByName()` lookup, and wires Futu, Binance, Alpaca, IBKR brokers into the registry at startup; panel now shows live connection status instead of static stub
+- [Frontend] Merge 5 order/execution panels into 2 — ExecutionPanel and OrderBlotterPanel merged as tabs into enhanced TradeHistory (adds paginated load-more, auto-refresh, cancel-order button, fill-rate stats footer); ActionCenterPanel merged as "Events" tab into TradingJournalPanel; removed 3 panel files and 3 test files from registry
 
 ## [2026.7.11] - 2026-07-11
 
