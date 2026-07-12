@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -247,6 +248,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 
 	// Phase 5: Initialize trading OMS and wire to workflow nodes
 	a.oms = trading.NewOMS()
+	a.brokers = make(map[string]trading.Broker)
 	nctx.OMS = a.oms
 
 	// Phase 5: Initialize broker adapters. Alpaca (US equities) is optional —
@@ -259,6 +261,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 			a.oms.SetBroker(alpacaBroker)
 			slog.Info("alpaca broker connected — US equities trading enabled")
 		}
+		a.brokers["alpaca"] = alpacaBroker
 	}
 
 	// IBKR broker adapter (optional) — configured via IBKR_HOST, IBKR_PORT, IBKR_ACCOUNT_ID env vars.
@@ -279,6 +282,39 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 			a.oms.SetBroker(ibkrBroker)
 			slog.Info("ibkr broker connected — IBKR trading enabled")
 		}
+		a.brokers["ibkr"] = ibkrBroker
+	}
+
+	// Initialize Futu broker adapter (optional).
+	futuCfg := brokers.FutuConfig{}
+	if fpStr := os.Getenv("FUTU_PORT"); fpStr != "" {
+		if p, err := strconv.Atoi(fpStr); err == nil {
+			futuCfg.Port = p
+		}
+	}
+	futuBroker := brokers.NewFutuBroker(futuCfg)
+	if err := futuBroker.Connect(context.Background()); err != nil {
+		slog.Warn("futu broker not available — A/HK trading via Futu disabled", "error", err)
+	} else {
+		a.oms.SetBroker(futuBroker)
+		slog.Info("futu broker connected — A/HK trading enabled")
+	}
+	a.brokers["futu"] = futuBroker
+
+	// Initialize Binance broker adapter (optional).
+	binanceCfg := brokers.BinanceConfig{
+		APIKey:    os.Getenv("BINANCE_API_KEY"),
+		SecretKey: os.Getenv("BINANCE_SECRET_KEY"),
+	}
+	if binanceCfg.APIKey != "" && binanceCfg.SecretKey != "" {
+		binanceBroker := brokers.NewBinanceBroker(binanceCfg)
+		if err := binanceBroker.Connect(context.Background()); err != nil {
+			slog.Warn("binance broker not available — crypto trading disabled", "error", err)
+		} else {
+			a.oms.SetBroker(binanceBroker)
+			slog.Info("binance broker connected — crypto trading enabled")
+		}
+		a.brokers["binance"] = binanceBroker
 	}
 
 	// Phase 5: Initialize notification manager (reuses shared DB connection).

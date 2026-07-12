@@ -92,11 +92,61 @@ type BrokerStatus struct {
 	Detail    string `json:"detail"`
 }
 
+// brokerByName looks up a registered live broker by name. Returns nil if not found.
+func (a *App) brokerByName(name string) trading.Broker {
+	if a.brokers == nil {
+		return nil
+	}
+	return a.brokers[name]
+}
+
 // GetBrokerStatuses returns connection status of all registered brokers.
 func (a *App) GetBrokerStatuses() []BrokerStatus {
-	return []BrokerStatus{
+	statuses := []BrokerStatus{
 		{Name: "paper", Label: "Paper Trading", Market: "模拟", Connected: true, Detail: "本地模拟撮合"},
 	}
+
+	// Probe registered live brokers.
+	brokerNames := []string{"futu", "binance", "alpaca", "ibkr"}
+	brokerLabels := map[string]string{
+		"futu":    "富途牛牛",
+		"binance": "Binance",
+		"alpaca":  "Alpaca",
+		"ibkr":    "Interactive Brokers",
+	}
+	brokerMarkets := map[string]string{
+		"futu":    "港股/A股/美股",
+		"binance": "加密",
+		"alpaca":  "美股",
+		"ibkr":    "全球",
+	}
+
+	for _, name := range brokerNames {
+		br := a.brokerByName(name)
+		connected := false
+		detail := "未配置"
+		if br != nil {
+			connected = br.IsConnected()
+			if connected {
+				detail = "已连接"
+			} else {
+				detail = "已配置，未连接"
+			}
+		}
+		label := brokerLabels[name]
+		if label == "" {
+			label = name
+		}
+		statuses = append(statuses, BrokerStatus{
+			Name:      name,
+			Label:     label,
+			Market:    brokerMarkets[name],
+			Connected: connected,
+			Detail:    detail,
+		})
+	}
+
+	return statuses
 }
 
 // RunBacktest executes a backtest from a workflow JSON definition.
