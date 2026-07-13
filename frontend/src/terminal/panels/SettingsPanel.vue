@@ -60,10 +60,11 @@ const apiKeys = ref({
   fred: '',
   finnhub: '',
   iwencai: '',
+  qos: '',
 })
 
 async function loadApiKeys() {
-  for (const name of ['fred', 'finnhub', 'iwencai']) {
+  for (const name of ['fred', 'finnhub', 'iwencai', 'qos']) {
     const cred = await getCredential(`${name}_api_key`)
     if (cred?.api_key) {
       apiKeys.value[name as keyof typeof apiKeys.value] = cred.api_key
@@ -240,6 +241,13 @@ function onExportData() {
           <input type="password" class="form-input"
             v-model="apiKeys.iwencai"
             placeholder="从 https://www.iwencai.com/ 申请" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">QOS API Key <span class="api-source">(港股分时备用, https://qos.hk)</span></label>
+          <input type="password" class="form-input"
+            v-model="apiKeys.qos"
+            placeholder="从 https://qos.hk 注册获取" />
         </div>
 
         <div class="form-group">

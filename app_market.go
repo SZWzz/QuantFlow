@@ -154,6 +154,11 @@ func (a *App) registerMarketAdapters() {
 	a.marketReg.Register(adapters.NewBaiduAdapter())
 	a.marketReg.Register(adapters.NewAKShareAdapter())
 	// US / HK / CRYPTO chains.
+	a.marketReg.Register(adapters.NewAKShareMinuteAdapter(dataClient))
+	qosAdpt := adapters.NewQOSMinuteAdapter(adapters.QOSConfig{
+		APIKey: a.cfg.GetAPIKey("qos"),
+	})
+	a.marketReg.Register(qosAdpt)
 	a.marketReg.Register(adapters.NewYahooAdapter())
 	finnhubAdpt := adapters.NewFinnhubAdapter()
 	finnhubAdpt.SetAPIKey(a.cfg.GetAPIKey("finnhub"))

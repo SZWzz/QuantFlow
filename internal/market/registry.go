@@ -46,7 +46,7 @@ var MinuteChains = map[string]map[string][]string{
 		"index": {"tencent", "mootdx"},
 	},
 	"HK": {
-		"stock": {"yahoo"},
+		"stock": {"akshare_hk_minute", "qos", "yahoo"},
 	},
 	"US": {
 		"stock": {"yahoo"},
