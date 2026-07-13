@@ -3,6 +3,20 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.13] - 2026-07-13
+
+### 新增
+
+- [Market] 港股分时双通道 — AKShare Python sidecar 通道（免费，`ak.stock_hk_hist_min_em` 东财数据源）和 QOS API 通道（付费，需配置 key）；`MinuteChains["HK"]` 改为 `["akshare_hk_minute", "qos", "yahoo"]`，Yahoo 作最后回退；两个适配器均已注册并实现 3s cooldown
+- [Python] AKShare 港股分时数据 — 新增 `_fetch_akshare_hk_minute` 函数，通过 `stock_hk_hist_min_em` 获取当日分钟线并缓存 60s；gRPC `data_type="hk_minute"` 分支
+- [Frontend] QOS API Key 配置 — SettingsPanel API 密钥区新增 QOS 输入框，通过 CredentialManager 加密存储
+
+### 变更
+
+- [Market] HK 分钟链从 `["yahoo"]` 改为 `["akshare_hk_minute", "qos", "yahoo"]` — AKShare 免费通道优先，QOS 付费备用，Yahoo 兜底
+
+---
+
 ## [2026.7.12] - 2026-07-12
 
 ### 新增
