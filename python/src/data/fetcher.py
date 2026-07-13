@@ -909,6 +909,17 @@ class DataService(data_pb2_grpc.DataServiceServicer):
 
     async def _handle_akshare(self, data_type, symbols, start_date, end_date, params):
         """Route AKShare data types to fincept modules via direct import (no subprocess)."""
+        # HK minute data: direct akshare call (not via fincept module)
+        if data_type == "hk_minute":
+            symbol = symbols[0] if symbols else ""
+            if not symbol:
+                return data_pb2.FetchDataResponse(error="hk_minute requires exactly one symbol")
+            loop = asyncio.get_event_loop()
+            bars = await loop.run_in_executor(None, lambda: _fetch_akshare_hk_minute(symbol))
+            return data_pb2.FetchDataResponse(
+                data=json.dumps(bars, ensure_ascii=False).encode("utf-8"),
+            )
+
         route = self._AKSHARE_ROUTES.get(data_type)
         if route is None:
             return data_pb2.FetchDataResponse(
@@ -1226,3 +1237,83 @@ class DataService(data_pb2_grpc.DataServiceServicer):
                 data=_json.dumps(result, default=str, ensure_ascii=False).encode("utf-8"))
         except Exception as e:
             return data_pb2.FetchDataResponse(error=f"analyzer {data_type}: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# AKShare HK minute data — direct akshare call (not via fincept module)
+# ---------------------------------------------------------------------------
+
+_FETCH_AKSHARE_HK_MINUTE_CACHE: dict[str, list[dict]] = {}
+_FETCH_AKSHARE_HK_MINUTE_CACHE_TS: dict[str, float] = {}
+
+def _fetch_akshare_hk_minute(symbol: str) -> list[dict]:
+    """Fetch HK stock minute data via akshare.stock_hk_hist_min_em.
+
+    Returns [{time, price, volume}, ...] for today, ordered by time ascending.
+    Cached for 60s per symbol to avoid redundant API calls.
+    """
+    now = time.time()
+    cached_ts = _FETCH_AKSHARE_HK_MINUTE_CACHE_TS.get(symbol, 0)
+    if now - cached_ts < 60 and symbol in _FETCH_AKSHARE_HK_MINUTE_CACHE:
+        return _FETCH_AKSHARE_HK_MINUTE_CACHE[symbol]
+
+    today = datetime.now().strftime("%Y%m%d")
+    try:
+        ak = importlib.import_module("akshare")
+    except ImportError:
+        logger.warning("akshare not installed, cannot fetch HK minute data")
+        return []
+
+    try:
+        df = ak.stock_hk_hist_min_em(
+            symbol=symbol,
+            period="1",
+            start_date=today,
+            end_date=today,
+        )
+    except Exception as exc:
+        logger.warning("akshare HK minute failed for %s: %s", symbol, exc)
+        return []
+
+    if df is None or (hasattr(df, "empty") and df.empty):
+        return []
+
+    col_map = {}
+    for c in df.columns:
+        cl = str(c).strip().lower()
+        if "时间" in cl:
+            col_map[c] = "time"
+        elif "开盘" in cl:
+            col_map[c] = "open"
+        elif "收盘" in cl:
+            col_map[c] = "close"
+        elif "最高" in cl:
+            col_map[c] = "high"
+        elif "最低" in cl:
+            col_map[c] = "low"
+        elif "成交量" in cl:
+            col_map[c] = "volume"
+        elif "成交额" in cl:
+            col_map[c] = "amount"
+    df = df.rename(columns=col_map)
+
+    if "close" not in df.columns:
+        return []
+
+    bars = []
+    for _, row in df.iterrows():
+        bar = {"symbol": symbol}
+        dt = str(row.get("time", ""))
+        if dt:
+            bar["date"] = str(dt)[:19]
+        for k in ("open", "high", "low", "close", "volume", "amount"):
+            try:
+                bar[k] = float(row.get(k, 0)) if row.get(k) is not None else 0.0
+            except (ValueError, TypeError):
+                bar[k] = 0.0
+        bars.append(bar)
+
+    bars.sort(key=lambda b: b.get("date", ""))
+    _FETCH_AKSHARE_HK_MINUTE_CACHE[symbol] = bars
+    _FETCH_AKSHARE_HK_MINUTE_CACHE_TS[symbol] = now
+    return bars
