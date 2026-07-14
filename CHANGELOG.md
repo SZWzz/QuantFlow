@@ -3,6 +3,19 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.14] - 2026-07-14
+
+### 变更
+
+- [Market] Tencent K线解析全面重构 — 支持三种响应格式（map / array of maps / flat array）和混合类型数值解析（`rawKline` 替代 `[][]string`）；AKShare 适配器改用 `json.RawMessage` 动态分发，兼容新旧 API 返回格式
+- [Market] `toTencentCode` 支持裸港股代码 — 1-5 位纯数字自动加 `hk` 前缀（`00700` → `hk00700`），不再要求 `.HK` 后缀
+
+### 修复
+
+- [Market] Tencent OHLCV 解析 panic — 当 API 返回 `[["2026-07-14", 450.0, 455.0, ...]]` 而非常规 map 格式时，`ql.([]any)` type assertion 不会 panic，改用多格式回退解析
+
+---
+
 ## [2026.7.13] - 2026-07-13
 
 ### 新增

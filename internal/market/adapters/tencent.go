@@ -133,23 +133,65 @@ func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 		return nil, fmt.Errorf("tencent kline: API error code=%d", result.Code)
 	}
 
-	// Navigate: data → code → hfqday/hfqweek/hfqmonth (or qfqday/...) or period → [...]
-	stockData := result.Data[code]
-	var ql interface{}
-	if fqPrefix != "" {
-		ql = stockData[fqPrefix+period]
-	}
-	if ql == nil {
-		// Try without adj prefix (raw prices)
-		ql = stockData[period]
-	}
-	if ql == nil {
-		return nil, fmt.Errorf("tencent kline: no data for %s", symbol)
+	// Navigate: data → code → ... → kline rows.
+	// Handles both map format (old): {"hk00700":{"day":[[...]],"hfqday":[[...]]}}
+	// and array format (new): [{"hk00700":{"day":[[...]]}}] or [["date",o,c,h,l,v],...]
+	var rawRows []any
+
+	// Try map format
+	var mapData map[string]map[string]interface{}
+	if err := json.Unmarshal(result.Data, &mapData); err == nil {
+		if stockData, ok := mapData[code]; ok {
+			if fqPrefix != "" {
+				if ql, ok := stockData[fqPrefix+period]; ok {
+					rawRows, _ = ql.([]any)
+				}
+			}
+			if rawRows == nil {
+				if ql, ok := stockData[period]; ok {
+					rawRows, _ = ql.([]any)
+				}
+			}
+		}
 	}
 
-	rawRows, ok := ql.([]any)
-	if !ok {
-		return nil, fmt.Errorf("tencent kline: unexpected data format for %s", symbol)
+	// Try array of maps format
+	if rawRows == nil {
+		var arrData []map[string]map[string]interface{}
+		if err := json.Unmarshal(result.Data, &arrData); err == nil && len(arrData) > 0 {
+			for _, m := range arrData {
+				if stockData, ok := m[code]; ok {
+					if fqPrefix != "" {
+						if ql, ok := stockData[fqPrefix+period]; ok {
+							rawRows, _ = ql.([]any)
+						}
+					}
+					if rawRows == nil {
+						if ql, ok := stockData[period]; ok {
+							rawRows, _ = ql.([]any)
+						}
+					}
+					if rawRows != nil {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Try flat array format: [["date",o,c,h,l,v],...]
+	if rawRows == nil {
+		var flat [][]any
+		if err := json.Unmarshal(result.Data, &flat); err == nil && len(flat) > 0 && len(flat[0]) >= 6 {
+			rawRows = make([]any, len(flat))
+			for i, r := range flat {
+				rawRows[i] = r
+			}
+		}
+	}
+
+	if rawRows == nil {
+		return nil, fmt.Errorf("tencent kline: no data for %s", symbol)
 	}
 
 	startDate := time.Unix(start, 0)
@@ -304,8 +346,8 @@ func (a *TencentAdapter) FetchIndustryRanks(ctx context.Context, mkt string, top
 // ── Response types ─────────────────────────────────────────────────────────────
 
 type tencentKlineResponse struct {
-	Code int                               `json:"code"`
-	Data map[string]map[string]interface{} `json:"data"`
+	Code int             `json:"code"`
+	Data json.RawMessage `json:"data"`
 }
 
 // parseTencentDepth parses 5-level bid/ask from Tencent's quote response.

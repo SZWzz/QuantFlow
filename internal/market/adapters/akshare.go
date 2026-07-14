@@ -124,66 +124,117 @@ func (a *AKShareAdapter) FetchOHLCV(ctx context.Context, symbol string, interval
 	return parseTencentKline(symbol, body)
 }
 
-// parseTencentKline parses Tencent's K-line JSON response.
-// Format: {"code":0,"msg":"","data":{"hk00700":{"day":[...]|"week":[...]|"month":[...]}}}
-func parseTencentKline(symbol string, body []byte) ([]market.OHLCVBar, error) {
-	var result struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data map[string]struct {
-			Day   [][]string `json:"day"`
-			Week  [][]string `json:"week"`
-			Month [][]string `json:"month"`
-		} `json:"data"`
+// rawKline represents a parsed K-line row from mixed-type JSON.
+// The newkline API may return prices as numbers (float64) instead of strings.
+type rawKline [6]float64
+
+// parseRawKlineRow converts a JSON array element ([]any) into a rawKline.
+// First element is the date (converted via fmt.Sprint), rest are numeric prices.
+func parseRawKlineRow(row []any) (date string, k rawKline, ok bool) {
+	if len(row) < 6 {
+		return "", k, false
 	}
-	if err := json.Unmarshal(body, &result); err != nil {
+	date = strings.Trim(fmt.Sprint(row[0]), "\"")
+	if date == "" {
+		return "", k, false
+	}
+	for i := 1; i <= 5; i++ {
+		k[i-1] = toFloatVal(row[i])
+	}
+	return date, k, true
+}
+
+// parseTencentKline parses Tencent's K-line JSON response.
+// Supports mixed-type rows (string dates + numeric prices).
+// Accepts data as: {"hk00700":{"day":[[...]]}} | [{"hk00700":{...}}] | [[...],...]
+func parseTencentKline(symbol string, body []byte) ([]market.OHLCVBar, error) {
+	var base struct {
+		Code int             `json:"code"`
+		Msg  string          `json:"msg"`
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(body, &base); err != nil {
 		return nil, fmt.Errorf("akshare OHLCV parse: %w", err)
 	}
-	if result.Code != 0 {
-		return nil, fmt.Errorf("akshare OHLCV: API error code %d: %s", result.Code, result.Msg)
+	if base.Code != 0 {
+		return nil, fmt.Errorf("akshare OHLCV: API error code %d: %s", base.Code, base.Msg)
 	}
 
-	// Find the first stock entry
-	var klines [][]string
-	for _, v := range result.Data {
-		if len(v.Day) > 0 {
-			klines = v.Day
-		} else if len(v.Week) > 0 {
-			klines = v.Week
-		} else if len(v.Month) > 0 {
-			klines = v.Month
+	var rawRows []any
+
+	// Format 1/2: nested day/week/month structure (map or array of maps)
+	var mapData map[string]map[string][]any
+	if err := json.Unmarshal(base.Data, &mapData); err == nil {
+		for _, v := range mapData {
+			for _, rows := range v {
+				if len(rows) > 0 {
+					rawRows = rows
+					break
+				}
+			}
+			if rawRows != nil {
+				break
+			}
 		}
-		break
+	} else {
+		var arrData []map[string]map[string][]any
+		if err := json.Unmarshal(base.Data, &arrData); err == nil && len(arrData) > 0 {
+			for _, m := range arrData {
+				for _, v := range m {
+					for _, rows := range v {
+						if len(rows) > 0 {
+							rawRows = rows
+							break
+						}
+					}
+					if rawRows != nil {
+						break
+					}
+				}
+				if rawRows != nil {
+					break
+				}
+			}
+		}
 	}
-	if len(klines) == 0 {
+
+	// Format 3: flat array [[...],...]
+	if rawRows == nil {
+		var flat [][]any
+		if err := json.Unmarshal(base.Data, &flat); err == nil && len(flat) > 0 && len(flat[0]) >= 6 {
+			rawRows = make([]any, len(flat))
+			for i, r := range flat {
+				rawRows[i] = r
+			}
+		}
+	}
+
+	if rawRows == nil {
 		return nil, fmt.Errorf("akshare OHLCV: no K-line data for %s", symbol)
 	}
 
-	bars := make([]market.OHLCVBar, 0, len(klines))
-	for _, row := range klines {
-		if len(row) < 6 {
+	bars := make([]market.OHLCVBar, 0, len(rawRows))
+	for _, item := range rawRows {
+		row, ok := item.([]any)
+		if !ok {
 			continue
 		}
-		// Tencent K-line format: [date, open, close, high, low, volume]
-		date := strings.Trim(row[0], "\"")
-		open := parseFloatSafe(row[1])
-		high := parseFloatSafe(row[3])
-		low := parseFloatSafe(row[4])
-		closeV := parseFloatSafe(row[2])
-		volume := parseFloatSafe(row[5])
-
-		if open == 0 && closeV == 0 {
+		date, k, ok := parseRawKlineRow(row)
+		if !ok {
+			continue
+		}
+		if k[0] == 0 && k[2] == 0 {
 			continue
 		}
 
 		bars = append(bars, market.OHLCVBar{
 			Symbol: symbol,
 			Date:   date,
-			Open:   open,
-			High:   high,
-			Low:    low,
-			Close:  closeV,
-			Volume: volume,
+			Open:   k[0],
+			Close:  k[1],
+			High:   k[2],
+			Low:    k[3],
+			Volume: k[4],
 		})
 	}
 
@@ -202,13 +253,24 @@ func (a *AKShareAdapter) HealthCheck(ctx context.Context) error {
 // toTencentCode converts symbol to Tencent format.
 //
 //	A-shares: sh600519, sz000001
-//	HK: r_hk00700 → hk00700
+//	HK: 00700.HK → hk00700, bare 00700 → hk00700
 func toTencentCode(symbol string) string {
 	if len(symbol) > 3 && symbol[len(symbol)-3:] == ".HK" {
 		return "hk" + symbol[:len(symbol)-3]
 	}
-	// A-shares: preserve market from suffix if present, otherwise infer from code prefix.
-	// This ensures "000001.SH" → "sh000001" (上证指数), not "sz000001" (平安银行).
+	// Bare HK code: 1-5 digit numeric (e.g. "00700", "5", "9988")
+	if len(symbol) >= 1 && len(symbol) <= 5 {
+		isNum := true
+		for _, c := range symbol {
+			if c < '0' || c > '9' {
+				isNum = false
+				break
+			}
+		}
+		if isNum {
+			return "hk" + symbol
+		}
+	}
 	s := symbol
 	if strings.HasSuffix(s, ".SH") {
 		return "sh" + s[:len(s)-3]
