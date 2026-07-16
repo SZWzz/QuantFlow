@@ -15,8 +15,9 @@ type Config struct {
 	path string // resolved absolute path, set by Load
 	cm   *auth.CredentialManager // optional, set at startup
 
-	Version        string            `yaml:"version"`
-	LogLevel       string            `yaml:"log_level"`
+	Version              string            `yaml:"version"`
+	UpdateCheckInterval  string            `yaml:"update_check_interval"`
+	LogLevel             string            `yaml:"log_level"`
 	DBPath         string            `yaml:"db_path"`
 	// APIKeys stores optional API keys loaded from config YAML.
 	// Deprecated: API keys should be stored in the CredentialManager (AES-256-GCM
@@ -30,8 +31,9 @@ type Config struct {
 // DefaultConfig returns sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
-		Version:  "0.0.1",
-		LogLevel: "info",
+		Version:              "0.0.1",
+		UpdateCheckInterval:  "daily",
+		LogLevel:             "info",
 		DBPath:   "data/quantflow.db",
 	}
 }

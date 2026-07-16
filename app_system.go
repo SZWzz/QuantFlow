@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"os"
 	"os/exec"
 	"runtime"
 	"time"
+
+	"quantflow/internal/updater"
 )
 
 // GetSystemStats returns runtime statistics for the system monitor panel.
@@ -50,6 +55,79 @@ func (a *App) GetVersion() string {
 		return "unknown"
 	}
 	return a.cfg.Version
+}
+
+const updaterOwner = "SZWzz"
+const updaterRepo = "QuantFlow"
+
+// CheckUpdate checks for a new version. Returns update info or nil if up-to-date.
+func (a *App) CheckUpdate() *updater.UpdateInfo {
+	if a.cfg == nil {
+		return &updater.UpdateInfo{HasUpdate: false}
+	}
+
+	u := updater.New(updaterOwner, updaterRepo)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	info, err := u.Check(ctx, a.cfg.Version)
+	if err != nil {
+		slog.Warn("check update failed", "error", err)
+		return &updater.UpdateInfo{HasUpdate: false}
+	}
+	return info
+}
+
+// ApplyUpdate downloads, verifies, and applies an update.
+func (a *App) ApplyUpdate(assetURL, checksum string) error {
+	u := updater.New(updaterOwner, updaterRepo)
+
+	downloadedPath, err := u.Download(context.Background(), assetURL, os.TempDir(), nil)
+	if err != nil {
+		return fmt.Errorf("download failed: %w", err)
+	}
+
+	if checksum != "" {
+		if err := u.Verify(downloadedPath, checksum); err != nil {
+			return fmt.Errorf("verification failed: %w", err)
+		}
+	}
+
+	execPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("get executable: %w", err)
+	}
+
+	if err := u.Replace(execPath, downloadedPath); err != nil {
+		return fmt.Errorf("replace failed: %w", err)
+	}
+
+	return updater.Restart()
+}
+
+// GetUpdateInterval returns the current update check interval setting.
+func (a *App) GetUpdateInterval() string {
+	if a.cfg == nil {
+		return "daily"
+	}
+	if a.cfg.UpdateCheckInterval == "" {
+		return "daily"
+	}
+	return a.cfg.UpdateCheckInterval
+}
+
+// SetUpdateInterval sets the update check interval and persists config.
+func (a *App) SetUpdateInterval(interval string) error {
+	if a.cfg == nil {
+		return fmt.Errorf("config not initialized")
+	}
+	switch interval {
+	case "always", "daily", "never":
+		a.cfg.UpdateCheckInterval = interval
+		return a.cfg.Save()
+	default:
+		return fmt.Errorf("invalid interval: %s (must be always/daily/never)", interval)
+	}
 }
 
 // OpenURL opens a URL in the system's default browser.
