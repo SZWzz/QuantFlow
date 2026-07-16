@@ -2,8 +2,10 @@
 package updater
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -35,10 +37,18 @@ type ReleaseInfo struct {
 	Changelog string
 }
 
-func FetchLatestRelease(owner, repo string) (*ReleaseInfo, error) {
+func FetchLatestRelease(ctx context.Context, owner, repo string) (*ReleaseInfo, error) {
 	url := fmt.Sprintf(githubAPIURL, owner, repo)
+	slog.Info("fetching latest release", "owner", owner, "repo", repo, "url", url)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create github api request: %w", err)
+	}
+	req.Header.Set("User-Agent", "QuantFlow-Updater/1.0")
+
 	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Get(url)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("github api request: %w", err)
 	}
@@ -61,6 +71,7 @@ func FetchLatestRelease(owner, repo string) (*ReleaseInfo, error) {
 	for _, a := range gh.Assets {
 		rel.Assets = append(rel.Assets, AssetInfo{Name: a.Name, URL: a.BrowserDownloadURL, Size: a.Size})
 	}
+	slog.Info("release fetched successfully", "version", rel.Version, "assets", len(rel.Assets))
 	return rel, nil
 }
 
@@ -76,5 +87,6 @@ func MatchAsset(rel *ReleaseInfo, goos, goarch string) (*AssetInfo, error) {
 	if candidate == nil {
 		return nil, fmt.Errorf("no asset matching %s/%s in release %s", goos, goarch, rel.Version)
 	}
+	slog.Info("matched asset for platform", "goos", goos, "goarch", goarch, "asset", candidate.Name)
 	return candidate, nil
 }

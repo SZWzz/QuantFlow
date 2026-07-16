@@ -2,6 +2,7 @@
 package updater
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,9 @@ func TestFetchLatestRelease(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/repos/SZWzz/QuantFlow/releases/latest" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if ua := r.Header.Get("User-Agent"); ua != "QuantFlow-Updater/1.0" {
+			t.Errorf("expected User-Agent QuantFlow-Updater/1.0, got %q", ua)
 		}
 		rel := githubRelease{
 			TagName: "v2026.7.20",
@@ -31,7 +35,7 @@ func TestFetchLatestRelease(t *testing.T) {
 	githubAPIURL = ts.URL + "/repos/%s/%s/releases/latest"
 	defer func() { githubAPIURL = origURL }()
 
-	rel, err := FetchLatestRelease("SZWzz", "QuantFlow")
+	rel, err := FetchLatestRelease(context.Background(), "SZWzz", "QuantFlow")
 	if err != nil {
 		t.Fatalf("FetchLatestRelease failed: %v", err)
 	}
