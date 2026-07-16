@@ -328,6 +328,26 @@ export async function GetLogs(afterID: number): Promise<LogEntry[]> {
   return wailsCall<LogEntry[]>('GetLogs', afterID)
 }
 
+// ── Update Management ─────────────────────────────────────────────────
+
+export interface UpdateInfo {
+  has_update: boolean
+  current_version: string
+  latest_version: string
+  asset_url: string
+  asset_size: number
+  checksum: string
+  changelog: string
+}
+
+export async function CheckUpdate(): Promise<UpdateInfo> {
+  return wailsCall<UpdateInfo>('CheckUpdate')
+}
+
+export async function ApplyUpdate(assetURL: string, checksum: string): Promise<void> {
+  return wailsCall<void>('ApplyUpdate', assetURL, checksum)
+}
+
 // ── Data Lifecycle Management ──────────────────────────────────────────
 
 export interface TableStat {
