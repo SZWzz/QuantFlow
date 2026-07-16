@@ -4,6 +4,7 @@ package updater
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,7 +27,7 @@ func init() {
 }
 
 func (u *Updater) Replace(execPath, downloadedPath string) error {
-	tmpDir, err := os.MkdirTemp("", "quantflow-update-*")
+	tmpDir, err := os.MkdirTemp(filepath.Dir(execPath), "quantflow-update-*")
 	if err != nil {
 		return fmt.Errorf("create temp dir: %w", err)
 	}
@@ -57,10 +58,11 @@ func Restart() error {
 	if err != nil {
 		return fmt.Errorf("get executable: %w", err)
 	}
+	slog.Info("restarting application", "path", execPath)
 	cmd := exec.Command(execPath)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("restart: %w", err)
 	}
 	os.Exit(0)
-	return nil
+	return nil // unreachable; os.Exit(0) terminates the process
 }
