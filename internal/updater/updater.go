@@ -67,7 +67,7 @@ func (u *Updater) Check(ctx context.Context, currentVersion string) (*UpdateInfo
 	info.AssetURL = asset.URL
 	info.AssetSize = asset.Size
 
-	checksum, err := u.fetchChecksum(ctx, asset.Name+".sha256")
+	checksum, err := u.fetchChecksum(ctx, rel, asset.Name+".sha256")
 	if err != nil {
 		slog.Warn("failed to fetch checksum, continuing without verification", "asset", asset.Name, "error", err)
 	} else {
@@ -77,15 +77,16 @@ func (u *Updater) Check(ctx context.Context, currentVersion string) (*UpdateInfo
 	return info, nil
 }
 
-func (u *Updater) fetchChecksum(ctx context.Context, filename string) (string, error) {
-	rel, err := FetchLatestRelease(ctx, u.Owner, u.Repo)
-	if err != nil {
-		return "", err
-	}
+func (u *Updater) fetchChecksum(ctx context.Context, rel *ReleaseInfo, filename string) (string, error) {
 	for _, a := range rel.Assets {
 		if a.Name == filename {
 			client := &http.Client{Timeout: 10 * time.Second}
-			resp, err := client.Get(a.URL)
+			req, err := http.NewRequestWithContext(ctx, "GET", a.URL, nil)
+			if err != nil {
+				return "", fmt.Errorf("create checksum request: %w", err)
+			}
+			req.Header.Set("User-Agent", "QuantFlow-Updater/1.0")
+			resp, err := client.Do(req)
 			if err != nil {
 				return "", fmt.Errorf("fetch checksum: %w", err)
 			}
@@ -110,7 +111,12 @@ func (u *Updater) Download(ctx context.Context, url, destDir string, progressCh 
 	}
 
 	client := &http.Client{Timeout: 30 * time.Minute}
-	resp, err := client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("create download request: %w", err)
+	}
+	req.Header.Set("User-Agent", "QuantFlow-Updater/1.0")
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("download request: %w", err)
 	}
