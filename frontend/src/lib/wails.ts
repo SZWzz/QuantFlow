@@ -348,6 +348,14 @@ export async function ApplyUpdate(assetURL: string, checksum: string): Promise<v
   return wailsCall<void>('ApplyUpdate', assetURL, checksum)
 }
 
+export async function GetUpdateInterval(): Promise<string> {
+  return wailsCall<string>('GetUpdateInterval')
+}
+
+export async function SetUpdateInterval(interval: string): Promise<void> {
+  return wailsCall<void>('SetUpdateInterval', interval)
+}
+
 // ── Data Lifecycle Management ──────────────────────────────────────────
 
 export interface TableStat {

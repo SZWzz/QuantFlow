@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { watch, onMounted, computed } from 'vue'
+import { watch, onMounted, computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useThemeStore } from '@/lib/theme'
+import { useUpdateStore } from '@/stores/update'
+import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
 
 // Init theme at mount — sets body classes and watches reactive session state
 onMounted(() => {
@@ -14,6 +16,28 @@ const session = useSessionStore()
 const router = useRouter()
 const route = useRoute()
 const isTearOff = computed(() => route.path.startsWith('/tearoff'))
+
+// --- Update auto-check ---
+const updateStore = useUpdateStore()
+const showUpdatePrompt = ref(false)
+
+onMounted(() => {
+  // Auto-check for updates 30 seconds after mount, so the app is fully loaded
+  setTimeout(async () => {
+    if (updateStore.shouldCheck()) {
+      const info = await updateStore.check()
+      if (info?.has_update) {
+        showUpdatePrompt.value = true
+      }
+      updateStore.markChecked()
+    }
+  }, 30000)
+})
+
+async function handleApplyUpdate() {
+  await updateStore.apply()
+  showUpdatePrompt.value = false
+}
 
 // Sync theme/density body classes when session changes
 watch(() => [session.ui.theme, session.ui.density], () => {
@@ -46,6 +70,15 @@ if (!route.path.startsWith('/tearoff')) {
 <template>
   <div class="app">
     <router-view />
+    <UpdatePrompt
+      v-if="updateStore.updateInfo"
+      :visible="showUpdatePrompt"
+      :current-version="updateStore.updateInfo.current_version"
+      :latest-version="updateStore.updateInfo.latest_version"
+      :changelog="updateStore.updateInfo.changelog"
+      @close="showUpdatePrompt = false"
+      @update="handleApplyUpdate"
+    />
   </div>
 </template>
 

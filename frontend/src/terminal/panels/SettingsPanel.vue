@@ -6,8 +6,10 @@ import { useSettingsStore } from '@/stores/settings'
 import { setLocale } from '@/lib/i18n'
 import { getIcon } from '@/lib/icons'
 import { APP_VERSION } from '@/version'
-import { saveCredential, getCredential, alertDialog } from '@/lib/wails'
+import { saveCredential, getCredential, GetVersion, GetUpdateInterval, SetUpdateInterval, alertDialog } from '@/lib/wails'
 import { logger } from '@/lib/logger'
+import { useUpdateStore } from '@/stores/update'
+import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
 import StoragePanel from './StoragePanel.vue'
 import LogPanel from './LogPanel.vue'
 import LayoutTemplatePanel from './LayoutTemplatePanel.vue'
@@ -18,6 +20,7 @@ const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { t } = useI18n()
 const themeStore = useThemeStore()
 const settingsStore = useSettingsStore()
+const updateStore = useUpdateStore()
 
 const activeSection = ref('appearance')
 
@@ -56,6 +59,40 @@ const decimalOptions = [0, 2, 4]
 const brokerOptions = ['paper', 'futu', 'longbridge', 'ibkr', 'binance', 'okx']
 const saveMsg = ref('')
 
+// --- Update management ---
+const goVersion = ref('')
+const updateInterval = ref('daily')
+const showUpdatePrompt = ref(false)
+const updateMsg = ref('')
+
+async function loadUpdateSettings() {
+  try {
+    goVersion.value = await GetVersion()
+    updateInterval.value = await GetUpdateInterval()
+  } catch {
+    // Silently ignore — Go backend may not be available in dev
+  }
+}
+
+async function manualCheck() {
+  updateMsg.value = ''
+  const info = await updateStore.check()
+  if (info?.has_update) {
+    showUpdatePrompt.value = true
+  } else if (info?.has_update === false) {
+    updateMsg.value = '已是最新版本'
+    setTimeout(() => updateMsg.value = '', 3000)
+  }
+}
+
+async function saveInterval() {
+  try {
+    await SetUpdateInterval(updateInterval.value)
+  } catch {
+    // Silently ignore
+  }
+}
+
 const apiKeys = ref({
   fred: '',
   finnhub: '',
@@ -88,7 +125,7 @@ async function onSaveApiKeys() {
   }
 }
 
-onMounted(() => { loadApiKeys() })
+onMounted(() => { loadApiKeys(); loadUpdateSettings() })
 
 function onExportData() {
   alert('Export data stub — not yet implemented')
@@ -390,7 +427,30 @@ function onExportData() {
 
         <div class="form-group">
           <label class="form-label">{{ t('settings.version') }}</label>
-          <span class="form-value">{{ APP_VERSION }}</span>
+          <div class="version-row">
+            <span class="form-value">{{ goVersion || APP_VERSION }}</span>
+            <button
+              class="option-btn"
+              :disabled="updateStore.checking"
+              @click="manualCheck"
+            >
+              {{ updateStore.checking ? '检查中...' : '检查更新' }}
+            </button>
+            <span v-if="updateMsg" class="save-msg">{{ updateMsg }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">更新检查</label>
+          <select
+            class="form-select"
+            v-model="updateInterval"
+            @change="saveInterval"
+          >
+            <option value="always">每次启动</option>
+            <option value="daily">每天一次</option>
+            <option value="never">从不</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -409,6 +469,16 @@ function onExportData() {
         </div>
       </section>
     </div>
+
+    <UpdatePrompt
+      v-if="updateStore.updateInfo"
+      :visible="showUpdatePrompt"
+      :current-version="updateStore.updateInfo.current_version"
+      :latest-version="updateStore.updateInfo.latest_version"
+      :changelog="updateStore.updateInfo.changelog"
+      @close="showUpdatePrompt = false"
+      @update="async () => { await updateStore.apply(); showUpdatePrompt = false }"
+    />
   </div>
 </template>
 
@@ -758,6 +828,11 @@ function onExportData() {
   height: 100%;
 }
 
+.version-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .api-source { color: var(--color-text-tertiary); font-size: 10px; font-weight: normal; }
 .save-msg { color: var(--color-success); font-size: 12px; margin-left: 10px; font-weight: 500; }
 </style>
