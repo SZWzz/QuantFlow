@@ -3,6 +3,19 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.16] - 2026-07-16
+
+### 新增
+
+- [Terminal] 自动更新系统 — GitHub Releases 客户端（`internal/updater/release.go`），支持平台资产匹配、SHA256 校验和验证、版本号比较（`YYYY.M.D` 格式）；macOS/Linux/Windows 三平台 Replace + Restart 逻辑
+- [Terminal] 更新检查 IPC — `CheckUpdate()`、`ApplyUpdate()`、`GetUpdateInterval()`、`SetUpdateInterval()` 暴露给前端；配置 `UpdateCheckInterval`（always/daily/never）
+- [Frontend] UpdatePrompt 更新提示对话框 — 显示当前/最新版本、更新日志、下载进度条、手动检查按钮、检查频率设置
+- [Frontend] 启动 30 秒后自动检查更新，SettingsPanel 关于区新增「检查更新」按钮和频率下拉框
+
+### 变更
+
+- [Storage] Config 结构体新增 `UpdateCheckInterval` 字段，默认 `"daily"`
+
 ## [2026.7.14] - 2026-07-14
 
 ### 变更
