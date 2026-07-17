@@ -7,7 +7,7 @@
 
 ---
 
-## ✅ 已完成（2/15）
+## ✅ 已完成（3/15）
 
 ### 1. auto-updater — 自动更新系统
 
@@ -37,9 +37,27 @@
   - 上传端点 `hooks.quantflow.app/crashes` 为占位符
   - AppState getters 部分为 stub（panel_count / workflow_count 恒为 0）
 
+### 3. release-pipeline — GitHub Actions 自动发版流水线
+
+- **Plan**: [2026-07-16-release-pipeline.md](./2026-07-16-release-pipeline.md)
+- **完成日期**: 2026-07-17，2 commits（`8ae7647..687abb3`）
+- **交付**:
+  - `.github/workflows/release.yml` — `git tag v*` push 触发，6 平台并行构建矩阵（macOS arm64/amd64、Linux amd64/arm64、Windows amd64/arm64）
+  - `scripts/darwin-package.sh` — macOS .app bundle + DMG 打包
+  - `scripts/linux-package.sh` — Linux tar.gz 打包
+  - `scripts/windows-package.ps1` — Windows zip 打包
+  - `scripts/checksum.sh` — SHA256 checksums 生成
+  - `resources/Info.plist.template` — macOS Info.plist 模板
+  - Makefile: `release-darwin` / `release-linux` / `release-windows` / `release-checksum` / `release` 目标
+  - `scripts/homebrew/quantflow.rb` — Homebrew formula 模板（SHA256 占位符，首次发版后填入实际值）
+- **已知局限（defer）**:
+  - 代码签名未配置（需 Apple Developer Certificate 在自建 runner 上）
+  - .msi 打包延后（WiX Toolset 学习成本）
+  - 首次发版需替换 Homebrew formula SHA256 占位符
+
 ---
 
-## ⏳ 未完成（13/15）
+## ⏳ 未完成（12/15）
 
 ### 交易核心（3 个）— 建议下一批执行
 
@@ -56,11 +74,10 @@
 | 6 | [error-visibility](./2026-07-16-error-visibility.md) | 6 | 876 行 | Toast + StatusBar + WS 日志三层错误可见性 |
 | 7 | [first-run-wizard](./2026-07-16-first-run-wizard.md) | 5 | 865 行 | 首次启动向导（useFirstRun composable） |
 
-### CI/CD 质量（4 个）
+### CI/CD 质量（3 个）
 
 | # | Plan | Tasks | 规模 | 说明 |
 |---|------|-------|------|------|
-| 8 | [release-pipeline](./2026-07-16-release-pipeline.md) | 6 | 545 行 | GitHub Actions 发版流水线（release.yml）※ auto-updater 依赖此产出 release 资产 |
 | 9 | [coverage-gate](./2026-07-16-coverage-gate.md) | 4 | 296 行 | 测试覆盖率门禁 |
 | 10 | [goroutine-leak-ci](./2026-07-16-goroutine-leak-ci.md) | 5 | 262 行 | Goroutine 泄漏检测（go.uber.org/goleak） |
 | 11 | [error-handling-audit](./2026-07-16-error-handling-audit.md) | 5 | 339 行 | 全项目错误处理审计（含扫描脚本） |
@@ -88,7 +105,7 @@
 
 ## 依赖关系提示
 
-- **release-pipeline** 应尽早执行：auto-updater 需要 GitHub Releases 提供 `quantflow-<os>-<arch>.zip` + `.sha256` 资产才能实际工作
+- ~~release-pipeline~~ ✅ 已完成：auto-updater 需要 GitHub Releases 提供资产
 - **error-visibility** 的 Toast 系统可被 paper-to-live-switch、position-reconciliation 等交易功能复用（错误提示）
 - **coverage-gate / goroutine-leak-ci** 越早落地，后续 plan 的质量门槛越高
 - 三个交易核心 plan 均涉及 SQLite 迁移，注意迁移序号不冲突
