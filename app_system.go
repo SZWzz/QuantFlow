@@ -145,12 +145,20 @@ func marketLabel(mkt string) string {
 	}
 }
 
+// buildVersion is set at build time via ldflags.
+// Default matches the frontend package.json version (updated per CLAUDE.md rule 3).
+var buildVersion = "2026.7.17"
+
 // GetVersion returns the application version.
+// Prefers the build-time version; falls back to config, then the default above.
 func (a *App) GetVersion() string {
-	if a.cfg == nil {
-		return "unknown"
+	if buildVersion != "" && buildVersion != "0.0.0" {
+		return buildVersion
 	}
-	return a.cfg.Version
+	if a.cfg != nil && a.cfg.Version != "" {
+		return a.cfg.Version
+	}
+	return buildVersion
 }
 
 const updaterOwner = "SZWzz"

@@ -77,7 +77,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
           CGO_ENABLED=0 \
-          go build -a -ldflags="-s -w -X quantflow/internal/crash.appVersion=${VERSION} -X quantflow/internal/crash.buildMode=release" \
+          go build -a -ldflags="-s -w -X quantflow/internal/crash.appVersion=${VERSION} -X quantflow/internal/crash.buildMode=release -X quantflow.buildVersion=${VERSION}" \
             -o build/quantflow${{ matrix.goos == 'windows' && '.exe' || '' }} .
 
       - name: Package (macOS)

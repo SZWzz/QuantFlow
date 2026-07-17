@@ -69,7 +69,18 @@ function statusColor(status: string): string {
 
 const connStatus = computed(() => terminal.connectionStatus)
 const marketEntries = computed(() => Object.entries(connStatus.value?.markets ?? {}))
-const brokerEntries = computed(() => Object.entries(connStatus.value?.brokers ?? {}))
+
+const brokerSummary = computed(() => {
+  const brokers = connStatus.value?.brokers ?? {}
+  const entries = Object.entries(brokers)
+  const connected = entries.filter(([, s]) => s.includes('已连接')).length
+  return { total: entries.length, connected, entries }
+})
+
+const marketSummary = computed(() => {
+  const configured = marketEntries.value.filter(([, s]) => s !== '未配置' && s !== '初始化中').length
+  return { total: marketEntries.value.length, configured }
+})
 </script>
 
 <template>
@@ -80,35 +91,43 @@ const brokerEntries = computed(() => Object.entries(connStatus.value?.brokers ??
         <span class="status-text">{{ data.isOffline ? $t('common.disconnected') : $t('common.connected') }}</span>
       </span>
 
-      <!-- Connection status rows: markets, brokers, Python -->
+      <!-- 📡 Markets: compact dots -->
       <span
-        v-for="([market, status]) in marketEntries"
-        :key="market"
         class="conn-group"
         data-test="status-group"
-        @click="showDetail(`${market} 行情`, [{ label: '状态', status }])"
+        @click="showDetail('行情源', marketEntries.map(([m, s]) => ({ label: m, status: s })))"
+        :title="`${marketSummary.configured}/${marketSummary.total} 已配置`"
       >
-        <span class="conn-dot" :style="{ background: statusColor(status) }" />
-        <span class="conn-label">{{ market }}</span>
-        <span class="conn-value">{{ status }}</span>
+        <span class="conn-icon">📡</span>
+        <span
+          v-for="([market, status]) in marketEntries"
+          :key="market"
+          class="conn-dot"
+          :style="{ background: statusColor(status) }"
+          :title="`${market}: ${status}`"
+        />
       </span>
+
+      <!-- 💼 Brokers: count -->
       <span
-        v-for="([broker, status]) in brokerEntries"
-        :key="broker"
+        v-if="brokerSummary.total > 0"
         class="conn-group"
-        @click="showDetail(`${broker} 券商`, [{ label: '连接', status }])"
+        data-test="status-group"
+        @click="showDetail('券商', brokerSummary.entries.map(([n, s]) => ({ label: n, status: s })))"
       >
-        <span class="conn-dot" :style="{ background: statusColor(status) }" />
-        <span class="conn-label">{{ broker }}</span>
+        <span class="conn-icon">💼</span>
+        <span class="conn-dot" :style="{ background: brokerSummary.connected > 0 ? 'var(--color-success)' : 'var(--color-text-tertiary)' }" />
+        <span class="conn-label">{{ brokerSummary.connected }}/{{ brokerSummary.total }}</span>
       </span>
+
+      <!-- 🐍 Python -->
       <span
         class="conn-group"
         data-test="status-group"
         @click="showDetail('Python Sidecar', [{ label: '状态', status: connStatus?.python ?? '未知' }])"
       >
+        <span class="conn-icon">🐍</span>
         <span class="conn-dot" :style="{ background: statusColor(connStatus?.python ?? '未知') }" />
-        <span class="conn-label">Python</span>
-        <span class="conn-value">{{ connStatus?.python ?? '未知' }}</span>
       </span>
     </div>
     <div class="status-groups">
@@ -239,13 +258,13 @@ const brokerEntries = computed(() => Object.entries(connStatus.value?.brokers ??
 
 /* ── Connection status groups ──────────────────────────────────────── */
 .conn-group {
-  display: flex; align-items: center; gap: 4px;
+  display: flex; align-items: center; gap: 3px;
   cursor: pointer; padding: 1px 6px; border-radius: var(--radius-sm);
 }
 .conn-group:hover { background: var(--color-bg-hover); }
+.conn-icon { font-size: 10px; line-height: 1; }
 .conn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .conn-label { font-weight: 600; font-size: 10px; }
-.conn-value { font-size: 10px; color: var(--color-text-tertiary); }
 
 /* ── Link groups ───────────────────────────────────────────────────── */
 .status-groups { display: flex; gap: 6px; }
