@@ -47,10 +47,10 @@ describe('CrashDialog', () => {
     const wrapper = mount(CrashDialog, { props: baseProps, attachTo: document.body })
     const checkbox = document.body.querySelector('[data-test="upload-optin"]') as HTMLInputElement
     expect(checkbox).toBeTruthy()
-    expect(checkbox.checked).toBe(true) // opt-in checked by default
+    expect(checkbox.checked).toBe(false) // strictly opt-in: unchecked by default
     checkbox.click()
     expect(wrapper.emitted('upload')).toBeTruthy()
-    expect(wrapper.emitted('upload')![0]).toEqual([false])
+    expect(wrapper.emitted('upload')![0]).toEqual([true])
   })
 
   it('renders panic message and collapsible stack/logs when report provided', () => {

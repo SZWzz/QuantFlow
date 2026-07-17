@@ -65,7 +65,7 @@ function formatTime(ts: string): string {
             <input
               type="checkbox"
               data-test="upload-optin"
-              :checked="true"
+              :checked="false"
               @change="emit('upload', ($event.target as HTMLInputElement).checked)"
             />
             <span>发送匿名崩溃报告帮助改进</span>

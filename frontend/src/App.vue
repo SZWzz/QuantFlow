@@ -44,9 +44,9 @@ async function handleApplyUpdate() {
 // --- Crash recovery dialog (shown on next launch after a crash) ---
 const crashStore = useCrashStore()
 const showCrashDialog = ref(false)
-// Anonymous upload is opt-in; the dialog checkbox defaults to checked and
-// emits `upload` whenever the user toggles it.
-const sendCrashReport = ref(true)
+// Anonymous upload is strictly opt-in for a trading app: the dialog checkbox
+// defaults to UNCHECKED and emits `upload` whenever the user toggles it.
+const sendCrashReport = ref(false)
 
 onMounted(async () => {
   // Tear-off windows must not show the crash dialog — only the main window.
@@ -61,7 +61,9 @@ onMounted(async () => {
 async function handleCrashDismiss() {
   const pending = crashStore.pending
   if (sendCrashReport.value && pending) {
-    await crashStore.upload(pending.id)
+    const ok = await crashStore.upload(pending.id)
+    // No dialog on the dismiss path — the report stays on disk; just warn.
+    if (!ok) console.warn('[Crash] report upload failed; report kept locally')
   }
   crashStore.ack()
   showCrashDialog.value = false

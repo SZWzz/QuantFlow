@@ -101,6 +101,14 @@ func NewCrashReport(panicVal, stack string, logs []string, state AppState) *Cras
 	}
 }
 
+// FileName returns the on-disk file name for this report. The timestamp uses
+// dashes instead of colons because colons are illegal in Windows file names,
+// and the report ID's first 8 characters are appended so two crashes in the
+// same second cannot collide.
 func (r *CrashReport) FileName() string {
-	return fmt.Sprintf("%s.json", r.Timestamp.Format("2006-01-02T15:04:05"))
+	id := r.ID
+	if len(id) > 8 {
+		id = id[:8]
+	}
+	return fmt.Sprintf("crash-%s-%s.json", r.Timestamp.Format("2006-01-02T15-04-05"), id)
 }

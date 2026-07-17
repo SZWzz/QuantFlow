@@ -24,6 +24,13 @@ func StartCrashHandler(store *Store) {
 			slog.Error("crash handler: no store configured, report not saved")
 			return
 		}
+		// The process is already crashing — a second panic while persisting
+		// the report must not escape the crash handler and mask the exit path.
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("crash handler: panic while saving crash report", "panic", r)
+			}
+		}()
 		path, err := store.Save(report)
 		if err != nil {
 			slog.Error("failed to save crash report", "error", err)

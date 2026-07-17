@@ -16,6 +16,14 @@ var osExit = os.Exit
 // crashHandler is the registered callback invoked when a crash is captured.
 var crashHandler func(report *CrashReport)
 
+// logsFn returns recent log lines for crash reports; set via SetLogsGetter.
+var logsFn func() []string
+
+// SetLogsGetter registers a function that returns recent log lines (e.g. the
+// last 100 entries from the logging ring buffer) to embed in crash reports.
+// The getter is evaluated at crash time, inside the crash handler.
+func SetLogsGetter(fn func() []string) { logsFn = fn }
+
 // StartHandler registers OS signal handlers for common crash signals (SIGABRT,
 // SIGSEGV, SIGILL, SIGBUS) and enables panic-on-fault so that memory access
 // violations become recoverable panics rather than hard crashes. When a signal
@@ -62,8 +70,13 @@ func CapturePanic() {
 }
 
 // collectReport assembles a CrashReport from a panic value, capturing the
-// current goroutine stack trace via runtime/debug.Stack.
+// current goroutine stack trace via runtime/debug.Stack and the recent log
+// lines from the registered logs getter (if any).
 func collectReport(panicVal string) *CrashReport {
 	stack := string(debug.Stack())
-	return NewCrashReport(panicVal, stack, nil, AppState{})
+	var logs []string
+	if logsFn != nil {
+		logs = logsFn()
+	}
+	return NewCrashReport(panicVal, stack, logs, AppState{})
 }

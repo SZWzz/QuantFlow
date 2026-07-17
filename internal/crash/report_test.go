@@ -47,6 +47,29 @@ func TestNewCrashReport(t *testing.T) {
 	}
 }
 
+func TestFileNameWindowsSafe(t *testing.T) {
+	report := NewCrashReport("p", "s", nil, AppState{})
+	name := report.FileName()
+
+	// Colons are illegal in Windows file names.
+	if strings.ContainsAny(name, `:<>"/\|?*`) {
+		t.Errorf("filename contains Windows-illegal characters: %s", name)
+	}
+	if !strings.HasPrefix(name, "crash-") || !strings.HasSuffix(name, ".json") {
+		t.Errorf("expected crash-<ts>-<id>.json format, got %s", name)
+	}
+	// ID prefix prevents same-second collisions.
+	if !strings.Contains(name, report.ID[:8]) {
+		t.Errorf("expected filename to contain ID prefix %s, got %s", report.ID[:8], name)
+	}
+
+	// Short IDs must not panic and are used whole.
+	report.ID = "abc"
+	if got := report.FileName(); !strings.Contains(got, "-abc.json") {
+		t.Errorf("expected short ID used whole, got %s", got)
+	}
+}
+
 func TestCrashReportJSONSerialization(t *testing.T) {
 	report := NewCrashReport("test panic", "stack trace", []string{"log1"}, AppState{TradingMode: "live"})
 	data, err := json.Marshal(report)

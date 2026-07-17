@@ -58,8 +58,12 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 			// querying storage.WorkflowRepo.List() which allocates a new repo each call.
 			return 0
 		},
-		func() []string {
-			names := make([]string, 0, len(a.brokers))
+		func() (names []string) {
+			// a.brokers may still be populated by ServiceStartup when a crash
+			// fires; recover so a concurrent map iteration panic can never
+			// escape from inside the crash handler itself.
+			defer func() { _ = recover() }()
+			names = make([]string, 0, len(a.brokers))
 			for name := range a.brokers {
 				names = append(names, name)
 			}
@@ -69,6 +73,18 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 			return "unknown"
 		},
 	)
+
+	// Wire recent log lines into crash reports (spec: last 100 lines).
+	// Evaluated at crash time inside the crash handler, so it must never panic.
+	crash.SetLogsGetter(func() (lines []string) {
+		defer func() { _ = recover() }()
+		entries := logging.Ring.LastN(100)
+		lines = make([]string, 0, len(entries))
+		for _, e := range entries {
+			lines = append(lines, fmt.Sprintf("%s %s %s", e.Time.Format(time.RFC3339), e.Level, e.Message))
+		}
+		return lines
+	})
 
 	// If db_path was persisted as absolute from a previous version, reset to default
 	// relative path so it resolves correctly against the current executable location.
