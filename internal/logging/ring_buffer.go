@@ -67,3 +67,24 @@ func (rb *RingBuffer) Lines(afterID int64, limit int) []LogEntry {
 	}
 	return result
 }
+
+// LastN returns the last n entries from the buffer, most recent first.
+func (rb *RingBuffer) LastN(n int) []LogEntry {
+	rb.mu.Lock()
+	defer rb.mu.Unlock()
+
+	if rb.count == 0 || n <= 0 {
+		return []LogEntry{}
+	}
+
+	if n > rb.count {
+		n = rb.count
+	}
+
+	result := make([]LogEntry, n)
+	for i := 0; i < n; i++ {
+		idx := (rb.head + rb.count - n + i) % rb.max
+		result[i] = rb.buffer[idx]
+	}
+	return result
+}

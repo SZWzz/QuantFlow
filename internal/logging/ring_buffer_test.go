@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -74,6 +75,33 @@ func TestRingBufferEmptyReturnsEmptySlice(t *testing.T) {
 	}
 	if len(lines) != 0 {
 		t.Fatal("expected empty slice")
+	}
+}
+
+func TestRingBufferLastN(t *testing.T) {
+	rb := NewRingBuffer(10)
+	for i := 0; i < 10; i++ {
+		rb.Push(LogEntry{Message: fmt.Sprintf("msg %d", i)})
+	}
+
+	last5 := rb.LastN(5)
+	if len(last5) != 5 {
+		t.Errorf("expected 5, got %d", len(last5))
+	}
+	if last5[0].Message != "msg 5" {
+		t.Errorf("expected msg 5, got %s", last5[0].Message)
+	}
+
+	// Request more than available
+	last20 := rb.LastN(20)
+	if len(last20) != 10 {
+		t.Errorf("expected 10, got %d", len(last20))
+	}
+
+	// Request 0
+	last0 := rb.LastN(0)
+	if len(last0) != 0 {
+		t.Errorf("expected 0, got %d", len(last0))
 	}
 }
 
