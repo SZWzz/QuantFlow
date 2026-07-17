@@ -18,3 +18,8 @@ jobs:
       - name: Run tests with shuffle
         working-directory: .
         run: go test ./... -shuffle=on -count=1 -v 2>&1 | tail -100
+
+      - name: Goroutine leak check (critical paths)
+        working-directory: .
+        run: |
+          go test -race -count=1 ./internal/ws/ ./internal/market/ ./internal/workflow/ 2>&1 | tail -50

@@ -74,3 +74,19 @@ release-checksum:
 
 release: frontend-build release-darwin release-linux release-checksum
 	@echo "Release artifacts ready in build/"
+
+# ── Coverage gate ─────────────────────────────────────────────────
+coverage-gate:
+	go test ./... -coverprofile=coverage.out -covermode=atomic
+	@COVERAGE=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	THRESHOLD=60; \
+	echo "Backend coverage: $$COVERAGE%"; \
+	if [ "$$(echo "$$COVERAGE < $$THRESHOLD" | bc -l)" -eq 1 ]; then \
+		echo "❌ Below threshold $$THRESHOLD%"; exit 1; \
+	else \
+		echo "✅ Meets threshold $$THRESHOLD%"; \
+	fi
+	cd frontend && npx vitest run --coverage
+
+leak-check:
+	go test -race -count=1 ./internal/ws/ ./internal/market/ ./internal/workflow/ ./internal/trading/
