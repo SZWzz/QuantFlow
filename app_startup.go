@@ -497,6 +497,11 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.macroSvc = market.NewMacroService(nil, a.db)
 	a.styleSvc = market.NewStyleService(a.marketReg)
 	a.eventStudySvc = research.NewEventStudyService()
+
+	// P2 adapters and services
+	a.shareholderAdpt = adapters.NewEastMoneyShareholderAdapter()
+	a.unlockAdpt = adapters.NewEastMoneyUnlockAdapter()
+	a.attrSvc = portfolio.NewAttributionService()
 	nctx.AnalystEstimatesService = research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt)
 	nctx.InsiderTradingService = research.NewInsiderTradingService(a.bridge)
 	nctx.CongressTradingService = research.NewCongressTradingService(a.congressAdpt)

@@ -84,9 +84,12 @@ type App struct {
 	// Research services (exposed for analysis panels)
 	finSvc       *research.FinancialsService
 	peerSvc      *research.PeerComparisonService
-	macroSvc     *market.MacroService
-	styleSvc     *market.StyleService
+	macroSvc      *market.MacroService
+	styleSvc      *market.StyleService
 	eventStudySvc *research.EventStudyService
+	shareholderAdpt *adapters.EastMoneyShareholderAdapter
+	unlockAdpt      *adapters.EastMoneyUnlockAdapter
+	attrSvc         *portfolio.AttributionService
 
 	// WebSocket service wrapper (set during ServiceStartup, registered in main.go).
 	wsSvc         *ws.MarketWSService

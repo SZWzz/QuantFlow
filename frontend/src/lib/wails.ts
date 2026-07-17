@@ -617,6 +617,22 @@ export async function ComputeEventStudy(symbol: string, market: string, interval
   return wailsCall('ComputeEventStudy', symbol, market, interval, eventDate, window)
 }
 
+// ── P2 Analysis ───────────────────────────────────────────────────────────
+
+export interface ShareholderRecord { name:string;type:string;shares:number;pct:number;change:number;market_value:number;report_date:string }
+export interface UnlockEvent { symbol:string;name:string;unlock_date:string;unlock_shares:number;unlock_pct:number;float_ratio:number;market_value:number }
+export interface FactorAttribution { total_return:number;market_beta:number;style_factors:Record<string,number>;industry_factors:Record<string,number>;alpha:number }
+
+export async function GetTop10Holders(symbol: string): Promise<ShareholderRecord[]> {
+  return wailsCall('GetTop10Holders', symbol)
+}
+export async function GetUnlockCalendar(days: number): Promise<UnlockEvent[]> {
+  return wailsCall('GetUnlockCalendar', days)
+}
+export async function GetFactorAttribution(totalReturn: number): Promise<FactorAttribution> {
+  return wailsCall('GetFactorAttribution', totalReturn)
+}
+
 export async function GetReconciliationReports(limit: number): Promise<ReconciliationReport[]> {
   return wailsCall<ReconciliationReport[]>('GetReconciliationReports', limit)
 }
