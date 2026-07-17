@@ -23,6 +23,12 @@
 - [Trading] 紧急关停 — Live 模式下红色`紧急平仓`按钮 → 确认后并行撤销所有委托 + 切换回 Paper 模式
 - [Frontend] LiveModeBanner — Paper 模式绿色标签（`切换实盘`按钮）+ Live 模式红色闪烁横幅（`紧急平仓` / `切换模拟`按钮）+ 安全检查对话框
 - [Trading] 持仓对账系统 — `ReconcileAll()` 对比 OMS 持仓与券商持仓，生成差异报告（数量/均价偏差、OMS 独有/券商独有）；报告持久化到 SQLite `reconciliation_reports` 表（migration 020）
+- [CI] 覆盖率门禁 — 后端 60% / 前端 40% 阈值，CI 自动检查 + `make coverage-gate`
+- [CI] Goroutine 泄漏检测 — `go test -race` 关键路径（ws/market/workflow），`make leak-check`
+- [CI] 错误处理审计 — `scripts/error-audit.sh` 扫描未检查错误、裸 panic、log.Fatal、%v 错误包装
+- [Frontend] API 密钥管理面板 — 13 个数据源/券商/AI 的密钥集中管理（保存/删除/验证），按市场分组
+- [Frontend] 首次启动向导 — 5 步指引（欢迎 → 终端模式 → 工作流模式 → 数据配置 → 准备就绪），localStorage 记录完成状态
+- [Workflow] 6 套官方策略模板 — 双均线交叉、布林带突破、RSI 均值回归、期现套利、组合再平衡、AI 情绪驱动
 - [Frontend] DailyReportPanel — 日结报告展示面板（盈亏汇总、持仓明细、最佳/最差交易高亮、导出 CSV、历史报告列表），注册到面板系统
 
 ### 修复
