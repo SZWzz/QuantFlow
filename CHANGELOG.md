@@ -11,6 +11,9 @@
 - [Terminal] 崩溃报告存储 — 平台专属目录（macOS `~/Library/Logs/QuantFlow/crashes/`、Linux `~/.local/share/QuantFlow/crashes/`、Windows `%LOCALAPPDATA%\QuantFlow\crashes\`），30 天自动清理，opt-in 上传（默认关闭）
 - [Frontend] CrashDialog 崩溃恢复对话框 — 下次启动时展示崩溃时间、panic 消息、可折叠堆栈和日志；CrashHistoryPanel 崩溃历史管理（设置 → 崩溃报告），支持查看/删除/上传
 - [Storage] `RingBuffer.LastN(n)` 导出最近 N 条日志供崩溃报告嵌入
+- [CI] GitHub Actions 自动发版流水线 — `git tag v*` push 触发 6 平台并行构建矩阵（macOS arm64/amd64、Linux amd64/arm64、Windows amd64/arm64），自动生成 SHA256 checksums，上传至 GitHub Releases
+- [Build] 跨平台打包脚本 — `scripts/darwin-package.sh`（.app + .dmg）、`scripts/linux-package.sh`（.tar.gz）、`scripts/windows-package.ps1`（.zip）
+- [Build] Makefile 发版目标 — `make release` 一站式构建 macOS + Linux + checksums；Homebrew formula 模板
 
 ### 修复
 
