@@ -591,6 +591,32 @@ export async function GetPeerRadar(symbol: string): Promise<PeerRadar[]> {
   return wailsCall('GetPeerRadar', symbol)
 }
 
+// ── P1 Analysis ───────────────────────────────────────────────────────────
+
+export interface MacroSnapshot {
+  growth: Array<{country:string;name:string;value:number;unit:string;date:string;change:number}>
+  inflation: Array<{country:string;name:string;value:number;unit:string;date:string;change:number}>
+  monetary: Array<{country:string;name:string;value:number;unit:string;date:string;change:number}>
+  policy: Array<{country:string;name:string;value:number;unit:string;date:string;change:number}>
+  updated_at: string
+}
+export interface StyleQuadrant { index:string;size:number;style:number;return_1m:number }
+export interface MarketSentimentGauge { limit_up:number;limit_down:number;turnover:number;northbound_cum:number }
+export interface EventStudyResult { symbol:string;event_date:string;event_type:string;window:number;car:number;daily_ar:Array<{date:string;day:number;ar:number;car:number;stock_r:number;bench_r:number}> }
+
+export async function GetMacroSnapshot(country: string): Promise<MacroSnapshot> {
+  return wailsCall('GetMacroSnapshot', country)
+}
+export async function GetStyleQuadrant(market: string): Promise<StyleQuadrant[]> {
+  return wailsCall('GetStyleQuadrant', market)
+}
+export async function GetMarketSentiment(market: string): Promise<MarketSentimentGauge> {
+  return wailsCall('GetMarketSentiment', market)
+}
+export async function ComputeEventStudy(symbol: string, market: string, interval: string, eventDate: string, window: number): Promise<EventStudyResult> {
+  return wailsCall('ComputeEventStudy', symbol, market, interval, eventDate, window)
+}
+
 export async function GetReconciliationReports(limit: number): Promise<ReconciliationReport[]> {
   return wailsCall<ReconciliationReport[]>('GetReconciliationReports', limit)
 }
