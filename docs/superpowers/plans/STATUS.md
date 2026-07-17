@@ -7,7 +7,7 @@
 
 ---
 
-## ✅ 已完成（4/15）
+## ✅ 已完成（5/15）
 
 ### 1. auto-updater — 自动更新系统
 
@@ -69,15 +69,29 @@
 - **已知局限（defer）**:
   - 行情源状态仅检查适配器是否注册，未检查实时可用性（`IsAvailable()`）
 
+### 5. daily-pnl-report — 日结报告系统
+
+- **Plan**: [2026-07-16-daily-pnl-report.md](./2026-07-16-daily-pnl-report.md)
+- **完成日期**: 2026-07-17
+- **交付**:
+  - `internal/trading/daily_report.go` — `GenerateDailyReport(oms, date)` 汇总成交/持仓/盈亏/最大回撤/最佳最差交易
+  - `internal/storage/migrations/019_daily_reports.sql` — `daily_reports` 表 + 索引
+  - `internal/storage/daily_report_repo.go` — `SaveDailyReport` / `GetDailyReport` / `ListDailyReports`
+  - `app_daily_report.go` — `GenerateDailyReport` / `GetDailyReport` / `ListDailyReports` / `ExportReportCSV` IPC
+  - `DailyReportPanel.vue` — 前端日结报告面板（盈亏汇总/持仓明细/交易高亮/导出CSV/历史列表）
+  - 面板注册到终端 `daily-report`
+- **已知局限（defer）**:
+  - 定时触发（scheduler）和通知推送（notify.Manager）延后
+  - CSV 导出为占位符（完整 CSV 序列化延后到 phase 2）
+
 ---
 
-## ⏳ 未完成（11/15）
+## ⏳ 未完成（10/15）
 
-### 交易核心（3 个）— 建议下一批执行
+### 交易核心（2 个）— 建议下一批执行
 
 | # | Plan | Tasks | 规模 | 说明 |
 |---|------|-------|------|------|
-| 3 | [daily-pnl-report](./2026-07-16-daily-pnl-report.md) | 6 | 1074 行 | 日结盈亏报告生成（含 `daily_reports` 表迁移） |
 | 4 | [paper-to-live-switch](./2026-07-16-paper-to-live-switch.md) | 6 | 945 行 | Paper→Live 实盘切换安全机制（TradingMode + SafetyCheck） |
 | 5 | [position-reconciliation](./2026-07-16-position-reconciliation.md) | 6 | 979 行 | 持仓同步与对账（含 `reconciliation_reports` 表迁移） |
 

@@ -18,6 +18,8 @@
 - [Frontend] 状态栏增强 — 底部 StatusBar 新增行情源/券商/Python 连接状态行（彩色状态点 + 点击弹详情对话框），版本号显示
 - [Logging] RingBuffer WS 实时广播 — `SetHub(hub)` 注入 WebSocket Hub，新 Push 的日志条目通过 `system:notification` topic 推送到前端
 - [Backend] `GetConnectionStatus()` IPC — 返回实时行情适配器、券商连接、Python sidecar 三组状态
+- [Trading] 日结报告系统 — `GenerateDailyReport()` 自动汇总当日成交、持仓市值、盈亏、佣金税费、最大回撤、最佳/最差交易；报告持久化到 SQLite `daily_reports` 表（migration 019）
+- [Frontend] DailyReportPanel — 日结报告展示面板（盈亏汇总、持仓明细、最佳/最差交易高亮、导出 CSV、历史报告列表），注册到面板系统
 
 ### 修复
 

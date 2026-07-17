@@ -27,6 +27,23 @@ export interface Order {
   updated_at: string
 }
 
+export interface DailyReport {
+  date: string
+  market_value: number
+  day_pnl: number
+  day_pnl_percent: number
+  total_pnl: number
+  total_pnl_percent: number
+  trades: number
+  commission: number
+  tax: number
+  max_drawdown: number
+  best_trade: { symbol: string; side: string; quantity: number; price: number; pnl: number } | null
+  worst_trade: { symbol: string; side: string; quantity: number; price: number; pnl: number } | null
+  positions: Array<{ symbol: string; quantity: number; market_val: number; pnl: number; pnl_pct: number }>
+  notes: string
+}
+
 export interface Trade {
   trade_id: string
   order_id: string
@@ -171,6 +188,18 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     }
   }
 
+  // ── Daily Reports ────────────────────────────────────────────────
+  const dailyReports = ref<DailyReport[]>([])
+  const currentReport = ref<DailyReport | null>(null)
+
+  function setDailyReports(reports: DailyReport[]) {
+    dailyReports.value = reports
+  }
+
+  function setCurrentReport(report: DailyReport | null) {
+    currentReport.value = report
+  }
+
   const timer = ref<ReturnType<typeof setInterval> | null>(null)
   function startAutoRefresh() {
     fetchSummary(); fetchAllocation(); fetchPositions()
@@ -179,6 +208,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   function stopAutoRefresh() { if (timer.value) { clearInterval(timer.value); timer.value = null } }
   return {
     summary, allocation, positions, orders, trades, equityCurve, error,
+    dailyReports, currentReport, setDailyReports, setCurrentReport,
     fetchSummary, fetchAllocation, fetchPositions, fetchOrders, fetchTrades, fetchEquityCurve, cancelOrder,
     startAutoRefresh, stopAutoRefresh, timer,
   }

@@ -39,6 +39,7 @@ register('broker-status', () => import('./BrokerStatusPanel.vue'), { label: '券
 // ── 组合风控 ──
 register('position', () => import('./PositionPanel.vue'), { label: '持仓明细', category: '组合与风控', description: '当前持仓列表，点击展开详情' })
 register('portfolio-summary', () => import('./PortfolioSummary.vue'), { label: '组合概况', category: '组合与风控', description: '组合整体表现、风险指标、净值曲线（含概览/风险/图表标签页）' })
+register('daily-report', () => import('./DailyReportPanel.vue'), { label: '日结报告', category: '组合与风控', description: '每日 P&L 报告、最佳/最差交易、持仓摘要' })
 register('trade-history', () => import('./TradeHistory.vue'), { label: '交易记录', category: '组合与风控', description: '成交明细与委托订单管理' })
 register('rebalance', () => import('./RebalancePanel.vue'), { label: '再平衡', category: '组合与风控', description: '组合再平衡建议' })
 register('broker-config', () => import('./BrokerConfig.vue'), { label: '券商配置', category: '交易执行', description: '券商账户设置' })

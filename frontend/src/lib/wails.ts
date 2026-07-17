@@ -479,6 +479,41 @@ export async function GetConnectionStatus(): Promise<ConnectionStatus> {
   return wailsCall<ConnectionStatus>('GetConnectionStatus')
 }
 
+// ── Daily Reports ───────────────────────────────────────────────────────
+
+export interface DailyReport {
+  date: string
+  market_value: number
+  day_pnl: number
+  day_pnl_percent: number
+  total_pnl: number
+  total_pnl_percent: number
+  trades: number
+  commission: number
+  tax: number
+  max_drawdown: number
+  best_trade: { symbol: string; side: string; quantity: number; price: number; pnl: number } | null
+  worst_trade: { symbol: string; side: string; quantity: number; price: number; pnl: number } | null
+  positions: Array<{ symbol: string; quantity: number; market_val: number; pnl: number; pnl_pct: number }>
+  notes: string
+}
+
+export async function GetDailyReport(date: string): Promise<DailyReport | null> {
+  return wailsCall<DailyReport | null>('GetDailyReport', date)
+}
+
+export async function ListDailyReports(limit: number): Promise<DailyReport[]> {
+  return wailsCall<DailyReport[]>('ListDailyReports', limit)
+}
+
+export async function GenerateDailyReport(date: string): Promise<DailyReport> {
+  return wailsCall<DailyReport>('GenerateDailyReport', date)
+}
+
+export async function ExportReportCSV(date: string): Promise<void> {
+  return wailsCall<void>('ExportReportCSV', date)
+}
+
 /**
  * Subscribes to crash reports pushed from the Go backend via Wails events.
  * Returns an unsubscribe function.
