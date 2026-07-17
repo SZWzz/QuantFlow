@@ -41,13 +41,15 @@ MacroDashboard → MarketStyle → EventStudy
 - 0 个新 adapter
 - 产出：宏观视角 + 市场风格 + 事件驱动
 
-### 批次 C: P2 — 增强功能（待定）
-```
-ShareholderAnalysis → UnlockCalendar → FactorAttribution
-```
-- 3 个 plan，9 个 task
-- 2 个新 adapter（股东 + 解禁）
-- 产出：股东结构 + 解禁预警 + 因子归因
+### 批次 C: P2 — 增强功能
+
+| # | Plan | 状态 | 完成日期 |
+|---|------|------|---------|
+| 7 | ShareholderAnalysis | ✅ 完成 | 2026-07-17 |
+| 8 | UnlockCalendar | ✅ 完成 | 2026-07-17 |
+| 9 | FactorAttribution | ✅ 完成 | 2026-07-17 |
+
+**🎉 全部 9/9 完成**
 
 ---
 
@@ -78,3 +80,11 @@ ShareholderAnalysis → UnlockCalendar → FactorAttribution
 | 4 | MacroDashboard | ✅ 完成 | 2026-07-17 |
 | 5 | MarketStyle | ✅ 完成 | 2026-07-17 |
 | 6 | EventStudy | ✅ 完成 | 2026-07-17 |
+
+### 批次 C: P2
+
+| # | Plan | 状态 | 完成日期 |
+|---|------|------|---------|
+| 7 | ShareholderAnalysis | ✅ 完成 | 2026-07-17 |
+| 8 | UnlockCalendar | ✅ 完成 | 2026-07-17 |
+| 9 | FactorAttribution | ✅ 完成 | 2026-07-17 |
