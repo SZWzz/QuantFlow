@@ -1,9 +1,9 @@
 import { vi } from 'vitest'
 import { config } from '@vue/test-utils'
-import { mockWailsIPC, mockWebSocket, mockI18n } from './src/__tests__/mocks'
+import { mockWailsIPC, mockWebSocket, mockI18n } from './src/test-utils/mocks'
 
 // Re-export the t function from mocks for consistent $t mock
-import { t as mockT } from './src/__tests__/mocks'
+import { t as mockT } from './src/test-utils/mocks'
 
 mockWailsIPC()
 mockWebSocket()

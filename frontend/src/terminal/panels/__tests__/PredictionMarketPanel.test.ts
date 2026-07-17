@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
-import { mockWailsIPC } from '@/__tests__/mocks'
+import { mockWailsIPC } from '@/test-utils/mocks'
 import PredictionMarketPanel from '../PredictionMarketPanel.vue'
 
 // Mock vue-echarts (same pattern as other panel tests)

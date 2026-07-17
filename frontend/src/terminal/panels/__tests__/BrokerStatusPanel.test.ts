@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
-import { mockWailsIPC } from '@/__tests__/mocks'
+import { mockWailsIPC } from '@/test-utils/mocks'
 import BrokerStatusPanel from '../BrokerStatusPanel.vue'
 
 describe('BrokerStatusPanel', () => {

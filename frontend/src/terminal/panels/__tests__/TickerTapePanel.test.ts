@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { mockWailsIPC, mockI18n } from '@/__tests__/mocks'
+import { mockWailsIPC, mockI18n } from '@/test-utils/mocks'
 import TickerTapePanel from '../TickerTapePanel.vue'
 
 mockI18n()

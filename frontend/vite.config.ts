@@ -49,7 +49,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts', './src/__tests__/setup.ts'],
+    setupFiles: ['./vitest.setup.ts', './src/test-utils/setup.ts'],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
     },

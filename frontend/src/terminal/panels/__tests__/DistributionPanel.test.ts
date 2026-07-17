@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
-import { mockWailsIPC } from '@/__tests__/mocks'
+import { mockWailsIPC } from '@/test-utils/mocks'
 import DistributionPanel from '../DistributionPanel.vue'
 
 describe('DistributionPanel', () => {
