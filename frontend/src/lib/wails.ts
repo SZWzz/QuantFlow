@@ -466,6 +466,19 @@ export async function GetCrashDir(): Promise<string> {
   return wailsCall<string>('GetCrashDir')
 }
 
+// ── Connection Status ───────────────────────────────────────────────────
+
+export interface ConnectionStatus {
+  markets: Record<string, string>
+  brokers: Record<string, string>
+  python: string
+}
+
+/** Returns live connection status for markets, brokers, and Python sidecar. */
+export async function GetConnectionStatus(): Promise<ConnectionStatus> {
+  return wailsCall<ConnectionStatus>('GetConnectionStatus')
+}
+
 /**
  * Subscribes to crash reports pushed from the Go backend via Wails events.
  * Returns an unsubscribe function.

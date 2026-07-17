@@ -7,7 +7,7 @@
 
 ---
 
-## ✅ 已完成（3/15）
+## ✅ 已完成（4/15）
 
 ### 1. auto-updater — 自动更新系统
 
@@ -55,9 +55,23 @@
   - .msi 打包延后（WiX Toolset 学习成本）
   - 首次发版需替换 Homebrew formula SHA256 占位符
 
+### 4. error-visibility — 全局错误可见性系统
+
+- **Plan**: [2026-07-16-error-visibility.md](./2026-07-16-error-visibility.md)
+- **完成日期**: 2026-07-17
+- **交付**:
+  - `useToast` composable — 4 类型 toast（info/success/warning/error）、30s 去重合并、自动消失、单例共享状态
+  - `ToastContainer.vue` — 固定右上角浮动 toast 容器（slideIn 动画、手动关闭按钮）
+  - `StatusBar.vue` — 增强版状态栏：行情源/券商/Python 连接状态行 + 点击弹详情对话框 + 版本号显示
+  - `ring_buffer.go` — `SetHub(hub)` 注入 WS Hub，Push 时自动广播日志条目到 `system:notification` topic
+  - `GetConnectionStatus()` IPC — 返回实时行情适配器、券商连接（`IsConnected()`）、Python sidecar 三组状态
+  - `terminal.ts` — 新增 `connectionStatus` 响应式状态 + `updateConnectionStatus` action
+- **已知局限（defer）**:
+  - 行情源状态仅检查适配器是否注册，未检查实时可用性（`IsAvailable()`）
+
 ---
 
-## ⏳ 未完成（12/15）
+## ⏳ 未完成（11/15）
 
 ### 交易核心（3 个）— 建议下一批执行
 
@@ -67,11 +81,10 @@
 | 4 | [paper-to-live-switch](./2026-07-16-paper-to-live-switch.md) | 6 | 945 行 | Paper→Live 实盘切换安全机制（TradingMode + SafetyCheck） |
 | 5 | [position-reconciliation](./2026-07-16-position-reconciliation.md) | 6 | 979 行 | 持仓同步与对账（含 `reconciliation_reports` 表迁移） |
 
-### 用户体验（2 个）
+### 用户体验（1 个）
 
 | # | Plan | Tasks | 规模 | 说明 |
 |---|------|-------|------|------|
-| 6 | [error-visibility](./2026-07-16-error-visibility.md) | 6 | 876 行 | Toast + StatusBar + WS 日志三层错误可见性 |
 | 7 | [first-run-wizard](./2026-07-16-first-run-wizard.md) | 5 | 865 行 | 首次启动向导（useFirstRun composable） |
 
 ### CI/CD 质量（3 个）

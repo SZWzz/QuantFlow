@@ -14,6 +14,10 @@
 - [CI] GitHub Actions 自动发版流水线 — `git tag v*` push 触发 6 平台并行构建矩阵（macOS arm64/amd64、Linux amd64/arm64、Windows amd64/arm64），自动生成 SHA256 checksums，上传至 GitHub Releases
 - [Build] 跨平台打包脚本 — `scripts/darwin-package.sh`（.app + .dmg）、`scripts/linux-package.sh`（.tar.gz）、`scripts/windows-package.ps1`（.zip）
 - [Build] Makefile 发版目标 — `make release` 一站式构建 macOS + Linux + checksums；Homebrew formula 模板
+- [Frontend] Toast 通知系统 — `useToast` composable（4 类型 + 30s 去重合并 + 自动消失），`ToastContainer` 浮动容器（fixed top-right），错误类永久展示需手动关闭
+- [Frontend] 状态栏增强 — 底部 StatusBar 新增行情源/券商/Python 连接状态行（彩色状态点 + 点击弹详情对话框），版本号显示
+- [Logging] RingBuffer WS 实时广播 — `SetHub(hub)` 注入 WebSocket Hub，新 Push 的日志条目通过 `system:notification` topic 推送到前端
+- [Backend] `GetConnectionStatus()` IPC — 返回实时行情适配器、券商连接、Python sidecar 三组状态
 
 ### 修复
 

@@ -6,6 +6,7 @@ import { useSessionStore } from '@/stores/session'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { getIcon } from '@/lib/icons'
+import { GetVersion } from '@/lib/wails'
 
 const data = useDataStore()
 const workflow = useWorkflowStore()
@@ -14,14 +15,46 @@ const terminal = useTerminalStore()
 const ctx = useSymbolContext()
 
 const time = ref(new Date().toLocaleTimeString())
+const version = ref('...')
 let timer: ReturnType<typeof setInterval> | null = null
 
-onMounted(() => { timer = setInterval(() => time.value = new Date().toLocaleTimeString(), 1000) })
+onMounted(async () => {
+  timer = setInterval(() => time.value = new Date().toLocaleTimeString(), 1000)
+  try { version.value = await GetVersion() } catch { version.value = '?' }
+})
 onUnmounted(() => { if (timer) clearInterval(timer) })
 
 const activeGroups = computed(() =>
   Object.values(ctx.linkGroups).filter(g => g.activeSymbol)
 )
+
+// ── Connection status detail dialog ──────────────────────────────────
+
+interface StatusDetail {
+  title: string
+  items: Array<{ label: string; status: string }>
+}
+const detailDialog = ref<StatusDetail | null>(null)
+
+function showDetail(title: string, items: Array<{ label: string; status: string }>) {
+  detailDialog.value = { title, items }
+}
+function closeDialog() {
+  detailDialog.value = null
+}
+
+function statusColor(status: string): string {
+  if (status.includes('实时') || status.includes('已连接') || status.includes('运行中')) return 'var(--color-success)'
+  if (status.includes('延迟') || status.includes('初始化')) return 'var(--color-warning)'
+  if (status.includes('未配置') || status.includes('未连接')) return 'var(--color-text-tertiary)'
+  return 'var(--color-danger)'
+}
+
+// ── Connection status display ────────────────────────────────────────
+
+const connStatus = computed(() => terminal.connectionStatus)
+const marketEntries = computed(() => Object.entries(connStatus.value?.markets ?? {}))
+const brokerEntries = computed(() => Object.entries(connStatus.value?.brokers ?? {}))
 </script>
 
 <template>
@@ -30,6 +63,37 @@ const activeGroups = computed(() =>
       <span class="status-badge" :class="{ offline: data.isOffline }">
         <span class="status-dot" :class="{ pulse: !data.isOffline, offline: data.isOffline }" />
         <span class="status-text">{{ data.isOffline ? $t('common.disconnected') : $t('common.connected') }}</span>
+      </span>
+
+      <!-- Connection status rows: markets, brokers, Python -->
+      <span
+        v-for="([market, status]) in marketEntries"
+        :key="market"
+        class="conn-group"
+        data-test="status-group"
+        @click="showDetail(`${market} 行情`, [{ label: '状态', status }])"
+      >
+        <span class="conn-dot" :style="{ background: statusColor(status) }" />
+        <span class="conn-label">{{ market }}</span>
+        <span class="conn-value">{{ status }}</span>
+      </span>
+      <span
+        v-for="([broker, status]) in brokerEntries"
+        :key="broker"
+        class="conn-group"
+        @click="showDetail(`${broker} 券商`, [{ label: '连接', status }])"
+      >
+        <span class="conn-dot" :style="{ background: statusColor(status) }" />
+        <span class="conn-label">{{ broker }}</span>
+      </span>
+      <span
+        class="conn-group"
+        data-test="status-group"
+        @click="showDetail('Python Sidecar', [{ label: '状态', status: connStatus?.python ?? '未知' }])"
+      >
+        <span class="conn-dot" :style="{ background: statusColor(connStatus?.python ?? '未知') }" />
+        <span class="conn-label">Python</span>
+        <span class="conn-value">{{ connStatus?.python ?? '未知' }}</span>
       </span>
     </div>
     <div class="status-groups">
@@ -50,11 +114,26 @@ const activeGroups = computed(() =>
       </span>
     </div>
     <div class="status-right">
+      <span class="version-badge">v{{ version }}</span>
       <span class="time-display">
         <span class="time-icon" v-html="getIcon('schedule')" />
         {{ time }}
       </span>
     </div>
+
+    <!-- Connection detail dialog -->
+    <Teleport to="body">
+      <div v-if="detailDialog" class="detail-overlay" @click.self="closeDialog">
+        <div class="detail-modal">
+          <h3>{{ detailDialog.title }}</h3>
+          <div v-for="item in detailDialog.items" :key="item.label" class="detail-row">
+            <span class="detail-label">{{ item.label }}</span>
+            <span class="detail-value">{{ item.status }}</span>
+          </div>
+          <button class="btn-close" @click="closeDialog">关闭</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -72,6 +151,7 @@ const activeGroups = computed(() =>
   user-select: none;
   position: relative;
   z-index: 10;
+  flex-wrap: wrap;
 }
 
 .status-bar::before {
@@ -142,6 +222,17 @@ const activeGroups = computed(() =>
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Connection status groups ──────────────────────────────────────── */
+.conn-group {
+  display: flex; align-items: center; gap: 4px;
+  cursor: pointer; padding: 1px 6px; border-radius: var(--radius-sm);
+}
+.conn-group:hover { background: var(--color-bg-hover); }
+.conn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.conn-label { font-weight: 600; font-size: 10px; }
+.conn-value { font-size: 10px; color: var(--color-text-tertiary); }
+
+/* ── Link groups ───────────────────────────────────────────────────── */
 .status-groups { display: flex; gap: 6px; }
 
 .group-badge {
@@ -181,6 +272,15 @@ const activeGroups = computed(() =>
   height: 100%;
 }
 
+/* ── Version & time ────────────────────────────────────────────────── */
+.version-badge {
+  padding: 1px 6px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+}
+
 .time-display {
   display: flex;
   align-items: center;
@@ -207,5 +307,33 @@ const activeGroups = computed(() =>
 .time-icon :deep(svg) {
   width: 100%;
   height: 100%;
+}
+
+/* ── Detail dialog ─────────────────────────────────────────────────── */
+.detail-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10001;
+}
+.detail-modal {
+  background: var(--color-bg-app);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 300px;
+}
+.detail-modal h3 { margin-bottom: 16px; font-size: 15px; }
+.detail-row {
+  display: flex; justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.detail-label { font-weight: 600; font-size: 13px; }
+.detail-value { font-size: 13px; }
+.btn-close {
+  margin-top: 16px; padding: 8px 24px;
+  background: var(--color-accent); color: #fff;
+  border: none; border-radius: 8px; cursor: pointer;
 }
 </style>

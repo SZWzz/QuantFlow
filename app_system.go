@@ -50,6 +50,101 @@ func (a *App) UpdateConfig(ctx context.Context, patch map[string]interface{}) er
 	return a.cfg.Save()
 }
 
+// ── Connection Status ──────────────────────────────────────────────────
+
+// ConnectionStatus represents the live status of data sources, brokers, and Python sidecar.
+type ConnectionStatus struct {
+	Markets map[string]string `json:"markets"`
+	Brokers map[string]string `json:"brokers"`
+	Python  string            `json:"python"`
+}
+
+// GetConnectionStatus returns the live connection status for the StatusBar.
+func (a *App) GetConnectionStatus() ConnectionStatus {
+	status := ConnectionStatus{
+		Markets: map[string]string{
+			"A股":  "未配置",
+			"港股": "未配置",
+			"美股": "未配置",
+			"加密": "未配置",
+		},
+		Brokers: make(map[string]string),
+		Python:  "未连接",
+	}
+
+	// Market adapter status
+	if a.marketReg != nil {
+		// Check presence of adapters for each market
+		haveCN := false
+		haveHK := false
+		haveUS := false
+		haveCrypto := false
+		for _, name := range a.marketReg.List() {
+			adp := a.marketReg.Get(name)
+			if adp == nil {
+				continue
+			}
+			for _, mkt := range adp.Markets() {
+				switch mkt {
+				case "CN":
+					haveCN = true
+				case "HK":
+					haveHK = true
+				case "US":
+					haveUS = true
+				case "CRYPTO":
+					haveCrypto = true
+				}
+			}
+		}
+		if haveCN {
+			status.Markets["A股"] = "已配置"
+		}
+		if haveHK {
+			status.Markets["港股"] = "已配置"
+		}
+		if haveUS {
+			status.Markets["美股"] = "已配置"
+		}
+		if haveCrypto {
+			status.Markets["加密"] = "已配置"
+		}
+	}
+
+	// Broker status — use IsConnected() from the Broker interface
+	if a.brokers != nil {
+		for name, broker := range a.brokers {
+			if broker.IsConnected() {
+				status.Brokers[name] = "已连接"
+			} else {
+				status.Brokers[name] = "未连接"
+			}
+		}
+	}
+
+	// Python sidecar — running if initialized
+	if a.sidecar != nil {
+		status.Python = "运行中"
+	}
+
+	return status
+}
+
+func marketLabel(mkt string) string {
+	switch mkt {
+	case "CN":
+		return "A股"
+	case "HK":
+		return "港股"
+	case "US":
+		return "美股"
+	case "CRYPTO":
+		return "加密"
+	default:
+		return mkt
+	}
+}
+
 // GetVersion returns the application version.
 func (a *App) GetVersion() string {
 	if a.cfg == nil {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"quantflow/internal/ws"
 )
 
 func TestRingBufferPushAndLines(t *testing.T) {
@@ -113,5 +115,23 @@ func TestRingBufferLinesLimit(t *testing.T) {
 	lines := rb.Lines(0, 5)
 	if len(lines) != 5 {
 		t.Fatalf("expected 5 lines, got %d", len(lines))
+	}
+}
+
+func TestRingBufferSetHub(t *testing.T) {
+	rb := NewRingBuffer(10)
+	// Without hub, Push should not panic
+	rb.Push(LogEntry{Message: "no hub"})
+
+	// With hub, Push should not panic even if hub has no subscribers
+	hub := ws.NewHub()
+	go hub.Run()
+	defer hub.Shutdown()
+	rb.SetHub(hub)
+	rb.Push(LogEntry{Message: "with hub"})
+
+	lines := rb.Lines(0, 10)
+	if len(lines) < 1 {
+		t.Fatal("expected at least 1 line after pushes")
 	}
 }

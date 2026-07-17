@@ -1,8 +1,11 @@
 package logging
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
+
+	"quantflow/internal/ws"
 )
 
 type LogEntry struct {
@@ -20,6 +23,7 @@ type RingBuffer struct {
 	head   int
 	count  int
 	max    int
+	hub    *ws.Hub // WebSocket hub for broadcasting new entries
 }
 
 func NewRingBuffer(capacity int) *RingBuffer {
@@ -33,9 +37,15 @@ func NewRingBuffer(capacity int) *RingBuffer {
 	}
 }
 
-func (rb *RingBuffer) Push(entry LogEntry) {
+// SetHub wires a WebSocket hub for real-time log broadcast.
+func (rb *RingBuffer) SetHub(hub *ws.Hub) {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
+	rb.hub = hub
+}
+
+func (rb *RingBuffer) Push(entry LogEntry) {
+	rb.mu.Lock()
 	entry.ID = rb.nextID
 	rb.nextID++
 	if rb.count < rb.max {
@@ -44,6 +54,16 @@ func (rb *RingBuffer) Push(entry LogEntry) {
 	} else {
 		rb.buffer[rb.head] = entry
 		rb.head = (rb.head + 1) % rb.max
+	}
+	hub := rb.hub
+	rb.mu.Unlock()
+
+	// Broadcast to WebSocket subscribers outside the lock
+	if hub != nil {
+		// Marshal the entry as JSON for the broadcast (ignore marshal errors)
+		if data, err := json.Marshal(entry); err == nil {
+			hub.Broadcast("system:notification", json.RawMessage(data))
+		}
 	}
 }
 

@@ -7,6 +7,7 @@ import { useUpdateStore } from '@/stores/update'
 import { useCrashStore } from '@/stores/crash'
 import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
 import CrashDialog from '@/terminal/components/CrashDialog.vue'
+import ToastContainer from '@/terminal/components/ToastContainer.vue'
 
 // Init theme at mount — sets body classes and watches reactive session state
 onMounted(() => {
@@ -119,6 +120,7 @@ if (!route.path.startsWith('/tearoff')) {
       @restart="handleCrashDismiss"
       @upload="(send) => sendCrashReport = send"
     />
+    <ToastContainer />
   </div>
 </template>
 

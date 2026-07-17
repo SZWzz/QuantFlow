@@ -4,6 +4,13 @@ import type { DockLayoutTree, DockTabState } from '@/terminal/DockView/types'
 import { getPanelMeta } from '@/terminal/panels/registry'
 import { SaveLayout as saveLayoutIPC, LoadLayout as loadLayoutIPC, ListLayouts as listLayoutsIPC, DeleteLayout as deleteLayoutIPC } from '@/lib/wails'
 
+// ── Connection Status ──────────────────────────────────────────────
+export interface ConnectionStatus {
+  markets: Record<string, string>
+  brokers: Record<string, string>
+  python: string
+}
+
 export interface PanelState {
   instanceId: string
   panelId: string
@@ -37,6 +44,20 @@ export const useTerminalStore = defineStore('terminal', () => {
     try {
       localStorage.setItem('quantflow-recent-panels', JSON.stringify(recentPanels.value))
     } catch {}
+  }
+
+  // ── Connection Status ──────────────────────────────────────────────
+
+  const connectionStatus = ref<ConnectionStatus>({
+    markets: { 'A股': '初始化中', '港股': '初始化中', '美股': '初始化中', '加密': '初始化中' },
+    brokers: {},
+    python: '未连接',
+  })
+
+  function updateConnectionStatus(status: Partial<ConnectionStatus>) {
+    if (status.markets) Object.assign(connectionStatus.value.markets, status.markets)
+    if (status.brokers) Object.assign(connectionStatus.value.brokers, status.brokers)
+    if (status.python !== undefined) connectionStatus.value.python = status.python
   }
 
   const layout = reactive<DockLayoutTree>(loadPersistedLayout())
@@ -219,6 +240,7 @@ export const useTerminalStore = defineStore('terminal', () => {
 
   return {
     activePanels, commandHistory, pushPins, focusMode, layout, recentPanels,
+    connectionStatus, updateConnectionStatus,
     openPanel, closePanel, addCommand, toggleFocusMode,
     selectTab, closeTab, moveTab, updateSplitRatios, applyLayout, persistLayout,
     savedLayouts, refreshLayouts, saveLayout, loadLayout, deleteLayout,
