@@ -186,8 +186,8 @@ function setRetryCount(n: number) {
 
 <style scoped>
 .custom-node {
-  background: #1c2333;
-  border: 2px solid var(--color-border);
+  background: var(--wf-node-bg);
+  border: 2px solid var(--wf-node-border);
   border-radius: var(--radius-lg);
   min-width: 170px;
   max-width: 240px;
@@ -200,12 +200,12 @@ function setRetryCount(n: number) {
 
 .custom-node.selected {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(var(--wf-accent-rgb), 0.3);
 }
 
-.custom-node.status-running { border-color: #f0883e; animation: pulse 1.5s ease-in-out infinite; }
-.custom-node.status-success { border-color: #3fb950; }
-.custom-node.status-failed { border-color: #f85149; }
+.custom-node.status-running { border-color: var(--wf-warn); animation: pulse 1.5s ease-in-out infinite; }
+.custom-node.status-success { border-color: var(--wf-success); }
+.custom-node.status-failed { border-color: var(--wf-danger); }
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
@@ -217,7 +217,7 @@ function setRetryCount(n: number) {
 
 /* ── Inline params ── */
 .node-params {
-  padding: 4px 12px; border-bottom: 1px solid rgba(255,255,255,.06);
+  padding: 4px 12px; border-bottom: 1px solid var(--wf-node-divider);
   background: rgba(0,0,0,.15);
 }
 
@@ -226,20 +226,20 @@ function setRetryCount(n: number) {
 .badge { font-size: 12px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
 .param-row { display: flex; align-items: center; gap: 6px; padding: 1px 0; cursor: pointer; }
 .param-row { position: relative; }
-.param-row:hover { background: rgba(88,166,255,.12); border-radius: 3px; }
+.param-row:hover { background: rgba(var(--wf-accent-rgb), .12); border-radius: 3px; }
 .param-row:hover .edit-hint { opacity: 1; }
 .edit-hint {
   position: absolute; right: 4px; font-size: 9px; color: var(--color-accent);
   opacity: 0; transition: opacity .15s;
 }
 .params-hint {
-  font-size: 9px; color: #6b7a8f;
+  font-size: 9px; color: var(--wf-node-hint);
   padding: 0 0 3px; font-style: italic;
 }
-.param-key { font-size: 11px; color: #8b949e; flex-shrink: 0; }
+.param-key { font-size: 11px; color: var(--wf-node-subtext); flex-shrink: 0; }
 .param-key::after { content: ':'; margin-right: 1px; }
-.param-val { font-size: 12px; color: #e6edf3; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.param-input { width: 100%; padding: 2px 6px; border: 1px solid var(--color-accent); border-radius: 3px; background: #1a2a3a; color: #e6edf3; font-size: 11px; font-family: monospace; outline: none; }
+.param-val { font-size: 12px; color: var(--wf-node-text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.param-input { width: 100%; padding: 2px 6px; border: 1px solid var(--color-accent); border-radius: 3px; background: var(--wf-node-input-bg); color: var(--wf-node-text); font-size: 11px; font-family: monospace; outline: none; }
 
 /* ── Port rows ── */
 .node-ports { padding: 4px 0; }
@@ -253,21 +253,21 @@ function setRetryCount(n: number) {
 /* ── Port dots on card edges ── */
 .port-dot {
   width: 10px !important; height: 10px !important;
-  background: #58a6ff !important;
-  border: 2px solid #171b26 !important;
+  background: var(--wf-accent) !important;
+  border: 2px solid var(--wf-port-ring) !important;
   border-radius: 50% !important;
   position: absolute !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   z-index: 20;
 }
-.port-dot:hover { transform: scale(1.6); background: #79c0ff !important; }
+.port-dot:hover { transform: scale(1.6); background: var(--wf-accent-hover) !important; }
 .port-dot-left { left: -6px; }
 .port-dot-right { right: -6px; }
 
 /* ── Error handling (selected only) ── */
 .node-error-section {
-  padding: 4px 8px; border-top: 1px solid rgba(255,255,255,.06);
+  padding: 4px 8px; border-top: 1px solid var(--wf-node-divider);
   background: rgba(0,0,0,.1);
 }
 .error-row { display: flex; align-items: center; gap: 4px; }
@@ -285,7 +285,7 @@ function setRetryCount(n: number) {
 .retry-input:focus { border-color: var(--color-accent); }
 
 /* ── Status ── */
-.running-indicator { position: absolute; bottom: 4px; right: 4px; width: 8px; height: 8px; background: #f0883e; border-radius: 50%; }
-.success-check { position: absolute; bottom: 2px; right: 6px; color: #3fb950; font-size: 14px; font-weight: bold; }
-.failed-mark { position: absolute; bottom: 2px; left: 6px; color: #f85149; font-size: 10px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.running-indicator { position: absolute; bottom: 4px; right: 4px; width: 8px; height: 8px; background: var(--wf-warn); border-radius: 50%; }
+.success-check { position: absolute; bottom: 2px; right: 6px; color: var(--wf-success); font-size: 14px; font-weight: bold; }
+.failed-mark { position: absolute; bottom: 2px; left: 6px; color: var(--wf-danger); font-size: 10px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

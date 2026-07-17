@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSessionStore } from '@/stores/session'
 import { getAllPanelMeta, type PanelMeta } from '@/terminal/panels/registry'
 import { getIcon, PANEL_ICONS } from '@/lib/icons'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   modelValue: boolean
@@ -48,24 +51,48 @@ const navigations: { id: string; label: string; description: string; path: strin
 const results = computed<CommandItem[]>(() => {
   const q = query.value.toLowerCase().trim()
   if (!q) {
-    return terminal.commandHistory.slice(0, 5).map((cmd) => ({
-      id: `history-${cmd}`,
-      label: cmd,
-      description: 'Recent',
-      category: 'Recent',
-      icon: getIcon('terminal'),
-      action: () => {
-        query.value = cmd
-        selectedIndex.value = 0
-      },
-    }))
+    const items: CommandItem[] = []
+    // 最近使用的面板（点击直接打开）
+    for (const pid of terminal.recentPanels.slice(-6).reverse()) {
+      const meta = allPanels.find(p => p.id === pid)
+      if (!meta) continue
+      const iconName = PANEL_ICONS[pid]
+      items.push({
+        id: `recent-${pid}`,
+        label: meta.label,
+        description: meta.description,
+        category: t('misc.recent_panels'),
+        icon: iconName ? getIcon(iconName) : getIcon('terminal'),
+        action: () => {
+          emit('open-panel', pid)
+          close()
+        },
+      })
+    }
+    // 最近命令
+    for (const cmd of terminal.commandHistory.slice(0, 5)) {
+      items.push({
+        id: `history-${cmd}`,
+        label: cmd,
+        description: '',
+        category: t('misc.cmdbar_history'),
+        icon: getIcon('terminal'),
+        action: () => {
+          query.value = cmd
+          selectedIndex.value = 0
+        },
+      })
+    }
+    return items
   }
 
   const items: CommandItem[] = []
+  const qNorm = q.replace(/\s+/g, '')
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '')
 
   // Match panels from registry
   for (const p of allPanels) {
-    if (p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.id.includes(q)) {
+    if (norm(p.label).includes(qNorm) || norm(p.description).includes(qNorm) || p.id.toLowerCase().includes(qNorm)) {
       const iconName = PANEL_ICONS[p.id]
       items.push({
         id: `panel-${p.id}`,
@@ -88,7 +115,7 @@ const results = computed<CommandItem[]>(() => {
         id: `cmd-${c.id}`,
         label: c.label,
         description: c.shortcut ? `${c.description} (${c.shortcut})` : c.description,
-        category: 'Commands',
+        category: t('misc.cmdbar_commands'),
         icon: c.icon,
         action: () => executeCommand(c.id),
       })
@@ -102,7 +129,7 @@ const results = computed<CommandItem[]>(() => {
         id: `nav-${n.id}`,
         label: n.label,
         description: n.description,
-        category: 'Navigation',
+        category: t('misc.cmdbar_navigation'),
         icon: n.icon,
         action: () => {
           emit('navigate', n.path)
@@ -118,7 +145,7 @@ const results = computed<CommandItem[]>(() => {
       id: `symbol-${q}`,
       label: q.toUpperCase(),
       description: '快速查看行情',
-      category: 'Quick',
+      category: t('misc.cmdbar_quick'),
       icon: getIcon('candlestick'),
       action: () => {
         emit('open-panel', 'candlestick', { symbol: q.toUpperCase() })
@@ -233,7 +260,11 @@ onUnmounted(() => {
             </div>
           </template>
         </div>
-        <div v-else-if="query" class="no-results">
+        <div v-else-if="!query" class="no-results">
+          <span class="no-results-icon" v-html="getIcon('search')" />
+          {{ $t('misc.cmdbar_empty_hint') }}
+        </div>
+        <div v-else class="no-results">
           <span class="no-results-icon" v-html="getIcon('search')" />
           {{ $t('common.no_data') }}
         </div>
@@ -255,8 +286,9 @@ onUnmounted(() => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding-top: 12vh;
-  z-index: 9999;
+  z-index: var(--z-modal);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   animation: fadeInOverlay 0.2s ease;
@@ -273,7 +305,7 @@ onUnmounted(() => {
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -357,7 +389,6 @@ onUnmounted(() => {
 .result-item.selected {
   background: var(--color-accent-soft);
   border: 1px solid var(--color-border-glow);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .result-item:hover:not(.selected) {

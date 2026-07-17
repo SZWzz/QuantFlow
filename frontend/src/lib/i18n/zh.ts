@@ -112,6 +112,7 @@ export default {
     shortcuts: '快捷键', toggle_mode: '模式切换键',
     api_keys: 'API 密钥', fred_key: 'FRED API Key', finnhub_key: 'Finnhub API Key',
     iwencai_key: '爱问财 API Key',
+    api: 'API 密钥', log_viewer: '日志', layout_templates: '布局模板',
     llm_providers: 'AI / 大模型',
     llm_openai_key: 'OpenAI API Key', llm_openai_url: 'OpenAI 接口地址',
     llm_anthropic_key: 'Anthropic API Key', llm_anthropic_url: 'Anthropic 接口地址',
@@ -338,6 +339,8 @@ export default {
     benchmark: '基准', nav: '净值', csv_export: 'CSV',
     pinned: '已固定', terminal_mode: '终端模式',
     recent_panels: '最近使用', market_snapshot: '市场快照',
+    cmdbar_history: '最近命令', cmdbar_commands: '命令', cmdbar_navigation: '导航',
+    cmdbar_quick: '快捷', cmdbar_empty_hint: '输入关键词搜索面板，或直接输入代码查看行情',
     asset_market: '资产/市场',
     // Batch P1 panels
     dragon_tiger: '龙虎榜', daily_board: '日榜单', stock_history: '个股历史',

@@ -101,6 +101,7 @@ export default {
     shortcuts: 'Shortcuts', toggle_mode: 'Toggle Mode',
     api_keys: 'API Keys', fred_key: 'FRED API Key', finnhub_key: 'Finnhub API Key',
     iwencai_key: 'Iwencai API Key',
+    api: 'API Keys', log_viewer: 'Logs', layout_templates: 'Layout Templates',
     llm_providers: 'AI / LLM',
     llm_openai_key: 'OpenAI API Key', llm_openai_url: 'OpenAI Base URL',
     llm_anthropic_key: 'Anthropic API Key', llm_anthropic_url: 'Anthropic Base URL',
@@ -313,6 +314,8 @@ export default {
     cat_altdata: 'Alt Data', cat_hk: 'HK Stocks', cat_us: 'US Stocks', cat_crypto: 'Crypto', cat_system: 'System',
     echarts_missing: 'ECharts required for drawdown chart',
     recent_panels: 'Recent', market_snapshot: 'Market Snapshot',
+    cmdbar_history: 'Recent Commands', cmdbar_commands: 'Commands', cmdbar_navigation: 'Navigation',
+    cmdbar_quick: 'Quick', cmdbar_empty_hint: 'Type to search panels, or enter a symbol to view quotes',
     // Batch P1 panels
     dragon_tiger: 'Dragon & Tiger', daily_board: 'Daily Board', stock_history: 'History',
     net_buy: 'Net Buy', buy_top5: 'Buy TOP5', sell_top5: 'Sell TOP5',

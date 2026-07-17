@@ -228,13 +228,11 @@ const allOK = computed(() => badItems.value.length === 0)
   height: 6px;
   border-radius: 50%;
   background: var(--color-success);
-  box-shadow: 0 0 4px var(--color-success);
   flex-shrink: 0;
 }
 
 .status-dot.offline {
   background: var(--color-danger);
-  box-shadow: 0 0 4px var(--color-danger);
   animation: none;
 }
 
@@ -261,7 +259,7 @@ const allOK = computed(() => badItems.value.length === 0)
   transition: all var(--transition-fast);
 }
 
-.group-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 4px currentColor; }
+.group-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 
 .status-item {
   display: flex;
@@ -333,7 +331,7 @@ const allOK = computed(() => badItems.value.length === 0)
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center;
-  z-index: 10001;
+  z-index: var(--z-modal);
 }
 .detail-modal {
   background: var(--color-bg-app);

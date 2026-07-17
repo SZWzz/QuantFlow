@@ -230,18 +230,7 @@ function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
   -webkit-app-region: drag;
   user-select: none;
   position: relative;
-  z-index: 10;
-}
-
-.terminal-header::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
-  opacity: 0.3;
+  z-index: var(--z-sticky);
 }
 
 .header-left {
@@ -259,7 +248,6 @@ function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
   background: var(--gradient-accent);
   border: 1px solid var(--color-border-glow);
   border-radius: var(--radius-md);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .logo-icon {
@@ -325,8 +313,8 @@ function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
   animation: livePulse 1.5s ease infinite;
 }
 @keyframes livePulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px currentColor; }
-  50% { opacity: 0.4; box-shadow: 0 0 1px currentColor; }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .mode-label { letter-spacing: 0.3px; }
@@ -381,7 +369,6 @@ function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--color-accent-soft);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .btn-icon {
@@ -423,7 +410,6 @@ function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
 .mode-switch:hover {
   background: var(--color-brand);
   color: var(--color-text-inverse);
-  box-shadow: 0 0 10px var(--color-brand-glow);
 }
 
 .mode-icon {
@@ -450,7 +436,7 @@ function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center;
-  z-index: 10002;
+  z-index: var(--z-modal);
 }
 .safety-modal {
   background: var(--color-bg-app);

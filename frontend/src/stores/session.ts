@@ -17,7 +17,7 @@ export const useSessionStore = defineStore('session', () => {
   const stored = localStorage.getItem('quantflow-session')
   const savedLocale = localStorage.getItem(LOCALE_KEY)
   const defaults: SessionUI = {
-    theme: 'dark',
+    theme: 'light',
     density: 'default',
     language: savedLocale === 'en' ? 'en' : 'zh',
     mode: 'terminal',

@@ -531,7 +531,6 @@ function onExportData() {
   background: var(--color-accent-soft);
   color: var(--color-accent);
   border-left-color: var(--color-accent);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .nav-icon {
@@ -723,7 +722,6 @@ function onExportData() {
   background: var(--color-accent-soft);
   color: var(--color-accent);
   border-color: var(--color-accent);
-  box-shadow: 0 0 8px var(--color-accent-glow);
   font-weight: 500;
 }
 
@@ -759,7 +757,6 @@ function onExportData() {
 .action-btn:hover {
   background: var(--color-accent);
   color: var(--color-text-inverse);
-  box-shadow: 0 0 12px var(--color-accent-glow);
 }
 
 .btn-icon {

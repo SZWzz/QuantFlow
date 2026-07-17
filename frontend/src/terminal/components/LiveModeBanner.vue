@@ -179,8 +179,8 @@ async function handleEmergencyClose() {
   animation: livePulse 1.5s ease infinite;
 }
 @keyframes livePulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px #fff; }
-  50% { opacity: 0.5; box-shadow: 0 0 2px #fff; }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 .live-text { letter-spacing: 0.5px; }
 .live-actions { display: flex; gap: 8px; }
@@ -201,7 +201,7 @@ async function handleEmergencyClose() {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center;
-  z-index: 10002;
+  z-index: var(--z-modal);
 }
 .safety-modal {
   background: var(--color-bg-app);

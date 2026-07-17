@@ -8,6 +8,7 @@ import { MiniMap } from '@vue-flow/minimap'
 import { useWorkflowStore } from '@/stores/workflow'
 import { GetNodePorts } from '@/lib/wails'
 import { useCanvasShortcuts } from '@/lib/useCanvasShortcuts'
+import { cssVar } from '@/lib/cssVar'
 import CustomNode from './CustomNode.vue'
 import StickyNote from './StickyNote.vue'
 import ContextMenu from '@/workflow/components/ContextMenu.vue'
@@ -135,19 +136,24 @@ const edgeStyles = computed(() => {
     if (status === 'running') {
       const tgt = (workflow.nodeStatuses as any).get?.(edge.target)
       if (tgt?.status === 'running' || tgt?.status === 'success') {
-        s[eid] = { stroke: '#58a6ff', strokeDasharray: '5 3', strokeWidth: 2, animation: 'edge-flow 0.5s linear infinite' }
+        s[eid] = { stroke: 'var(--wf-accent)', strokeDasharray: '5 3', strokeWidth: 2, animation: 'edge-flow 0.5s linear infinite' }
         continue
       }
     }
     const tgtDone = (workflow.nodeStatuses as any).get?.(edge.target)
     if (tgtDone?.status === 'success') {
-      s[eid] = { stroke: '#3fb950', strokeWidth: 2 }
+      s[eid] = { stroke: 'var(--wf-success)', strokeWidth: 2 }
     } else if (tgtDone?.status === 'failed') {
-      s[eid] = { stroke: '#f85149', strokeWidth: 2 }
+      s[eid] = { stroke: 'var(--wf-danger)', strokeWidth: 2 }
     }
   }
   return s
 })
+
+// Canvas colors that must be concrete values (SVG attributes, not CSS) —
+// read once from theme tokens; correct after reload on theme switch.
+const canvasPattern = cssVar('--wf-canvas-pattern', '#d6dce3')
+const minimapMask = cssVar('--wf-minimap-mask', 'rgba(255, 255, 255, 0.7)')
 
 // Handle new connection
 onConnect((connection: Connection) => {
@@ -243,12 +249,12 @@ async function onDrop(event: DragEvent) {
       @node-double-click="onNodeDoubleClick"
       fit-view-on-init
     >
-      <Background :gap="20" :size="1" pattern-color="#1a2a3e" />
+      <Background :gap="20" :size="1" :pattern-color="canvasPattern" />
       <Controls position="bottom-right" />
       <MiniMap
         position="bottom-left"
-        :style="{ background: 'var(--color-bg-input)' }"
-        :mask-color="'rgba(0,0,0,0.5)'"
+        :style="{ background: 'var(--wf-minimap-bg)' }"
+        :mask-color="minimapMask"
       />
     </VueFlow>
 
@@ -264,7 +270,7 @@ async function onDrop(event: DragEvent) {
 .workflow-canvas {
   width: 100%;
   height: 100%;
-  background: var(--color-bg-input);
+  background: var(--wf-canvas-bg);
   position: relative;
   outline: none;
 }
@@ -280,12 +286,12 @@ async function onDrop(event: DragEvent) {
 
 .empty-hint p {
   font-size: 14px;
-  color: #3a4a6c;
+  color: var(--wf-canvas-hint);
 }
 
 .empty-hint kbd {
   padding: 2px 6px;
-  background: #1c2333;
+  background: var(--wf-node-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: 12px;
@@ -295,7 +301,7 @@ async function onDrop(event: DragEvent) {
 
 .subwf-breadcrumb {
   display: flex; align-items: center; gap: 8px;
-  padding: 6px 12px; background: #161b22;
+  padding: 6px 12px; background: var(--wf-panel-bg);
   border-bottom: 1px solid var(--color-border); font-size: 12px;
   position: absolute; top: 0; left: 0; right: 0; z-index: 100;
 }
@@ -303,6 +309,6 @@ async function onDrop(event: DragEvent) {
   padding: 2px 8px; border: 1px solid var(--color-border);
   border-radius: 4px; background: none; color: var(--color-accent); cursor: pointer; font-size: 11px;
 }
-.breadcrumb-back:hover { background: rgba(88,166,255,0.1); }
+.breadcrumb-back:hover { background: rgba(var(--wf-accent-rgb), 0.1); }
 .breadcrumb-path { color: var(--color-text-tertiary); font-size: 11px; }
 </style>

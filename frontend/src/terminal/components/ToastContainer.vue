@@ -46,7 +46,7 @@ const typeColors: Record<string, { bg: string; border: string; icon: string }> =
   position: fixed;
   top: 12px;
   right: 12px;
-  z-index: 10000;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 8px;

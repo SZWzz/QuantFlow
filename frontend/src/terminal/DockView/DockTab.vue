@@ -241,7 +241,6 @@ provide('isVisible', isTabVisible)
   background: var(--color-accent);
   opacity: 0;
   transition: opacity var(--transition-fast);
-  box-shadow: 0 0 6px var(--color-accent-glow);
 }
 
 .tab-btn.active {
@@ -281,7 +280,6 @@ provide('isVisible', isTabVisible)
   height: 20px;
   background: var(--color-accent);
   border-radius: 1px;
-  box-shadow: 0 0 6px var(--color-accent-glow);
   animation: drop-pulse 1.2s ease infinite;
   flex-shrink: 0;
   align-self: center;
@@ -315,7 +313,6 @@ provide('isVisible', isTabVisible)
 
 .tab-group-dot {
   width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-  box-shadow: 0 0 4px currentColor;
 }
 
 .tab-label {

@@ -42,7 +42,7 @@ async function animateExecution() {
 
   // Reset all edges to default
   for (const edge of workflow.edges as any[]) {
-    edge.style = { stroke: '#30363d', strokeWidth: 2 }
+    edge.style = { stroke: 'var(--wf-edge)', strokeWidth: 2 }
     edge.animated = false
   }
 
@@ -52,7 +52,7 @@ async function animateExecution() {
     node.data.status = 'success'
     for (const edge of workflow.edges as any[]) {
       if (edge.source === node.id) {
-        edge.style = { stroke: '#3fb950', strokeWidth: 2.5 }
+        edge.style = { stroke: 'var(--wf-success)', strokeWidth: 2.5 }
         edge.animated = true
       }
     }
@@ -221,7 +221,6 @@ function onKeydown(event: KeyboardEvent) {
   background: var(--gradient-accent);
   border: 1px solid var(--color-border-glow);
   border-radius: var(--radius-md);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .logo-icon {
@@ -272,7 +271,6 @@ function onKeydown(event: KeyboardEvent) {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--color-accent-soft);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .wf-btn:disabled {
@@ -301,7 +299,6 @@ function onKeydown(event: KeyboardEvent) {
 .btn-run:hover:not(:disabled) {
   background: var(--color-accent);
   color: var(--color-text-inverse);
-  box-shadow: 0 0 12px var(--color-accent-glow);
 }
 
 .btn-icon {
@@ -339,7 +336,6 @@ function onKeydown(event: KeyboardEvent) {
 .mode-switch:hover {
   background: var(--color-brand);
   color: var(--color-text-inverse);
-  box-shadow: 0 0 10px var(--color-brand-glow);
 }
 
 .mode-icon {

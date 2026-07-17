@@ -247,7 +247,7 @@ function buildChart() {
   const { series, chartData } = trendMetrics.value
   if (!series.length || !chartData.length) return
 
-  const isDark = document.documentElement.classList.contains('dark')
+  const isDark = document.body.classList.contains('theme-dark')
   const textColor = isDark ? '#8b949e' : '#666'
   const borderColor = isDark ? '#30363d' : '#e5e7eb'
 

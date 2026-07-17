@@ -83,7 +83,6 @@ const groups = Object.entries(ctx.linkGroups)
   background: var(--gcolor);
   opacity: 0;
   transition: opacity var(--transition-fast);
-  box-shadow: 0 0 6px var(--gcolor);
 }
 
 .group-tabs button:hover {
@@ -96,7 +95,6 @@ const groups = Object.entries(ctx.linkGroups)
   border-color: var(--gcolor);
   color: var(--color-text-primary);
   background: var(--color-bg-panel);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--gcolor) 20%, transparent);
 }
 
 .group-tabs button.active::before {
@@ -108,7 +106,6 @@ const groups = Object.entries(ctx.linkGroups)
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 4px currentColor;
 }
 
 .group-symbol {

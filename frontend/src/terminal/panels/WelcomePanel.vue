@@ -64,6 +64,27 @@ const panelCategories = computed(() => {
   return result
 })
 
+// 搜索关键词 + 分类筛选
+const searchQuery = ref('')
+const activeCat = ref('')
+
+const filteredCategories = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase().replace(/\s+/g, '')
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '')
+  return panelCategories.value
+    .filter(c => !activeCat.value || c.key === activeCat.value)
+    .map(c => ({
+      ...c,
+      items: q
+        ? c.items.filter(p =>
+            norm(p.label).includes(q) ||
+            norm(p.description).includes(q) ||
+            p.id.toLowerCase().includes(q))
+        : c.items,
+    }))
+    .filter(c => c.items.length > 0)
+})
+
 function openPanel(id: string) {
   terminal.openPanel(id, { source: 'welcome' })
 }
@@ -96,7 +117,33 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
       </div>
     </div>
 
-    <div v-if="recentPanels.length > 0" class="dashboard-section">
+    <div class="welcome-toolbar">
+      <div class="search-box">
+        <span class="search-icon" v-html="getIcon('search')" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          :placeholder="$t('common.search') + '...'"
+        />
+      </div>
+      <div class="cat-rail">
+        <button :class="['cat-chip', { active: activeCat === '' }]" @click="activeCat = ''">
+          {{ $t('common.all') }}
+        </button>
+        <button
+          v-for="cat in panelCategories"
+          :key="cat.key"
+          :class="['cat-chip', { active: activeCat === cat.key }]"
+          @click="activeCat = activeCat === cat.key ? '' : cat.key"
+        >
+          {{ catLabel(cat.title) }}
+          <span class="chip-count">{{ cat.items.length }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div v-if="recentPanels.length > 0 && !searchQuery && !activeCat" class="dashboard-section">
       <div class="section-title">
         <span class="section-dot accent" />
         {{ $t('misc.recent_panels') }}
@@ -138,11 +185,10 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 
     <div class="panel-grid">
       <section
-        v-for="(cat, catIdx) in panelCategories"
+        v-for="cat in filteredCategories"
         :key="cat.title"
         class="category-section"
         :data-cat="cat.key"
-        :style="{ animationDelay: `${catIdx * 50}ms` }"
       >
         <div class="category-header">
           <span class="category-dot" />
@@ -151,10 +197,9 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
         </div>
         <div class="category-grid">
           <button
-            v-for="(item, idx) in cat.items"
+            v-for="item in cat.items"
             :key="item.id"
             class="panel-card"
-            :style="{ animationDelay: `${catIdx * 50 + idx * 30}ms` }"
             @click="openPanel(item.id)"
           >
             <span
@@ -229,7 +274,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   background: var(--gradient-accent);
   border: 1px solid var(--color-border-glow);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-glow);
 }
 
 .logo-icon {
@@ -258,10 +302,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   color: var(--color-text-primary);
   margin: 0;
   letter-spacing: -0.3px;
-  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .welcome-subtitle {
@@ -294,7 +334,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
   color: var(--color-text-primary);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .btn-icon {
@@ -310,22 +349,95 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   height: 100%;
 }
 
+/* ── Toolbar: search + category rail ─────────────────────────── */
+.welcome-toolbar {
+  max-width: 960px;
+  margin: 0 auto 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.search-box:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+.search-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+.search-icon :deep(svg) { width: 100%; height: 100%; }
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-primary);
+  outline: none;
+}
+.search-input:focus { border: none; box-shadow: none; }
+.cat-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-xs);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.cat-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.cat-chip.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+.cat-chip.active .chip-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-inverse);
+  border-color: transparent;
+}
+.chip-count {
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  line-height: 1.5;
+}
+
 .panel-grid {
   display: flex;
   flex-direction: column;
   gap: 28px;
   max-width: 960px;
   margin: 0 auto;
-}
-
-.category-section {
-  opacity: 0;
-  animation: fadeIn 0.4s ease forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .category-header {
@@ -342,7 +454,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 6px currentColor;
 }
 
 .category-title {
@@ -375,36 +486,18 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   gap: 12px;
   padding: 12px 14px;
   background: var(--color-bg-subtle);
-  background-image: var(--gradient-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   cursor: pointer;
   text-align: left;
-  transition: all var(--transition-normal);
-  opacity: 0;
-  animation: fadeIn 0.3s ease forwards;
+  transition: border-color var(--transition-normal), background var(--transition-normal), box-shadow var(--transition-normal);
   position: relative;
-  overflow: hidden;
-}
-
-.panel-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, transparent 0%, var(--color-bg-elevated) 100%);
-  opacity: 0.02;
-  transition: opacity var(--transition-normal);
 }
 
 .panel-card:hover {
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md), 0 0 12px var(--color-accent-glow);
-}
-
-.panel-card:hover::before {
-  opacity: 0.04;
+  box-shadow: var(--shadow-md);
 }
 
 .card-icon {
@@ -415,16 +508,11 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   height: 32px;
   border-radius: var(--radius-md);
   flex-shrink: 0;
-  transition: all var(--transition-normal);
 }
 
 .card-icon :deep(svg) {
   width: 16px;
   height: 16px;
-}
-
-.panel-card:hover .card-icon {
-  transform: scale(1.1);
 }
 
 .card-body {

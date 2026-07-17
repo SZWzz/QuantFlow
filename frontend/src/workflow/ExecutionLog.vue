@@ -113,12 +113,12 @@ function statusIcon(s: string): string {
 
 function statusColor(s: string): string {
   switch (s) {
-    case 'success': return '#3fb950'
-    case 'failed': return '#f85149'
-    case 'running': return '#f0883e'
-    case 'skipped': return '#5a6380'
+    case 'success': return 'var(--wf-success)'
+    case 'failed': return 'var(--wf-danger)'
+    case 'running': return 'var(--wf-warn)'
+    case 'skipped': return 'var(--wf-skipped)'
   }
-  return '#5a6380'
+  return 'var(--wf-skipped)'
 }
 
 function formatOutput(key: any, val: any): string {
@@ -152,10 +152,10 @@ function formatOutput(key: any, val: any): string {
         <div class="chart-label">📈 净值曲线 ({{ equityData.length }} bars)</div>
         <svg :viewBox="`0 0 ${chartInfo.w} ${chartInfo.h}`" class="equity-svg" preserveAspectRatio="xMidYMid meet">
           <g v-for="(l, i) in chartInfo.labels" :key="'g'+i">
-            <line x1="52" :x2="chartInfo.w-8" :y1="l.y" :y2="l.y" stroke="#2a2a3a" stroke-width="0.5" stroke-dasharray="3,3" />
-            <text x="50" :y="l.y+3" text-anchor="end" fill="#8b8ba0" font-size="9">{{ l.label }}</text>
+            <line x1="52" :x2="chartInfo.w-8" :y1="l.y" :y2="l.y" style="stroke: var(--wf-chart-grid)" stroke-width="0.5" stroke-dasharray="3,3" />
+            <text x="50" :y="l.y+3" text-anchor="end" style="fill: var(--wf-chart-text)" font-size="9">{{ l.label }}</text>
           </g>
-          <polyline :points="chartInfo.polyline" fill="none" stroke="#3fb950" stroke-width="1.5" />
+          <polyline :points="chartInfo.polyline" fill="none" style="stroke: var(--wf-success)" stroke-width="1.5" />
         </svg>
       </div>
 
@@ -212,9 +212,9 @@ function formatOutput(key: any, val: any): string {
 .log-title { font-size: 11px; font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
 .log-actions { display: flex; align-items: center; gap: 8px; }
 
-.running-badge { font-size: 10px; color: #f0883e; animation: pulse 1s ease-in-out infinite; }
-.done-badge { font-size: 10px; color: #3fb950; }
-.fail-badge { font-size: 10px; color: #f85149; }
+.running-badge { font-size: 10px; color: var(--wf-warn); animation: pulse 1s ease-in-out infinite; }
+.done-badge { font-size: 10px; color: var(--wf-success); }
+.fail-badge { font-size: 10px; color: var(--wf-danger); }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -236,7 +236,7 @@ function formatOutput(key: any, val: any): string {
 .entry-node { color: var(--color-text-primary); min-width: 80px; }
 .entry-status { font-weight: 500; }
 .entry-time { color: var(--color-text-tertiary); margin-left: auto; }
-.entry-error { color: #f85149; font-size: 10px; }
+.entry-error { color: var(--wf-danger); font-size: 10px; }
 
 .chart-output { padding: 4px 8px; margin: 2px 0; background: var(--color-bg-canvas); border-radius: var(--radius-sm); }
 .chart-label { font-size: 10px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 2px; }

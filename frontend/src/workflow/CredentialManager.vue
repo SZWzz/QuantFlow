@@ -84,7 +84,7 @@ onMounted(loadCreds)
 .credential-manager { padding: 12px; }
 .cred-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .cred-header h3 { font-size: 13px; color: var(--color-text-primary); margin: 0; }
-.add-btn { padding: 4px 12px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: rgba(88,166,255,.1); color: var(--color-accent); cursor: pointer; font-size: 11px; }
+.add-btn { padding: 4px 12px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: rgba(var(--wf-accent-rgb), .1); color: var(--color-accent); cursor: pointer; font-size: 11px; }
 .add-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; padding: 10px; background: var(--color-bg-subtle); border-radius: var(--radius-md); }
 .cred-input, .cred-select, .cred-textarea { padding: 6px 8px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: 12px; outline: none; }
 .cred-input:focus, .cred-textarea:focus { border-color: var(--color-accent); }
@@ -97,6 +97,6 @@ onMounted(loadCreds)
 .cred-name { font-size: 12px; color: var(--color-text-primary); font-weight: 500; }
 .cred-type { font-size: 10px; color: var(--color-text-tertiary); }
 .cred-keys { font-size: 10px; color: var(--color-text-secondary); }
-.del-btn { padding: 2px 8px; border: 1px solid rgba(248,81,73,.3); border-radius: var(--radius-sm); background: transparent; color: #f85149; cursor: pointer; font-size: 10px; }
-.del-btn:hover { background: rgba(248,81,73,.1); }
+.del-btn { padding: 2px 8px; border: 1px solid rgba(var(--wf-danger-rgb), .3); border-radius: var(--radius-sm); background: transparent; color: var(--wf-danger); cursor: pointer; font-size: 10px; }
+.del-btn:hover { background: rgba(var(--wf-danger-rgb), .1); }
 </style>

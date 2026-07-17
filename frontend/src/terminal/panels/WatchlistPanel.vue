@@ -564,10 +564,10 @@ onUnmounted(() => {
 
 /* Context menu */
 .context-menu {
-  position: fixed; z-index: 2000;
+  position: fixed; z-index: var(--z-tooltip);
   background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md); padding: 4px 0;
-  min-width: 120px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  min-width: 120px; box-shadow: var(--shadow-md);
 }
 .menu-item { padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--color-text-primary); transition: background 0.1s; }
 .menu-item:hover { background: var(--color-accent); color: #fff; }

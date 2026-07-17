@@ -138,16 +138,16 @@ onUnmounted(() => {
 .market-tabs { display: flex; gap: 2px; flex-shrink: 0; }
 .mkt-tab {
   padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; line-height: 1.2;
+  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px; line-height: 1.2;
 }
-.mkt-tab.active { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.15); }
+.mkt-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: var(--color-accent-soft); }
 .tape-track-container {
   flex: 1;
   overflow: hidden;
   mask-image: linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%);
 }
 .tape-loading {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 .tape-track {
@@ -163,7 +163,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-variant-numeric: tabular-nums;
 }
 .tape-name {
@@ -172,6 +172,7 @@ onUnmounted(() => {
 }
 .tape-price {
   color: var(--color-text-primary);
+  font-family: var(--font-mono);
 }
 .tape-change {
   font-weight: 500;

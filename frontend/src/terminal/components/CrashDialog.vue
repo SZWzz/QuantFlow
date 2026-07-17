@@ -88,10 +88,10 @@ function formatTime(ts: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: var(--z-modal);
 }
 .crash-dialog {
-  background: var(--bg-surface);
+  background: var(--color-bg-panel);
   border: 1px solid var(--border);
   border-radius: 8px;
   width: 480px;

@@ -1,11 +1,122 @@
 /* ================================================================
    QuantFlow Terminal — Design Token System
-   Dark/Light themes + 3 density levels
+   Light theme (default) + Dark theme + 3 density levels
    Uses body classes (Wails v3 manages html element)
+
+   配色原则：
+   - 亮色为默认主题，暗色为 body.theme-dark
+   - 文字对比度 ≥ WCAG AA（正文 4.5:1）
+   - 无装饰性辉光 / 网格背景 / 渐变分割线
+   - brand 色已并入 accent（保留别名兼容旧代码）
    ================================================================ */
 
-/* ── Dark Theme (default) ─────────────────────────────────────── */
+/* ── Light Theme (default) ─────────────────────────────────────── */
 body {
+  /* Surfaces */
+  --color-bg-app: #eef1f5;
+  --color-bg-panel: #ffffff;
+  --color-bg-subtle: #f5f7fa;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: rgba(16, 24, 40, 0.045);
+  --color-bg-active: rgba(16, 24, 40, 0.08);
+  --color-bg-selected: rgba(29, 100, 216, 0.10);
+  --color-bg-input: #f2f4f7;
+  --color-bg-glass: rgba(255, 255, 255, 0.88);
+  /* Text — 全部 ≥ 4.5:1 on panel */
+  --color-text-primary: #161d27;
+  --color-text-secondary: #43505f;
+  --color-text-tertiary: #67727f;
+  --color-text-inverse: #ffffff;
+  --color-text-disabled: #9aa4ae;
+  /* Borders */
+  --color-border: #d6dce3;
+  --color-border-subtle: #e6eaef;
+  --color-border-strong: #c0c8d1;
+  --color-border-hover: #98a4b2;
+  --color-border-glow: rgba(29, 100, 216, 0.30);
+  /* Accent */
+  --color-accent: #1d64d8;
+  --color-accent-hover: #1853b4;
+  --color-accent-soft: rgba(29, 100, 216, 0.08);
+  --color-accent-glow: rgba(29, 100, 216, 0.25);
+  /* Up/Down — 默认 A股配色（红涨绿跌），body.color-us 覆盖 */
+  --color-up: #c62828;
+  --color-up-soft: rgba(198, 40, 40, 0.10);
+  --color-up-glow: rgba(198, 40, 40, 0.28);
+  --color-down: #2e7d32;
+  --color-down-soft: rgba(46, 125, 50, 0.10);
+  --color-down-glow: rgba(46, 125, 50, 0.28);
+  /* Semantic */
+  --color-warn: #b45309;
+  --color-warn-soft: rgba(180, 83, 9, 0.10);
+  --color-info: #0e7490;
+  --color-success: #2e7d32;
+  --color-danger: #c62828;
+  --color-brand: var(--color-accent);
+  --color-brand-soft: var(--color-accent-soft);
+  --color-brand-glow: var(--color-accent-glow);
+  --color-success-soft: rgba(46, 125, 50, 0.12);
+  --color-danger-soft: rgba(198, 40, 40, 0.12);
+  --color-warning-soft: rgba(180, 83, 9, 0.12);
+  --color-info-soft: rgba(14, 116, 144, 0.12);
+  /* Category colors for WelcomePanel */
+  --cat-market: #2563eb;
+  --cat-market-bg: rgba(37, 99, 235, 0.08);
+  --cat-trading: #059669;
+  --cat-trading-bg: rgba(5, 150, 105, 0.08);
+  --cat-portfolio: #4f46e5;
+  --cat-portfolio-bg: rgba(79, 70, 229, 0.08);
+  --cat-chart: #0891b2;
+  --cat-chart-bg: rgba(8, 145, 178, 0.08);
+  --cat-research: #7c3aed;
+  --cat-research-bg: rgba(124, 58, 237, 0.08);
+  --cat-quant: #d97706;
+  --cat-quant-bg: rgba(217, 119, 6, 0.08);
+  --cat-altdata: #db2777;
+  --cat-altdata-bg: rgba(219, 39, 119, 0.08);
+  --cat-hk: #0d9488;
+  --cat-hk-bg: rgba(13, 148, 136, 0.08);
+  --cat-us: #2563eb;
+  --cat-us-bg: rgba(37, 99, 235, 0.08);
+  --cat-crypto: #d97706;
+  --cat-crypto-bg: rgba(217, 119, 6, 0.08);
+  --cat-system: #475569;
+  --cat-system-bg: rgba(71, 85, 105, 0.08);
+  /* Shadows — ≤8px blur 用于常规，lg 仅用于模态层 */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 8px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 12px 24px rgba(16, 24, 40, 0.14);
+  --shadow-glow: none;
+  /* Legacy aliases */
+  --bg: var(--color-bg-app);
+  --card: var(--color-bg-panel);
+  --input: var(--color-bg-input);
+  --text: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --color-text: var(--color-text-primary);
+  --color-bg: var(--color-bg-panel);
+  --up: var(--color-up);
+  --down: var(--color-down);
+  --accent: var(--color-accent);
+  --border: var(--color-border);
+  --hover: var(--color-bg-hover);
+  /* Charts */
+  --chart-1: #1d64d8;
+  --chart-2: #2e7d32;
+  --chart-3: #b45309;
+  --chart-4: #c62828;
+  --chart-5: #6d28d9;
+  --chart-6: #0e7490;
+  --chart-grid: rgba(16, 24, 40, 0.06);
+  /* Flat header / card（保留变量名兼容，已去渐变） */
+  --gradient-header: var(--color-bg-panel);
+  --gradient-card: none;
+  --gradient-accent: var(--color-accent-soft);
+  --gradient-brand: var(--color-accent-soft);
+}
+
+/* ── Dark Theme ────────────────────────────────────────────────── */
+body.theme-dark {
   --color-bg-app: #090d16;
   --color-bg-panel: #161f2e;
   --color-bg-subtle: #121d2d;
@@ -40,9 +151,9 @@ body {
   --color-info: #06b6d4;
   --color-success: #22c55e;
   --color-danger: #ef4444;
-  --color-brand: #e94560;
-  --color-brand-soft: rgba(233, 69, 96, 0.15);
-  --color-brand-glow: rgba(233, 69, 96, 0.25);
+  --color-brand: var(--color-accent);
+  --color-brand-soft: var(--color-accent-soft);
+  --color-brand-glow: var(--color-accent-glow);
   --color-success-soft: rgba(34, 197, 94, 0.15);
   --color-danger-soft: rgba(239, 68, 68, 0.15);
   --color-warning-soft: rgba(245, 158, 11, 0.15);
@@ -71,9 +182,9 @@ body {
   --cat-system: #64748b;
   --cat-system-bg: rgba(100, 116, 139, 0.12);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.55);
+  --shadow-glow: none;
   --bg: var(--color-bg-app);
   --card: var(--color-bg-panel);
   --input: var(--color-bg-input);
@@ -93,117 +204,100 @@ body {
   --chart-5: #8b5cf6;
   --chart-6: #06b6d4;
   --chart-grid: rgba(255, 255, 255, 0.04);
-  --gradient-header: linear-gradient(180deg, rgba(18, 25, 41, 0.98) 0%, rgba(18, 25, 41, 0.95) 100%);
-  --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
-  --gradient-accent: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
-  --gradient-brand: linear-gradient(135deg, rgba(233, 69, 96, 0.15) 0%, rgba(233, 69, 96, 0.05) 100%);
-  --bg-grid: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-             linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  --gradient-header: var(--color-bg-panel);
+  --gradient-card: none;
+  --gradient-accent: var(--color-accent-soft);
+  --gradient-brand: var(--color-accent-soft);
 }
 
-/* ── Light Theme ───────────────────────────────────────────────── */
-body.theme-light {
-  --color-bg-app: #f1f5f9;
-  --color-bg-panel: #ffffff;
-  --color-bg-subtle: #f8fafc;
-  --color-bg-elevated: #f8fafc;
-  --color-bg-hover: rgba(0, 0, 0, 0.04);
-  --color-bg-active: rgba(0, 0, 0, 0.06);
-  --color-bg-selected: rgba(37, 99, 235, 0.10);
-  --color-bg-input: #f1f5f9;
-  --color-bg-glass: rgba(255, 255, 255, 0.85);
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-tertiary: #64748b;
-  --color-text-inverse: #ffffff;
-  --color-text-disabled: #94a3b8;
-  --color-border: #cbd5e1;
-  --color-border-subtle: #e2e8f0;
-  --color-border-strong: #94a3b8;
-  --color-border-hover: #64748b;
-  --color-border-glow: rgba(37, 99, 235, 0.20);
-  --color-accent: #2563eb;
-  --color-accent-hover: #3b82f6;
-  --color-accent-soft: rgba(37, 99, 235, 0.1);
-  --color-accent-glow: rgba(37, 99, 235, 0.2);
-  --color-up: #dc2626;
-  --color-up-soft: rgba(220, 38, 38, 0.1);
-  --color-up-glow: rgba(220, 38, 38, 0.2);
-  --color-down: #059669;
-  --color-down-soft: rgba(5, 150, 105, 0.1);
-  --color-down-glow: rgba(5, 150, 105, 0.2);
-  --color-warn: #d97706;
-  --color-warn-soft: rgba(217, 119, 6, 0.1);
-  --color-info: #0891b2;
-  --color-success: #059669;
-  --color-danger: #dc2626;
-  --color-brand: #dc2626;
-  --color-brand-soft: rgba(220, 38, 38, 0.12);
-  --color-brand-glow: rgba(220, 38, 38, 0.2);
-  --color-success-soft: rgba(34, 197, 94, 0.12);
-  --color-danger-soft: rgba(239, 68, 68, 0.12);
-  --color-warning-soft: rgba(245, 158, 11, 0.12);
-  --color-info-soft: rgba(37, 99, 235, 0.12);
-  /* Category colors for WelcomePanel */
-  --cat-market: #2563eb;
-  --cat-market-bg: rgba(37, 99, 235, 0.08);
-  --cat-trading: #059669;
-  --cat-trading-bg: rgba(5, 150, 105, 0.08);
-  --cat-portfolio: #4f46e5;
-  --cat-portfolio-bg: rgba(79, 70, 229, 0.08);
-  --cat-chart: #0891b2;
-  --cat-chart-bg: rgba(8, 145, 178, 0.08);
-  --cat-research: #7c3aed;
-  --cat-research-bg: rgba(124, 58, 237, 0.08);
-  --cat-quant: #d97706;
-  --cat-quant-bg: rgba(217, 119, 6, 0.08);
-  --cat-altdata: #db2777;
-  --cat-altdata-bg: rgba(219, 39, 119, 0.08);
-  --cat-hk: #0d9488;
-  --cat-hk-bg: rgba(13, 148, 136, 0.08);
-  --cat-us: #2563eb;
-  --cat-us-bg: rgba(37, 99, 235, 0.08);
-  --cat-crypto: #d97706;
-  --cat-crypto-bg: rgba(217, 119, 6, 0.08);
-  --cat-system: #475569;
-  --cat-system-bg: rgba(71, 85, 105, 0.08);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.08);
-  --bg: var(--color-bg-app);
-  --card: var(--color-bg-panel);
-  --input: var(--color-bg-input);
-  --text: var(--color-text-primary);
-  --muted: var(--color-text-secondary);
-  --color-text: var(--color-text-primary);
-  --color-bg: var(--color-bg-panel);
-  --up: var(--color-up);
-  --down: var(--color-down);
-  --accent: var(--color-accent);
-  --border: var(--color-border);
-  --hover: var(--color-bg-hover);
-  --chart-1: #2563eb;
-  --chart-2: #059669;
-  --chart-3: #d97706;
-  --chart-4: #dc2626;
-  --chart-5: #7c3aed;
-  --chart-6: #0891b2;
-  --chart-grid: rgba(0, 0, 0, 0.04);
-  --gradient-header: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
-  --gradient-card: linear-gradient(180deg, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0) 100%);
-  --gradient-accent: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.03) 100%);
-  --gradient-brand: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(220, 38, 38, 0.03) 100%);
+/* ── 美股配色（绿涨红跌）────────────────────────────────────────── */
+body.color-us {
+  --color-up: #2e7d32;
+  --color-up-soft: rgba(46, 125, 50, 0.10);
+  --color-up-glow: rgba(46, 125, 50, 0.28);
+  --color-down: #c62828;
+  --color-down-soft: rgba(198, 40, 40, 0.10);
+  --color-down-glow: rgba(198, 40, 40, 0.28);
+}
+body.theme-dark.color-us {
+  --color-up: #22c55e;
+  --color-up-soft: rgba(34, 197, 94, 0.12);
+  --color-up-glow: rgba(34, 197, 94, 0.25);
+  --color-down: #ef4444;
+  --color-down-soft: rgba(239, 68, 68, 0.12);
+  --color-down-glow: rgba(239, 68, 68, 0.25);
 }
 
-/* ── CN color scheme (A股红涨绿跌) ─────────────────────────────── */
-body.color-cn {
-  --color-up: #ef4444;
-  --color-up-soft: rgba(239, 68, 68, 0.12);
-  --color-up-glow: rgba(239, 68, 68, 0.25);
-  --color-down: #22c55e;
-  --color-down-soft: rgba(34, 197, 94, 0.12);
-  --color-down-glow: rgba(34, 197, 94, 0.25);
+/* ── Z-index 语义层 ────────────────────────────────────────────── */
+body {
+  --z-sticky: 10;
+  --z-dropdown: 100;
+  --z-overlay: 900;
+  --z-modal: 1000;
+  --z-toast: 1100;
+  --z-tooltip: 1200;
+}
+
+/* ── Workflow 画布专用 token（亮色默认） ────────────────────────── */
+body {
+  /* Canvas */
+  --wf-canvas-bg: #f2f4f7;
+  --wf-canvas-pattern: #d6dce3;
+  --wf-canvas-hint: #43505f;
+  --wf-panel-bg: #ffffff;
+  /* Node */
+  --wf-node-bg: #ffffff;
+  --wf-node-border: #d6dce3;
+  --wf-node-text: #161d27;
+  --wf-node-subtext: #67727f;
+  --wf-node-hint: #67727f;
+  --wf-node-input-bg: #f2f4f7;
+  --wf-node-divider: #e6eaef;
+  /* Edge & port */
+  --wf-edge: #98a4b2;
+  --wf-port-ring: #ffffff;
+  /* Status / accent（与原 GitHub-dark 色对应的亮色语义色） */
+  --wf-accent: #1d64d8;
+  --wf-accent-hover: #1853b4;
+  --wf-accent-rgb: 29, 100, 216;
+  --wf-success: #2e7d32;
+  --wf-danger: #c62828;
+  --wf-danger-rgb: 198, 40, 40;
+  --wf-warn: #b45309;
+  --wf-skipped: #43505f;
+  /* Minimap & inline chart */
+  --wf-minimap-bg: #f2f4f7;
+  --wf-minimap-mask: rgba(255, 255, 255, 0.7);
+  --wf-chart-grid: #d6dce3;
+  --wf-chart-text: #43505f;
+}
+
+body.theme-dark {
+  --wf-canvas-bg: #0f1828;
+  --wf-canvas-pattern: #1a2a3e;
+  --wf-canvas-hint: #3a4a6c;
+  --wf-panel-bg: #161b22;
+  --wf-node-bg: #1c2333;
+  --wf-node-border: #2a3e5f;
+  --wf-node-text: #e6edf3;
+  --wf-node-subtext: #8b949e;
+  --wf-node-hint: #6b7a8f;
+  --wf-node-input-bg: #1a2a3a;
+  --wf-node-divider: rgba(255, 255, 255, 0.06);
+  --wf-edge: #30363d;
+  --wf-port-ring: #171b26;
+  --wf-accent: #58a6ff;
+  --wf-accent-hover: #79c0ff;
+  --wf-accent-rgb: 88, 166, 255;
+  --wf-success: #3fb950;
+  --wf-danger: #f85149;
+  --wf-danger-rgb: 248, 81, 73;
+  --wf-warn: #f0883e;
+  --wf-skipped: #5a6380;
+  --wf-minimap-bg: #0f1828;
+  --wf-minimap-mask: rgba(0, 0, 0, 0.5);
+  --wf-chart-grid: #2a2a3a;
+  --wf-chart-text: #8b8ba0;
 }
 
 /* ── Density ───────────────────────────────────────────────────── */
@@ -240,9 +334,9 @@ body.density-compact {
   --radius-sm: 3px;
   --radius-md: 4px;
   --radius-lg: 8px;
-  --font-xs: 10px;
-  --font-sm: 11px;
-  --font-base: 12px;
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 13px;
   --font-lg: 14px;
   --font-xl: 16px;
   --font-kpi: 20px;
@@ -280,16 +374,15 @@ body.density-comfortable {
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
   height: 100%; overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'JetBrains Mono', monospace, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   font-size: var(--font-base); color: var(--color-text-primary); background: var(--color-bg-app);
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
 
-body:not(.theme-light) {
-  background-image: var(--bg-grid);
-  background-size: 40px 40px;
-  background-position: center top;
-  background-attachment: fixed;
+body {
+  /* 等宽字体：仅用于数字 / 代码 / 行情数据 */
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────── */
@@ -338,7 +431,6 @@ body:not(.theme-light) {
   border-color: var(--color-accent);
   color: var(--color-text-primary);
   background: var(--color-accent-soft);
-  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 .btn:active {
   background: var(--color-bg-active);
@@ -353,7 +445,6 @@ body:not(.theme-light) {
   background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
   color: var(--color-text-inverse);
-  box-shadow: 0 0 12px var(--color-accent-glow);
 }
 .btn-danger {
   background: var(--color-danger);
@@ -367,7 +458,6 @@ body:not(.theme-light) {
 .btn-ghost:hover {
   background: var(--color-bg-hover);
   border-color: var(--color-border);
-  box-shadow: none;
 }
 
 /* ── Workflow add-to button ────────────────────────────────────── */
@@ -391,7 +481,7 @@ body:not(.theme-light) {
 .wf-btn:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
-  background: rgba(88, 166, 255, 0.1);
+  background: var(--color-accent-soft);
 }
 .wf-btn svg {
   width: 16px;
@@ -404,8 +494,7 @@ body:not(.theme-light) {
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background-image: var(--gradient-card);
-  transition: all var(--transition-normal);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 .card:hover {
   border-color: var(--color-border-strong);
@@ -468,25 +557,11 @@ input::placeholder, textarea::placeholder {
   color: var(--color-warn);
 }
 
-/* ── Glass effect ──────────────────────────────────────────────── */
+/* ── Glass effect（仅用于浮层，非装饰） ─────────────────────────── */
 .glass {
   background: var(--color-bg-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-}
-
-/* ── Glow effect ───────────────────────────────────────────────── */
-.glow-accent {
-  box-shadow: 0 0 12px var(--color-accent-glow);
-}
-.glow-brand {
-  box-shadow: 0 0 12px var(--color-brand-glow);
-}
-.glow-up {
-  box-shadow: 0 0 12px var(--color-up-glow);
-}
-.glow-down {
-  box-shadow: 0 0 12px var(--color-down-glow);
 }
 
 /* ── Animation utilities ─────────────────────────────────────── */
@@ -512,6 +587,12 @@ input::placeholder, textarea::placeholder {
   animation: pulse 2s ease infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .animate-slide-in, .animate-pulse {
+    animation: none;
+  }
+}
+
 /* ── Panel Tokens ─────────────────────────────────────────────── */
 body {
   --panel-padding: var(--padding-panel);
@@ -523,16 +604,16 @@ body {
   --panel-subtitle-size: var(--font-sm);
   --panel-subtitle-color: var(--color-text-tertiary);
 
-  --table-header-size: 11px;
+  --table-header-size: 12px;
   --table-header-color: var(--color-text-tertiary);
-  --table-header-weight: 500;
+  --table-header-weight: 600;
   --table-row-size: var(--font-sm);
   --table-row-height: var(--row-height);
   --table-row-height-compact: 30px;
   --table-row-height-comfortable: 44px;
   --table-border: var(--color-border-subtle);
   --table-row-hover: var(--color-bg-hover);
-  --table-row-odd: rgba(255, 255, 255, 0.02);
+  --table-row-odd: rgba(16, 24, 40, 0.02);
 
   --tab-height: 28px;
   --tab-padding: 4px 12px;
@@ -550,6 +631,6 @@ body {
   --card-min-width: 200px;
 }
 
-body.theme-light {
-  --table-row-odd: rgba(0, 0, 0, 0.02);
+body.theme-dark {
+  --table-row-odd: rgba(255, 255, 255, 0.02);
 }

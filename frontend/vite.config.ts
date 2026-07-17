@@ -49,6 +49,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     setupFiles: ['./vitest.setup.ts', './src/test-utils/setup.ts'],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),

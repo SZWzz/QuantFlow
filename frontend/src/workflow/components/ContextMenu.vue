@@ -43,9 +43,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 <style scoped>
 .ctx-menu {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--z-tooltip);
   min-width: 180px;
-  background: #1c2333;
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 4px;
@@ -66,7 +66,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
   text-align: left;
 }
 .ctx-item:hover:not(:disabled) {
-  background: rgba(88, 166, 255, 0.1);
+  background: rgba(var(--wf-accent-rgb), 0.1);
 }
 .ctx-item:disabled {
   opacity: 0.4;

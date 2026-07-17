@@ -218,7 +218,7 @@ onUnmounted(() => clearTimeout(debounceTimer))
 .search-input {
   width: 100%;
   padding: 6px 28px 6px 10px;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
@@ -227,7 +227,7 @@ onUnmounted(() => clearTimeout(debounceTimer))
   box-sizing: border-box;
 }
 .search-input:focus {
-  border-color: #3b82f6;
+  border-color: var(--color-accent);
 }
 .search-input::placeholder {
   color: var(--color-text-secondary);
@@ -242,16 +242,16 @@ onUnmounted(() => clearTimeout(debounceTimer))
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
   max-height: 240px;
   overflow-y: auto;
   margin: 2px 0 0 0;
   padding: 4px 0;
   list-style: none;
-  border: 1px solid #374151;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-md);
 }
 .dropdown.empty {
   padding: 12px;
@@ -269,13 +269,13 @@ onUnmounted(() => clearTimeout(debounceTimer))
 }
 .dropdown-item:hover,
 .dropdown-item.active {
-  background: #374151;
+  background: var(--color-bg-hover);
 }
 .filter-row {
   display: flex;
   gap: 4px;
   padding: 4px 10px 8px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 4px;
   position: sticky;
   top: 0;
@@ -284,7 +284,7 @@ onUnmounted(() => clearTimeout(debounceTimer))
 }
 .filter-tab {
   padding: 2px 8px;
-  border: 1px solid #4b5563;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
@@ -292,9 +292,9 @@ onUnmounted(() => clearTimeout(debounceTimer))
   font-size: 11px;
 }
 .filter-tab.active {
-  color: #60a5fa;
-  border-color: #3b82f6;
-  background: rgba(59,130,246,0.1);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 .empty-result {
   padding: 8px 10px;
@@ -312,7 +312,7 @@ onUnmounted(() => clearTimeout(debounceTimer))
 }
 .item-code {
   font-weight: 600;
-  color: #60a5fa;
+  color: var(--color-accent);
   font-variant-numeric: tabular-nums;
   width: 60px;
   flex-shrink: 0;

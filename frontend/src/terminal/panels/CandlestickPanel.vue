@@ -1046,12 +1046,12 @@ onUnmounted(() => {
 
 .drawing-btn.active {
   border-color: var(--color-accent);
-  background: rgba(88, 166, 255, 0.15);
+  background: var(--color-accent-soft);
 }
 
 .context-menu {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-tooltip);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);

@@ -254,7 +254,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
   function groupNodes(nodeIds: string[]) {
     const id = `group-${Date.now()}`
-    groups.value.push({ id, label: 'Group', nodes: nodeIds, style: { color: '#30363d' } })
+    groups.value.push({ id, label: 'Group', nodes: nodeIds, style: { color: 'var(--wf-edge)' } })
   }
 
   function copyNodes(nodeIds: string[]) {
@@ -473,7 +473,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
           sourceHandle: e.from_port,
           targetHandle: e.to_port,
           type: 'default',
-          style: { stroke: '#30363d', strokeWidth: 2 },
+          style: { stroke: 'var(--wf-edge)', strokeWidth: 2 },
         } as VFEdge)
       }
     }

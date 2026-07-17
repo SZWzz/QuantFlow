@@ -27,7 +27,7 @@ function insertTemplate(tpl: typeof TEMPLATES[0]) {
         sourceHandle: e.from_port,
         targetHandle: e.to_port,
         type: 'default',
-        style: { stroke: '#30363d', strokeWidth: 2 },
+        style: { stroke: 'var(--wf-edge)', strokeWidth: 2 },
       } as any)
     }
   })
@@ -245,7 +245,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
   display: flex; align-items: center; gap: 8px; padding: 6px 8px;
   border-radius: var(--radius-sm); cursor: grab; transition: background 0.1s;
 }
-.node-item:hover { background: rgba(88,166,255,0.08); }
+.node-item:hover { background: rgba(var(--wf-accent-rgb), 0.08); }
 .node-item:active { cursor: grabbing; }
 
 .node-icon { width: 24px; height: 24px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 12px; }
@@ -260,7 +260,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
 .templates-list { padding: 0 4px; display: flex; flex-direction: column; gap: 8px; }
 
 .template-card {
-  background: var(--color-bg-subtle, #161b22);
+  background: var(--color-bg-subtle, #f5f7fa);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
   padding: 10px;
@@ -268,8 +268,8 @@ function onDragStart(event: DragEvent, nodeType: string) {
   transition: border-color 0.15s, background 0.15s;
 }
 .template-card:hover {
-  border-color: var(--color-accent, #58a6ff);
-  background: rgba(88,166,255,0.04);
+  border-color: var(--color-accent, #1d64d8);
+  background: rgba(var(--wf-accent-rgb), 0.04);
 }
 
 .tpl-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
@@ -283,14 +283,14 @@ function onDragStart(event: DragEvent, nodeType: string) {
 .tpl-flow {
   display: flex; flex-wrap: wrap; gap: 3px 0;
   padding: 6px 4px;
-  background: var(--color-bg-input, #0d1117);
+  background: var(--color-bg-input, #f2f4f7);
   border-radius: var(--radius-sm, 4px);
 }
 .flow-step { display: flex; align-items: center; gap: 4px; font-size: 0; }
 .flow-step.last .flow-arrow { display: none; }
 .flow-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: var(--color-accent, #58a6ff); flex-shrink: 0;
+  background: var(--color-accent, #1d64d8); flex-shrink: 0;
 }
 .flow-label { font-size: 9px; color: var(--color-text-tertiary); white-space: nowrap; }
 .flow-arrow { font-size: 8px; color: var(--color-text-tertiary); margin: 0 2px; }

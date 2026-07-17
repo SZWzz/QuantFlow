@@ -39,8 +39,26 @@
 - [Frontend] 状态栏紧凑化 — 连接状态合并为统一胶囊样式，正常项收入"已连接"徽章，异常项单独红色展示
 - [Frontend] Welcome 面板图标补全 — 日结报告/API密钥/帮助中心/存储管理/布局模板 + 9 个分析面板 SVG 图标
 
+### 变更
+
+- [Frontend] 设计系统重构（亮色优先）— `themes.css` 整体重写：亮色主题为默认（暗色改为 `body.theme-dark`，两主题同等维护）；全新亮色调色板，文字对比度全部 ≥ WCAG AA 4.5:1；brand 粉色并入 accent 蓝色，色彩角色统一；`session.ui.theme` 默认值改为 light
+- [Frontend] 去装饰化 — 全局删除约 30 处辉光阴影、渐变分割线、网格背景、渐变文字标题（`background-clip: text`）与逐卡 stagger 入场动画；`0 0 0 3px` 焦点环全部保留；动画支持 `prefers-reduced-motion` 降级
+- [Frontend] z-index 收敛为 6 层语义 token（`--z-sticky/dropdown/overlay/modal/toast/tooltip`），替换 14 处魔法数（9999/10002 等）
+- [Frontend] 字体栈修正 — 正文 fallback 移除 JetBrains Mono，新增 `--font-mono` 仅限数字/行情场景，全局 `tabular-nums`；紧凑档字号下限 10→11px，表格表头 11→12px
+- [Workflow] 工作流模式亮主题适配 — 新增 20+ `--wf-*` token（画布/节点/边/端口/minimap），硬编码 GitHub-dark 色值全部 token 化；暗色视觉零变化，亮色正常渲染；新增 `cssVar()` helper 供 JS/SVG 读取 token
+- [Frontend] 欢迎页重构 — 新增面板搜索框 + 分类筛选 chips（带数量），82 个面板可检索；搜索匹配空格归一化（"K线"可命中"K 线 / 分时"）；命令栏搜索同步修复
+- [Frontend] 命令栏空态改进 — 显示最近使用面板（可直接打开）+ 历史命令，无内容时显示搜索提示；分类标签中文化（新增 5 个 i18n key）
+- [Frontend] PRODUCT.md 设计上下文 — 记录产品定位、亮色优先决策、反参考与设计原则，供后续设计工作对齐
+
 ### 修复
 
+- [Frontend] 命令栏弹层永远撑满 520px 高 — overlay flex 容器默认 `align-items: stretch` 拉伸所致，改为 `align-items: flex-start` 按内容收缩
+- [Frontend] 设置页 3 个 i18n key 缺失（API 密钥/日志/布局模板）导致导航直接显示原始 key
+- [Frontend] CrashDialog/UpdatePrompt 引用从未定义的 `--bg-surface`，弹窗背景透明
+- [Frontend] 美股涨跌配色切换从不生效 — `color-us` 类缺少对应 CSS 规则，补齐亮/暗两套
+- [Frontend] ContextMenu/SymbolSearch/TickerBar 等硬编码暗色背景与边框（`#1c2333`/`#374151`/`#60a5fa`），亮主题下破版，全部 token 化
+- [Frontend] FinancialsPanel 主题检测读取 `html.dark`（从未被设置）改为 `body.theme-dark`
+- [CI] vitest 误收集 e2e/ 目录 Playwright 用例导致 `npm run test` 必失败，`vite.config.ts` 增加 exclude
 - [Frontend] 布局模板面板 null 引用 — `savedLayouts` IPC 返回 null 时 Array.isArray 守卫
 - [Frontend] 版本号显示 v0.0.1 → 2026.7.17 — `GetVersion()` 优先使用 ldflags 注入的构建版本
 - [Trading] Paper/Live 模式管理器初始化 — `tradingMode` 在 ServiceStartup 中正确创建

@@ -62,7 +62,7 @@ function doLoad(id: string) { workflow.loadWorkflow(id) }
 </template>
 
 <style scoped>
-.wf-list-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: flex; justify-content: flex-end; }
+.wf-list-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: var(--z-overlay); display: flex; justify-content: flex-end; }
 .wf-list-drawer { width: 340px; height: 100%; background: var(--color-bg-panel); border-left: 1px solid var(--color-border); display: flex; flex-direction: column; }
 .drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--color-border); }
 .drawer-header h3 { margin: 0; font-size: 14px; color: var(--color-text-primary); }
@@ -82,5 +82,5 @@ function doLoad(id: string) { workflow.loadWorkflow(id) }
 .wf-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .wf-act-btn { background: none; border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px; padding: 2px 6px; }
 .wf-act-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.wf-act-btn.danger:hover { border-color: #f85149; color: #f85149; }
+.wf-act-btn.danger:hover { border-color: var(--wf-danger); color: var(--wf-danger); }
 </style>

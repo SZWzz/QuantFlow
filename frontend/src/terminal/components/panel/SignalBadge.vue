@@ -39,12 +39,10 @@ const label = computed(() => {
 
 .signal-bullish .signal-dot {
   background: var(--color-up);
-  box-shadow: 0 0 4px var(--color-up-glow);
 }
 
 .signal-bearish .signal-dot {
   background: var(--color-down);
-  box-shadow: 0 0 4px var(--color-down-glow);
 }
 
 .signal-neutral .signal-dot {
