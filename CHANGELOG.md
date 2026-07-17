@@ -30,10 +30,22 @@
 - [Frontend] 首次启动向导 — 5 步指引（欢迎 → 终端模式 → 工作流模式 → 数据配置 → 准备就绪），localStorage 记录完成状态
 - [Workflow] 6 套官方策略模板 — 双均线交叉、布林带突破、RSI 均值回归、期现套利、组合再平衡、AI 情绪驱动
 - [Frontend] DailyReportPanel — 日结报告展示面板（盈亏汇总、持仓明细、最佳/最差交易高亮、导出 CSV、历史报告列表），注册到面板系统
+- [Analysis] 分析维度补齐 P0 — SectorDashboard（申万行业热力图+PE/PB估值水位），ValuationBand（PE/PB Band 均值±2σ通道+历史分位），DupontAnalysis（ROE拆解树+同行雷达图）
+- [Analysis] 分析维度补齐 P1 — MacroDashboard（GDP/CPI/PMI/M2四象限+中美对比），MarketStyle（大小盘×价值成长象限+情绪温度计），EventStudy（CAR事件窗口曲线+超额收益）
+- [Analysis] 分析维度补齐 P2 — ShareholderPanel（十大流通股东+机构持仓），UnlockCalendar（限售解禁日历+冲击预警），FactorAttribution（组合收益因子拆解瀑布图）
+- [Frontend] 分析面板联动 — Dupont/Shareholder/EventStudy 与 Watchlist 通过 SymbolContext 联动，切换自选股自动刷新，标题栏显示红点链接指示器
+- [Frontend] Watchlist 右键分析入口 — 杜邦分析/股东分析/事件分析
+- [Frontend] 交易模式指示器重构 — 从独立横条改为 Header 内嵌胶囊标签（模拟=绿色/实盘=红色脉冲+紧急平仓按钮）
+- [Frontend] 状态栏紧凑化 — 连接状态合并为统一胶囊样式，正常项收入"已连接"徽章，异常项单独红色展示
+- [Frontend] Welcome 面板图标补全 — 日结报告/API密钥/帮助中心/存储管理/布局模板 + 9 个分析面板 SVG 图标
 
 ### 修复
 
-- [Terminal] 崩溃报告文件名 Windows 兼容 — 时间戳冒号改为连字符并附加报告 ID 前缀，避免非法文件名和同秒覆盖
+- [Frontend] 布局模板面板 null 引用 — `savedLayouts` IPC 返回 null 时 Array.isArray 守卫
+- [Frontend] 版本号显示 v0.0.1 → 2026.7.17 — `GetVersion()` 优先使用 ldflags 注入的构建版本
+- [Trading] Paper/Live 模式管理器初始化 — `tradingMode` 在 ServiceStartup 中正确创建
+- [StatusBar] 连接状态首次不刷新 — `onMounted` 立即调用 `GetConnectionStatus()` + 30s 定时刷新
+- [Sector] 行业仪表盘 adapter chain 修复 — 复用 `App.GetIndustryRanks` 已有的完整 fallback + 缓存逻辑
 
 ## [2026.7.16] - 2026-07-16
 
