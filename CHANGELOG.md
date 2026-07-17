@@ -3,6 +3,19 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.17] - 2026-07-17
+
+### 新增
+
+- [Terminal] 崩溃报告系统 — `internal/crash/` 包捕获 goroutine panic（`CapturePanic` deferred recovery）和 OS 崩溃信号（SIGABRT/SIGSEGV/SIGILL/SIGBUS）；结构化崩溃报告（panic 消息、堆栈、最近 100 条日志、应用状态）保存为本地 JSON，零 PII
+- [Terminal] 崩溃报告存储 — 平台专属目录（macOS `~/Library/Logs/QuantFlow/crashes/`、Linux `~/.local/share/QuantFlow/crashes/`、Windows `%LOCALAPPDATA%\QuantFlow\crashes\`），30 天自动清理，opt-in 上传（默认关闭）
+- [Frontend] CrashDialog 崩溃恢复对话框 — 下次启动时展示崩溃时间、panic 消息、可折叠堆栈和日志；CrashHistoryPanel 崩溃历史管理（设置 → 崩溃报告），支持查看/删除/上传
+- [Storage] `RingBuffer.LastN(n)` 导出最近 N 条日志供崩溃报告嵌入
+
+### 修复
+
+- [Terminal] 崩溃报告文件名 Windows 兼容 — 时间戳冒号改为连字符并附加报告 ID 前缀，避免非法文件名和同秒覆盖
+
 ## [2026.7.16] - 2026-07-16
 
 ### 新增
