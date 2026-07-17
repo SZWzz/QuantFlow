@@ -58,13 +58,6 @@ function closeDialog() {
   detailDialog.value = null
 }
 
-function statusColor(status: string): string {
-  if (status.includes('实时') || status.includes('已连接') || status.includes('运行中')) return 'var(--color-success)'
-  if (status.includes('延迟') || status.includes('初始化')) return 'var(--color-warning)'
-  if (status.includes('未配置') || status.includes('未连接')) return 'var(--color-text-tertiary)'
-  return 'var(--color-danger)'
-}
-
 // ── Connection status display ────────────────────────────────────────
 
 const connStatus = computed(() => terminal.connectionStatus)
@@ -91,43 +84,38 @@ const marketSummary = computed(() => {
         <span class="status-text">{{ data.isOffline ? $t('common.disconnected') : $t('common.connected') }}</span>
       </span>
 
-      <!-- 📡 Markets: compact dots -->
+      <!-- 📡 Markets -->
       <span
-        class="conn-group"
+        class="status-badge"
+        :class="{ offline: marketSummary.configured === 0 }"
         data-test="status-group"
         @click="showDetail('行情源', marketEntries.map(([m, s]) => ({ label: m, status: s })))"
-        :title="`${marketSummary.configured}/${marketSummary.total} 已配置`"
       >
-        <span class="conn-icon">📡</span>
-        <span
-          v-for="([market, status]) in marketEntries"
-          :key="market"
-          class="conn-dot"
-          :style="{ background: statusColor(status) }"
-          :title="`${market}: ${status}`"
-        />
+        <span class="status-dot" :class="{ pulse: marketSummary.configured > 0, offline: marketSummary.configured === 0 }" />
+        <span class="status-text">行情</span>
       </span>
 
-      <!-- 💼 Brokers: count -->
+      <!-- 💼 Brokers -->
       <span
         v-if="brokerSummary.total > 0"
-        class="conn-group"
+        class="status-badge"
+        :class="{ offline: brokerSummary.connected === 0 }"
         data-test="status-group"
         @click="showDetail('券商', brokerSummary.entries.map(([n, s]) => ({ label: n, status: s })))"
       >
-        <span class="conn-icon">💼</span>
-        <span class="conn-dot" :style="{ background: brokerSummary.connected > 0 ? 'var(--color-success)' : 'var(--color-text-tertiary)' }" />
-        <span class="conn-label">{{ brokerSummary.connected }}/{{ brokerSummary.total }}</span>
+        <span class="status-dot" :class="{ pulse: brokerSummary.connected > 0, offline: brokerSummary.connected === 0 }" />
+        <span class="status-text">券商 {{ brokerSummary.connected }}/{{ brokerSummary.total }}</span>
       </span>
 
       <!-- 🐍 Python -->
       <span
-        class="conn-group"
+        class="status-badge"
+        :class="{ offline: connStatus?.python !== '运行中' }"
         data-test="status-group"
         @click="showDetail('Python Sidecar', [{ label: '状态', status: connStatus?.python ?? '未知' }])"
       >
-        <span class="conn-icon">🐍</span>
-        <span class="conn-dot" :style="{ background: statusColor(connStatus?.python ?? '未知') }" />
+        <span class="status-dot" :class="{ pulse: connStatus?.python === '运行中', offline: connStatus?.python !== '运行中' }" />
+        <span class="status-text">Python</span>
       </span>
     </div>
     <div class="status-groups">
@@ -220,6 +208,7 @@ const marketSummary = computed(() => {
   color: var(--color-success);
   font-size: 10px;
   transition: all var(--transition-fast);
+  cursor: pointer;
 }
 
 .status-badge.offline {
@@ -255,16 +244,6 @@ const marketSummary = computed(() => {
 .status-text {
   font-variant-numeric: tabular-nums;
 }
-
-/* ── Connection status groups ──────────────────────────────────────── */
-.conn-group {
-  display: flex; align-items: center; gap: 3px;
-  cursor: pointer; padding: 1px 6px; border-radius: var(--radius-sm);
-}
-.conn-group:hover { background: var(--color-bg-hover); }
-.conn-icon { font-size: 10px; line-height: 1; }
-.conn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.conn-label { font-weight: 600; font-size: 10px; }
 
 /* ── Link groups ───────────────────────────────────────────────────── */
 .status-groups { display: flex; gap: 6px; }
