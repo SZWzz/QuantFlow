@@ -122,6 +122,10 @@ func chainForSymbol(symbol string, typeChains map[string]map[string][]string, de
 // quoteCacheTTL is the maximum age of a cached quote before it's considered stale.
 const quoteCacheTTL = 5 * time.Second
 
+// ohlcvRefetchCooldown bounds how often a stale OHLCV cache entry triggers a
+// full adapter refetch (e.g. during holidays when no newer bars exist yet).
+const ohlcvRefetchCooldown = 10 * time.Minute
+
 type quoteCacheEntry struct {
 	snapshot *QuoteSnapshot
 	source   string
@@ -131,14 +135,16 @@ type quoteCacheEntry struct {
 // AdapterRegistry manages registered market data adapters and provides
 // fallback-based fetching.
 type AdapterRegistry struct {
-	mu            sync.RWMutex
-	adapters      map[string]Adapter // name → adapter
-	quoteCache    map[string]*quoteCacheEntry
-	lastQuote     sync.Map // market:symbol → *QuoteSnapshot (last known value, survives TTL)
-	lastQuotePath string   // if set, last quotes are persisted to this JSON file
-	saveMu        sync.Mutex
-	saveTimer     *time.Timer
-	ohlcvCache    *OHLCVCache // optional two-tier (LRU+SQLite) cache
+	mu             sync.RWMutex
+	adapters       map[string]Adapter // name → adapter
+	quoteCache     map[string]*quoteCacheEntry
+	lastQuote      sync.Map // market:symbol → *QuoteSnapshot (last known value, survives TTL)
+	lastQuotePath  string   // if set, last quotes are persisted to this JSON file
+	saveMu         sync.Mutex
+	saveTimer      *time.Timer
+	ohlcvCache     *OHLCVCache // optional two-tier (LRU+SQLite) cache
+	ohlcvFetchMu   sync.Mutex
+	ohlcvLastFetch map[string]time.Time // "symbol:interval" → last adapter refetch attempt
 }
 
 // SetOHLCVCache attaches the OHLCV cache to the registry. Must be called
@@ -223,8 +229,9 @@ func (r *AdapterRegistry) debouncedSaveQuotes() {
 // NewAdapterRegistry creates an empty AdapterRegistry.
 func NewAdapterRegistry() *AdapterRegistry {
 	return &AdapterRegistry{
-		adapters:   make(map[string]Adapter),
-		quoteCache: make(map[string]*quoteCacheEntry),
+		adapters:       make(map[string]Adapter),
+		quoteCache:     make(map[string]*quoteCacheEntry),
+		ohlcvLastFetch: make(map[string]time.Time),
 	}
 }
 
@@ -387,10 +394,19 @@ func (r *AdapterRegistry) FetchIndustryRanksWithFallback(ctx context.Context, ma
 func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, symbol, interval, fqfactor string, start, end int64) ([]OHLCVBar, string, error) {
 	interval = NormalizeInterval(interval)
 
+	var stale []OHLCVBar
 	if r.ohlcvCache != nil {
 		if cached, err := r.ohlcvCache.Get(symbol, interval, start, end); err == nil && len(cached) > 0 {
-			slog.Debug("ohlcv cache hit", "symbol", symbol, "interval", interval, "bars", len(cached))
-			return cached, "cache", nil
+			// Serve cache only when it reaches the latest expected bar.
+			// A stale cache (e.g. daily bars lagging behind) triggers a refetch,
+			// bounded by a cooldown so holidays/off-hours don't hammer adapters.
+			if ohlcvCacheFresh(interval, cached, end, time.Now()) || !r.markOhlcvRefetch(symbol, interval) {
+				slog.Debug("ohlcv cache hit", "symbol", symbol, "interval", interval, "bars", len(cached))
+				return cached, "cache", nil
+			}
+			stale = cached
+			slog.Debug("ohlcv cache stale, refetching", "symbol", symbol, "interval", interval,
+				"last", cached[len(cached)-1].Date)
 		}
 	}
 
@@ -469,10 +485,102 @@ func (r *AdapterRegistry) FetchOHLCVWithFallback(ctx context.Context, market, sy
 		return bestBars, bestSource, nil
 	}
 
+	// Refetch failed — fall back to the stale cache so the user keeps
+	// last-known data instead of an error.
+	if len(stale) > 0 {
+		slog.Info("ohlcv refetch failed, serving stale cache", "symbol", symbol, "interval", interval)
+		return stale, "cache-stale", nil
+	}
+
 	if lastErr != nil {
 		return nil, "", fmt.Errorf("all adapters failed for market %q symbol %q: %w", market, symbol, lastErr)
 	}
 	return nil, "", fmt.Errorf("no available adapter found for market %q symbol %q", market, symbol)
+}
+
+// markOhlcvRefetch reports whether a stale-cache refetch should be attempted
+// now for the symbol/interval, stamping the attempt time. Returns false while
+// within ohlcvRefetchCooldown of the last attempt.
+func (r *AdapterRegistry) markOhlcvRefetch(symbol, interval string) bool {
+	key := symbol + ":" + interval
+	r.ohlcvFetchMu.Lock()
+	defer r.ohlcvFetchMu.Unlock()
+	if t, ok := r.ohlcvLastFetch[key]; ok && time.Since(t) < ohlcvRefetchCooldown {
+		return false
+	}
+	r.ohlcvLastFetch[key] = time.Now()
+	return true
+}
+
+// ohlcvCacheFresh reports whether cached bars reach the latest bar adapters
+// could plausibly have for the interval. end is the query's range end; when
+// it's in the past, freshness is anchored there instead of now.
+func ohlcvCacheFresh(interval string, bars []OHLCVBar, end int64, now time.Time) bool {
+	last := dateToTs(bars[len(bars)-1].Date)
+	if last == 0 {
+		return false
+	}
+	anchor := now
+	if end > 0 && end < now.Unix() {
+		anchor = time.Unix(end, 0)
+	}
+	return last >= ohlcvExpectedLastBar(interval, anchor)
+}
+
+// ohlcvExpectedLastBar returns the unix timestamp of the latest bar adapters
+// could plausibly have for interval at time n (Asia/Shanghai). Weekends are
+// skipped; holidays are not modeled — they cause bounded extra refetches via
+// ohlcvRefetchCooldown.
+func ohlcvExpectedLastBar(interval string, n time.Time) int64 {
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		loc = time.FixedZone("CST", 8*3600)
+	}
+	n = n.In(loc)
+	switch interval {
+	case "1m", "5m", "15m", "30m", "1H", "1h":
+		step := map[string]int64{"1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1H": 3600, "1h": 3600}[interval]
+		mins := n.Hour()*60 + n.Minute()
+		switch {
+		case mins < 9*60: // before open → previous trading day 15:00
+			d := prevWeekday(n.AddDate(0, 0, -1))
+			return time.Date(d.Year(), d.Month(), d.Day(), 15, 0, 0, 0, loc).Unix()
+		case mins > 15*60+30: // after close → today (or last weekday) 15:00
+			d := prevWeekday(n)
+			return time.Date(d.Year(), d.Month(), d.Day(), 15, 0, 0, 0, loc).Unix()
+		default: // trading hours → allow the still-forming bar to be absent
+			return n.Unix() - 2*step
+		}
+	case "1W":
+		return prevTradingDay(n, loc) - 6*86400
+	case "1M":
+		return prevTradingDay(n, loc) - 30*86400
+	default: // 1D
+		return prevTradingDay(n, loc)
+	}
+}
+
+// prevTradingDay returns the CST-midnight timestamp of the most recent trading
+// day at time n: today if it is a weekday past the 15:30 close, otherwise the
+// previous weekday.
+func prevTradingDay(n time.Time, loc *time.Location) int64 {
+	d := n
+	if n.Hour() < 15 || (n.Hour() == 15 && n.Minute() < 30) {
+		d = n.AddDate(0, 0, -1)
+	}
+	for d.Weekday() == time.Saturday || d.Weekday() == time.Sunday {
+		d = d.AddDate(0, 0, -1)
+	}
+	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, loc).Unix()
+}
+
+// prevWeekday rolls n back to the nearest weekday (n itself if already one).
+func prevWeekday(n time.Time) time.Time {
+	d := n
+	for d.Weekday() == time.Saturday || d.Weekday() == time.Sunday {
+		d = d.AddDate(0, 0, -1)
+	}
+	return d
 }
 
 // FetchMinuteWithFallback tries each adapter in the market's minute data fallback

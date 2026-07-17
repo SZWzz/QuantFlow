@@ -2,9 +2,13 @@ package market
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
+	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // mockAdapter is a controllable adapter for testing the registry.
@@ -313,6 +317,196 @@ func TestMarketForSymbol(t *testing.T) {
 			got := MarketForSymbol(tt.symbol)
 			if got != tt.market {
 				t.Errorf("MarketForSymbol(%q) = %q, want %q", tt.symbol, got, tt.market)
+			}
+		})
+	}
+}
+
+// ── OHLCV cache freshness ───────────────────────────────────────
+
+type ohlcvMockAdapter struct {
+	mockAdapter
+	bars  []OHLCVBar
+	err   error
+	calls int
+}
+
+func (m *ohlcvMockAdapter) FetchOHLCV(ctx context.Context, symbol, interval, _ string, start, end int64) ([]OHLCVBar, error) {
+	m.calls++
+	return m.bars, m.err
+}
+
+func newOHLCVTestRegistry(t *testing.T) (*AdapterRegistry, *OHLCVCache) {
+	t.Helper()
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	oc, err := NewOHLCVCache(db)
+	if err != nil {
+		t.Fatalf("NewOHLCVCache: %v", err)
+	}
+	r := NewAdapterRegistry()
+	r.SetOHLCVCache(oc)
+	t.Cleanup(func() { db.Close() })
+	return r, oc
+}
+
+func withOHLCVChain(t *testing.T, names ...string) {
+	t.Helper()
+	orig := OHLCVChains["CN"]
+	OHLCVChains["CN"] = map[string][]string{"stock": names, "index": names}
+	t.Cleanup(func() { OHLCVChains["CN"] = orig })
+}
+
+func TestFetchOHLCV_StaleCacheTriggersRefetch(t *testing.T) {
+	r, oc := newOHLCVTestRegistry(t)
+	withOHLCVChain(t, "a")
+
+	staleDate := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
+	if err := oc.Set("600519", "1D", []OHLCVBar{{Symbol: "600519", Date: staleDate, Open: 1, High: 1, Low: 1, Close: 1, Volume: 1}}); err != nil {
+		t.Fatal(err)
+	}
+
+	freshDate := tsToDate(ohlcvExpectedLastBar("1D", time.Now()))
+	fresh := []OHLCVBar{
+		{Symbol: "600519", Date: staleDate, Open: 1, High: 1, Low: 1, Close: 1, Volume: 1},
+		{Symbol: "600519", Date: time.Now().AddDate(0, 0, -5).Format("2006-01-02"), Open: 2, High: 2, Low: 2, Close: 2, Volume: 2},
+		{Symbol: "600519", Date: freshDate, Open: 3, High: 3, Low: 3, Close: 3, Volume: 3},
+	}
+	a := &ohlcvMockAdapter{mockAdapter: mockAdapter{name: "a", markets: []string{"CN"}, available: true}, bars: fresh}
+	r.Register(a)
+
+	end := time.Now().Unix()
+	start := end - 30*86400
+	bars, source, err := r.FetchOHLCVWithFallback(context.Background(), "CN", "600519", "1d", "qfq", start, end)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if a.calls != 1 {
+		t.Errorf("adapter calls = %d, want 1 (stale cache must refetch)", a.calls)
+	}
+	if source != "a" {
+		t.Errorf("source = %q, want %q", source, "a")
+	}
+	if len(bars) != 3 || bars[len(bars)-1].Date != freshDate {
+		t.Errorf("bars = %+v, want 3 bars ending at %s", bars, freshDate)
+	}
+
+	// Cache must now hold the fresh bars.
+	cached, err := oc.Get("600519", "1D", start, end)
+	if err != nil || len(cached) != 3 {
+		t.Errorf("cached bars = %d (err %v), want 3", len(cached), err)
+	}
+}
+
+func TestFetchOHLCV_FreshCacheServedWithoutAdapter(t *testing.T) {
+	r, oc := newOHLCVTestRegistry(t)
+	withOHLCVChain(t, "a")
+
+	recent := OHLCVBar{Symbol: "600519", Date: tsToDate(ohlcvExpectedLastBar("1D", time.Now())), Open: 1, High: 1, Low: 1, Close: 1, Volume: 1}
+	if err := oc.Set("600519", "1D", []OHLCVBar{recent}); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &ohlcvMockAdapter{mockAdapter: mockAdapter{name: "a", markets: []string{"CN"}, available: true}}
+	r.Register(a)
+
+	end := time.Now().Unix()
+	bars, source, err := r.FetchOHLCVWithFallback(context.Background(), "CN", "600519", "1D", "", end-30*86400, end)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if a.calls != 0 {
+		t.Errorf("adapter calls = %d, want 0 (fresh cache must be served)", a.calls)
+	}
+	if source != "cache" {
+		t.Errorf("source = %q, want %q", source, "cache")
+	}
+	if len(bars) != 1 {
+		t.Errorf("bars = %d, want 1", len(bars))
+	}
+}
+
+func TestFetchOHLCV_StaleCacheAdapterFailureServesStale(t *testing.T) {
+	r, oc := newOHLCVTestRegistry(t)
+	withOHLCVChain(t, "a")
+
+	staleDate := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
+	if err := oc.Set("600519", "1D", []OHLCVBar{{Symbol: "600519", Date: staleDate, Open: 1, High: 1, Low: 1, Close: 1, Volume: 1}}); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &ohlcvMockAdapter{mockAdapter: mockAdapter{name: "a", markets: []string{"CN"}, available: true}, err: errors.New("boom")}
+	r.Register(a)
+
+	end := time.Now().Unix()
+	bars, source, err := r.FetchOHLCVWithFallback(context.Background(), "CN", "600519", "1D", "", end-30*86400, end)
+	if err != nil {
+		t.Fatalf("expected stale fallback instead of error, got: %v", err)
+	}
+	if source != "cache-stale" {
+		t.Errorf("source = %q, want %q", source, "cache-stale")
+	}
+	if len(bars) != 1 || bars[0].Date != staleDate {
+		t.Errorf("bars = %+v, want the stale %s bar", bars, staleDate)
+	}
+}
+
+func TestFetchOHLCV_RefetchCooldown(t *testing.T) {
+	r, oc := newOHLCVTestRegistry(t)
+	withOHLCVChain(t, "a")
+
+	staleDate := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
+	if err := oc.Set("600519", "1D", []OHLCVBar{{Symbol: "600519", Date: staleDate, Open: 1, High: 1, Low: 1, Close: 1, Volume: 1}}); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &ohlcvMockAdapter{mockAdapter: mockAdapter{name: "a", markets: []string{"CN"}, available: true}, err: errors.New("boom")}
+	r.Register(a)
+
+	end := time.Now().Unix()
+	start := end - 30*86400
+
+	// First call: stale cache → refetch attempted (and fails).
+	_, _, _ = r.FetchOHLCVWithFallback(context.Background(), "CN", "600519", "1D", "", start, end)
+	if a.calls != 1 {
+		t.Fatalf("adapter calls = %d after first fetch, want 1", a.calls)
+	}
+
+	// Second call within cooldown: stale cache served without another refetch.
+	bars, source, err := r.FetchOHLCVWithFallback(context.Background(), "CN", "600519", "1D", "", start, end)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if a.calls != 1 {
+		t.Errorf("adapter calls = %d, want 1 (cooldown must suppress refetch)", a.calls)
+	}
+	if source != "cache" {
+		t.Errorf("source = %q, want %q", source, "cache")
+	}
+	if len(bars) != 1 {
+		t.Errorf("bars = %d, want 1", len(bars))
+	}
+}
+
+func TestPrevTradingDay(t *testing.T) {
+	loc := time.FixedZone("CST", 8*3600)
+	cases := []struct {
+		name string
+		now  time.Time
+		want time.Time
+	}{
+		{"weekday morning → previous weekday", time.Date(2026, 7, 15, 10, 0, 0, 0, loc), time.Date(2026, 7, 14, 0, 0, 0, 0, loc)},
+		{"weekday after close → same day", time.Date(2026, 7, 15, 16, 0, 0, 0, loc), time.Date(2026, 7, 15, 0, 0, 0, 0, loc)},
+		{"sunday → friday", time.Date(2026, 7, 19, 12, 0, 0, 0, loc), time.Date(2026, 7, 17, 0, 0, 0, 0, loc)},
+		{"monday morning → friday", time.Date(2026, 7, 20, 9, 0, 0, 0, loc), time.Date(2026, 7, 17, 0, 0, 0, 0, loc)},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := prevTradingDay(c.now, loc)
+			if got != c.want.Unix() {
+				t.Errorf("prevTradingDay(%v) = %v, want %v", c.now, time.Unix(got, 0), c.want)
 			}
 		})
 	}

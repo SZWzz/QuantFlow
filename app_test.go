@@ -22,19 +22,23 @@ func TestApp_RegisterMarketAdapters_AllWired(t *testing.T) {
 	}
 	a.registerMarketAdapters()
 
-	want := 15
-	if got := a.marketReg.Count(); got != want {
-		t.Fatalf("registered adapter count = %d, want %d", got, want)
+	// Explicit expected roster: count is derived from the list so adding an
+	// adapter forces an intentional update here (and the membership loop
+	// below names exactly which one is missing).
+	expected := []string{
+		// CN chain
+		"mootdx", "sina", "tushare", "eastmoney", "tencent", "baidu", "akshare",
+		// HK / minute
+		"akshare_hk_minute", "qos",
+		// US
+		"yahoo", "finnhub", "polygon",
+		// CRYPTO
+		"gateio", "okx", "binance", "binance_futures", "coingecko",
 	}
-
-	// Every adapter in the CN fallback chain must be registered, mootdx first.
-	for _, name := range []string{"mootdx", "sina", "tushare", "eastmoney", "tencent", "baidu", "akshare"} {
-		if a.marketReg.Get(name) == nil {
-			t.Errorf("adapter %q not registered", name)
-		}
+	if got := a.marketReg.Count(); got != len(expected) {
+		t.Errorf("registered adapter count = %d, want %d", got, len(expected))
 	}
-	// US / HK / CRYPTO adapters too.
-	for _, name := range []string{"yahoo", "polygon", "okx", "binance", "coingecko"} {
+	for _, name := range expected {
 		if a.marketReg.Get(name) == nil {
 			t.Errorf("adapter %q not registered", name)
 		}

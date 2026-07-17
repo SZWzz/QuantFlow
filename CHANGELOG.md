@@ -52,6 +52,8 @@
 
 ### 修复
 
+- [CI] 修复存量测试失败 — 适配器注册计数断言从魔法数字改为显式名单（17 个，与 `registerMarketAdapters` 对齐，新增适配器需显式登记）;mootdx 实盘集成测试加 `integration` build tag 移出默认测试套件（需 Python sidecar + 外网，且其历史 K 线断言与 mootdx 已知限制冲突）
+- [Market] K 线缓存永不过期 — OHLCV 缓存命中只要求"范围内有数据"且不检查新鲜度，日 K 停留在上次抓取日期不再更新（如 7/10 后不更新到 7/17）；现缓存命中前校验末根 bar 是否达到最新交易日（跳过周末），过期则重新抓取（10 分钟冷却防止节假日空打），重抓失败回退旧数据而不是报错
 - [Frontend] 命令栏弹层永远撑满 520px 高 — overlay flex 容器默认 `align-items: stretch` 拉伸所致，改为 `align-items: flex-start` 按内容收缩
 - [Frontend] 设置页 3 个 i18n key 缺失（API 密钥/日志/布局模板）导致导航直接显示原始 key
 - [Frontend] CrashDialog/UpdatePrompt 引用从未定义的 `--bg-surface`，弹窗背景透明
