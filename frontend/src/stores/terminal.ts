@@ -203,8 +203,9 @@ export const useTerminalStore = defineStore('terminal', () => {
 
   async function refreshLayouts() {
     try {
-      savedLayouts.value = await listLayoutsIPC()
-    } catch {}
+      const names = await listLayoutsIPC()
+      savedLayouts.value = Array.isArray(names) ? names : []
+    } catch { savedLayouts.value = [] }
   }
 
   async function saveLayout(name: string) {
