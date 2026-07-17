@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"quantflow/internal/research"
 )
@@ -33,6 +34,18 @@ func (a *App) GetPeerRadar(ctx context.Context, symbol string) ([]research.PeerR
 		peerSymbols = append(peerSymbols, p.Symbol)
 	}
 
+	// Filter out invalid peer symbols (BSE, partial codes, etc.)
+	validPeers := make([]string, 0, len(peerSymbols))
+	for _, s := range peerSymbols {
+		if len(s) >= 5 && (strings.Contains(s, ".SH") || strings.Contains(s, ".SZ") || strings.Contains(s, ".HK")) {
+			validPeers = append(validPeers, s)
+		}
+	}
+	// Limit to 5 peers to avoid excessive API calls
+	if len(validPeers) > 5 {
+		validPeers = validPeers[:5]
+	}
+
 	getFD := func(sym string) *research.FinancialData {
 		fd, err := a.finSvc.GetFinancials(ctx, sym)
 		if err != nil {
@@ -41,5 +54,5 @@ func (a *App) GetPeerRadar(ctx context.Context, symbol string) ([]research.PeerR
 		return fd
 	}
 
-	return research.ComputePeerRadar(symbol, peerSymbols, getFD), nil
+	return research.ComputePeerRadar(symbol, validPeers, getFD), nil
 }

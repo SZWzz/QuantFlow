@@ -96,9 +96,10 @@ function pct(v: number | undefined) { return v != null ? v.toFixed(1) + '%' : '-
       </div>
     </div>
 
-    <div v-if="peers.length > 0" class="radar-section">
+    <div class="radar-section">
       <h4>同行对比</h4>
-      <div id="dupont-radar" class="radar-chart" />
+      <div v-if="peers.length > 0" id="dupont-radar" class="radar-chart" />
+      <div v-else class="radar-empty">同行数据暂不可用<br/><small>（需概念板块数据 + 同行财报数据）</small></div>
     </div>
   </div>
 </template>
@@ -137,4 +138,6 @@ function pct(v: number | undefined) { return v != null ? v.toFixed(1) + '%' : '-
 .radar-section { flex: 1; display: flex; flex-direction: column; }
 .radar-section h4 { font-size: 13px; margin-bottom: 8px; }
 .radar-chart { flex: 1; min-height: 300px; }
+.radar-empty { text-align: center; padding: 48px; color: var(--color-text-tertiary); font-size: 13px; }
+.radar-empty small { display: block; margin-top: 4px; font-size: 11px; opacity: 0.7; }
 </style>
