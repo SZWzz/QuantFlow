@@ -567,6 +567,24 @@ export async function GetReconciliationReports(limit: number): Promise<Reconcili
   return wailsCall<ReconciliationReport[]>('GetReconciliationReports', limit)
 }
 
+// ── Credential Management ────────────────────────────────────────────────
+
+export async function GetCredential(name: string): Promise<{ name: string; type: string; keys: Record<string, string> }> {
+  return wailsCall('GetCredential', name)
+}
+
+export async function SaveCredential(name: string, type: string, keys: Record<string, string>): Promise<void> {
+  return wailsCall('SaveCredential', name, type, keys)
+}
+
+export async function DeleteCredential(name: string): Promise<void> {
+  return wailsCall('DeleteCredential', name)
+}
+
+export async function ListCredentialNames(): Promise<string[]> {
+  return wailsCall<string[]>('ListCredentialNames')
+}
+
 /**
  * Subscribes to crash reports pushed from the Go backend via Wails events.
  * Returns an unsubscribe function.

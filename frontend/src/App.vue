@@ -8,6 +8,7 @@ import { useCrashStore } from '@/stores/crash'
 import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
 import CrashDialog from '@/terminal/components/CrashDialog.vue'
 import ToastContainer from '@/terminal/components/ToastContainer.vue'
+import FirstRunWizard from '@/terminal/components/FirstRunWizard.vue'
 
 // Init theme at mount — sets body classes and watches reactive session state
 onMounted(() => {
@@ -121,6 +122,7 @@ if (!route.path.startsWith('/tearoff')) {
       @upload="(send) => sendCrashReport = send"
     />
     <ToastContainer />
+    <FirstRunWizard />
   </div>
 </template>
 
