@@ -287,6 +287,12 @@ function contextDelete() {
   removeSymbol(ctxMenu.value.symbol)
   closeContextMenu()
 }
+function contextOpenAnalysis(panelId: string) {
+  if (!ctxMenu.value) return
+  selectSymbol(ctxMenu.value.symbol)
+  terminal.openPanel(panelId, { symbol: ctxMenu.value.symbol })
+  closeContextMenu()
+}
 
 // Drag & drop
 function onDragStart(e: DragEvent, sym: string) {
@@ -452,6 +458,11 @@ onUnmounted(() => {
     <Teleport to="body">
       <div v-if="ctxMenu" class="context-menu" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }">
         <div class="menu-item" @click="contextOpenKline">{{ $t('watchlist.context_open_kline') }}</div>
+        <div class="menu-sep"></div>
+        <div class="menu-item" @click="contextOpenAnalysis('dupont-analysis')">杜邦分析</div>
+        <div class="menu-item" @click="contextOpenAnalysis('shareholder-analysis')">股东分析</div>
+        <div class="menu-item" @click="contextOpenAnalysis('event-study')">事件分析</div>
+        <div class="menu-sep"></div>
         <div class="menu-item" @click="contextCopyCode">{{ $t('watchlist.context_copy') }}</div>
         <div class="menu-sep"></div>
         <div class="menu-item danger" @click="contextDelete">{{ $t('watchlist.context_delete') }}</div>

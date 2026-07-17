@@ -6,7 +6,8 @@ import { useSymbolContext } from '@/stores/symbolContext'
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 
-const groupId = computed(() => ctx.getPanelGroupId(props.panelId))
+const panelGroup = ctx.getOrCreatePanelGroup(props.panelId)
+const groupId = computed(() => panelGroup.groupId)
 const linkedSymbol = computed(() => ctx.linkGroups[groupId.value]?.activeSymbol)
 
 const symbol = ref(props.params?.symbol || linkedSymbol.value || '')
