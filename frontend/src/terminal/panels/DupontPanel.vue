@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { GetDupontAnalysis, GetPeerRadar, type DupontBreakdown, type PeerRadar } from '@/lib/wails'
+import { useSymbolContext } from '@/stores/symbolContext'
 
-const symbol = ref('600519.SH')
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const ctx = useSymbolContext()
+
+const groupId = computed(() => ctx.getPanelGroupId(props.panelId))
+const linkedSymbol = computed(() => ctx.linkGroups[groupId.value]?.activeSymbol)
+
+const symbol = ref(props.params?.symbol || linkedSymbol.value || '600519.SH')
 const breakdown = ref<DupontBreakdown | null>(null)
 const peers = ref<PeerRadar[]>([])
 
+watch(linkedSymbol, (s) => { if (s) { symbol.value = s; fetchData() } })
 onMounted(() => fetchData())
 
 async function fetchData() {

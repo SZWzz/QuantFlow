@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { GetTop10Holders, type ShareholderRecord } from '@/lib/wails'
+import { useSymbolContext } from '@/stores/symbolContext'
 
-const symbol = ref('600519.SH')
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const ctx = useSymbolContext()
+
+const groupId = computed(() => ctx.getPanelGroupId(props.panelId))
+const linkedSymbol = computed(() => ctx.linkGroups[groupId.value]?.activeSymbol)
+
+const symbol = ref(props.params?.symbol || linkedSymbol.value || '')
 const holders = ref<ShareholderRecord[]>([])
 const loading = ref(false)
+
+watch(linkedSymbol, (s) => { if (s) { symbol.value = s; fetchData() } })
+onMounted(() => { if (symbol.value) fetchData() })
 
 async function fetchData() {
   loading.value = true

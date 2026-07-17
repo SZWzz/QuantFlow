@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ComputeEventStudy, type EventStudyResult } from '@/lib/wails'
+import { useSymbolContext } from '@/stores/symbolContext'
 
-const symbol = ref('600519.SH')
-const eventDate = ref('2024-04-02')
+const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const ctx = useSymbolContext()
+
+const groupId = computed(() => ctx.getPanelGroupId(props.panelId))
+const linkedSymbol = computed(() => ctx.linkGroups[groupId.value]?.activeSymbol)
+
+const symbol = ref(props.params?.symbol || linkedSymbol.value || '')
+const eventDate = ref(new Date().toISOString().slice(0, 10))
 const windowDays = ref(10)
+
+watch(linkedSymbol, (s) => { if (s) { symbol.value = s } })
 const result = ref<EventStudyResult | null>(null)
 const loading = ref(false)
 
