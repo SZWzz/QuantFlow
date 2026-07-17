@@ -6,7 +6,7 @@ import { useSessionStore } from '@/stores/session'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { getIcon } from '@/lib/icons'
-import { GetVersion } from '@/lib/wails'
+import { GetVersion, GetConnectionStatus } from '@/lib/wails'
 
 const data = useDataStore()
 const workflow = useWorkflowStore()
@@ -17,12 +17,27 @@ const ctx = useSymbolContext()
 const time = ref(new Date().toLocaleTimeString())
 const version = ref('...')
 let timer: ReturnType<typeof setInterval> | null = null
+let statusTimer: ReturnType<typeof setInterval> | null = null
+
+async function refreshConnectionStatus() {
+  try {
+    const status = await GetConnectionStatus()
+    if (status) terminal.updateConnectionStatus(status)
+  } catch { /* ignore */ }
+}
 
 onMounted(async () => {
   timer = setInterval(() => time.value = new Date().toLocaleTimeString(), 1000)
   try { version.value = await GetVersion() } catch { version.value = '?' }
+
+  // Fetch connection status immediately, then refresh every 30s
+  await refreshConnectionStatus()
+  statusTimer = setInterval(refreshConnectionStatus, 30000)
 })
-onUnmounted(() => { if (timer) clearInterval(timer) })
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+  if (statusTimer) clearInterval(statusTimer)
+})
 
 const activeGroups = computed(() =>
   Object.values(ctx.linkGroups).filter(g => g.activeSymbol)

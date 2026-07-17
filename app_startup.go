@@ -291,6 +291,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 
 	// Phase 5: Initialize trading OMS and wire to workflow nodes
 	a.oms = trading.NewOMS()
+	a.tradingMode = trading.NewEngineMode(a.oms)
 	a.brokers = make(map[string]trading.Broker)
 	nctx.OMS = a.oms
 
