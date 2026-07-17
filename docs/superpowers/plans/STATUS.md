@@ -7,7 +7,7 @@
 
 ---
 
-## ✅ 已完成（7/15）
+## ✅ 已完成（15/15）🎉
 
 ### 1. auto-updater — 自动更新系统
 
@@ -98,52 +98,10 @@
 
 ---
 
-## ⏳ 未完成（8/15）
-
-### 交易核心（0 个）✅ 全部完成
-
-### 用户体验（1 个）
-
-| # | Plan | Tasks | 规模 | 说明 |
-|---|------|-------|------|------|
-| 7 | [first-run-wizard](./2026-07-16-first-run-wizard.md) | 5 | 865 行 | 首次启动向导（useFirstRun composable） |
-
-### CI/CD 质量（3 个）
-
-| # | Plan | Tasks | 规模 | 说明 |
-|---|------|-------|------|------|
-| 9 | [coverage-gate](./2026-07-16-coverage-gate.md) | 4 | 296 行 | 测试覆盖率门禁 |
-| 10 | [goroutine-leak-ci](./2026-07-16-goroutine-leak-ci.md) | 5 | 262 行 | Goroutine 泄漏检测（go.uber.org/goleak） |
-| 11 | [error-handling-audit](./2026-07-16-error-handling-audit.md) | 5 | 339 行 | 全项目错误处理审计（含扫描脚本） |
-
-### 安全 / 配置（1 个）
-
-| # | Plan | Tasks | 规模 | 说明 |
-|---|------|-------|------|------|
-| 12 | [api-key-management](./2026-07-16-api-key-management.md) | 5 | 645 行 | API Key 集中管理面板（apiKeyRegistry.ts） |
-
-### 前端功能（2 个）
-
-| # | Plan | Tasks | 规模 | 说明 |
-|---|------|-------|------|------|
-| 13 | [workflow-gallery](./2026-07-16-workflow-gallery.md) | 6 | 1012 行 | 6 套官方工作流模板库 |
-| 14 | [user-manual](./2026-07-16-user-manual.md) | 7 | 1194 行 | 帮助中心 + 面板 ⓘ 内联帮助 |
-
-### 性能（1 个）
-
-| # | Plan | Tasks | 规模 | 说明 |
-|---|------|-------|------|------|
-| 15 | [startup-optimization](./2026-07-16-startup-optimization.md) | 5 | 914 行 | 启动优化（internal/startup/ 指标 + 优化器） |
+## ⏳ 未完成（0/15）✅ 全部完成
 
 ---
 
-## 依赖关系提示
-
-- ~~release-pipeline~~ ✅ 已完成：auto-updater 需要 GitHub Releases 提供资产
-- **error-visibility** 的 Toast 系统可被 paper-to-live-switch、position-reconciliation 等交易功能复用（错误提示）
-- **coverage-gate / goroutine-leak-ci** 越早落地，后续 plan 的质量门槛越高
-- 三个交易核心 plan 均涉及 SQLite 迁移，注意迁移序号不冲突
-
-## 执行记录
-
-进度 ledger: `.superpowers/sdd/progress.md`（git-ignored scratch，勿依赖长期保存）
+**执行完成日期**: 2026-07-17
+**总 commit 数**: 10 commits
+**新增文件**: 40+ files across Go backend, Vue frontend, CI/CD workflows
