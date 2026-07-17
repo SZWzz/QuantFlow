@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useDataStore } from '@/stores/data'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useSessionStore } from '@/stores/session'
 import { useTerminalStore } from '@/stores/terminal'
@@ -8,7 +7,6 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { getIcon } from '@/lib/icons'
 import { GetVersion, GetConnectionStatus } from '@/lib/wails'
 
-const data = useDataStore()
 const workflow = useWorkflowStore()
 const session = useSessionStore()
 const terminal = useTerminalStore()
@@ -60,62 +58,70 @@ function closeDialog() {
 
 // ── Connection status display ────────────────────────────────────────
 
+interface StatusItem { label: string; status: string }
+
 const connStatus = computed(() => terminal.connectionStatus)
-const marketEntries = computed(() => Object.entries(connStatus.value?.markets ?? {}))
+const marketEntries = computed<StatusItem[]>(() =>
+  Object.entries(connStatus.value?.markets ?? {}).map(([m, s]) => ({ label: m, status: s }))
+)
 
-const brokerSummary = computed(() => {
-  const brokers = connStatus.value?.brokers ?? {}
-  const entries = Object.entries(brokers)
-  const connected = entries.filter(([, s]) => s.includes('已连接')).length
-  return { total: entries.length, connected, entries }
-})
+const brokerEntries = computed<StatusItem[]>(() =>
+  Object.entries(connStatus.value?.brokers ?? {}).map(([n, s]) => ({ label: n, status: s }))
+)
 
-const marketSummary = computed(() => {
-  const configured = marketEntries.value.filter(([, s]) => s !== '未配置' && s !== '初始化中').length
-  return { total: marketEntries.value.length, configured }
-})
+const pythonItem = computed<StatusItem>(() => ({
+  label: 'Python', status: connStatus.value?.python ?? '未知',
+}))
+
+function isOK(s: string) {
+  return s.includes('已配置') || s.includes('已连接') || s.includes('运行中') || s.includes('适配器')
+}
+
+// All healthy items merged into the "已连接" pill
+const okItems = computed<StatusItem[]>(() => [
+  ...marketEntries.value.filter(i => isOK(i.status)),
+  ...brokerEntries.value.filter(i => isOK(i.status)),
+  ...(isOK(pythonItem.value.status) ? [pythonItem.value] : []),
+])
+
+// Only broken items shown individually
+const badItems = computed<StatusItem[]>(() => [
+  ...marketEntries.value.filter(i => !isOK(i.status) && i.status !== '初始化中'),
+  ...brokerEntries.value.filter(i => !isOK(i.status)),
+  ...(!isOK(pythonItem.value.status) ? [pythonItem.value] : []),
+])
+
+const allOK = computed(() => badItems.value.length === 0)
 </script>
 
 <template>
   <div class="status-bar">
     <div class="status-left">
-      <span class="status-badge" :class="{ offline: data.isOffline }">
-        <span class="status-dot" :class="{ pulse: !data.isOffline, offline: data.isOffline }" />
-        <span class="status-text">{{ data.isOffline ? $t('common.disconnected') : $t('common.connected') }}</span>
-      </span>
-
-      <!-- 📡 Markets -->
+      <!-- 已连接：合并所有正常项 -->
       <span
         class="status-badge"
-        :class="{ offline: marketSummary.configured === 0 }"
+        :class="{ offline: okItems.length === 0 }"
         data-test="status-group"
-        @click="showDetail('行情源', marketEntries.map(([m, s]) => ({ label: m, status: s })))"
+        @click="showDetail('连接状态', [
+          ...marketEntries.value,
+          ...brokerEntries.value,
+          pythonItem.value,
+        ])"
       >
-        <span class="status-dot" :class="{ pulse: marketSummary.configured > 0, offline: marketSummary.configured === 0 }" />
-        <span class="status-text">行情</span>
+        <span class="status-dot" :class="{ pulse: okItems.length > 0, offline: okItems.length === 0 }" />
+        <span class="status-text">{{ okItems.length > 0 ? '已连接' : '未连接' }}</span>
       </span>
 
-      <!-- 💼 Brokers -->
+      <!-- 只展示异常项 -->
       <span
-        v-if="brokerSummary.total > 0"
-        class="status-badge"
-        :class="{ offline: brokerSummary.connected === 0 }"
+        v-for="item in badItems"
+        :key="item.label"
+        class="status-badge offline"
         data-test="status-group"
-        @click="showDetail('券商', brokerSummary.entries.map(([n, s]) => ({ label: n, status: s })))"
+        @click="showDetail(item.label, [{ label: '状态', status: item.status }])"
       >
-        <span class="status-dot" :class="{ pulse: brokerSummary.connected > 0, offline: brokerSummary.connected === 0 }" />
-        <span class="status-text">券商 {{ brokerSummary.connected }}/{{ brokerSummary.total }}</span>
-      </span>
-
-      <!-- 🐍 Python -->
-      <span
-        class="status-badge"
-        :class="{ offline: connStatus?.python !== '运行中' }"
-        data-test="status-group"
-        @click="showDetail('Python Sidecar', [{ label: '状态', status: connStatus?.python ?? '未知' }])"
-      >
-        <span class="status-dot" :class="{ pulse: connStatus?.python === '运行中', offline: connStatus?.python !== '运行中' }" />
-        <span class="status-text">Python</span>
+        <span class="status-dot offline" />
+        <span class="status-text">{{ item.label }}</span>
       </span>
     </div>
     <div class="status-groups">
