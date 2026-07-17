@@ -2,11 +2,10 @@
 package crash
 
 import (
+	"crypto/rand"
 	"fmt"
 	"runtime"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type CrashReport struct {
@@ -62,6 +61,14 @@ func SetStateGetters(
 	tradingMode = mode
 }
 
+func newCrashID() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
 func NewCrashReport(panicVal, stack string, logs []string, state AppState) *CrashReport {
 	if state.TradingMode == "" {
 		state.TradingMode = tradingMode()
@@ -80,7 +87,7 @@ func NewCrashReport(panicVal, stack string, logs []string, state AppState) *Cras
 	}
 
 	return &CrashReport{
-		ID:        uuid.New().String(),
+		ID:        newCrashID(),
 		Timestamp: time.Now(),
 		Version:   appVersion,
 		GoVersion: runtime.Version(),
