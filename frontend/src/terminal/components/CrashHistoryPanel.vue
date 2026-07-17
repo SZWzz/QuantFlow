@@ -49,8 +49,12 @@ async function onUpload(report: CrashReport) {
   if (!ok) return
   uploadingId.value = report.id
   try {
-    await store.upload(report.id)
-    await alertDialog('崩溃报告已上传')
+    const success = await store.upload(report.id)
+    if (success) {
+      await alertDialog('崩溃报告已上传')
+    } else {
+      await alertDialog('上传失败，请稍后重试')
+    }
   } finally {
     uploadingId.value = null
   }

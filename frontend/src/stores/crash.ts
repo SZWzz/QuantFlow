@@ -62,12 +62,13 @@ export const useCrashStore = defineStore('crash', () => {
     }
   }
 
-  async function upload(id: string) {
+  async function upload(id: string): Promise<boolean> {
     try {
       await UploadCrashReport(id)
+      return true
     } catch (e) {
-      // Upload is best-effort opt-in — never block the user on failure.
       logger.error('[Crash] upload report failed:', e)
+      return false
     }
   }
 

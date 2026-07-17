@@ -468,8 +468,10 @@ export async function GetCrashDir(): Promise<string> {
 
 /**
  * Subscribes to crash reports pushed from the Go backend via Wails events.
- * Returns an unsubscribe function. The Go side emits `crash:detected` with a
- * CrashReport payload when a crash report is available for the frontend.
+ * Returns an unsubscribe function.
+ *
+ * Reserved for future use — the Go side does not yet emit this event; crash
+ * detection currently uses the localStorage watermark in the crash store.
  */
 export function onCrashReport(cb: (report: CrashReport) => void): () => void {
   return Events.On('crash:detected', (ev: { data: any }) => {
