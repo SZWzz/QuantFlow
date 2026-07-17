@@ -78,6 +78,13 @@ type App struct {
 	// Market data hub for in-process pub/sub.
 	marketHub     *market.MarketDataHub
 
+	// Sector service for industry dashboard.
+	sectorSvc     *market.SectorService
+
+	// Research services (exposed for analysis panels)
+	finSvc   *research.FinancialsService
+	peerSvc  *research.PeerComparisonService
+
 	// WebSocket service wrapper (set during ServiceStartup, registered in main.go).
 	wsSvc         *ws.MarketWSService
 	wsHub         *ws.Hub

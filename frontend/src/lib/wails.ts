@@ -563,6 +563,34 @@ export async function ReconcileAll(): Promise<ReconciliationReport[]> {
   return wailsCall<ReconciliationReport[]>('ReconcileAll')
 }
 
+// ── Sector Dashboard ──────────────────────────────────────────────────────
+
+export async function GetSectorHeatmap(market: string): Promise<Array<{name:string;change_pct:number;volume:number;pe:number;pe_pct:number}>> {
+  return wailsCall('GetSectorHeatmap', market)
+}
+export async function GetSectorValuation(market: string): Promise<Array<{name:string;pe:number;pe_pct:number;pb:number;pb_pct:number;roe:number}>> {
+  return wailsCall('GetSectorValuation', market)
+}
+
+// ── Valuation & Dupont ────────────────────────────────────────────────────
+
+export interface BandResult {
+  symbol: string; metric: string; current: number; mean: number; stddev: number; percentile: number
+  points: Array<{date:string;close:number;band_1:number;band_2:number;band_3:number;band_4:number;band_5:number}>
+}
+export interface DupontBreakdown { symbol:string;roe:number;net_margin:number;asset_turnover:number;equity_multiplier:number;gross_margin:number;eps:number }
+export interface PeerRadar { symbol:string;name:string;metrics:Record<string,number> }
+
+export async function GetPriceBand(symbol: string, market: string, interval: string, lookbackDays: number): Promise<BandResult> {
+  return wailsCall('GetPriceBand', symbol, market, interval, lookbackDays)
+}
+export async function GetDupontAnalysis(symbol: string): Promise<DupontBreakdown> {
+  return wailsCall('GetDupontAnalysis', symbol)
+}
+export async function GetPeerRadar(symbol: string): Promise<PeerRadar[]> {
+  return wailsCall('GetPeerRadar', symbol)
+}
+
 export async function GetReconciliationReports(limit: number): Promise<ReconciliationReport[]> {
   return wailsCall<ReconciliationReport[]>('GetReconciliationReports', limit)
 }

@@ -290,4 +290,13 @@ export const PANEL_ICONS: Record<string, IconName> = {
   'help-center': 'help',
   storage: 'storage',
   'layout-templates': 'layout',
+  'sector-dashboard': 'heatmap',
+  'dupont-analysis': 'financials',
+  'macro-dashboard': 'macro',
+  'market-style': 'market',
+  'event-study': 'surface',
+  'shareholder-analysis': 'insider',
+  'unlock-calendar': 'schedule',
+  'factor-attribution': 'factor',
+  'valuation-band': 'candlestick',
 }

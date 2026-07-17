@@ -172,6 +172,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.marketReg = market.NewAdapterRegistry()
 	a.registerMarketAdapters()
 	slog.Info("market adapter registry initialized", "count", a.marketReg.Count())
+	a.sectorSvc = market.NewSectorService(a.marketReg, a.db)
 	nctx.MarketReg = a.marketReg
 
 	if a.ohlcvCache != nil {
@@ -487,8 +488,10 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		nctx.SentimentEngine = sentimentEngine
 		slog.Info("sentiment engine initialized in mock mode (no Python bridge)")
 	}
-	nctx.FinancialsService = research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
-	nctx.PeerComparisonService = research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt, a.eastmoneyAdpt, a.marketReg)
+	a.finSvc = research.NewFinancialsService(a.sinaFinAdpt, a.getMootdxAdapter())
+	nctx.FinancialsService = a.finSvc
+	a.peerSvc = research.NewPeerComparisonService(a.conceptAdpt, a.signalsAdpt, a.eastmoneyAdpt, a.marketReg)
+	nctx.PeerComparisonService = a.peerSvc
 	nctx.AnalystEstimatesService = research.NewAnalystEstimatesService(a.reportAdpt, a.consensusAdpt)
 	nctx.InsiderTradingService = research.NewInsiderTradingService(a.bridge)
 	nctx.CongressTradingService = research.NewCongressTradingService(a.congressAdpt)
