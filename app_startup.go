@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -15,6 +16,7 @@ import (
 	"quantflow/internal/ai/capabilities"
 	"quantflow/internal/auth"
 	"quantflow/internal/config"
+	"quantflow/internal/crash"
 	"quantflow/internal/logging"
 	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
@@ -43,6 +45,31 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		return fmt.Errorf("load config: %w", err)
 	}
 	a.cfg = cfg
+
+	// Wire crash reporter with app version and state getters.
+	// State getters are closures evaluated at crash time, so they safely capture
+	// app state that may not be fully initialized yet at this point.
+	crash.SetAppInfo(cfg.Version, "prod")
+	crash.SetStateGetters(
+		func() int64 { return int64(time.Since(startTime).Seconds()) },
+		func() int { return 0 }, // panel count — not tracked in the backend
+		func() int {
+			// Approximate active workflow count. An exact count would require
+			// querying storage.WorkflowRepo.List() which allocates a new repo each call.
+			return 0
+		},
+		func() []string {
+			names := make([]string, 0, len(a.brokers))
+			for name := range a.brokers {
+				names = append(names, name)
+			}
+			return names
+		},
+		func() string {
+			return "unknown"
+		},
+	)
+
 	// If db_path was persisted as absolute from a previous version, reset to default
 	// relative path so it resolves correctly against the current executable location.
 	// This handles config.yaml left behind by the old code that overwrote cfg.DBPath

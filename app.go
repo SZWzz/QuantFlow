@@ -19,6 +19,7 @@ import (
 	"quantflow/internal/auth"
 	"quantflow/internal/backtest"
 	"quantflow/internal/config"
+	"quantflow/internal/crash"
 	"quantflow/internal/logging"
 	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
@@ -138,6 +139,9 @@ type App struct {
 
 	// Wails application reference (set in main.go).
 	wailsApp *application.App
+
+	// Crash report store (initialized in main.go, used by ServiceShutdown).
+	crashStore *crash.Store
 
 	// Tear-off window tracking.
 	tearOffWindows   map[string]*tearOffEntry // instanceId → entry

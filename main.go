@@ -7,6 +7,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
+	"quantflow/internal/crash"
 	"quantflow/internal/ws"
 )
 
@@ -14,11 +15,18 @@ import (
 var assets embed.FS
 
 func main() {
+	defer crash.CapturePanic()
+
+	// Initialize the crash report store and register signal handlers before
+	// any other initialization, so panics and fatal signals are always captured.
+	store := crash.NewStore(crash.CrashDir())
+	crash.StartCrashHandler(store)
+
 	// Create the MarketWSService first. Its Hub field is set during
 	// App.ServiceStartup, before the HTTP server starts.
 	wsSvc := &ws.MarketWSService{}
 
-	appInstance := &App{wsSvc: wsSvc}
+	appInstance := &App{wsSvc: wsSvc, crashStore: store}
 	app := application.New(application.Options{
 		Name:        "quantflow",
 		Description: "QuantFlow Terminal — 双模式量化金融终端",
