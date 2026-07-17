@@ -4,6 +4,7 @@ package crash
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -132,7 +133,10 @@ func (s *Store) Upload(report *CrashReport, endpoint string) error {
 	if err != nil {
 		return fmt.Errorf("upload request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("upload status %d", resp.StatusCode)

@@ -2,6 +2,9 @@
 package crash
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -75,5 +78,46 @@ func TestStoreCleanup(t *testing.T) {
 	}
 	if removed != 1 {
 		t.Errorf("expected 1 removed, got %d", removed)
+	}
+}
+
+func TestStoreUpload(t *testing.T) {
+	// Server that validates the POST body is our crash report JSON and returns 200.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.Header.Get("Content-Type") != "application/json" {
+			t.Errorf("expected application/json, got %s", r.Header.Get("Content-Type"))
+		}
+		var received CrashReport
+		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
+			t.Errorf("decode body: %v", err)
+		}
+		if received.Panic == "" {
+			t.Error("expected non-empty panic field")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	s := NewStore(t.TempDir())
+	report := NewCrashReport("upload test panic", "stack", []string{"log"}, AppState{})
+	if err := s.Upload(report, server.URL); err != nil {
+		t.Fatalf("Upload: %v", err)
+	}
+}
+
+func TestStoreUploadNon200(t *testing.T) {
+	// Server that returns 500 to test error handling.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	s := NewStore(t.TempDir())
+	report := NewCrashReport("upload error", "stack", nil, AppState{})
+	if err := s.Upload(report, server.URL); err == nil {
+		t.Error("expected error for non-200 status")
 	}
 }
