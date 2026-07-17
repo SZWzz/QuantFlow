@@ -120,6 +120,7 @@ export default {
     llm_load_models: 'Load Models',
     llm_apply_models: 'Apply Models',
     storage: 'Storage', db_path: 'DB Path', export_data: 'Export Data',
+    crash_reports: 'Crash Reports',
     about: 'About', version: 'Version', license: 'License',
   },
   news: { no_news: 'No news' },

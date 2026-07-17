@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"quantflow/internal/crash"
 	"quantflow/internal/updater"
 )
 
@@ -142,4 +143,66 @@ func (a *App) OpenURL(url string) error {
 	default:
 		return exec.Command("open", url).Start()
 	}
+}
+
+// ── Crash Reports ──────────────────────────────────────────────────────
+
+// defaultCrashEndpoint is used for opt-in crash report uploads when the user
+// has not configured a custom "crash_endpoint" in the config API keys.
+const defaultCrashEndpoint = "https://hooks.quantflow.app/crashes"
+
+// ListCrashReports returns all saved crash reports from previous sessions.
+// Reports contain no API keys or position details (see internal/crash docs).
+func (a *App) ListCrashReports() []crash.CrashReport {
+	if a.crashStore == nil {
+		return nil
+	}
+	reports, err := a.crashStore.List()
+	if err != nil {
+		slog.Warn("list crash reports", "error", err)
+		return nil
+	}
+	return reports
+}
+
+// DeleteCrashReport deletes a crash report by ID.
+func (a *App) DeleteCrashReport(id string) error {
+	if a.crashStore == nil {
+		return fmt.Errorf("crash store not initialized")
+	}
+	return a.crashStore.Delete(id)
+}
+
+// UploadCrashReport uploads a crash report to the configured endpoint.
+// Upload is strictly opt-in: it only happens when the frontend calls this
+// method after explicit user consent (crash dialog checkbox / history panel).
+func (a *App) UploadCrashReport(id string) error {
+	if a.crashStore == nil {
+		return fmt.Errorf("crash store not initialized")
+	}
+	reports, err := a.crashStore.List()
+	if err != nil {
+		return fmt.Errorf("list reports: %w", err)
+	}
+	for i := range reports {
+		if reports[i].ID == id {
+			endpoint := defaultCrashEndpoint
+			if a.cfg != nil {
+				if custom := a.cfg.GetAPIKey("crash_endpoint"); custom != "" {
+					endpoint = custom
+				}
+			}
+			return a.crashStore.Upload(&reports[i], endpoint)
+		}
+	}
+	return fmt.Errorf("report %s not found", id)
+}
+
+// GetCrashDir returns the directory where crash reports are stored, for
+// display in the crash recovery dialog.
+func (a *App) GetCrashDir() string {
+	if a.crashStore == nil {
+		return crash.CrashDir()
+	}
+	return a.crashStore.Dir()
 }

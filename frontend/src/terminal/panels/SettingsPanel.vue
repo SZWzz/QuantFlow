@@ -10,6 +10,7 @@ import { saveCredential, getCredential, GetVersion, GetUpdateInterval, SetUpdate
 import { logger } from '@/lib/logger'
 import { useUpdateStore } from '@/stores/update'
 import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
+import CrashHistoryPanel from '@/terminal/components/CrashHistoryPanel.vue'
 import StoragePanel from './StoragePanel.vue'
 import LogPanel from './LogPanel.vue'
 import LayoutTemplatePanel from './LayoutTemplatePanel.vue'
@@ -41,6 +42,7 @@ const sections: Section[] = [
   { id: 'storage', label: 'storage', icon: getIcon('portfolio') },
   { id: 'notify', label: 'notifications', icon: getIcon('notify') },
   { id: 'logs', label: 'log_viewer', icon: getIcon('schedule') },
+  { id: 'crashes', label: 'crash_reports', icon: getIcon('system') },
   { id: 'layouts', label: 'layout_templates', icon: getIcon('layout') },
   { id: 'about', label: 'about', icon: getIcon('info') },
 ]
@@ -50,6 +52,7 @@ const embeddedComponents: Record<string, any> = {
   storage: StoragePanel,
   notify: NotifyPanel,
   logs: LogPanel,
+  crashes: CrashHistoryPanel,
   layouts: LayoutTemplatePanel,
 }
 
@@ -407,7 +410,7 @@ function onExportData() {
         </div>
       </section>
 
-      <!-- Embedded panels: Storage / Notify / Logs / Layouts -->
+      <!-- Embedded panels: Storage / Notify / Logs / Crashes / Layouts -->
       <section
         v-if="embeddedComponents[activeSection]"
         class="section embedded-section"

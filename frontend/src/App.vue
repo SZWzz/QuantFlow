@@ -4,7 +4,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useThemeStore } from '@/lib/theme'
 import { useUpdateStore } from '@/stores/update'
+import { useCrashStore } from '@/stores/crash'
 import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
+import CrashDialog from '@/terminal/components/CrashDialog.vue'
 
 // Init theme at mount — sets body classes and watches reactive session state
 onMounted(() => {
@@ -37,6 +39,32 @@ onMounted(() => {
 async function handleApplyUpdate() {
   await updateStore.apply()
   showUpdatePrompt.value = false
+}
+
+// --- Crash recovery dialog (shown on next launch after a crash) ---
+const crashStore = useCrashStore()
+const showCrashDialog = ref(false)
+// Anonymous upload is opt-in; the dialog checkbox defaults to checked and
+// emits `upload` whenever the user toggles it.
+const sendCrashReport = ref(true)
+
+onMounted(async () => {
+  // Tear-off windows must not show the crash dialog — only the main window.
+  if (isTearOff.value) return
+  await crashStore.init()
+  if (crashStore.pending) {
+    showCrashDialog.value = true
+  }
+})
+
+/** Dismiss the crash dialog: upload if opted in, then acknowledge. */
+async function handleCrashDismiss() {
+  const pending = crashStore.pending
+  if (sendCrashReport.value && pending) {
+    await crashStore.upload(pending.id)
+  }
+  crashStore.ack()
+  showCrashDialog.value = false
 }
 
 // Sync theme/density body classes when session changes
@@ -78,6 +106,16 @@ if (!route.path.startsWith('/tearoff')) {
       :changelog="updateStore.updateInfo.changelog"
       @close="showUpdatePrompt = false"
       @update="handleApplyUpdate"
+    />
+    <CrashDialog
+      v-if="crashStore.pending"
+      :visible="showCrashDialog"
+      :crash-time="crashStore.pending.timestamp"
+      :crash-path="crashStore.crashDir"
+      :report="crashStore.pending"
+      @close="handleCrashDismiss"
+      @restart="handleCrashDismiss"
+      @upload="(send) => sendCrashReport = send"
     />
   </div>
 </template>

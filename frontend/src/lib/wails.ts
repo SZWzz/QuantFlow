@@ -9,7 +9,7 @@
  * transparently — no changes needed in individual panels.
  */
 
-import { Call, Dialogs } from '@wailsio/runtime'
+import { Call, Dialogs, Events } from '@wailsio/runtime'
 import { logger } from '@/lib/logger'
 
 // ---------------------------------------------------------------------------
@@ -420,6 +420,63 @@ export async function ListLayouts(): Promise<string[]> {
 
 export async function DeleteLayout(name: string): Promise<void> {
   return wailsCall<void>('DeleteLayout', name)
+}
+
+// ── Crash Reports ──────────────────────────────────────────────────────
+
+/** Non-PII application state captured at crash time (mirrors Go crash.AppState). */
+export interface CrashAppState {
+  trading_mode: string
+  active_brokers: string[]
+  panel_count: number
+  workflow_count: number
+  uptime_seconds: number
+}
+
+/** A saved crash report (mirrors Go crash.CrashReport JSON). */
+export interface CrashReport {
+  id: string
+  timestamp: string
+  version: string
+  go_version: string
+  os: string
+  arch: string
+  build_mode: string
+  panic: string
+  stack: string
+  logs: string[] | null
+  app_state: CrashAppState
+}
+
+export async function ListCrashReports(): Promise<CrashReport[]> {
+  return wailsCall<CrashReport[]>('ListCrashReports')
+}
+
+export async function DeleteCrashReport(id: string): Promise<void> {
+  return wailsCall<void>('DeleteCrashReport', id)
+}
+
+/** Opt-in upload of a crash report to the configured endpoint. */
+export async function UploadCrashReport(id: string): Promise<void> {
+  return wailsCall<void>('UploadCrashReport', id)
+}
+
+/** Returns the platform-specific directory where crash reports are saved. */
+export async function GetCrashDir(): Promise<string> {
+  return wailsCall<string>('GetCrashDir')
+}
+
+/**
+ * Subscribes to crash reports pushed from the Go backend via Wails events.
+ * Returns an unsubscribe function. The Go side emits `crash:detected` with a
+ * CrashReport payload when a crash report is available for the frontend.
+ */
+export function onCrashReport(cb: (report: CrashReport) => void): () => void {
+  return Events.On('crash:detected', (ev: { data: any }) => {
+    // Wails v3 delivers event payloads in ev.data (arrays for multi-arg emits).
+    const payload = Array.isArray(ev.data) ? ev.data[0] : ev.data
+    if (payload) cb(payload as CrashReport)
+  })
 }
 
 // ── Credential Management ──────────────────────────────────────────────

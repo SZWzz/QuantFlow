@@ -131,6 +131,7 @@ export default {
     llm_load_models: '加载模型',
     llm_apply_models: '应用模型',
     storage: '存储', db_path: '数据库路径', export_data: '导出数据',
+    crash_reports: '崩溃报告',
     about: '关于', version: '版本', license: '许可证',
   },
   news: {
