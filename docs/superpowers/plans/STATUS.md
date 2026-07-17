@@ -7,7 +7,7 @@
 
 ---
 
-## ✅ 已完成（5/15）
+## ✅ 已完成（7/15）
 
 ### 1. auto-updater — 自动更新系统
 
@@ -84,16 +84,23 @@
   - 定时触发（scheduler）和通知推送（notify.Manager）延后
   - CSV 导出为占位符（完整 CSV 序列化延后到 phase 2）
 
+### 6. paper-to-live-switch — Paper→Live 实盘切换
+
+- **Plan**: [2026-07-16-paper-to-live-switch.md](./2026-07-16-paper-to-live-switch.md)
+- **完成日期**: 2026-07-17
+- **交付**: `TradingMode` 类型 + `SafetyCheck`/`SafetyReport` (types.go), `EngineMode` 模式管理器 (engine_mode.go), `SwitchToLive`/`SwitchToPaper`/`EmergencyClose` IPC, `LiveModeBanner.vue`
+
+### 7. position-reconciliation — 持仓对账系统
+
+- **Plan**: [2026-07-16-position-reconciliation.md](./2026-07-16-position-reconciliation.md)
+- **完成日期**: 2026-07-17
+- **交付**: `ReconcileAll(oms, brokers)` 对账引擎, `reconciliation_reports` 表 (migration 020), `ReconcileAll`/`GetReconciliationReports` IPC
+
 ---
 
-## ⏳ 未完成（10/15）
+## ⏳ 未完成（8/15）
 
-### 交易核心（2 个）— 建议下一批执行
-
-| # | Plan | Tasks | 规模 | 说明 |
-|---|------|-------|------|------|
-| 4 | [paper-to-live-switch](./2026-07-16-paper-to-live-switch.md) | 6 | 945 行 | Paper→Live 实盘切换安全机制（TradingMode + SafetyCheck） |
-| 5 | [position-reconciliation](./2026-07-16-position-reconciliation.md) | 6 | 979 行 | 持仓同步与对账（含 `reconciliation_reports` 表迁移） |
+### 交易核心（0 个）✅ 全部完成
 
 ### 用户体验（1 个）
 
