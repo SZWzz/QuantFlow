@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            ext: dmg
+            label: macOS ARM64
+          - os: macos-13
+            goos: darwin
+            goarch: amd64
+            ext: dmg
+            label: macOS AMD64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            ext: tar.gz
+            label: Linux AMD64
+          - os: ubuntu-24.04-arm
+            goos: linux
+            goarch: arm64
+            ext: tar.gz
+            label: Linux ARM64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: zip
+            label: Windows AMD64
+          - os: windows-latest
+            goos: windows
+            goarch: arm64
+            ext: zip
+            label: Windows ARM64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          check-latest: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build -q
+        working-directory: frontend
+
+      - name: Build Go binary
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+          CGO_ENABLED=0 \
+          go build -a -ldflags="-s -w -X quantflow/internal/crash.appVersion=${VERSION} -X quantflow/internal/crash.buildMode=release" \
+            -o build/quantflow${{ matrix.goos == 'windows' && '.exe' || '' }} .
+
+      - name: Package (macOS)
+        if: matrix.goos == 'darwin'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ARCH="${{ matrix.goarch }}"
+          BUNDLE="build/QuantFlow.app"
+
+          mkdir -p "${BUNDLE}/Contents/MacOS"
+          mkdir -p "${BUNDLE}/Contents/Resources"
+
+          cp "build/quantflow" "${BUNDLE}/Contents/MacOS/"
+          cp -r frontend/dist "${BUNDLE}/Contents/Resources/frontend"
+          cp resources/icon.icns "${BUNDLE}/Contents/Resources/" 2>/dev/null || true
+
+          sed "s/__VERSION__/${VERSION}/g" resources/Info.plist.template > "${BUNDLE}/Contents/Info.plist"
+
+          DMG="build/QuantFlow-${VERSION}-darwin-${ARCH}.dmg"
+          hdiutil create -volname "QuantFlow ${VERSION}" \
+            -srcfolder "${BUNDLE}" \
+            -ov -format UDZO \
+            "${DMG}"
+          echo "artifact=${DMG}" >> $GITHUB_ENV
+          echo "artifact_name=$(basename "${DMG}")" >> $GITHUB_ENV
+
+      - name: Package (Linux)
+        if: matrix.goos == 'linux'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ARCH="${{ matrix.goarch }}"
+          STAGING="build/quantflow-${VERSION}-linux-${ARCH}"
+
+          mkdir -p "${STAGING}"
+          cp "build/quantflow" "${STAGING}/"
+          cp -r resources "${STAGING}/" 2>/dev/null || true
+          cp README.md "${STAGING}/" 2>/dev/null || true
+          cp LICENSE "${STAGING}/" 2>/dev/null || true
+          cp -r frontend/dist "${STAGING}/frontend" 2>/dev/null || true
+
+          TARBALL="build/quantflow-${VERSION}-linux-${ARCH}.tar.gz"
+          tar -czf "${TARBALL}" -C build "quantflow-${VERSION}-linux-${ARCH}"
+          echo "artifact=${TARBALL}" >> $GITHUB_ENV
+          echo "artifact_name=$(basename "${TARBALL}")" >> $GITHUB_ENV
+
+      - name: Package (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          $version = "$env:GITHUB_REF_NAME" -replace '^v', ''
+          $arch = "${{ matrix.goarch }}"
+          $staging = "build\quantflow-${version}-windows-${arch}"
+
+          New-Item -ItemType Directory -Force -Path $staging | Out-Null
+          Copy-Item "build\quantflow.exe" "$staging\"
+          Copy-Item "frontend\dist" "$staging\frontend\" -Recurse -Force
+          if (Test-Path "resources") { Copy-Item "resources\*" "$staging\" -Recurse -Force }
+
+          $zipPath = "build\quantflow-${version}-windows-${arch}.zip"
+          Compress-Archive -Path "$staging\*" -DestinationPath $zipPath -Force
+
+          "artifact=${zipPath}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "artifact_name=$(Split-Path $zipPath -Leaf)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Generate checksums (Unix)
+        if: matrix.goos != 'windows'
+        run: |
+          cd build
+          rm -f checksums.txt
+          for f in quantflow-*; do
+            [ -f "$f" ] && echo "$(sha256sum "$f" | cut -d' ' -f1)  $f" >> checksums.txt
+          done
+          cat checksums.txt
+
+      - name: Generate checksums (Windows)
+        if: matrix.goos == 'windows'
+        shell: pwsh
+        run: |
+          cd build
+          $checksums = @()
+          Get-ChildItem -File | Where-Object { $_.Name -match '^quantflow-.*\.(dmg|tar\.gz|zip)$' } | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)" | Out-File -Append -FilePath checksums.txt -Encoding ascii
+          }
+          Get-Content checksums.txt
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/quantflow-*-darwin-*.dmg
+            build/quantflow-*-linux-*.tar.gz
+            build/quantflow-*-windows-*.zip
+            build/checksums.txt
+          generate_release_notes: true
+          fail_on_unmatched_files: false
