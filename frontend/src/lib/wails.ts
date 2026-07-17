@@ -537,6 +537,36 @@ export async function EmergencyClose(): Promise<Record<string, any>> {
   return wailsCall<Record<string, any>>('EmergencyClose')
 }
 
+// ── Position Reconciliation ──────────────────────────────────────────────
+
+export interface ReconciliationDiff {
+  symbol: string
+  oms_quantity: number
+  broker_quantity: number
+  oms_avg_price: number
+  broker_avg_price: number
+}
+
+export interface ReconciliationReport {
+  id: number
+  created_at: string
+  broker_name: string
+  match_count: number
+  diff_count: number
+  dirt: string
+  diffs: ReconciliationDiff[]
+  oms_only: string[]
+  broker_only: string[]
+}
+
+export async function ReconcileAll(): Promise<ReconciliationReport[]> {
+  return wailsCall<ReconciliationReport[]>('ReconcileAll')
+}
+
+export async function GetReconciliationReports(limit: number): Promise<ReconciliationReport[]> {
+  return wailsCall<ReconciliationReport[]>('GetReconciliationReports', limit)
+}
+
 /**
  * Subscribes to crash reports pushed from the Go backend via Wails events.
  * Returns an unsubscribe function.

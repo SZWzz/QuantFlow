@@ -22,6 +22,7 @@
 - [Trading] Paper→Live 实盘切换 — `TradingMode` 类型（paper/live）+ `SafetyCheck` 安全检查清单 + `EngineMode` 模式管理器；`SwitchToLive()` 执行安全检查后方可切换
 - [Trading] 紧急关停 — Live 模式下红色`紧急平仓`按钮 → 确认后并行撤销所有委托 + 切换回 Paper 模式
 - [Frontend] LiveModeBanner — Paper 模式绿色标签（`切换实盘`按钮）+ Live 模式红色闪烁横幅（`紧急平仓` / `切换模拟`按钮）+ 安全检查对话框
+- [Trading] 持仓对账系统 — `ReconcileAll()` 对比 OMS 持仓与券商持仓，生成差异报告（数量/均价偏差、OMS 独有/券商独有）；报告持久化到 SQLite `reconciliation_reports` 表（migration 020）
 - [Frontend] DailyReportPanel — 日结报告展示面板（盈亏汇总、持仓明细、最佳/最差交易高亮、导出 CSV、历史报告列表），注册到面板系统
 
 ### 修复
