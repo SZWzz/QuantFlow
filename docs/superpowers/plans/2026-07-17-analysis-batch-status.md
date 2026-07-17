@@ -70,3 +70,11 @@ ShareholderAnalysis → UnlockCalendar → FactorAttribution
 | 1 | SectorDashboard | ✅ 完成 | 2026-07-17 |
 | 2 | ValuationBand | ✅ 完成 | 2026-07-17 |
 | 3 | DupontAnalysis | ✅ 完成 | 2026-07-17 |
+
+### 批次 B: P1
+
+| # | Plan | 状态 | 完成日期 |
+|---|------|------|---------|
+| 4 | MacroDashboard | ✅ 完成 | 2026-07-17 |
+| 5 | MarketStyle | ✅ 完成 | 2026-07-17 |
+| 6 | EventStudy | ✅ 完成 | 2026-07-17 |
