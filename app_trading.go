@@ -157,3 +157,67 @@ func (a *App) CheckWashSale(symbol string) ([]trading.WashSaleEvent, error) {
 	checker := trading.NewWashSaleChecker()
 	return checker.CheckSymbol(context.Background(), symbol, a.oms)
 }
+
+// ── Trading Mode Management ──────────────────────────────────────────
+
+// GetTradingMode returns the current trading mode (paper/live).
+func (a *App) GetTradingMode() string {
+	if a.oms == nil {
+		return string(trading.TradingModePaper)
+	}
+	if a.tradingMode == nil {
+		return string(trading.TradingModePaper)
+	}
+	return string(a.tradingMode.Mode())
+}
+
+// SwitchToLive performs safety checks and switches to live trading mode.
+// Pass skipChecks=true to bypass safety checks (requires double confirmation from frontend).
+func (a *App) SwitchToLive(skipChecks bool) (*trading.SafetyReport, error) {
+	if a.oms == nil {
+		return nil, fmt.Errorf("OMS not initialized")
+	}
+	if a.tradingMode == nil {
+		return nil, fmt.Errorf("trading mode manager not initialized")
+	}
+	return a.tradingMode.SetMode(trading.TradingModeLive, skipChecks)
+}
+
+// SwitchToPaper switches back to paper trading mode.
+func (a *App) SwitchToPaper() error {
+	if a.oms == nil {
+		return fmt.Errorf("OMS not initialized")
+	}
+	if a.tradingMode == nil {
+		return fmt.Errorf("trading mode manager not initialized")
+	}
+	_, err := a.tradingMode.SetMode(trading.TradingModePaper, true)
+	return err
+}
+
+// EmergencyClose cancels all orders and closes all positions, then switches to paper mode.
+func (a *App) EmergencyClose(ctx context.Context) (map[string]interface{}, error) {
+	if a.oms == nil {
+		return nil, fmt.Errorf("OMS not initialized")
+	}
+	if a.tradingMode == nil || !a.tradingMode.IsLive() {
+		return nil, fmt.Errorf("not in live mode")
+	}
+
+	result := map[string]interface{}{"cancelled": 0, "closed": 0}
+
+	// Cancel all pending orders
+	for _, order := range a.oms.GetOrders() {
+		if order.Status == trading.StatusPending || order.Status == trading.StatusPartial {
+			if err := a.oms.CancelOrder(order.ID); err == nil {
+				result["cancelled"] = result["cancelled"].(int) + 1
+			}
+		}
+	}
+
+	// Switch back to paper mode
+	a.tradingMode.SetMode(trading.TradingModePaper, true)
+	result["mode"] = "paper"
+
+	return result, nil
+}

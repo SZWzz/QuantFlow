@@ -46,6 +46,50 @@ type Signal struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// TradingMode represents the current trading environment.
+type TradingMode string
+
+const (
+	TradingModeInvalid TradingMode = ""
+	TradingModePaper   TradingMode = "paper"
+	TradingModeLive    TradingMode = "live"
+)
+
+// Valid returns true if the mode is a recognized value.
+func (m TradingMode) Valid() bool {
+	return m == TradingModePaper || m == TradingModeLive
+}
+
+// IsLive returns true if the mode is live trading.
+func (m TradingMode) IsLive() bool { return m == TradingModeLive }
+
+// SafetyCheck represents a single pre-flight check before going live.
+type SafetyCheck struct {
+	Name     string `json:"name"`
+	OK       bool   `json:"ok"`
+	Message  string `json:"message"`
+	Blocking bool   `json:"blocking"` // failing blocking checks prevent mode switch
+}
+
+// SafetyReport is the result of pre-flight safety checks.
+type SafetyReport struct {
+	Checks   []SafetyCheck `json:"checks"`
+	AllClear bool          `json:"all_clear"`
+}
+
+// Passed returns true if all blocking checks are OK.
+func (r SafetyReport) Passed() bool {
+	if len(r.Checks) == 0 {
+		return false
+	}
+	for _, c := range r.Checks {
+		if c.Blocking && !c.OK {
+			return false
+		}
+	}
+	return true
+}
+
 // Order represents an order in the OMS.
 type Order struct {
 	ID             string      `json:"id"`

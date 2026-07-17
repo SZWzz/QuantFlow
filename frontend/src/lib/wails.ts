@@ -514,6 +514,29 @@ export async function ExportReportCSV(date: string): Promise<void> {
   return wailsCall<void>('ExportReportCSV', date)
 }
 
+// ── Trading Mode Management ──────────────────────────────────────────────
+
+export interface SafetyReport {
+  checks: Array<{ name: string; ok: boolean; message: string; blocking: boolean }>
+  all_clear: boolean
+}
+
+export async function GetTradingMode(): Promise<string> {
+  return wailsCall<string>('GetTradingMode')
+}
+
+export async function SwitchToLive(skipChecks: boolean): Promise<SafetyReport> {
+  return wailsCall<SafetyReport>('SwitchToLive', skipChecks)
+}
+
+export async function SwitchToPaper(): Promise<void> {
+  return wailsCall<void>('SwitchToPaper')
+}
+
+export async function EmergencyClose(): Promise<Record<string, any>> {
+  return wailsCall<Record<string, any>>('EmergencyClose')
+}
+
 /**
  * Subscribes to crash reports pushed from the Go backend via Wails events.
  * Returns an unsubscribe function.

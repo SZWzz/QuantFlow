@@ -31,6 +31,7 @@ export const useTerminalStore = defineStore('terminal', () => {
   const commandHistory = ref<string[]>([])
   const pushPins = ref<PushPin[]>([])
   const focusMode = ref(false)
+  const tradingMode = ref('paper')
   const recentPanels = ref<string[]>(loadRecentPanels())
 
   function loadRecentPanels(): string[] {
@@ -239,7 +240,7 @@ export const useTerminalStore = defineStore('terminal', () => {
   }
 
   return {
-    activePanels, commandHistory, pushPins, focusMode, layout, recentPanels,
+    activePanels, commandHistory, pushPins, focusMode, tradingMode, layout, recentPanels,
     connectionStatus, updateConnectionStatus,
     openPanel, closePanel, addCommand, toggleFocusMode,
     selectTab, closeTab, moveTab, updateSplitRatios, applyLayout, persistLayout,

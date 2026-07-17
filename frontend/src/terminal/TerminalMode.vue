@@ -9,6 +9,7 @@ import PushPinBar from './PushPinBar.vue'
 import StatusBar from './StatusBar.vue'
 import SymbolBar from './SymbolBar.vue'
 import TickerBar from './TickerBar.vue'
+import LiveModeBanner from './components/LiveModeBanner.vue'
 import { getIcon } from '@/lib/icons'
 
 const session = useSessionStore()
@@ -82,6 +83,7 @@ function onSwitchToWorkflow() {
       </div>
     </header>
 
+    <LiveModeBanner />
     <SymbolBar />
     <TickerBar />
     <main class="terminal-content">

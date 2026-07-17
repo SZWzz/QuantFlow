@@ -59,6 +59,7 @@ type App struct {
 
 	// Phase 5
 	oms          *trading.OMS
+	tradingMode  *trading.EngineMode      // paper/live mode manager
 	brokers      map[string]trading.Broker // all registered live brokers by name
 	notifyMgr    *notify.Manager
 	scheduleRepo *schedule.Repo
