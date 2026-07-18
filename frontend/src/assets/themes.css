@@ -319,9 +319,9 @@ body {
   --font-kpi: 24px;
   --row-height: 36px;
   --padding-panel: 12px;
-  --transition-fast: 0.12s ease;
-  --transition-normal: 0.2s ease;
-  --transition-slow: 0.3s ease;
+  --transition-fast: 0.12s ease-out;
+  --transition-normal: 0.2s ease-out;
+  --transition-slow: 0.3s ease-out;
 }
 
 body.density-compact {
@@ -343,9 +343,9 @@ body.density-compact {
   --row-height: 30px;
   --padding-panel: 8px;
   --panel-header-height: 36px;
-  --transition-fast: 80ms ease;
-  --transition-normal: 0.12s ease;
-  --transition-slow: 0.2s ease;
+  --transition-fast: 80ms ease-out;
+  --transition-normal: 0.12s ease-out;
+  --transition-slow: 0.2s ease-out;
 }
 
 body.density-comfortable {
@@ -367,9 +367,9 @@ body.density-comfortable {
   --row-height: 44px;
   --padding-panel: 16px;
   --panel-header-height: 44px;
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s ease;
-  --transition-slow: 0.35s ease;
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.25s ease-out;
+  --transition-slow: 0.35s ease-out;
 }
 
 /* ── Reset ─────────────────────────────────────────────────────── */
