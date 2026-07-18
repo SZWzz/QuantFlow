@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { GetStyleQuadrant, GetMarketSentiment, type StyleQuadrant, type MarketSentimentGauge } from '@/lib/wails'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+
+const chartTheme = useChartTheme()
 
 const market = ref('CN')
 const quadrants = ref<StyleQuadrant[]>([])
@@ -36,7 +39,7 @@ function renderQuadrant() {
       type: 'scatter', symbolSize: 16,
       data: quadrants.value.map(q => [q.size, q.style, q.index]),
       label: { show: true, formatter: (p: any) => p.data[2], fontSize: 10, position: 'right' },
-      itemStyle: { color: '#3b82f6' },
+      itemStyle: { color: chartTheme.palette[0] },
     }],
   }, true)
 }

@@ -42,6 +42,7 @@ const lookback = ref(props.params?.lookback ?? 60)
 const matrix = ref<number[][] | null>(null)
 const symbols = ref<string[]>([])
 const { fetchWithCache } = usePanelCache()
+const chartTheme = useChartTheme()
 const customLoading = ref(false)
 const customError = ref('')
 const hasECharts = ref(false)
@@ -111,7 +112,7 @@ const chartOption = computed(() => {
     }
   }
 
-  const theme = useChartTheme()
+  const theme = chartTheme
   return {
     backgroundColor: 'transparent',
     tooltip: {
@@ -123,7 +124,7 @@ const chartOption = computed(() => {
       },
       backgroundColor: theme.bgColor,
       borderColor: theme.splitColor,
-      textStyle: { color: '#e5e7eb', fontSize: 12 },
+      textStyle: { color: theme.tooltipText, fontSize: 12 },
     },
     grid: {
       left: '12%',
@@ -163,7 +164,7 @@ const chartOption = computed(() => {
         label: {
           show: true,
           fontSize: 10,
-          color: '#e5e7eb',
+          color: theme.textColor,
           formatter: (p: { value: [number, number, number] }) => {
             const [, , v] = p.value
             if (v === 0) return ''
@@ -173,7 +174,7 @@ const chartOption = computed(() => {
         emphasis: {
           itemStyle: {
             shadowBlur: 8,
-            shadowColor: 'rgba(255,255,255,0.3)',
+            shadowColor: 'rgba(0,0,0,0.3)',
           },
         },
       },
@@ -276,7 +277,7 @@ function renderPresetChart() {
       data: syms.flatMap((s, i) =>
         syms.map((t, j) => [i, j, presetMatrix.value[s]?.[t] || 0])
       ),
-      label: { show: true, formatter: (p: any) => (p.data[2] || 0).toFixed(2), fontSize: 9, color: '#9ca3af' },
+      label: { show: true, formatter: (p: any) => (p.data[2] || 0).toFixed(2), fontSize: 9, color: chartTheme.axisColor },
       itemStyle: {
         color: (p: any) => {
           const v = p.data[2]
@@ -289,8 +290,8 @@ function renderPresetChart() {
         },
       },
     }],
-    xAxis: { type: 'category', data: syms, axisLabel: { fontSize: 9, color: '#9ca3af', rotate: 45 } },
-    yAxis: { type: 'category', data: syms, axisLabel: { fontSize: 9, color: '#9ca3af' } },
+    xAxis: { type: 'category', data: syms, axisLabel: { fontSize: 9, color: chartTheme.axisColor, rotate: 45 } },
+    yAxis: { type: 'category', data: syms, axisLabel: { fontSize: 9, color: chartTheme.axisColor } },
     grid: { left: 60, right: 20, top: 20, bottom: 60 },
   }
   chartInstance.setOption(option, true)

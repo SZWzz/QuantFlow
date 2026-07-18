@@ -2,8 +2,10 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { GetSectorHeatmap, GetSectorValuation } from '@/lib/wails'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 
 const terminal = useTerminalStore()
+const chartTheme = useChartTheme()
 const market = ref('CN')
 const sectors = ref<any[]>([])
 const valuations = ref<any[]>([])
@@ -51,8 +53,8 @@ function renderHeatmap() {
       type: 'treemap', roam: false,
       data: sectors.value.map(s => ({ name: s.name, value: Math.abs(s.change_pct) * 100 })),
       label: { show: true, formatter: (p: any) => `${p.name}\n${sectors.value.find(s=>s.name===p.name)?.change_pct?.toFixed(1)}%` },
-      itemStyle: { borderColor: '#1a1a2e' },
-      levels: [{ colorMappingBy: 'value', color: ['#22c55e', '#ef4444'] }],
+      itemStyle: { borderColor: chartTheme.bgColor },
+      levels: [{ colorMappingBy: 'value', color: [chartTheme.downColor, chartTheme.upColor] }],
     }],
   }, true)
 }

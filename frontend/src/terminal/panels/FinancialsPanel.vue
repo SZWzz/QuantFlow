@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
@@ -27,6 +28,7 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
 const { fetchWithCache } = usePanelCache()
+const chartTheme = useChartTheme()
 
 const market = computed<Market>(() => detectMarket(symbol.value))
 
@@ -247,9 +249,8 @@ function buildChart() {
   const { series, chartData } = trendMetrics.value
   if (!series.length || !chartData.length) return
 
-  const isDark = document.body.classList.contains('theme-dark')
-  const textColor = isDark ? '#8b949e' : '#666'
-  const borderColor = isDark ? '#30363d' : '#e5e7eb'
+  const textColor = chartTheme.axisColor
+  const borderColor = chartTheme.splitColor
 
   chartInstance.setOption({
     grid: { left: 10, right: 20, top: 20, bottom: 30 },
@@ -261,13 +262,13 @@ function buildChart() {
     yAxis: {
       type: 'value',
       axisLabel: { fontSize: 10, color: textColor, formatter: (v: number) => smartFormat(v) },
-      splitLine: { lineStyle: { color: borderColor, type: 'dashed' } },
+      splitLine: { lineStyle: { color: chartTheme.gridColor, type: 'dashed' } },
     },
     series: series.map((name, i) => ({
       name,
       type: i === 0 ? 'bar' : 'line',
       data: chartData.map(d => d[name] || 0),
-      itemStyle: { color: i === 0 ? '#58a6ff' : '#f0883e' },
+      itemStyle: { color: i === 0 ? chartTheme.palette[0] : chartTheme.palette[1] },
       lineStyle: { width: 2 },
       symbol: 'circle', symbolSize: 4,
       smooth: true,

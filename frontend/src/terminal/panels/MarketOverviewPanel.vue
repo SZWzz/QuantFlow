@@ -108,14 +108,14 @@ const minuteOption = computed(() => {
     grid: [{ left: 54, right: 12, top: 8, bottom: 20, height: 'auto' }],
     xAxis: {
       type: 'category', data: times,
-      axisLabel: { fontSize: 10, color: '#888', interval: 30 },
-      axisLine: { lineStyle: { color: '#333' } },
+      axisLabel: { fontSize: 10, color: theme.axisColor, interval: 30 },
+      axisLine: { lineStyle: { color: theme.splitColor } },
       axisTick: { show: false },
     },
     yAxis: {
       type: 'value', scale: true,
-      axisLabel: { fontSize: 10, color: '#888' },
-      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+      axisLabel: { fontSize: 10, color: theme.axisColor },
+      splitLine: { lineStyle: { color: theme.gridColor } },
       splitNumber: 4,
     },
     series: [
@@ -134,8 +134,8 @@ const minuteOption = computed(() => {
         },
         markLine: prevClose.value > 0 ? {
           silent: true, symbol: 'none',
-          lineStyle: { color: '#888', type: 'dashed', width: 1 },
-          data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: '#888', fontSize: 10, position: 'start' } }],
+          lineStyle: { color: theme.axisColor, type: 'dashed', width: 1 },
+          data: [{ yAxis: prevClose.value, label: { formatter: `昨收 ${prevClose.value.toFixed(2)}`, color: theme.axisColor, fontSize: 10, position: 'start' } }],
         } : undefined,
       },
     ],
@@ -148,7 +148,7 @@ const minuteOption = computed(() => {
         if (!t) return ''
         const chg = prevClose.value > 0 ? t.price - prevClose.value : 0
         const chgPct = prevClose.value > 0 ? (chg / prevClose.value) * 100 : 0
-        const chgColor = chg >= 0 ? '#ef5350' : '#66bb6a'
+        const chgColor = chg >= 0 ? upCol : downCol
         return `<div style="font-size:12px">${t.time}</div>
 <div>价格: <b>${t.price.toFixed(2)}</b></div>
 <div>涨跌: <span style="color:${chgColor}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%)</span></div>

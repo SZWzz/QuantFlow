@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { GetDupontAnalysis, GetPeerRadar, type DupontBreakdown, type PeerRadar } from '@/lib/wails'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
+const chartTheme = useChartTheme()
 
 // Register this panel in the link group system so it gets the red dot and symbol sync
 const panelGroup = ctx.getOrCreatePanelGroup(props.panelId)
@@ -42,7 +44,7 @@ function renderRadar() {
   const indic = peers.value[0] ? Object.keys(peers.value[0].metrics) : []
   chart.setOption({
     tooltip: {},
-    legend: { data: peers.value.map(p => p.name), bottom: 0, textStyle: { color: '#9ca3af', fontSize: 10 } },
+    legend: { data: peers.value.map(p => p.name), bottom: 0, textStyle: { color: chartTheme.axisColor, fontSize: 10 } },
     radar: {
       indicator: indic.map(k => ({ name: k, max: Math.max(...peers.value.map(p => p.metrics[k] || 0)) * 1.2 })),
       center: ['50%', '55%'],

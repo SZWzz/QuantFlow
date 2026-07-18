@@ -2,10 +2,12 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useSessionStore } from '@/stores/session'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const session = useSessionStore()
+const chartTheme = useChartTheme()
 
 const { fetchWithCache } = usePanelCache()
 const market = ref<'CN' | 'HK' | 'US'>(props.params?.market || session.ui.activeMarket || 'CN')
@@ -82,8 +84,8 @@ function renderChart() {
       },
     },
     grid: { left: 50, right: 50, top: 40, bottom: 40 },
-    xAxis: { min: 85, max: 115, splitLine: { show: true, lineStyle: { color: '#2a2a3e', type: 'dashed' } }, axisLabel: { color: '#6b7280', fontSize: 10 } },
-    yAxis: { min: 85, max: 115, splitLine: { show: true, lineStyle: { color: '#2a2a3e', type: 'dashed' } }, axisLabel: { color: '#6b7280', fontSize: 10 } },
+    xAxis: { min: 85, max: 115, splitLine: { show: true, lineStyle: { color: chartTheme.gridColor, type: 'dashed' } }, axisLabel: { color: chartTheme.axisColor, fontSize: 10 } },
+    yAxis: { min: 85, max: 115, splitLine: { show: true, lineStyle: { color: chartTheme.gridColor, type: 'dashed' } }, axisLabel: { color: chartTheme.axisColor, fontSize: 10 } },
     series: [{
       type: 'scatter',
       data: sectors.value.map(s => [s.rs_ratio, s.rs_momentum, s.name]),
@@ -98,7 +100,7 @@ function renderChart() {
           return '#3b82f6'
         },
       },
-      label: { show: true, formatter: (params: any) => params.data[2], fontSize: 9, color: '#9ca3af', position: 'right' },
+      label: { show: true, formatter: (params: any) => params.data[2], fontSize: 9, color: chartTheme.axisColor, position: 'right' },
     }],
   }
   chartInstance.setOption(option, true)

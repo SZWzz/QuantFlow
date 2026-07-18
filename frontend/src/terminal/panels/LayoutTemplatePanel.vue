@@ -150,7 +150,7 @@ onMounted(loadList)
   border-bottom: 1px solid var(--border-color, #222);
 }
 .layout-item:hover {
-  background: var(--hover-bg, rgba(255,255,255,0.05));
+  background: var(--color-bg-subtle);
 }
 .layout-info {
   display: flex;

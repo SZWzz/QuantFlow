@@ -617,7 +617,7 @@ onMounted(() => {
 .hist-table td { padding: 3px 6px; border-bottom: 1px solid var(--color-border-strong); }
 .hist-table td.num { text-align: right; }
 .hist-table td.period { font-family: 'JetBrains Mono', monospace; color: var(--color-text-secondary); }
-.hist-table tr:hover td { background: rgba(255,255,255,0.02); }
+.hist-table tr:hover td { background: var(--color-bg-subtle); }
 .hist-table tr:last-child td { border-bottom: none; }
 
 /* Overall risk */

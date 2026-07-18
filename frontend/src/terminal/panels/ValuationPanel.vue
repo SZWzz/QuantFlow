@@ -370,7 +370,7 @@ onMounted(loadDCFData)
 
 .chart-wrap { flex-shrink: 0; margin-bottom: 8px; background: var(--color-bg-elevated); border-radius: var(--radius-md); padding: 4px; }
 
-.hint { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 10px; padding: 6px 10px; background: rgba(255, 255, 255, 0.04); border-radius: var(--radius-sm); border-left: 2px solid var(--color-border-strong); }
+.hint { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 10px; padding: 6px 10px; background: var(--color-bg-subtle); border-radius: var(--radius-sm); border-left: 2px solid var(--color-border-strong); }
 
 .forecast-table { width: 100%; }
 .table-header { display: flex; border-bottom: 2px solid var(--color-border-strong); font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; line-height: 1.3; }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { logger } from '@/lib/logger'
 
@@ -23,6 +24,7 @@ interface DailyHistory {
 }
 
 const { fetchWithCache } = usePanelCache()
+const chartTheme = useChartTheme()
 const activeTab = ref<'northbound' | 'quota'>('northbound')
 const minuteFlow = ref<MinuteFlow[]>([])
 const history = ref<DailyHistory[]>([])
@@ -70,10 +72,10 @@ function renderChart() {
   if (!chartInstance) chartInstance = echarts.init(el)
   const option = {
     tooltip: { trigger: 'axis' },
-    legend: { data: ['沪股通', '深股通', '合计'], bottom: 0, textStyle: { color: '#9ca3af', fontSize: 10 } },
+    legend: { data: ['沪股通', '深股通', '合计'], bottom: 0, textStyle: { color: chartTheme.axisColor, fontSize: 10 } },
     grid: { left: 50, right: 16, top: 8, bottom: 32 },
-    xAxis: { type: 'category', data: chartData.value.categories, axisLabel: { color: '#6b7280', fontSize: 10 } },
-    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#2a2a3e' } }, axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v: number) => v + '亿' } },
+    xAxis: { type: 'category', data: chartData.value.categories, axisLabel: { color: chartTheme.axisColor, fontSize: 10 } },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: chartTheme.gridColor } }, axisLabel: { color: chartTheme.axisColor, fontSize: 10, formatter: (v: number) => v + '亿' } },
     series: chartData.value.series.map(s => ({
       name: s.name, type: 'line', smooth: true, data: s.data,
       lineStyle: { width: 1.5 },

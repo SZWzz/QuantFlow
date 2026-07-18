@@ -33,6 +33,7 @@ interface EnergyPoint {
 }
 
 const regions = ref<RegionSnapshot[]>([])
+const chartTheme = useChartTheme()
 const loading = ref(true)
 const loadError = ref('')
 const selectedRegion = ref<RegionSnapshot | null>(null)
@@ -107,7 +108,7 @@ const chartOption = computed(() => {
   const solarName = `${t('satellite.solar_radiation')} (${t('satellite.energy_kwh')})`
   const windName = `风速 (${t('satellite.wind_speed')})`
 
-  const theme = useChartTheme()
+  const theme = chartTheme
   return {
     tooltip: {
       trigger: 'axis' as const,
@@ -130,7 +131,7 @@ const chartOption = computed(() => {
         name: t('satellite.energy_kwh'),
         nameTextStyle: { fontSize: 10, color: '#f59e0b' },
         axisLabel: { fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
+        splitLine: { lineStyle: { color: theme.gridColor } },
       },
       {
         type: 'value' as const,

@@ -418,7 +418,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   color: var(--color-text-inverse);
 }
 .cat-chip.active .chip-count {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-text-inverse) 20%, transparent);
   color: var(--color-text-inverse);
   border-color: transparent;
 }

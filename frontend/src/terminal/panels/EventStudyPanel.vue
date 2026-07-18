@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ComputeEventStudy, type EventStudyResult } from '@/lib/wails'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { useSymbolContext } from '@/stores/symbolContext'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
+const chartTheme = useChartTheme()
 
 const panelGroup = ctx.getOrCreatePanelGroup(props.panelId)
 const groupId = computed(() => panelGroup.groupId)
@@ -40,8 +42,8 @@ function renderChart() {
     xAxis: { data: ar.map(d => `D${d.day}`), axisLabel: { fontSize: 9 } },
     yAxis: { axisLabel: { formatter: (v:number) => v + '%' } },
     series: [
-      { name: 'AR', type: 'bar', data: ar.map(d => d.ar), itemStyle: { color: '#3b82f6' } },
-      { name: 'CAR', type: 'line', data: ar.map(d => d.car), lineStyle: { color: '#ef4444' }, symbol: 'circle' },
+      { name: 'AR', type: 'bar', data: ar.map(d => d.ar), itemStyle: { color: chartTheme.palette[0] } },
+      { name: 'CAR', type: 'line', data: ar.map(d => d.car), lineStyle: { color: chartTheme.palette[3] }, symbol: 'circle' },
     ],
   }, true)
 }
