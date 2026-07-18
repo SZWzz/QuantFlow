@@ -342,6 +342,7 @@ body.density-compact {
   --font-kpi: 20px;
   --row-height: 30px;
   --padding-panel: 8px;
+  --panel-header-height: 36px;
   --transition-fast: 80ms ease;
   --transition-normal: 0.12s ease;
   --transition-slow: 0.2s ease;
@@ -365,6 +366,7 @@ body.density-comfortable {
   --font-kpi: 30px;
   --row-height: 44px;
   --padding-panel: 16px;
+  --panel-header-height: 44px;
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
   --transition-slow: 0.35s ease;
@@ -599,7 +601,8 @@ body {
   --panel-padding-lg: 16px;
   --panel-padding-sm: 8px;
 
-  --panel-title-size: var(--font-lg);
+  --panel-title-size: var(--font-sm);
+  --panel-header-height: 40px;
   --panel-title-weight: 600;
   --panel-subtitle-size: var(--font-sm);
   --panel-subtitle-color: var(--color-text-tertiary);
@@ -633,4 +636,73 @@ body {
 
 body.theme-dark {
   --table-row-odd: rgba(255, 255, 255, 0.02);
+}
+
+/* ── 全局面板骨架类（手写面板过渡期统一长相；共享组件优先） ─────────── */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  min-height: var(--panel-header-height);
+  padding: var(--space-sm) var(--panel-padding);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+.panel-header h3 {
+  margin: 0;
+  font-size: var(--panel-title-size);
+  font-weight: var(--panel-title-weight);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+.panel-header .header-actions,
+.panel-header .header-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-sm);
+}
+
+.panel-error {
+  padding: var(--space-md) var(--panel-padding);
+  color: var(--color-danger);
+  font-size: var(--font-sm);
+}
+
+.section-title {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── 数据刷新涨跌闪烁（信息性动效） ──────────────────────────────── */
+@keyframes flash-up-kf {
+  from { background-color: var(--color-up-soft); }
+  to { background-color: transparent; }
+}
+@keyframes flash-down-kf {
+  from { background-color: var(--color-down-soft); }
+  to { background-color: transparent; }
+}
+.flash-up { animation: flash-up-kf 0.6s ease-out; }
+.flash-down { animation: flash-down-kf 0.6s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-up, .flash-down { animation: none; }
 }
