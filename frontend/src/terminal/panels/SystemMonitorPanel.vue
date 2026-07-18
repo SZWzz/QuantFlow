@@ -115,7 +115,7 @@ onUnmounted(() => {
 }
 
 .stat-error {
-  color: var(--color-error);
+  color: var(--color-danger);
   padding: 8px 0;
   font-size: 11px;
 }

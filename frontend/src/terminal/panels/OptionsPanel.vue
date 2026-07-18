@@ -279,7 +279,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 /* CN */
 .panel-body { flex: 1; overflow: auto; padding: 12px; }
 .state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); font-size: 13px; }
-.state.error { color: var(--color-error); }
+.state.error { color: var(--color-danger); }
 .table-wrap { overflow-x: auto; }
 .opt-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 .opt-table th { text-align: right; padding: 4px 8px; color: var(--color-text-tertiary); font-weight: 500; border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; }

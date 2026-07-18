@@ -227,7 +227,7 @@ onMounted(() => {
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.empty-state.error { color: var(--color-error, var(--color-up)); }
+.empty-state.error { color: var(--color-danger); }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {
   display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);

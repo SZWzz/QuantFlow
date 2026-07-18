@@ -115,7 +115,7 @@ onMounted(loadData)
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .status { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
-.status.error { color: var(--color-error); }
+.status.error { color: var(--color-danger); }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header { display: flex; padding: 6px 0; border-bottom: 2px solid var(--color-border-strong); font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0; overflow-x: auto; }
 .th-cell { flex: 1; min-width: 80px; padding: 0 6px; cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -157,7 +157,7 @@ onMounted(fetchData)
 
 .error-state {
   display: flex; align-items: center; justify-content: center; padding: 12px;
-  color: var(--color-error); font-size: 13px; cursor: pointer;
+  color: var(--color-danger); font-size: 13px; cursor: pointer;
 }
 .hint { font-size: 11px; opacity: 0.6; }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }

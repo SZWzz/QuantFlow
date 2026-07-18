@@ -213,7 +213,7 @@ onMounted(loadData)
 
 .panel-body { flex: 1; overflow-y: auto; padding: 12px; }
 
-.empty-state.error { color: var(--color-error); }
+.empty-state.error { color: var(--color-danger); }
 
 .summary-row {
   display: flex; align-items: center; gap: 12px;

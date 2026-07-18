@@ -337,7 +337,7 @@ onMounted(loadDCFData)
 .r { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .r:disabled { opacity: 0.5; cursor: not-allowed; }
 .st { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
-.err { color: var(--color-error); }
+.err { color: var(--color-danger); }
 
 /* ── DCF ── */
 .fcf { display: flex; gap: 8px; align-items: baseline; margin-bottom: 10px; }

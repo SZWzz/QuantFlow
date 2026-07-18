@@ -134,7 +134,7 @@ onMounted(loadData)
 .btn-sm:hover{background:var(--color-bg-hover)}
 .panel-body{flex:1;overflow:auto;padding:0 12px 12px}
 .status{display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-tertiary);font-size:13px}
-.status.error{color:var(--color-error)}
+.status.error{color:var(--color-danger)}
 .info-row{font-size:12px;color:var(--color-text-tertiary);padding:8px 0 4px}
 .table-wrap{overflow-x:auto}
 .bond-table{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}

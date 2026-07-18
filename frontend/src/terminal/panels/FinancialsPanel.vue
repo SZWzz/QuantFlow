@@ -524,7 +524,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 .refresh-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 14px; }
 .refresh-btn:disabled { opacity: 0.4; cursor: default; }
 .status { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
-.status.error { color: var(--color-error); }
+.status.error { color: var(--color-danger); }
 .retry-btn { padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: transparent; color: var(--color-accent); cursor: pointer; font-size: 11px; }
 
 /* Tab Row */

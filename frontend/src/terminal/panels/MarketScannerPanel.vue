@@ -849,7 +849,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   align-items: center;
   justify-content: center;
   padding: 12px;
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 13px;
   cursor: pointer;
 }

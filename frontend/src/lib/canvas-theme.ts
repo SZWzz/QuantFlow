@@ -20,7 +20,7 @@ export function useCanvasTheme(): ColorScheme {
       text: styles.getPropertyValue('--color-text-primary').trim() || '#333333',
       cursor: styles.getPropertyValue('--color-text-secondary').trim() || '#888888',
       select: styles.getPropertyValue('--color-primary').trim() || '#3b82f6',
-      crosshair: styles.getPropertyValue('--color-error').trim() || '#e24b4a',
+      crosshair: styles.getPropertyValue('--color-danger').trim() || '#e24b4a',
     }
   } catch {
     return {

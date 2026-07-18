@@ -194,7 +194,7 @@ function isNegative(v: any): boolean {
 
 .error-state {
   display: flex; align-items: center; justify-content: center; padding: 12px;
-  color: var(--color-error); font-size: 13px; cursor: pointer;
+  color: var(--color-danger); font-size: 13px; cursor: pointer;
 }
 .disclaimer {
   margin-top: 8px;

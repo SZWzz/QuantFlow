@@ -840,7 +840,7 @@ const pieChartOption = computed(() => {
 .refresh-btn:hover { background: var(--color-border-strong); }
 
 .chart-error {
-  color: var(--color-error); font-size: 12px; margin-bottom: 8px;
+  color: var(--color-danger); font-size: 12px; margin-bottom: 8px;
 }
 
 .chart-fallback {

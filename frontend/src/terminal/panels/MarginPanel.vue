@@ -158,7 +158,7 @@ onMounted(loadData)
   color: var(--color-text-tertiary);
   font-size: 13px;
 }
-.status.error { color: var(--color-error); }
+.status.error { color: var(--color-danger); }
 .stats-row {
   display: flex;
   gap: 10px;

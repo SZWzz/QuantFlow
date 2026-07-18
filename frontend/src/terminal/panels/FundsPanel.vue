@@ -101,7 +101,7 @@ function fmtValue(v: number | undefined): string {
 .badge{font-size:11px;background:var(--color-primary);color:var(--color-text-primary);padding:2px 8px;border-radius: var(--radius-lg)}
 .panel-body{flex:1;overflow:auto;padding:12px}
 .status{display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-tertiary);font-size:13px}
-.status.error{color:var(--color-error)}
+.status.error{color:var(--color-danger)}
 
 .summary-card{border:1px solid var(--color-border-subtle);border-radius: var(--radius-md);overflow:hidden}
 .summary-row{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--color-border-subtle)}
