@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { GetFactorAttribution, type FactorAttribution } from '@/lib/wails'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+
+const chartTheme = useChartTheme()
 
 const totalReturn = ref(5.2)
 const attr = ref<FactorAttribution | null>(null)
@@ -21,11 +24,11 @@ function renderChart() {
   const chart = echarts.init(el)
   const a = attr.value
   const data = [
-    { name: '总收益', value: a.total_return, itemStyle: { color: '#3b82f6' } },
-    { name: '市场β', value: -a.market_beta, itemStyle: { color: '#6b7280' } },
+    { name: '总收益', value: a.total_return, itemStyle: { color: chartTheme.palette[0] } },
+    { name: '市场β', value: -a.market_beta, itemStyle: { color: chartTheme.axisColor } },
     ...Object.entries(a.style_factors).map(([k, v]) => ({ name: k, value: -v, itemStyle: {} })),
     ...Object.entries(a.industry_factors).map(([k, v]) => ({ name: k, value: -v, itemStyle: {} })),
-    { name: 'α', value: a.alpha, itemStyle: { color: '#22c55e' } },
+    { name: 'α', value: a.alpha, itemStyle: { color: chartTheme.palette[1] } },
   ]
   chart.setOption({
     tooltip: { trigger: 'axis', formatter: (p:any) => `${p[0].name}: ${p[0].value.toFixed(2)}%` },

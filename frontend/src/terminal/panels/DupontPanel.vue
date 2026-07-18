@@ -55,8 +55,8 @@ function renderRadar() {
       data: peers.value.map((p, i) => ({
         name: p.name,
         value: indic.map(k => p.metrics[k] || 0),
-        lineStyle: { color: i === 0 ? '#3b82f6' : '#6b7280' },
-        areaStyle: i === 0 ? { color: 'rgba(59,130,246,0.15)' } : undefined,
+        lineStyle: { color: i === 0 ? chartTheme.palette[0] : chartTheme.axisColor },
+        areaStyle: i === 0 ? { color: chartTheme.palette[0] + '26' } : undefined,
       })),
     }],
   }, true)

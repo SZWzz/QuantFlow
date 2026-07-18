@@ -127,7 +127,7 @@ const chartOption = computed(() => {
       trigger: 'axis' as const,
       backgroundColor: theme.bgColor,
       borderColor: theme.splitColor,
-      textStyle: { color: '#e5e7eb', fontSize: 11 },
+      textStyle: { color: theme.tooltipText, fontSize: 11 },
     },
     legend: {
       data: ['Returns', t('misc.normal_fit')],

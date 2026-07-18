@@ -95,7 +95,7 @@ const chartOption = computed(() => {
   if (!rows.length) return {}
   const cats = rows.map((r: any) => scenarioLabels[r.scenario] || r.scenario)
   const baseVal = +(annualRev.value / 1e8).toFixed(2)
-  const barColors = ['#6b7280', '#60a5fa', '#fbbf24', '#4ade80']
+  const barColors = [chartTheme.axisColor, chartTheme.palette[0], chartTheme.palette[2], chartTheme.palette[1]]
 
   return {
     tooltip: {

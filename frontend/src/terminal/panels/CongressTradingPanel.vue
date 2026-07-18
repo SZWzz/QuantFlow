@@ -53,7 +53,7 @@ async function refresh() {
 function amountColor(amount: string): string {
   if (!amount) return 'var(--color-text-tertiary)'
   const top = ['$1M-$5M', '$5M+', '$500K-$1M']
-  return top.some(t => amount.includes(t)) ? '#fbbf24' : '#e5e7eb'
+  return top.some(t => amount.includes(t)) ? 'var(--chart-3)' : 'var(--color-text-primary)'
 }
 </script>
 
