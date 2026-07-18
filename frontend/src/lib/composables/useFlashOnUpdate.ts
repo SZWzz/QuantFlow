@@ -6,6 +6,8 @@ export type FlashClass = '' | 'flash-up' | 'flash-down'
 /**
  * 监听数值变化，返回一个短暂设置的 CSS class（配合全局 .flash-up/.flash-down 动画）。
  * 仅在前后值均为有限数值且发生变化时闪烁。
+ * 注意：duration 窗口内的连续同向变化只重置清除计时器、不重启 CSS 动画
+ * （class 字符串不变，DOM 无变化）——高频行情下这是有意行为，避免动画频闪。
  */
 export function useFlashOnUpdate(
   source: Ref<number | null | undefined>,
