@@ -667,6 +667,7 @@ body.theme-dark {
 
 .empty-state {
   flex: 1;
+  grid-column: 1 / -1; /* 网格容器内占满整行；flex 容器中被忽略 */
   display: flex;
   flex-direction: column;
   align-items: center;
