@@ -118,17 +118,7 @@ function isNegative(v: any): boolean {
   color: var(--color-text, var(--color-border));
   background: var(--color-bg, var(--color-bg-panel));
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
+
 .header-controls {
   display: flex;
   gap: 8px;
@@ -201,14 +191,7 @@ function isNegative(v: any): boolean {
 .total-value {
   font-variant-numeric: tabular-nums;
 }
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
-}
+
 .error-state {
   display: flex; align-items: center; justify-content: center; padding: 12px;
   color: var(--color-error); font-size: 13px; cursor: pointer;

@@ -151,14 +151,7 @@ onUnmounted(() => {
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .auto-btn {
   padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
@@ -170,10 +163,7 @@ onUnmounted(() => {
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
+
 .alert-bar {
   padding: 6px 10px; margin-bottom: 8px; border-radius: var(--radius-sm);
   background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);

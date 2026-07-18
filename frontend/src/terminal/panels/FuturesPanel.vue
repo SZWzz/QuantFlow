@@ -107,7 +107,7 @@ onMounted(loadData)
 
 <style scoped>
 .panel-container{display:flex;flex-direction:column;height:100%;background:var(--color-bg-panel);color:var(--color-text-primary);font-size:13px}
-.panel-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--color-border)}
+
 .title{font-weight:500}
 .header-actions{display:flex;gap:8px;align-items:center}
 .search-input{width:130px;padding:2px 6px;border:1px solid var(--color-border-subtle);border-radius: var(--radius-sm);background:var(--color-bg-elevated);color:var(--color-text-primary);font-size:12px}

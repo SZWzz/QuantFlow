@@ -185,14 +185,7 @@ onUnmounted(() => {
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .market-tabs, .lookback-tabs { display: flex; gap: 4px; }
 .mkt-tab, .lb-tab {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
@@ -205,7 +198,6 @@ onUnmounted(() => {
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 
 .rrg-hint {
   display: flex; justify-content: space-around; margin-bottom: 4px; font-size: 10px;

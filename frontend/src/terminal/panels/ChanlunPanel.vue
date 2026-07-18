@@ -278,13 +278,7 @@ function formatPct(v: number): string {
   gap: 10px;
   overflow-y: auto;
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+
 .header-left h3 {
   margin: 0;
   font-size: 15px;
@@ -387,15 +381,7 @@ function formatPct(v: number): string {
   padding: 20px 0;
   text-align: center;
 }
-.empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary, var(--color-text-tertiary));
-  gap: 4px;
-}
+
 .empty-state p { font-size: 14px; margin: 0; }
 .empty-state small { font-size: 11px; }
 .error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); color: var(--color-up); font-size: 12px; }

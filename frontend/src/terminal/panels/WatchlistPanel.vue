@@ -478,10 +478,7 @@ onUnmounted(() => {
   display: flex; flex-direction: column; height: 100%;
   background: var(--color-bg-panel); position: relative;
 }
-.empty-state {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 12px; color: var(--color-text-tertiary);
-}
+
 .empty-icon { font-size: 32px; opacity: 0.4; }
 .empty-text { font-size: var(--font-sm); text-align: center; padding: 0 24px; line-height: 1.5; }
 

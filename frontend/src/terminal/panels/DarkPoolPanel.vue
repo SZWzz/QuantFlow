@@ -163,19 +163,7 @@ onMounted(loadFilings)
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-  flex-shrink: 0;
-}
-.panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-}
+
 .header-controls {
   display: flex;
   gap: 6px;
@@ -256,14 +244,7 @@ onMounted(loadFilings)
 .retry-btn:hover {
   background: rgba(248, 113, 113, 0.1);
 }
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
-}
+
 .table-wrapper {
   flex: 1;
   overflow: auto;

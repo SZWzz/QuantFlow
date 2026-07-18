@@ -645,14 +645,6 @@ onMounted(async () => {
 .up { color: var(--color-down); }
 .down { color: var(--color-up); }
 
-.empty-state {
-  text-align: center;
-  padding: 16px;
-  color: var(--color-text-tertiary);
-  font-size: 12px;
-  font-style: italic;
-}
-
 .btn-generate {
   background: var(--color-accent);
   border: none;

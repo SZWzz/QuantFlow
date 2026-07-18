@@ -157,7 +157,6 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .ex-dividend-panel {
   padding: 12px;
   height: 100%;
@@ -167,24 +166,14 @@ onMounted(fetchData)
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .header-tabs { display: flex; gap: 4px; }
 .header-tabs .tab {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
 }
 .header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px; gap: 6px;
-}
+
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {
   display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);

@@ -299,15 +299,6 @@ function categoryColor(cat: string): string {
   font-family: 'SF Mono', monospace;
 }
 
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
-}
-
 .summary-bar {
   padding-top: 8px;
   border-top: 1px solid var(--color-border);

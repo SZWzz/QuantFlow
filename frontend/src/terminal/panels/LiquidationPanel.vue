@@ -169,14 +169,7 @@ onUnmounted(() => {
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .sym-input {
   padding: 2px 6px; font-size: 11px; border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 80px;
@@ -192,11 +185,6 @@ onUnmounted(() => {
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
 
 .stats-row {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;

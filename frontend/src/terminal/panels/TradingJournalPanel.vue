@@ -304,7 +304,6 @@ onMounted(fetchData)
 
 .status { display: flex; align-items: center; justify-content: center; padding: 20px; color: var(--muted); font-size: 13px; }
 
-.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; gap: 4px; }
 .empty-icon { font-size: 32px; color: var(--muted); margin: 0; }
 .empty-text { font-size: 14px; color: var(--muted); margin: 0; }
 .empty-sub { font-size: var(--font-xs); color: var(--muted); margin: 0; }

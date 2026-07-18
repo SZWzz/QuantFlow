@@ -165,8 +165,7 @@ onUnmounted(() => {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
   color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
-.panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .sym-select {
   padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 12px;
@@ -177,10 +176,7 @@ onUnmounted(() => {
   font-size: 13px; margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
+
 .exchanges-grid { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .ex-card {
   border: 1px solid var(--color-border-strong); border-radius: var(--radius-md);

@@ -177,14 +177,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.panel-header h3 { margin: 0; font-size: 15px; }
+
 .header-actions { display: flex; gap: 8px; align-items: center; }
 .date-input {
   padding: 4px 8px;
@@ -206,7 +199,7 @@ onMounted(() => {
 }
 .btn-secondary { background: transparent; color: var(--color-accent); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.loading, .empty-state { text-align: center; padding: 32px; color: var(--color-text-tertiary); font-size: 13px; }
+.loading { text-align: center; padding: 32px; color: var(--color-text-tertiary); font-size: 13px; }
 .report-content { display: flex; flex-direction: column; gap: 16px; }
 
 .report-summary {

@@ -122,7 +122,6 @@ onMounted(loadPositions)
 .s-label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; }
 .s-value { font-size: 16px; font-weight: 700; }
 .s-value.up { color: var(--color-down); } .s-value.down { color: var(--color-up); }
-.empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); font-size: 13px; }
 
 .position-row {
   padding: 8px; border-bottom: 1px solid var(--color-bg-input);

@@ -264,7 +264,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 
 <style scoped>
 .options-panel { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-panel); color: var(--color-text-primary); font-size: 13px; overflow: hidden; }
-.panel-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; flex-wrap: wrap; }
+
 .title { font-weight: 600; font-size: 14px; }
 .btn-sm { padding: 2px 8px; font-size: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
 .btn-sm:hover { background: var(--color-bg-hover); }
@@ -318,7 +318,6 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 .col-iv { width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
 .col-grk { width: 58px; text-align: right; font-variant-numeric: tabular-nums; }
 
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 .error-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
 .error-text { color: var(--color-up); font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .retry-btn { padding: 4px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 11px; }

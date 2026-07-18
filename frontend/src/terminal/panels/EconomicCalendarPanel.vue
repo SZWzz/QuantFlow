@@ -159,7 +159,6 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .economic-calendar-panel {
   padding: 12px;
   height: 100%;
@@ -169,14 +168,7 @@ onMounted(fetchData)
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .filter-tabs { display: flex; gap: 4px; }
 .f-tab {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
@@ -189,10 +181,6 @@ onMounted(fetchData)
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
 
 .calendar-scroll {
   flex: 1; overflow-y: auto;

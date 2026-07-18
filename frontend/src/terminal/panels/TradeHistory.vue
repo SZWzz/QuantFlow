@@ -296,16 +296,6 @@ function exportData() {
   color: var(--text);
 }
 
-.panel-error {
-  padding: 8px 12px;
-  color: var(--color-up);
-  background: var(--color-up-soft);
-  border: 1px solid var(--color-up-glow);
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
 /* -- Filter bar -- */
 .filter-bar {
   display: flex;

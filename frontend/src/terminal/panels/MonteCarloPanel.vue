@@ -328,17 +328,6 @@ async function runSimulation() {
   color: var(--color-text-primary);
 }
 
-.panel-header {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border-strong);
-}
-
-.panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .panel-body {
   flex: 1;
   display: flex;
@@ -508,14 +497,5 @@ th {
   font-size: 10px;
   color: var(--color-text-tertiary);
   margin-top: 2px;
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
 }
 </style>

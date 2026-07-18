@@ -157,8 +157,7 @@ function formatMoney(v: number): string {
   padding: 12px; height: 100%; display: flex; flex-direction: column;
   color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
-.panel-header { margin-bottom: 12px; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .params-section { margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
 .param-row { display: flex; align-items: center; gap: 8px; }
 .param-row label { font-size: 12px; color: var(--color-text-secondary); min-width: 60px; }
@@ -176,7 +175,6 @@ function formatMoney(v: number): string {
 }
 .run-btn:hover { background: var(--color-accent); }
 .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 
 .result-section { flex: 1; }
 .result-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }

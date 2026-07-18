@@ -260,15 +260,6 @@ function changeClass(c: number): string {
   font-size: 13px;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.panel-header h3 { margin: 0; font-size: 14px; }
-
 .header-actions { display: flex; gap: 8px; align-items: center; }
 .signal-badge {
   font-size: 11px;
@@ -371,10 +362,6 @@ tr.signal-row { border-left: 3px solid var(--color-accent); }
   font-size: 11px; color: var(--color-text-tertiary);
 }
 
-.empty-state {
-  display: flex; align-items: center; justify-content: center;
-  padding: 40px; color: var(--color-text-tertiary);
-}
 .empty-state.small { padding: 20px; font-size: 12px; }
 .wf-btn {
   display: inline-flex;

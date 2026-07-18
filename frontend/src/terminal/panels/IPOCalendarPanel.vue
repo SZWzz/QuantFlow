@@ -386,14 +386,6 @@ onUnmounted(() => {
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; white-space: nowrap; }
 
 /* Market selector */
 .market-selector {
@@ -436,10 +428,7 @@ onUnmounted(() => {
   padding: 6px 16px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 12px;
 }
-.empty-state {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
+
 .empty-icon { font-size: 24px; }
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {

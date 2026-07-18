@@ -515,11 +515,9 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 }
 
 /* Header */
-.panel-header {
-  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 8px;
-}
+
 .header-left { display: flex; align-items: center; gap: 10px; }
-.panel-header h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
+
 .header-right { display: flex; align-items: center; gap: 8px; }
 .market-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(88,166,255,0.12); color: var(--color-accent); font-weight: 500; }
 .symbol-badge { font-size: 11px; padding: 3px 10px; border-radius: 6px; background: rgba(88,166,255,0.1); color: var(--color-accent); font-family: 'SF Mono', monospace; font-weight: 500; }

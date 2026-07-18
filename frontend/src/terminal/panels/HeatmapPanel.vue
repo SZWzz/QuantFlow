@@ -131,13 +131,7 @@ onMounted(() => {
   background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .market-tabs { display: flex; gap: 4px; }
 .mkt-tab {
   padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
@@ -151,10 +145,6 @@ onMounted(() => {
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .loading-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
-.empty-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
   color: var(--color-text-tertiary); font-size: 13px;
 }

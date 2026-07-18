@@ -434,19 +434,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px 6px;
-  border-bottom: 1px solid var(--color-border-strong);
-}
-.panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 /* View tabs */
 .view-tabs {
   display: flex;
@@ -608,12 +595,11 @@ onUnmounted(() => {
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 .corr-chart { flex: 1; min-height: 200px; }
 .corr-legend { display: flex; gap: 16px; justify-content: center; padding: 8px 0; font-size: 10px; color: var(--color-text-tertiary); flex-shrink: 0; }
 .legend-item { display: flex; align-items: center; gap: 4px; }
 .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
-.panel-error { color: var(--color-warning, var(--color-up)); font-size: 11px; padding: 8px 14px; flex-shrink: 0; }
+
 .chart-fallback { color: var(--color-text-tertiary); font-size: 13px; }
 
 .wf-btn {

@@ -70,10 +70,8 @@ const chartOption = computed(() => {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .surface-chart-panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg, var(--color-bg-panel)); }
-.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; }
 .surface-content { flex: 1; min-height: 0; }
 .surface-chart { width: 100%; height: 100%; }

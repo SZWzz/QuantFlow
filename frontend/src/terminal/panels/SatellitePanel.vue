@@ -352,7 +352,6 @@ function wildfireClass(count: number): string {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin: 8px 12px 0; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .satellite-panel {
   display: flex;
   flex-direction: column;
@@ -361,17 +360,6 @@ function wildfireClass(count: number): string {
   color: var(--color-text-primary);
   font-size: 13px;
 }
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border);
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.panel-header h3 { margin: 0; font-size: 14px; }
 
 .header-summary { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .summary-badge {
@@ -567,14 +555,6 @@ function wildfireClass(count: number): string {
 .trend-text { font-weight: 600; }
 .trend-text.stable-text { color: var(--color-text-secondary); }
 
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: var(--color-text-tertiary);
-  grid-column: 1 / -1;
-}
 .empty-state.small { padding: 20px; font-size: 12px; }
 .wf-btn {
   display: inline-flex;

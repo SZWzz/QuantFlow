@@ -137,13 +137,7 @@ onMounted(() => statsFetcher.execute())
   flex-direction: column;
   font-size: 13px;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-color, #333);
-}
+
 .panel-title {
   font-weight: 600;
 }

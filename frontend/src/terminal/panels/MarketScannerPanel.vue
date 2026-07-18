@@ -648,15 +648,6 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   overflow: hidden;
 }
 
-.panel-error {
-  padding: 8px 12px;
-  margin: 0 var(--panel-padding);
-  border-radius: var(--radius-sm);
-  background: var(--color-up-soft);
-  color: var(--color-up);
-  font-size: 12px;
-}
-
 .limit-pane :deep(.clickable) {
   cursor: pointer;
 }
@@ -852,15 +843,6 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
 .min-input { width: 70px; }
 .symbol-input { width: 70px; }
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
-}
 
 .error-state {
   display: flex;

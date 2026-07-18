@@ -96,7 +96,7 @@ function fmtValue(v: number | undefined): string {
 
 <style scoped>
 .panel-container{display:flex;flex-direction:column;height:100%;background:var(--color-bg-panel);color:var(--color-text-primary);font-size:13px}
-.panel-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--color-border)}
+
 .symbol{font-weight:500}
 .badge{font-size:11px;background:var(--color-primary);color:var(--color-text-primary);padding:2px 8px;border-radius: var(--radius-lg)}
 .panel-body{flex:1;overflow:auto;padding:12px}

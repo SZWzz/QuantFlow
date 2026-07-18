@@ -324,8 +324,7 @@ onMounted(loadDCFData)
 
 <style scoped>
 .val-panel { padding: 12px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: auto; }
-.panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; white-space: nowrap; }
+
 .header-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
 /* View tabs */

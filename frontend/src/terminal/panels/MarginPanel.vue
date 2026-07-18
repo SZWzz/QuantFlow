@@ -130,14 +130,7 @@ onMounted(loadData)
   background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .header-right { display: flex; align-items: center; gap: 8px; }
 .symbol-badge {
   font-size: 11px;

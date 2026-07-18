@@ -314,20 +314,6 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px 6px;
-  border-bottom: 1px solid var(--color-border-strong);
-}
-.panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .controls-row {
   display: flex;
   gap: 10px;

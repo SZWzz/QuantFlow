@@ -96,5 +96,4 @@ watch(() => items.value, (newItems) => {
 .news-time { font-size: 10px; color: var(--color-text-secondary); }
 .news-link { font-size: 10px; color: var(--color-accent, var(--color-accent)); margin-left: auto; opacity: 0; transition: opacity 0.15s; }
 .news-item:hover .news-link { opacity: 0.8; }
-.empty-state { padding: 40px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; }
 </style>

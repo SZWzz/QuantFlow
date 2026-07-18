@@ -53,7 +53,7 @@ onMounted(() => store.fetchNotifications())
 .notify-row.unread .notify-title { color: var(--color-text-primary); }
 .notify-text { display: block; font-size: 11px; color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notify-time { font-size: 10px; color: var(--color-text-tertiary); flex-shrink: 0; }
-.empty-state { padding: 40px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; }
+
 .footer { padding-top: 8px; border-top: 1px solid var(--color-bg-input); }
 .read-all-btn { width: 100%; padding: 6px; background: var(--color-bg-subtle); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-sm); color: var(--color-accent); font-size: 12px; cursor: pointer; }
 </style>

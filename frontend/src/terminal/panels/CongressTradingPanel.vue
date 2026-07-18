@@ -139,8 +139,7 @@ function amountColor(amount: string): string {
 
 <style scoped>
 .panel { padding: 16px; height: 100%; display: flex; flex-direction: column; color: var(--color-text-primary); background: var(--color-bg-panel); }
-.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .header-controls { display: flex; gap: 8px; }
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -168,6 +167,6 @@ function amountColor(amount: string): string {
 .amount-cell { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--color-text-primary); }
 .date-cell { color: var(--color-text-primary); }
 .no-data { color: var(--color-text-tertiary); font-size: 13px; text-align: center; padding: 20px; }
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
+
 .chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); }
 </style>

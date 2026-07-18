@@ -72,7 +72,7 @@ onMounted(fetchScheduleTasks)
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .task-count { font-size: 12px; color: var(--color-text-tertiary); }
 .new-btn { padding: 6px 14px; background: var(--color-accent-soft); border: none; border-radius: var(--radius-sm); color: var(--color-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
-.empty-state { padding: 40px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; }
+
 .task-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--color-bg-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; }
 .task-info { display: flex; flex-direction: column; gap: 3px; }
 .task-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }

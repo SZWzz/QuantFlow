@@ -142,8 +142,7 @@ onMounted(fetchData)
   padding: 12px; height: 100%; display: flex; flex-direction: column;
   color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
 }
-.panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .addr-input {
   padding: 3px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
   background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 12px; width: 140px;
@@ -155,10 +154,7 @@ onMounted(fetchData)
   margin-left: auto;
 }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px; gap: 4px;
-}
+
 .error-state {
   display: flex; align-items: center; justify-content: center; padding: 12px;
   color: var(--color-error); font-size: 13px; cursor: pointer;

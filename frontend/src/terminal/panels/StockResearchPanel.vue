@@ -173,8 +173,7 @@ function refresh() {
   padding: 16px; height: 100%; display: flex; flex-direction: column;
   color: var(--color-text-primary); background: var(--color-bg-panel);
 }
-.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .header-controls { display: flex; gap: 8px; }
 .symbol-input { width: 100px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 13px; }
 .refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }

@@ -42,9 +42,8 @@ onMounted(fetchBrokerStatuses)
 </template>
 
 <style scoped>
-.panel-error { padding: 12px; margin-bottom: 10px; color: var(--color-up); background: var(--color-up-soft); border: 1px solid var(--color-up-glow); border-radius: var(--radius-md); font-size: 12px; }
 .broker-status { padding: 10px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; color: var(--color-text-primary); }
-.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+
 .header-title { font-size: 13px; font-weight: 600; }
 .refresh-btn { padding: 3px 10px; background: var(--color-bg-subtle); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-sm); color: var(--color-accent); font-size: 11px; cursor: pointer; }
 .refresh-btn:disabled { opacity: 0.4; cursor: default; }
@@ -65,5 +64,4 @@ onMounted(fetchBrokerStatuses)
 .info-label { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; }
 .info-value { font-size: 12px; font-weight: 500; }
 .info-value.muted { color: var(--color-text-tertiary); font-size: 11px; }
-.empty-state { padding: 40px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; grid-column: 1 / -1; }
 </style>
