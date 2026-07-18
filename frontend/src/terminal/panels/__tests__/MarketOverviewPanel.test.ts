@@ -20,7 +20,10 @@ describe('MarketOverviewPanel', () => {
     const wrapper = mount(MarketOverviewPanel, {
       props: { panelId: 'test-overview', params: {} },
     })
-    expect(wrapper.find('.market-tabs').exists()).toBe(true)
+    // Market tabs (CN/HK/US) live in PanelHeader via PanelTabs
+    const tabs = wrapper.findAll('.panel-tabs .tab')
+    expect(tabs.length).toBe(3)
+    expect(tabs.map(t => t.text())).toEqual(['CN', 'HK', 'US'])
   })
 
   it('renders kline area or loading state', async () => {

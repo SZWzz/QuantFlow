@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useDataStore } from '@/stores/data'
-import { PanelHeader, LoadingState } from '@/terminal/components/panel'
+import { PanelHeader, PanelTabs, LoadingState, EmptyState, ErrorState, StatItem } from '@/terminal/components/panel'
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
@@ -29,6 +29,23 @@ const loadError = ref('')
 
 // Chart mode: 分时 | K线
 const chartMode = ref<'minute' | 'kline'>('minute')
+
+// Tab definitions (PanelHeader / PanelTabs)
+const marketTabs = [
+  { key: 'CN', label: 'CN' },
+  { key: 'HK', label: 'HK' },
+  { key: 'US', label: 'US' },
+]
+const chartModeTabs = [
+  { key: 'minute', label: '分时' },
+  { key: 'kline', label: '日K' },
+]
+const intervalTabs = [
+  { key: '1d', label: '1d' },
+  { key: '5d', label: '5d' },
+  { key: '1mo', label: '1mo' },
+  { key: '1y', label: '1y' },
+]
 
 // K-line state
 const chartOHLCV = ref<KlineDataItem[]>([])
@@ -128,7 +145,7 @@ const minuteOption = computed(() => {
             type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
               { offset: 0, color: isUp ? upCol + '40' : downCol + '40' },
-              { offset: 1, color: 'rgba(0,0,0,0)' },
+              { offset: 1, color: 'transparent' },
             ],
           },
         },
@@ -149,7 +166,7 @@ const minuteOption = computed(() => {
         const chg = prevClose.value > 0 ? t.price - prevClose.value : 0
         const chgPct = prevClose.value > 0 ? (chg / prevClose.value) * 100 : 0
         const chgColor = chg >= 0 ? upCol : downCol
-        return `<div style="font-size:12px">${t.time}</div>
+        return `<div style="font-size:var(--font-xs)">${t.time}</div>
 <div>价格: <b>${t.price.toFixed(2)}</b></div>
 <div>涨跌: <span style="color:${chgColor}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%)</span></div>
 <div>均价: ${t.avg_price.toFixed(2)}</div>`
@@ -229,9 +246,16 @@ function loadChart() {
   }
 }
 
-function switchChartMode(mode: 'minute' | 'kline') {
+function switchChartMode(mode: string) {
+  if (mode !== 'minute' && mode !== 'kline') return
   chartMode.value = mode
   loadChart()
+}
+
+function onIntervalChange(iv: string) {
+  if (iv !== '1d' && iv !== '5d' && iv !== '1mo' && iv !== '1y') return
+  indexInterval.value = iv
+  loadKlineChart()
 }
 
 function refresh() {
@@ -331,23 +355,19 @@ onUnmounted(() => {
     <PanelHeader
       :title="$t('misc.market_overview')"
       :subtitle="formatTime(updatedAt)"
+      :tabs="marketTabs"
+      :active-tab="activeMarket"
       :controls="headerControls"
+      @tab-change="switchMarket"
     />
 
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
+    <ErrorState
+      v-if="loadError"
+      :description="loadError"
+      @retry="refresh"
+    />
 
-    <!-- Zone 1: Market Tabs -->
-    <div class="market-tabs">
-      <button
-        v-for="m in (['CN', 'HK', 'US'] as const)"
-        :key="m"
-        :class="{ active: activeMarket === m }"
-        class="mkt-tab"
-        @click="switchMarket(m)"
-      >{{ m }}</button>
-    </div>
-
-    <!-- Zone 2: Index Cards -->
+    <!-- Index selector (stat blocks) -->
     <div v-if="indices.length" class="index-cards">
       <div
         v-for="idx in indices"
@@ -356,15 +376,15 @@ onUnmounted(() => {
         :class="{ active: selectedIndex?.symbol === idx.symbol }"
         @click="onSelectIndex(idx)"
       >
-        <div class="idx-name">{{ idx.name }}</div>
-        <div class="idx-price">{{ idx.last?.toFixed(2) ?? '--' }}</div>
-        <div class="idx-chg" :class="idx.changePct >= 0 ? 'up' : 'down'">
-          {{ idx.changePct >= 0 ? '+' : '' }}{{ idx.changePct?.toFixed(2) ?? '0.00' }}%
-        </div>
+        <StatItem
+          :label="idx.name"
+          :value="idx.last?.toFixed(2) ?? '--'"
+          :delta="idx.changePct"
+        />
       </div>
     </div>
 
-    <!-- Zone 3: Breadth + Sentiment Bar -->
+    <!-- Breadth + sentiment -->
     <div v-if="breadthTotal > 1" class="breadth-section">
       <div class="breadth-bar">
         <div class="breadth-segment up" :style="breadthBarStyle(breadthUpPct, 'var(--color-up)')" :title="`涨 ${breadth.advancers}`" />
@@ -377,40 +397,32 @@ onUnmounted(() => {
         <span class="down-text">跌 {{ breadth.decliners }}</span>
       </div>
       <div class="sentiment-strip">
-        <span>涨停 {{ sentiment.limitUp }}</span>
-        <span>跌停 {{ sentiment.limitDown }}</span>
-        <span>北向 {{ sentiment.northboundFlow >= 0 ? '+' : '' }}{{ formatMoney(sentiment.northboundFlow) }}</span>
-        <span>成交 {{ formatMoney(sentiment.totalVolume) }}</span>
+        <StatItem label="涨停" :value="sentiment.limitUp" />
+        <StatItem label="跌停" :value="sentiment.limitDown" />
+        <StatItem label="北向" :value="(sentiment.northboundFlow >= 0 ? '+' : '') + formatMoney(sentiment.northboundFlow)" />
+        <StatItem label="成交" :value="formatMoney(sentiment.totalVolume)" />
       </div>
     </div>
 
-    <!-- Zone 4: Chart (分时 / K线) -->
+    <!-- Chart (分时 / K线) -->
     <div v-if="loading && !chartOHLCV.length && !minuteTicks.length" class="chart-area">
       <LoadingState type="card" :rows="1" />
     </div>
     <div v-else-if="selectedIndex" class="chart-area">
-      <!-- Chart mode tabs: 分时 | 日K -->
       <div class="chart-tabs">
-        <button
-          :class="{ active: chartMode === 'minute' }"
-          class="chart-tab"
-          @click="switchChartMode('minute')"
-        >分时</button>
-        <button
-          :class="{ active: chartMode === 'kline' }"
-          class="chart-tab"
-          @click="switchChartMode('kline')"
-        >日K</button>
-        <template v-if="chartMode === 'kline'">
-          <span class="chart-tab-sep" />
-          <button
-            v-for="iv in (['1d', '5d', '1mo', '1y'] as const)"
-            :key="iv"
-            :class="{ active: indexInterval === iv }"
-            class="chart-tab interval"
-            @click="indexInterval = iv; loadKlineChart()"
-          >{{ iv }}</button>
-        </template>
+        <PanelTabs
+          :tabs="chartModeTabs"
+          :active="chartMode"
+          variant="button"
+          @change="switchChartMode"
+        />
+        <PanelTabs
+          v-if="chartMode === 'kline'"
+          :tabs="intervalTabs"
+          :active="indexInterval"
+          variant="button"
+          @change="onIntervalChange"
+        />
       </div>
       <div class="chart-wrapper" :class="{ loading: indexChartLoading || minuteLoading }">
         <KlineChart
@@ -420,12 +432,14 @@ onUnmounted(() => {
         />
       </div>
     </div>
-    <div v-else class="empty-chart">暂无数据</div>
+    <div v-else class="empty-chart">
+      <EmptyState title="暂无数据" />
+    </div>
 
-    <!-- Zone 5: Sector Rankings (horizontal bar chart style) -->
+    <!-- Sector rankings (horizontal bar visualization — kept custom, PanelTable cannot express bars) -->
     <div v-if="sectors.length" class="sector-section">
       <div class="sector-column">
-        <h4 class="sector-col-title up-text">{{ $t('misc.gainers') }}</h4>
+        <h4 class="section-title up-text">{{ $t('misc.gainers') }}</h4>
         <div v-for="s in topGainers" :key="'g-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
           <span class="sector-chg up">+{{ s.changePct.toFixed(1) }}%</span>
@@ -435,7 +449,7 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="sector-column">
-        <h4 class="sector-col-title down-text">{{ $t('misc.losers') }}</h4>
+        <h4 class="section-title down-text">{{ $t('misc.losers') }}</h4>
         <div v-for="s in topLosers" :key="'l-' + s.name" class="sector-row">
           <span class="sector-name">{{ s.name }}</span>
           <span class="sector-chg down">{{ s.changePct.toFixed(1) }}%</span>
@@ -450,65 +464,35 @@ onUnmounted(() => {
 
 <style scoped>
 .market-overview-panel {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow: hidden;
   color: var(--color-text-primary);
-  background: var(--color-bg-panel);
 }
 
-/* ── Zone 1: Market Tabs ── */
-.market-tabs {
-  display: flex;
-  gap: 2px;
-  padding: var(--space-sm) var(--panel-padding);
-  border-bottom: 1px solid var(--color-border-strong);
-}
-
-.mkt-tab {
-  padding: 4px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--font-sm);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.mkt-tab:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-}
-
-.mkt-tab.active {
-  background: var(--color-accent);
-  color: #fff;
-}
-
-/* ── Zone 2: Index Cards ── */
+/* ── Index selector (stat blocks) ── */
 .index-cards {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   padding: var(--space-sm) var(--panel-padding);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .index-card {
   flex: 1 1 0;
   min-width: 0;
-  padding: 6px 8px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
   overflow: hidden;
 }
 
 .index-card:hover {
-  border-color: var(--color-accent);
+  background: var(--color-bg-hover);
 }
 
 .index-card.active {
@@ -516,32 +500,11 @@ onUnmounted(() => {
   background: var(--color-bg-hover);
 }
 
-.idx-name {
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.idx-price {
-  font-size: var(--font-md);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.idx-chg {
-  font-size: var(--font-xs);
-  font-weight: 500;
-}
-
-.idx-chg.up { color: var(--color-up); }
-.idx-chg.down { color: var(--color-down); }
-
-/* ── Zone 3: Breadth + Sentiment ── */
+/* ── Breadth + sentiment ── */
 .breadth-section {
-  padding: 0 var(--panel-padding) var(--space-sm);
+  padding: var(--space-sm) var(--panel-padding);
+  border-top: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
 }
 
 .breadth-bar {
@@ -554,7 +517,7 @@ onUnmounted(() => {
 
 .breadth-segment {
   height: 100%;
-  transition: width 0.3s ease;
+  transition: width var(--transition-normal);
 }
 
 .breadth-segment.up { background: var(--color-up); }
@@ -570,18 +533,15 @@ onUnmounted(() => {
 
 .sentiment-strip {
   display: flex;
-  gap: var(--space-lg);
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--color-border-strong);
+  gap: var(--space-xl);
+  flex-wrap: wrap;
 }
 
 .up-text { color: var(--color-up); }
 .down-text { color: var(--color-down); }
 .flat-text { color: var(--color-text-tertiary); }
 
-/* ── Zone 4: Chart Area ── */
+/* ── Chart area ── */
 .chart-area {
   display: flex;
   flex-direction: column;
@@ -589,53 +549,20 @@ onUnmounted(() => {
   flex: 0 0 auto;
   height: 320px;
   overflow: hidden;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.chart-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--panel-padding);
 }
 
 .chart-wrapper {
   flex: 1;
   min-height: 260px;
   position: relative;
-}
-
-.chart-tabs {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: var(--space-xs) var(--panel-padding);
-}
-
-.chart-tab {
-  padding: 3px 10px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--font-xs);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.chart-tab:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-}
-
-.chart-tab.active {
-  background: var(--color-accent);
-  color: #fff;
-}
-
-.chart-tab.interval {
-  padding: 3px 8px;
-  font-size: 11px;
-}
-
-.chart-tab-sep {
-  width: 1px;
-  height: 14px;
-  background: var(--color-border-strong);
-  margin: 0 4px;
 }
 
 .chart-wrapper.loading {
@@ -645,21 +572,18 @@ onUnmounted(() => {
 
 .empty-chart {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   height: 200px;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-sm);
-  border-top: 1px solid var(--color-border-strong);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
-/* ── Zone 5: Sector Rankings ── */
+/* ── Sector rankings (bar visualization) ── */
 .sector-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-md);
-  padding: var(--space-md) var(--panel-padding);
-  border-top: 1px solid var(--color-border-strong);
+  padding: var(--space-sm) var(--panel-padding);
+  border-top: 1px solid var(--color-border-subtle);
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
@@ -669,19 +593,15 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
-.sector-col-title {
-  font-size: var(--font-sm);
-  font-weight: 600;
-  margin: 0 0 var(--space-sm);
-  padding-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--color-border-strong);
+.sector-column .section-title {
+  margin-bottom: var(--space-sm);
 }
 
 .sector-row {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 2px 0;
+  padding: var(--space-xs) 0;
   font-size: var(--font-xs);
   position: relative;
 }
@@ -709,15 +629,15 @@ onUnmounted(() => {
 .sector-bar-bg {
   flex: 1;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   overflow: hidden;
 }
 
 .sector-bar {
   height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-normal);
 }
 
 .sector-bar.up { background: var(--color-up); }
