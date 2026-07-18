@@ -53,4 +53,9 @@ const deltaClass = computed(() => (props.delta != null && props.delta >= 0 ? 'ba
   color: var(--color-text-primary);
   white-space: nowrap;
 }
+
+.stat-delta {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
 </style>
