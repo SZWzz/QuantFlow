@@ -57,6 +57,8 @@ defineEmits<{
         <span v-if="ctrl.label">{{ ctrl.label }}</span>
       </button>
     </div>
+    <slot name="controls" />
+    <div v-if="$slots.extra" class="header-extra"><slot name="extra" /></div>
   </div>
 </template>
 
@@ -99,6 +101,14 @@ defineEmits<{
   gap: var(--space-xs);
   align-items: center;
   flex-shrink: 0;
+}
+
+.header-extra {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .icon {

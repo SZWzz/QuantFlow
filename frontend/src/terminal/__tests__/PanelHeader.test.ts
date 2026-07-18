@@ -33,4 +33,28 @@ describe('PanelHeader', () => {
     const w = mount(PanelHeader, { props: { title: 'T' } })
     expect(w.find('.header-controls').exists()).toBe(false)
   })
+
+  it('renders #controls slot content after props controls', () => {
+    const w = mount(PanelHeader, {
+      props: { title: 'T', controls: [{ icon: 'refresh', title: '刷新', action: () => {} }] },
+      slots: { controls: '<select class="market-select"><option>A股</option></select>' },
+    })
+    expect(w.find('.market-select').exists()).toBe(true)
+    expect(w.find('.header-controls button').exists()).toBe(true)
+  })
+
+  it('renders #extra slot as a full-width second row', () => {
+    const w = mount(PanelHeader, {
+      props: { title: 'T' },
+      slots: { extra: '<span class="signal-summary">3 看涨</span>' },
+    })
+    const extra = w.find('.header-extra')
+    expect(extra.exists()).toBe(true)
+    expect(extra.find('.signal-summary').text()).toBe('3 看涨')
+  })
+
+  it('omits .header-extra when no extra slot provided', () => {
+    const w = mount(PanelHeader, { props: { title: 'T' } })
+    expect(w.find('.header-extra').exists()).toBe(false)
+  })
 })
