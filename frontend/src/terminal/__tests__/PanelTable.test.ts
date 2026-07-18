@@ -64,4 +64,45 @@ describe('PanelTable', () => {
     expect(ev![0][0]).toEqual(data[1])
     expect(ev![0][1]).toBeInstanceOf(MouseEvent)
   })
+
+  const sortCols: Column[] = [
+    { key: 'name', label: '名称' },
+    { key: 'price', label: '现价', align: 'right', format: 'price', sortable: true },
+  ]
+
+  it('sortable th click emits sortChange: asc → desc → clear (old watchlist semantics)', async () => {
+    // New column starts 'asc'
+    const w = mount(PanelTable, { props: { columns: sortCols, data } })
+    await w.findAll('.th')[1].trigger('click')
+    expect(w.emitted('sortChange')![0]).toEqual(['price', 'asc'])
+
+    // Same column flips asc → desc, then desc → cleared (null)
+    await w.setProps({ sortKey: 'price', sortDir: 'asc' })
+    await w.findAll('.th')[1].trigger('click')
+    expect(w.emitted('sortChange')![1]).toEqual(['price', 'desc'])
+    await w.setProps({ sortDir: 'desc' })
+    await w.findAll('.th')[1].trigger('click')
+    expect(w.emitted('sortChange')![2]).toEqual(['price', null])
+  })
+
+  it('shows sort arrow on the active sortable column', () => {
+    const w = mount(PanelTable, { props: { columns: sortCols, data, sortKey: 'price', sortDir: 'desc' } })
+    const ths = w.findAll('.th')
+    expect(ths[0].find('.sort-arrow').exists()).toBe(false)
+    expect(ths[1].find('.sort-arrow').exists()).toBe(true)
+    expect(ths[1].find('.sort-arrow').text()).toBe('↓')
+  })
+
+  it('non-sortable th click does not emit sortChange', async () => {
+    const w = mount(PanelTable, { props: { columns: sortCols, data } })
+    await w.findAll('.th')[0].trigger('click')
+    expect(w.emitted('sortChange')).toBeUndefined()
+  })
+
+  it('hideHeader removes the header row', () => {
+    const withHeader = mount(PanelTable, { props: { columns: cols, data } })
+    expect(withHeader.find('.table-header-row').exists()).toBe(true)
+    const withoutHeader = mount(PanelTable, { props: { columns: cols, data, hideHeader: true } })
+    expect(withoutHeader.find('.table-header-row').exists()).toBe(false)
+  })
 })

@@ -13,15 +13,25 @@ const props = withDefaults(defineProps<{
   rowTestId?: string
   /** 行级附加 class（如涨跌闪烁 .flash-up/.flash-down），返回字符串拼到行根元素上 */
   rowClass?: (row: any) => string
+  /** 隐藏表头行（分组表格中仅首组显示表头） */
+  hideHeader?: boolean
+  /** 受控排序状态：当前排序列与方向（null 表示未排序） */
+  sortKey?: string
+  sortDir?: 'asc' | 'desc' | null
 }>(), {
   striped: true,
   loading: false,
   clickable: false,
+  hideHeader: false,
+  sortKey: '',
+  sortDir: null,
 })
 
 const emit = defineEmits<{
   (e: 'rowClick', row: any): void
   (e: 'rowContextmenu', row: any, event: MouseEvent): void
+  /** 点击 sortable 表头；dir 为下一状态（新列 asc → desc → null 清除），父组件受控应用 */
+  (e: 'sortChange', key: string, dir: 'asc' | 'desc' | null): void
 }>()
 
 function getKey(row: any, idx: number): string | number {
@@ -67,20 +77,32 @@ function isMono(col: Column): boolean {
   return col.mono ?? (col.format ? NUMERIC_FORMATS.has(col.format) : false)
 }
 
+function onSort(col: Column) {
+  let dir: 'asc' | 'desc' | null
+  if (props.sortKey === col.key) {
+    dir = props.sortDir === 'asc' ? 'desc' : props.sortDir === 'desc' ? null : 'asc'
+  } else {
+    dir = 'asc'
+  }
+  emit('sortChange', col.key, dir)
+}
+
 const slots = useSlots()
 const hasAction = computed(() => !!slots.action)
 </script>
 
 <template>
   <div class="panel-table-wrapper">
-    <div class="table-header-row">
+    <div v-if="!hideHeader" class="table-header-row">
       <span
         v-for="col in columns"
         :key="col.key"
-        :class="['th', col.align || 'left']"
+        :class="['th', col.align || 'left', { sortable: col.sortable }]"
         :style="colStyle(col)"
+        @click="col.sortable && onSort(col)"
       >
         {{ col.label }}
+        <span v-if="col.sortable && sortKey === col.key && sortDir" class="sort-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
       </span>
       <span v-if="hasAction" class="th action-th"> </span>
     </div>
@@ -144,6 +166,19 @@ const hasAction = computed(() => !!slots.action)
 .th.left,
 .td.left {
   text-align: left;
+}
+
+.th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.th.sortable:hover {
+  color: var(--color-text-primary);
+}
+
+.sort-arrow {
+  margin-left: var(--space-xs);
 }
 
 .th.right,

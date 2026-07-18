@@ -9,4 +9,6 @@ export interface Column {
   mono?: boolean
   colorize?: boolean
   formatter?: (val: any) => string
+  /** 表头可点击排序；排序状态由父组件经 sortKey/sortDir 受控传入 */
+  sortable?: boolean
 }

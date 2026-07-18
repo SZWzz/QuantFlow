@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
-import { PanelHeader, PanelTable, EmptyState, type Column } from '@/terminal/components/panel'
+import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '@/terminal/components/panel'
 import type { FlashClass } from '@/lib/composables/useFlashOnUpdate'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
@@ -45,6 +45,8 @@ interface WatchRow {
   turnover?: number
 }
 
+interface SortState { key: string; dir: 'asc' | 'desc' | null }
+
 function loadSymbols(): string[] {
   try {
     const saved = localStorage.getItem(WS_KEY)
@@ -60,6 +62,8 @@ function saveSymbols(syms: string[]) {
 const symbols = ref<string[]>(loadSymbols())
 const quotes = reactive<Record<string, QuoteRow>>({})
 const initialLoadDone = ref(false)
+const sort = ref<SortState>({ key: '', dir: null })
+const expandedGroups = reactive<Record<string, boolean>>({ CN: true, HK: true, US: true, CRYPTO: true })
 const pollingActive = ref(true)
 
 // Context menu
@@ -68,9 +72,9 @@ const ctxMenu = ref<{ x: number; y: number; symbol: string } | null>(null)
 const tableColumns = computed<Column[]>(() => [
   { key: 'symbol', label: t('common.symbol'), width: 70 },
   { key: 'name', label: t('common.name'), flex: 1 },
-  { key: 'last', label: t('common.price'), align: 'right', format: 'price', width: 72 },
-  { key: 'changePct', label: t('quote.change_pct'), align: 'right', format: 'percent', colorize: true, width: 76 },
-  { key: 'turnover', label: t('quote.turnover'), align: 'right', format: 'volume', width: 80 },
+  { key: 'last', label: t('common.price'), align: 'right', format: 'price', width: 72, sortable: true },
+  { key: 'changePct', label: t('quote.change_pct'), align: 'right', format: 'percent', colorize: true, width: 76, sortable: true },
+  { key: 'turnover', label: t('quote.turnover'), align: 'right', format: 'volume', width: 80, sortable: true },
 ])
 
 const tableRows = computed<WatchRow[]>(() =>
@@ -85,6 +89,42 @@ const tableRows = computed<WatchRow[]>(() =>
     }
   }),
 )
+
+// 排序语义与旧版 toggleSort 一致：新列 asc → 同列 desc → 同列清除；仅数值列可排，缺失值按 0
+const sortedRows = computed<WatchRow[]>(() => {
+  const s = sort.value
+  if (!s.dir || !s.key) return tableRows.value
+  return [...tableRows.value].sort((a, b) => {
+    const va = (a[s.key as keyof WatchRow] as number) ?? 0
+    const vb = (b[s.key as keyof WatchRow] as number) ?? 0
+    if (va === vb) return 0
+    return s.dir === 'asc' ? (va - vb) : (vb - va)
+  })
+})
+
+function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
+  sort.value = dir ? { key, dir } : { key: '', dir: null }
+}
+
+const groups = computed(() => {
+  const map: Record<string, WatchRow[]> = { CN: [], HK: [], US: [], CRYPTO: [] }
+  for (const row of sortedRows.value) {
+    const m = detectMarket(row.symbol)
+    if (map[m]) map[m].push(row); else map.CN.push(row)
+  }
+  return map
+})
+
+// 仅非空分组，保持 CN/HK/US/CRYPTO 固定顺序；首组显示表头
+const groupList = computed(() =>
+  (['CN', 'HK', 'US', 'CRYPTO'] as const)
+    .map(mkt => ({ mkt, rows: groups.value[mkt] }))
+    .filter(g => g.rows.length > 0),
+)
+
+function toggleGroup(market: string) {
+  expandedGroups[market] = !expandedGroups[market]
+}
 
 // 涨跌闪烁：watch 每个 symbol 的现价，变化时在该行根元素加 .flash-up/.flash-down，600ms 后移除。
 // 语义与 useFlashOnUpdate 一致：前后值均为有限数值才闪烁；窗口内同向变化只重排清除
@@ -234,6 +274,8 @@ async function onWatchlistChanged() {
 onMounted(async () => {
   window.addEventListener('watchlist-changed', onWatchlistChanged)
   document.addEventListener('click', closeContextMenu)
+  // 一次性清理迁移前列设置遗留的 localStorage key（列设置已随 5 列固定规格下线）
+  localStorage.removeItem('quantflow-watchlist-config')
 
   try {
     const app = (window as any).go?.main?.App
@@ -288,22 +330,37 @@ onUnmounted(() => {
       data-testid="watchlist-empty"
     />
 
-    <PanelTable
-      v-else
-      :columns="tableColumns"
-      :data="initialLoadDone ? tableRows : []"
-      :loading="!initialLoadDone"
-      :striped="false"
-      clickable
-      row-test-id="watchlist-row"
-      :row-class="rowClass"
-      @row-click="onRowClick"
-      @row-contextmenu="onRowContextMenu"
-    >
-      <template #action="{ row }">
-        <button class="remove-btn" :title="t('common.delete')" @click.stop="removeSymbol(row.symbol)">✕</button>
+    <div v-else class="watchlist-groups">
+      <LoadingState v-if="!initialLoadDone" type="table" :rows="5" :cols="tableColumns.length" />
+      <template v-else>
+        <template v-for="(g, gi) in groupList" :key="g.mkt">
+          <div class="group-header" @click="toggleGroup(g.mkt)">
+            <span class="group-arrow">{{ expandedGroups[g.mkt] ? '▼' : '▶' }}</span>
+            <span class="group-label">{{ t('watchlist.group_' + g.mkt.toLowerCase()) }}</span>
+            <span class="group-count">{{ g.rows.length }}</span>
+          </div>
+          <PanelTable
+            v-if="expandedGroups[g.mkt]"
+            :columns="tableColumns"
+            :data="g.rows"
+            :striped="false"
+            clickable
+            row-test-id="watchlist-row"
+            :row-class="rowClass"
+            :sort-key="sort.key"
+            :sort-dir="sort.dir"
+            :hide-header="gi > 0"
+            @row-click="onRowClick"
+            @row-contextmenu="onRowContextMenu"
+            @sort-change="onSortChange"
+          >
+            <template #action="{ row }">
+              <button class="remove-btn" :title="t('common.delete')" @click.stop="removeSymbol(row.symbol)">✕</button>
+            </template>
+          </PanelTable>
+        </template>
       </template>
-    </PanelTable>
+    </div>
 
     <!-- Polling indicator -->
     <div v-if="!pollingActive && symbols.length" class="polling-badge">{{ t('watchlist.polling_paused') }}</div>
@@ -336,6 +393,38 @@ onUnmounted(() => {
   background: var(--color-accent-soft);
   border-left: 2px solid var(--color-accent);
 }
+
+/* 补偿 active 行 2px 左边框，避免内容右移跳动 */
+.watchlist-panel :deep(.table-row.active) .td:first-child {
+  padding-left: calc(var(--space-xs) - 2px);
+}
+
+/* Group accordion：单一滚动容器，分组内 PanelTable 按内容自然撑高 */
+.watchlist-groups {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.watchlist-groups :deep(.panel-table-wrapper) {
+  flex: none;
+  overflow: visible;
+}
+
+.watchlist-groups :deep(.table-body) {
+  flex: none;
+  overflow: visible;
+}
+
+.group-header {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm); cursor: pointer; user-select: none;
+  background: var(--color-bg-elevated); border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-xs); color: var(--color-text-secondary);
+  position: sticky; top: 0; z-index: 1;
+}
+.group-header:hover { color: var(--color-text-primary); }
+.group-arrow { font-size: var(--font-xs); width: var(--space-md); }
+.group-count { margin-left: auto; font-size: var(--font-xs); color: var(--color-text-tertiary); }
 
 /* Remove button (#action slot content renders in this scope) */
 .remove-btn {
