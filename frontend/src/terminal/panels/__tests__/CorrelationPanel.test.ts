@@ -5,7 +5,7 @@ import { mockWailsIPC } from '@/test-utils/mocks'
 import CorrelationPanel from '../CorrelationPanel.vue'
 
 // Mock ResizeObserver (required by vue-echarts)
-global.ResizeObserver = class {
+globalThis.ResizeObserver = class {
   observe() {}
   unobserve() {}
   disconnect() {}

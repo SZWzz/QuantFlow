@@ -103,9 +103,9 @@ const allOK = computed(() => badItems.value.length === 0)
         :class="{ offline: okItems.length === 0 }"
         data-test="status-group"
         @click="showDetail('连接状态', [
-          ...marketEntries.value,
-          ...brokerEntries.value,
-          pythonItem.value,
+          ...marketEntries,
+          ...brokerEntries,
+          pythonItem,
         ])"
       >
         <span class="status-dot" :class="{ pulse: okItems.length > 0, offline: okItems.length === 0 }" />

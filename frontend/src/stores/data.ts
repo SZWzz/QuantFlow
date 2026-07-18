@@ -164,6 +164,7 @@ export const useDataStore = defineStore('data', () => {
             name: idx.name,
             last: idx.price,
             changePct: idx.change_pct,
+            prevClose: idx.prev_close ?? 0,
             sparkline: [],
             ohlcv: idx.ohlcv as { open: number; high: number; low: number; close: number }[] | undefined,
           }))

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { useDataStore } from '@/stores/data'
+import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
 import { PanelHeader } from '@/terminal/components/panel'
@@ -11,6 +12,7 @@ import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
+const terminal = useTerminalStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const { fetchWithCache } = usePanelCache()
