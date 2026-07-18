@@ -921,6 +921,7 @@ onUnmounted(() => {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   z-index: 11;
+  box-shadow: var(--shadow-md);
 }
 
 .drawing-toolbar button {
@@ -964,6 +965,7 @@ onUnmounted(() => {
   border-radius: var(--radius-md);
   padding: var(--space-xs) 0;
   min-width: 140px;
+  box-shadow: var(--shadow-md);
 }
 
 .menu-item {

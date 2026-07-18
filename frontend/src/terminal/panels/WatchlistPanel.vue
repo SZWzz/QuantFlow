@@ -451,6 +451,7 @@ onUnmounted(() => {
   background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md); padding: var(--space-xs) 0;
   min-width: 120px;
+  box-shadow: var(--shadow-md);
 }
 .menu-item { padding: var(--space-xs) var(--space-md); font-size: var(--font-xs); cursor: pointer; color: var(--color-text-primary); transition: background var(--transition-fast); }
 .menu-item:hover { background: var(--color-accent); color: var(--color-text-inverse); }
