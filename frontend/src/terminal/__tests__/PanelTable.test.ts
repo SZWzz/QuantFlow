@@ -46,4 +46,22 @@ describe('PanelTable', () => {
     await w.findAll('.table-row')[0].trigger('click')
     expect(w.emitted('rowClick')).toHaveLength(1)
   })
+
+  it('applies rowClass result to the row element', () => {
+    const w = mount(PanelTable, {
+      props: { columns: cols, data, rowClass: (row: any) => (row.chg > 0 ? 'flash-up' : 'flash-down') },
+    })
+    const rows = w.findAll('.table-row')
+    expect(rows[0].classes()).toContain('flash-up')
+    expect(rows[1].classes()).toContain('flash-down')
+  })
+
+  it('emits rowContextmenu with row and native event', async () => {
+    const w = mount(PanelTable, { props: { columns: cols, data } })
+    await w.findAll('.table-row')[1].trigger('contextmenu')
+    const ev = w.emitted('rowContextmenu')
+    expect(ev).toHaveLength(1)
+    expect(ev![0][0]).toEqual(data[1])
+    expect(ev![0][1]).toBeInstanceOf(MouseEvent)
+  })
 })

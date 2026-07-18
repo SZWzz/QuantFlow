@@ -11,6 +11,8 @@ const props = withDefaults(defineProps<{
   clickable?: boolean
   rowKey?: (row: any, idx: number) => string | number
   rowTestId?: string
+  /** 行级附加 class（如涨跌闪烁 .flash-up/.flash-down），返回字符串拼到行根元素上 */
+  rowClass?: (row: any) => string
 }>(), {
   striped: true,
   loading: false,
@@ -19,6 +21,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   (e: 'rowClick', row: any): void
+  (e: 'rowContextmenu', row: any, event: MouseEvent): void
 }>()
 
 function getKey(row: any, idx: number): string | number {
@@ -88,9 +91,11 @@ const hasAction = computed(() => !!slots.action)
         :class="[
           'table-row',
           { striped: striped && idx % 2 === 1, clickable: clickable },
+          props.rowClass ? props.rowClass(row) : '',
         ]"
         :data-testid="rowTestId"
         @click="emit('rowClick', row)"
+        @contextmenu="emit('rowContextmenu', row, $event)"
       >
         <span
           v-for="col in columns"
