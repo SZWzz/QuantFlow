@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
-import { PanelHeader } from '@/terminal/components/panel'
+import { PanelHeader, EmptyState, LoadingState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -71,29 +71,32 @@ watch(() => items.value, (newItems) => {
       title="News"
       :controls="addToWfControl ? [addToWfControl] : []"
     />
-    <div v-if="loading" class="empty-state">{{ $t('common.loading') }}</div>
-    <div v-else-if="!items.length" class="empty-state">{{ $t('news.no_news') }}</div>
-    <div v-else v-for="(item, i) in items" :key="i" class="news-item" @click="openUrl(item.url)">
-      <div class="news-title">{{ item.title }}</div>
-      <div class="news-meta">
-        <span v-if="item.symbol" class="news-symbol" :title="getName(item.symbol) || item.symbol">{{ item.symbol }}</span>
-        <span class="news-source">{{ item.source }}</span>
-        <span class="news-time">{{ item.time }}</span>
-        <span v-if="item.url" class="news-link">↗</span>
+    <LoadingState v-if="loading" type="card" :rows="4" />
+    <EmptyState v-else-if="!items.length" :title="$t('news.no_news')" />
+    <div v-else class="news-list">
+      <div v-for="(item, i) in items" :key="i" class="news-item" @click="openUrl(item.url)">
+        <div class="news-title">{{ item.title }}</div>
+        <div class="news-meta">
+          <span v-if="item.symbol" class="news-symbol" :title="getName(item.symbol) || item.symbol">{{ item.symbol }}</span>
+          <span class="news-source">{{ item.source }}</span>
+          <span class="news-time">{{ item.time }}</span>
+          <span v-if="item.url" class="news-link">↗</span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.news-panel { padding: 8px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; }
-.news-item { padding: 8px 6px; border-bottom: 1px solid var(--color-bg-input); cursor: pointer; transition: background 0.1s; }
-.news-item:hover { background: rgba(88,166,255,0.05); }
-.news-title { font-size: 12px; color: var(--color-text-primary); line-height: 1.4; margin-bottom: 4px; }
-.news-meta { display: flex; gap: 8px; align-items: center; }
-.news-symbol { padding: 1px 4px; background: var(--color-accent-soft); color: var(--color-accent); border-radius: 2px; font-size: 10px; font-weight: 600; }
-.news-source { font-size: 10px; color: var(--color-text-tertiary); }
-.news-time { font-size: 10px; color: var(--color-text-secondary); }
-.news-link { font-size: 10px; color: var(--color-accent, var(--color-accent)); margin-left: auto; opacity: 0; transition: opacity 0.15s; }
+.news-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.news-list { flex: 1; overflow-y: auto; padding: var(--space-sm); }
+.news-item { padding: var(--space-sm) var(--space-xs); border-bottom: 1px solid var(--color-border-subtle); cursor: pointer; transition: background var(--transition-fast); }
+.news-item:hover { background: var(--color-bg-hover); }
+.news-title { font-size: var(--font-xs); color: var(--color-text-primary); line-height: 1.4; margin-bottom: var(--space-xs); }
+.news-meta { display: flex; gap: var(--space-sm); align-items: center; }
+.news-symbol { padding: 0 var(--space-xs); background: var(--color-accent-soft); color: var(--color-accent); border-radius: var(--radius-sm); font-size: var(--font-xs); font-weight: 600; }
+.news-source { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.news-time { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.news-link { font-size: var(--font-xs); color: var(--color-accent); margin-left: auto; opacity: 0; transition: opacity var(--transition-fast); }
 .news-item:hover .news-link { opacity: 0.8; }
 </style>
