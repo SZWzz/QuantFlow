@@ -115,12 +115,15 @@ const groups = computed(() => {
   return map
 })
 
-// 仅非空分组，保持 CN/HK/US/CRYPTO 固定顺序；首组显示表头
+// 仅非空分组，保持 CN/HK/US/CRYPTO 固定顺序；首个展开的分组显示表头
 const groupList = computed(() =>
   (['CN', 'HK', 'US', 'CRYPTO'] as const)
     .map(mkt => ({ mkt, rows: groups.value[mkt] }))
     .filter(g => g.rows.length > 0),
 )
+
+// 表头跟随第一个展开的分组，避免折叠首组后排序 UI 不可达
+const firstExpandedIndex = computed(() => groupList.value.findIndex(g => expandedGroups[g.mkt]))
 
 function toggleGroup(market: string) {
   expandedGroups[market] = !expandedGroups[market]
@@ -349,7 +352,7 @@ onUnmounted(() => {
             :row-class="rowClass"
             :sort-key="sort.key"
             :sort-dir="sort.dir"
-            :hide-header="gi > 0"
+            :hide-header="gi !== firstExpandedIndex"
             @row-click="onRowClick"
             @row-contextmenu="onRowContextMenu"
             @sort-change="onSortChange"
