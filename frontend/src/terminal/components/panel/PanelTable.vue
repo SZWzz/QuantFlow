@@ -59,6 +59,11 @@ function colorize(v: number): string {
   return v >= 0 ? 'var(--color-up)' : 'var(--color-down)'
 }
 
+const NUMERIC_FORMATS = new Set(['price', 'percent', 'volume', 'number'])
+function isMono(col: Column): boolean {
+  return col.mono ?? (col.format ? NUMERIC_FORMATS.has(col.format) : false)
+}
+
 const slots = useSlots()
 const hasAction = computed(() => !!slots.action)
 </script>
@@ -90,7 +95,7 @@ const hasAction = computed(() => !!slots.action)
         <span
           v-for="col in columns"
           :key="col.key"
-          :class="['td', col.align || 'left', { colorize: col.colorize }]"
+          :class="['td', col.align || 'left', { colorize: col.colorize, mono: isMono(col) }]"
           :style="[{ color: col.colorize ? colorize(row[col.key]) : undefined }, colStyle(col)]"
         >
           {{ formatCell(row, col) }}
@@ -114,8 +119,8 @@ const hasAction = computed(() => !!slots.action)
 
 .table-header-row {
   display: flex;
-  padding: 6px 0;
-  border-bottom: 1.5px solid var(--color-border-strong);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border);
   font-size: var(--table-header-size);
   color: var(--table-header-color);
   font-weight: var(--table-header-weight);
@@ -128,7 +133,7 @@ const hasAction = computed(() => !!slots.action)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0 6px;
+  padding: 0 var(--space-xs);
 }
 
 .th.left,
@@ -178,6 +183,11 @@ const hasAction = computed(() => !!slots.action)
 }
 
 .td {
+  font-variant-numeric: tabular-nums;
+}
+
+.td.mono {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
