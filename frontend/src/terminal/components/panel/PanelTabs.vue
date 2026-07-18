@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { ref, watch, onMounted, nextTick } from 'vue'
+
 interface Tab {
   key: string
   label: string
 }
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   tabs: Tab[]
   active: string
   variant?: 'pill' | 'underline' | 'button'
@@ -15,10 +17,24 @@ withDefaults(defineProps<{
 defineEmits<{
   (e: 'change', key: string): void
 }>()
+
+const root = ref<HTMLElement | null>(null)
+const indicatorStyle = ref<{ left: string; width: string }>({ left: '0px', width: '0px' })
+
+async function updateIndicator() {
+  if (props.variant !== 'underline') return
+  await nextTick()
+  const el = root.value?.querySelector<HTMLElement>('.tab.active')
+  if (!el) return
+  indicatorStyle.value = { left: `${el.offsetLeft}px`, width: `${el.offsetWidth}px` }
+}
+
+onMounted(updateIndicator)
+watch(() => [props.active, props.tabs], updateIndicator, { deep: true })
 </script>
 
 <template>
-  <div :class="['panel-tabs', `variant-${variant}`]">
+  <div ref="root" :class="['panel-tabs', `variant-${variant}`]">
     <button
       v-for="tab in tabs"
       :key="tab.key"
@@ -27,6 +43,7 @@ defineEmits<{
     >
       {{ tab.label }}
     </button>
+    <span v-if="variant === 'underline'" class="tab-indicator" :style="indicatorStyle" />
   </div>
 </template>
 
@@ -34,6 +51,7 @@ defineEmits<{
 .panel-tabs {
   display: flex;
   gap: var(--space-xs);
+  position: relative;
 }
 
 /* pill variant */
@@ -66,7 +84,6 @@ defineEmits<{
   padding: 4px 0;
   font-size: var(--tab-font-size);
   border: none;
-  border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--tab-inactive-color);
   cursor: pointer;
@@ -80,7 +97,20 @@ defineEmits<{
 
 .panel-tabs.variant-underline .tab.active {
   color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
+}
+
+.panel-tabs.variant-underline .tab-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-accent);
+  border-radius: 1px;
+  transition: left var(--transition-normal), width var(--transition-normal);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-tabs.variant-underline .tab-indicator { transition: none; }
 }
 
 /* button variant */
