@@ -391,15 +391,9 @@ onUnmounted(() => {
   position: relative;
 }
 
-/* Selected row (rows live inside PanelTable, hence :deep) */
+/* Selected row (rows live inside PanelTable, hence :deep)：规范 §3.3 选中行只用 --color-bg-selected，无装饰色条 */
 .watchlist-panel :deep(.table-row.active) {
-  background: var(--color-accent-soft);
-  border-left: 2px solid var(--color-accent);
-}
-
-/* 补偿 active 行 2px 左边框，避免内容右移跳动 */
-.watchlist-panel :deep(.table-row.active) .td:first-child {
-  padding-left: calc(var(--space-xs) - 2px);
+  background: var(--color-bg-selected);
 }
 
 /* Group accordion：单一滚动容器，分组内 PanelTable 按内容自然撑高 */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 interface Tab {
   key: string
@@ -29,7 +29,21 @@ async function updateIndicator() {
   indicatorStyle.value = { left: `${el.offsetLeft}px`, width: `${el.offsetWidth}px` }
 }
 
-onMounted(updateIndicator)
+let observer: MutationObserver | null = null
+
+onMounted(() => {
+  updateIndicator()
+  // 密度/主题切换会改 body class，tab 几何变化后需重算下划线位置
+  if (typeof document !== 'undefined' && document.body) {
+    observer = new MutationObserver(() => { updateIndicator() })
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+  }
+})
+
+onUnmounted(() => {
+  observer?.disconnect()
+  observer = null
+})
 watch(() => [props.active, props.tabs], updateIndicator, { deep: true })
 </script>
 

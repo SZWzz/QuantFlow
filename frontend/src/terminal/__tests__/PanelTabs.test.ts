@@ -29,4 +29,13 @@ describe('PanelTabs', () => {
     const w = mount(PanelTabs, { props: { tabs, active: 'a', variant: 'pill' } })
     expect(w.find('.tab-indicator').exists()).toBe(false)
   })
+
+  it('recalculates indicator when body class changes (density/theme switch)', async () => {
+    const w = mount(PanelTabs, { props: { tabs, active: 'a', variant: 'underline' } })
+    document.body.classList.add('density-compact')
+    // MutationObserver 回调在微任务/下一帧触发；jsdom 下 offset 均为 0，此测试只验证接线不崩
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(w.find('.tab-indicator').exists()).toBe(true)
+    document.body.classList.remove('density-compact')
+  })
 })
