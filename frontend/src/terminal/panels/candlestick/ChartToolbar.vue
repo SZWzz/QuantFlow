@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { getIcon } from '@/lib/icons'
+import { computed } from 'vue'
+import { PanelHeader } from '@/terminal/components/panel'
 
 const props = defineProps<{
   symbol: string
@@ -28,54 +29,64 @@ const emit = defineEmits<{
   'update:indexOverlaySymbol': [value: string]
   'toggleDepth': []
 }>()
+
+// 周期切换 → PanelHeader tabs；仅 K 线模式显示（与原 .interval-btns 的 v-if 行为一致）
+const intervalTabs = computed(() =>
+  ['1m', '5m', '15m', '30m', '1h', '1d', '1w'].map(i => ({ key: i, label: i })),
+)
+const headerControls = computed(() => (props.addToWfControl ? [props.addToWfControl] : []))
+
+function onIntervalChange(key: string) {
+  emit('update:interval', key)
+}
 </script>
 
 <template>
-  <div class="chart-header">
-    <div class="header-left">
-      <span class="symbol-display">{{ symbol }} {{ name }}</span>
+  <PanelHeader
+    :title="symbol"
+    :subtitle="name"
+    :tabs="activeTab === 'kline' ? intervalTabs : []"
+    :active-tab="interval"
+    :controls="headerControls"
+    @tab-change="onIntervalChange"
+  >
+    <template #controls>
       <button
-        class="watchlist-btn"
+        class="btn btn-sm wl-btn"
         :class="{ inList: isInWatchlist }"
         @click="emit('toggleWatchlist')"
       >{{ isInWatchlist ? $t('watchlist.remove') : $t('watchlist.add') }}</button>
-      <div class="tab-btns">
-        <button :class="{ active: activeTab === 'kline' }" class="tab-btn" @click="emit('update:activeTab', 'kline')">{{ $t('kline.kline') }}</button>
-        <button :class="{ active: activeTab === 'minute' }" class="tab-btn" @click="emit('update:activeTab', 'minute')">{{ $t('kline.minute') }}</button>
+      <div class="mode-switch">
+        <button class="btn btn-sm" :class="{ active: activeTab === 'kline' }" @click="emit('update:activeTab', 'kline')">{{ $t('kline.kline') }}</button>
+        <button class="btn btn-sm" :class="{ active: activeTab === 'minute' }" @click="emit('update:activeTab', 'minute')">{{ $t('kline.minute') }}</button>
       </div>
-      <button class="drawing-btn" @click="emit('toggleDrawingMode')" :class="{ active: drawingMode }" title="画线工具 (Shift+D)">
-        ✏️
-      </button>
-      <button v-if="addToWfControl" class="wf-btn" @click="emit('addToWorkflow')" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
-    </div>
-    <div v-if="activeTab === 'kline'" class="interval-btns">
-      <button v-for="i in ['1m','5m','15m','30m','1h','1d','1w']" :key="i"
-        :class="{ active: interval === i }" class="interval-btn"
-        @click="emit('update:interval', i)">{{ i }}</button>
-    </div>
-  </div>
+      <button class="btn btn-sm" :class="{ active: drawingMode }" title="画线工具 (Shift+D)" @click="emit('toggleDrawingMode')">✏️</button>
+    </template>
+  </PanelHeader>
+
+  <!-- 次级工具条：指标开关/叠加指数/深度，controls 无法表达，按 P1 保留 header 下方一行 -->
   <div v-if="activeTab === 'kline'" class="indicator-bar">
     <div class="indicator-group">
       <span class="indicator-label">{{ $t('kline.overlay') }}</span>
-      <button :class="{ active: topOverlay === 'none' }" class="indicator-btn" @click="emit('update:topOverlay', 'none')">无</button>
-      <button :class="{ active: topOverlay === 'ma' }" class="indicator-btn" @click="emit('update:topOverlay', 'ma')">MA</button>
-      <button :class="{ active: topOverlay === 'bb' }" class="indicator-btn" @click="emit('update:topOverlay', 'bb')">{{ $t('kline.bb') }}</button>
-      <button :class="{ active: topOverlay === 'sar' }" class="indicator-btn" @click="emit('update:topOverlay', 'sar')">SAR</button>
-      <button :class="{ active: topOverlay === 'ema' }" class="indicator-btn" @click="emit('update:topOverlay', 'ema')">EMA</button>
+      <button class="btn btn-sm" :class="{ active: topOverlay === 'none' }" @click="emit('update:topOverlay', 'none')">无</button>
+      <button class="btn btn-sm" :class="{ active: topOverlay === 'ma' }" @click="emit('update:topOverlay', 'ma')">MA</button>
+      <button class="btn btn-sm" :class="{ active: topOverlay === 'bb' }" @click="emit('update:topOverlay', 'bb')">{{ $t('kline.bb') }}</button>
+      <button class="btn btn-sm" :class="{ active: topOverlay === 'sar' }" @click="emit('update:topOverlay', 'sar')">SAR</button>
+      <button class="btn btn-sm" :class="{ active: topOverlay === 'ema' }" @click="emit('update:topOverlay', 'ema')">EMA</button>
     </div>
     <div class="indicator-group">
       <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
-      <button :class="{ active: bottomMode === 'volume' }" class="indicator-btn" @click="emit('update:bottomMode', 'volume')">{{ $t('kline.volume') }}</button>
-      <button :class="{ active: bottomMode === 'macd' }" class="indicator-btn" @click="emit('update:bottomMode', 'macd')">MACD</button>
-      <button :class="{ active: bottomMode === 'kdj' }" class="indicator-btn" @click="emit('update:bottomMode', 'kdj')">KDJ</button>
-      <button :class="{ active: bottomMode === 'rsi' }" class="indicator-btn" @click="emit('update:bottomMode', 'rsi')">RSI</button>
-      <button :class="{ active: bottomMode === 'wr' }" class="indicator-btn" @click="emit('update:bottomMode', 'wr')">WR</button>
-      <button :class="{ active: bottomMode === 'cci' }" class="indicator-btn" @click="emit('update:bottomMode', 'cci')">CCI</button>
-      <button :class="{ active: bottomMode === 'obv' }" class="indicator-btn" @click="emit('update:bottomMode', 'obv')">OBV</button>
+      <button class="btn btn-sm" :class="{ active: bottomMode === 'volume' }" @click="emit('update:bottomMode', 'volume')">{{ $t('kline.volume') }}</button>
+      <button class="btn btn-sm" :class="{ active: bottomMode === 'macd' }" @click="emit('update:bottomMode', 'macd')">MACD</button>
+      <button class="btn btn-sm" :class="{ active: bottomMode === 'kdj' }" @click="emit('update:bottomMode', 'kdj')">KDJ</button>
+      <button class="btn btn-sm" :class="{ active: bottomMode === 'rsi' }" @click="emit('update:bottomMode', 'rsi')">RSI</button>
+      <button class="btn btn-sm" :class="{ active: bottomMode === 'wr' }" @click="emit('update:bottomMode', 'wr')">WR</button>
+      <button class="btn btn-sm" :class="{ active: bottomMode === 'cci' }" @click="emit('update:bottomMode', 'cci')">CCI</button>
+      <button class="btn btn-sm" :class="{ active: bottomMode === 'obv' }" @click="emit('update:bottomMode', 'obv')">OBV</button>
     </div>
     <div class="indicator-group">
       <span class="indicator-label">叠加指数</span>
-      <select :value="indexOverlaySymbol" class="toolbar-select" @change="emit('update:indexOverlaySymbol', ($event.target as HTMLSelectElement).value)">
+      <select :value="indexOverlaySymbol" class="index-select" @change="emit('update:indexOverlaySymbol', ($event.target as HTMLSelectElement).value)">
         <option value="">不叠加</option>
         <option value="000001">上证指数</option>
         <option value="399001">深证成指</option>
@@ -83,80 +94,56 @@ const emit = defineEmits<{
       </select>
     </div>
   </div>
-  <div v-if="activeTab === 'minute'" class="indicator-bar">
+  <div v-else class="indicator-bar">
     <div class="indicator-group">
       <span class="indicator-label">{{ $t('kline.sub_chart') }}</span>
-      <button :class="{ active: minuteBottomMode === 'volume' }" class="indicator-btn" @click="emit('update:minuteBottomMode', 'volume')">{{ $t('kline.volume') }}</button>
-      <button :class="{ active: minuteBottomMode === 'macd' }" class="indicator-btn" @click="emit('update:minuteBottomMode', 'macd')">MACD</button>
-      <button :class="{ active: minuteBottomMode === 'kdj' }" class="indicator-btn" @click="emit('update:minuteBottomMode', 'kdj')">KDJ</button>
-      <button :class="{ active: minuteBottomMode === 'rsi' }" class="indicator-btn" @click="emit('update:minuteBottomMode', 'rsi')">RSI</button>
-      <button :class="{ active: minuteBottomMode === 'obv' }" class="indicator-btn" @click="emit('update:minuteBottomMode', 'obv')">OBV</button>
+      <button class="btn btn-sm" :class="{ active: minuteBottomMode === 'volume' }" @click="emit('update:minuteBottomMode', 'volume')">{{ $t('kline.volume') }}</button>
+      <button class="btn btn-sm" :class="{ active: minuteBottomMode === 'macd' }" @click="emit('update:minuteBottomMode', 'macd')">MACD</button>
+      <button class="btn btn-sm" :class="{ active: minuteBottomMode === 'kdj' }" @click="emit('update:minuteBottomMode', 'kdj')">KDJ</button>
+      <button class="btn btn-sm" :class="{ active: minuteBottomMode === 'rsi' }" @click="emit('update:minuteBottomMode', 'rsi')">RSI</button>
+      <button class="btn btn-sm" :class="{ active: minuteBottomMode === 'obv' }" @click="emit('update:minuteBottomMode', 'obv')">OBV</button>
     </div>
     <div class="indicator-group">
-      <button class="indicator-btn depth-toggle" :class="{ active: showDepth }" @click="emit('toggleDepth')">📊 {{ $t('misc.depth') }}</button>
+      <button class="btn btn-sm" :class="{ active: showDepth }" @click="emit('toggleDepth')">📊 {{ $t('misc.depth') }}</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.chart-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 10px; border-bottom: 1px solid var(--color-border);
+/* 全局 .btn 之上的紧凑修饰（与 AlphaMiningWorkspacePanel 的 .btn-sm 约定一致，尺寸 token 化） */
+.btn-sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-xs);
 }
-.header-left {
-  display: flex; align-items: center; gap: 12px;
+
+.mode-switch { display: flex; gap: var(--space-xs); }
+
+/* 自选按钮：accent 描边，已在列表转 down 色（沿用原 .watchlist-btn 语义） */
+.wl-btn { color: var(--color-accent); border-color: var(--color-accent); background: transparent; }
+.wl-btn:hover { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-text-inverse); }
+.wl-btn.inList { border-color: var(--color-down); color: var(--color-down); }
+.wl-btn.inList:hover { background: var(--color-down); border-color: var(--color-down); color: var(--color-text-inverse); }
+
+/* 开关型按钮 active 态（模式切换/画线/指标通用） */
+.btn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-inverse);
 }
-.symbol-display {
-  font-size: var(--font-lg); font-weight: 700;
-  color: var(--color-brand);
-}
-.watchlist-btn {
-  padding: 2px 10px; border: 1px solid var(--color-accent); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-accent); cursor: pointer;
-  font-size: 11px; white-space: nowrap; transition: all var(--transition-fast);
-}
-.watchlist-btn:hover { background: var(--color-accent); color: #fff; }
-.watchlist-btn.inList { border-color: var(--color-down); color: var(--color-down); }
-.watchlist-btn.inList:hover { background: var(--color-down); color: #fff; }
-.tab-btns { display: flex; gap: 4px; }
-.tab-btn {
-  padding: 3px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; cursor: pointer;
-}
-.tab-btn.active { background: var(--color-border-strong); color: var(--color-text-primary); border-color: var(--color-accent); }
-.interval-btns { display: flex; gap: 2px; }
-.interval-btn {
-  padding: 2px 8px; border: 1px solid var(--color-border);
-  background: transparent; color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm); cursor: pointer;
-  font-size: var(--font-xs); font-family: 'JetBrains Mono', monospace;
-  transition: all var(--transition-fast);
-}
-.interval-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.interval-btn.active {
-  background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
-}
+
+/* 次级工具条 */
 .indicator-bar {
-  display: flex; gap: 16px; align-items: center;
-  padding: 4px 10px; border-bottom: 1px solid var(--color-border);
+  display: flex; gap: var(--space-lg); align-items: center; flex-wrap: wrap;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
 }
-.indicator-group { display: flex; align-items: center; gap: 4px; }
-.indicator-label { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-right: 4px; }
-.indicator-btn {
-  padding: 2px 8px; border: 1px solid var(--color-border);
-  background: transparent; color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm); cursor: pointer;
-  font-size: var(--font-xs); font-family: 'JetBrains Mono', monospace;
-  transition: all var(--transition-fast);
-}
-.indicator-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.indicator-btn.active {
-  background: var(--color-accent); color: var(--color-text-primary); border-color: var(--color-accent);
-}
-.depth-toggle { }
-.toolbar-select {
-  padding: 2px 8px;
+.indicator-group { display: flex; align-items: center; gap: var(--space-xs); }
+.indicator-label { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-right: var(--space-xs); }
+.indicator-bar .btn { font-family: 'JetBrains Mono', monospace; }
+
+.index-select {
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-tertiary);
@@ -166,43 +153,6 @@ const emit = defineEmits<{
   font-family: 'JetBrains Mono', monospace;
   outline: none;
 }
-.toolbar-select:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.toolbar-select option { background: var(--color-bg-elevated); color: var(--color-text-primary); }
-.drawing-btn {
-  padding: 3px 8px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated);
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  line-height: 1;
-}
-.drawing-btn:hover { border-color: var(--color-text-secondary); }
-.drawing-btn.active {
-  border-color: var(--color-accent);
-  background: rgba(88, 166, 255, 0.15);
-}
-.wf-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated);
-  color: var(--color-text-secondary);
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  line-height: 1;
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
-}
-.wf-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: rgba(88, 166, 255, 0.1);
-}
+.index-select:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.index-select option { background: var(--color-bg-elevated); color: var(--color-text-primary); }
 </style>
