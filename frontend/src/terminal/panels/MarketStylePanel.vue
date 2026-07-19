@@ -4,7 +4,7 @@ import VChart from 'vue-echarts'
 import 'echarts'
 import { GetStyleQuadrant, GetMarketSentiment, type StyleQuadrant, type MarketSentimentGauge } from '@/lib/wails'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
-import { PanelHeader } from '@/terminal/components/panel'
+import { PanelHeader, EmptyState } from '@/terminal/components/panel'
 
 const chartTheme = useChartTheme()
 
@@ -26,10 +26,24 @@ async function fetchData() {
 }
 
 const quadrantOption = computed(() => ({
-  tooltip: { formatter: (p: any) => `${p.data[2]}<br/>规模: ${p.data[0]}<br/>风格: ${p.data[1]}` },
+  tooltip: {
+    backgroundColor: chartTheme.tooltipBg,
+    textStyle: { color: chartTheme.tooltipText },
+    formatter: (p: any) => `${p.data[2]}<br/>规模: ${p.data[0]}<br/>风格: ${p.data[1]}`,
+  },
   grid: { left: 50, right: 30, top: 30, bottom: 40 },
-  xAxis: { name: '规模 (大→小)', min: -0.1, max: 1.1, axisLabel: { fontSize: 10 } },
-  yAxis: { name: '风格 (价值→成长)', min: -0.1, max: 1.1, axisLabel: { fontSize: 10 } },
+  xAxis: {
+    name: '规模 (大→小)', min: -0.1, max: 1.1,
+    axisLabel: { color: chartTheme.axisColor, fontSize: 10 },
+    axisLine: { lineStyle: { color: chartTheme.splitColor } },
+    splitLine: { lineStyle: { color: chartTheme.gridColor } },
+  },
+  yAxis: {
+    name: '风格 (价值→成长)', min: -0.1, max: 1.1,
+    axisLabel: { color: chartTheme.axisColor, fontSize: 10 },
+    axisLine: { lineStyle: { color: chartTheme.splitColor } },
+    splitLine: { lineStyle: { color: chartTheme.gridColor } },
+  },
   series: [{
     type: 'scatter', symbolSize: 16,
     data: quadrants.value.map(q => [q.size, q.style, q.index]),
@@ -46,7 +60,8 @@ const quadrantOption = computed(() => ({
     <div class="style-grid">
       <div class="quadrant-panel">
         <h5 class="section-title">规模 × 风格</h5>
-        <VChart :option="quadrantOption" autoresize class="chart" />
+        <VChart v-if="quadrants.length" :option="quadrantOption" autoresize class="chart" />
+        <EmptyState v-else title="暂无象限数据" />
       </div>
       <div class="sentiment-panel">
         <h5 class="section-title">情绪</h5>

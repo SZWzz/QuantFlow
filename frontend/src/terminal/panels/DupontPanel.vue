@@ -5,7 +5,7 @@ import 'echarts'
 import { GetDupontAnalysis, GetPeerRadar, type DupontBreakdown, type PeerRadar } from '@/lib/wails'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { useSymbolContext } from '@/stores/symbolContext'
-import { PanelHeader, EmptyState } from '@/terminal/components/panel'
+import { PanelHeader } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -39,12 +39,18 @@ const radarOption = computed(() => {
   if (peers.value.length === 0) return null
   const indic = peers.value[0] ? Object.keys(peers.value[0].metrics) : []
   return {
-    tooltip: {},
+    tooltip: {
+      backgroundColor: chartTheme.tooltipBg,
+      textStyle: { color: chartTheme.tooltipText },
+    },
     legend: { data: peers.value.map(p => p.name), bottom: 0, textStyle: { color: chartTheme.axisColor } },
     radar: {
       indicator: indic.map(k => ({ name: k, max: Math.max(...peers.value.map(p => p.metrics[k] || 0)) * 1.2 })),
       center: ['50%', '55%'],
       radius: '65%',
+      axisName: { color: chartTheme.axisColor },
+      axisLine: { lineStyle: { color: chartTheme.splitColor } },
+      splitLine: { lineStyle: { color: chartTheme.splitColor } },
     },
     series: [{
       type: 'radar',

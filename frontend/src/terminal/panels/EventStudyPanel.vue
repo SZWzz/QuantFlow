@@ -35,9 +35,20 @@ const chartOption = computed(() => {
   if (!result.value) return null
   const ar = result.value.daily_ar
   return {
-    tooltip: { trigger: 'axis' },
-    xAxis: { data: ar.map(d => `D${d.day}`), axisLabel: { fontSize: 9 } },
-    yAxis: { axisLabel: { formatter: (v: number) => v + '%' } },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: chartTheme.tooltipBg,
+      textStyle: { color: chartTheme.tooltipText },
+    },
+    xAxis: {
+      data: ar.map(d => `D${d.day}`),
+      axisLabel: { color: chartTheme.axisColor, fontSize: 9 },
+      axisLine: { lineStyle: { color: chartTheme.splitColor } },
+    },
+    yAxis: {
+      axisLabel: { color: chartTheme.axisColor, formatter: (v: number) => v + '%' },
+      splitLine: { lineStyle: { color: chartTheme.gridColor } },
+    },
     series: [
       { name: 'AR', type: 'bar', data: ar.map(d => d.ar), itemStyle: { color: chartTheme.palette[0] } },
       { name: 'CAR', type: 'line', data: ar.map(d => d.car), lineStyle: { color: chartTheme.palette[3] }, symbol: 'circle' },

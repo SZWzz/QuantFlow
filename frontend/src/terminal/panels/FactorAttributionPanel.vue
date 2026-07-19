@@ -28,10 +28,25 @@ const chartOption = computed(() => {
     { name: 'α', value: a.alpha, itemStyle: { color: chartTheme.palette[1] } },
   ]
   return {
-    tooltip: { trigger: 'axis', formatter: (p: any) => `${p[0].name}: ${p[0].value.toFixed(2)}%` },
-    xAxis: { type: 'category', data: data.map(d => d.name), axisLabel: { fontSize: 9 } },
-    yAxis: { type: 'value', axisLabel: { formatter: (v: number) => v + '%' } },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: chartTheme.tooltipBg,
+      textStyle: { color: chartTheme.tooltipText },
+      formatter: (p: any) => `${p[0].name}: ${p[0].value.toFixed(2)}%`,
+    },
+    xAxis: {
+      type: 'category',
+      data: data.map(d => d.name),
+      axisLabel: { color: chartTheme.axisColor, fontSize: 9 },
+      axisLine: { lineStyle: { color: chartTheme.splitColor } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: chartTheme.axisColor, formatter: (v: number) => v + '%' },
+      splitLine: { lineStyle: { color: chartTheme.gridColor } },
+    },
     series: [{
+      // TODO: 'waterfall' 非 ECharts 注册类型，渲染异常为迁移前既有问题，待后续修复
       type: 'waterfall', data: data.map((d, i) => {
         const isTotal = i === 0
         return { name: d.name, value: d.value, itemStyle: d.itemStyle }

@@ -499,6 +499,11 @@ body {
   opacity: 0.6;
   pointer-events: none;
 }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 .btn.loading .icon svg {
   animation: btn-spin 1s linear infinite;
 }
