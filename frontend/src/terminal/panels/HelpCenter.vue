@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { PanelHeader } from '@/terminal/components/panel'
 
 const sections = [
   {
@@ -34,56 +35,63 @@ function toggle(sectionId: string, idx: number) {
 </script>
 
 <template>
-  <div class="help-center">
-    <h3>📚 帮助中心</h3>
-    <div v-for="section in sections" :key="section.id" class="help-section">
-      <h4>{{ section.title }}</h4>
-      <div v-for="(item, idx) in section.items" :key="idx" class="faq-item">
-        <div class="faq-question" @click="toggle(section.id, idx)">
-          <span class="faq-q">Q: {{ item.q }}</span>
-          <span class="faq-toggle">{{ expanded[`${section.id}-${idx}`] ? '−' : '+' }}</span>
-        </div>
-        <div v-if="expanded[`${section.id}-${idx}`]" class="faq-answer">
-          {{ item.a }}
+  <div class="help-panel">
+    <PanelHeader title="帮助中心" />
+    <div class="help-content">
+      <div v-for="section in sections" :key="section.id" class="help-section">
+        <h4 class="section-title">{{ section.title }}</h4>
+        <div v-for="(item, idx) in section.items" :key="idx" class="faq-item">
+          <div class="faq-question" @click="toggle(section.id, idx)">
+            <span class="faq-q">Q: {{ item.q }}</span>
+            <span class="faq-toggle">{{ expanded[`${section.id}-${idx}`] ? '−' : '+' }}</span>
+          </div>
+          <div v-if="expanded[`${section.id}-${idx}`]" class="faq-answer">
+            {{ item.a }}
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="shortcuts-section">
-      <h4>⌨️ 快捷键</h4>
-      <div class="shortcut-grid">
-        <div class="shortcut-item"><kbd>Ctrl+K</kbd> 命令面板</div>
-        <div class="shortcut-item"><kbd>Ctrl+W</kbd> 切换 Workflow</div>
-        <div class="shortcut-item"><kbd>Ctrl+Shift+W</kbd> Watchlist</div>
-        <div class="shortcut-item"><kbd>Ctrl+Shift+H</kbd> 港股通</div>
-        <div class="shortcut-item"><kbd>Ctrl+Shift+F</kbd> 资金费率</div>
-        <div class="shortcut-item"><kbd>Ctrl+Shift+L</kbd> 涨跌停</div>
+      <div class="shortcuts-section">
+        <h4 class="section-title">⌨️ 快捷键</h4>
+        <div class="shortcut-grid">
+          <div class="shortcut-item"><kbd>Ctrl+K</kbd> 命令面板</div>
+          <div class="shortcut-item"><kbd>Ctrl+W</kbd> 切换 Workflow</div>
+          <div class="shortcut-item"><kbd>Ctrl+Shift+W</kbd> Watchlist</div>
+          <div class="shortcut-item"><kbd>Ctrl+Shift+H</kbd> 港股通</div>
+          <div class="shortcut-item"><kbd>Ctrl+Shift+F</kbd> 资金费率</div>
+          <div class="shortcut-item"><kbd>Ctrl+Shift+L</kbd> 涨跌停</div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.help-center { padding: 16px; overflow-y: auto; height: 100%; }
-.help-center h3 { font-size: 15px; margin-bottom: 16px; }
-.help-section { margin-bottom: 20px; }
-.help-section h4 { font-size: 13px; color: var(--color-accent); margin-bottom: 8px; }
-.faq-item { border-bottom: 1px solid var(--color-border); }
+.help-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.help-content { flex: 1; overflow-y: auto; padding: var(--space-md) var(--panel-padding); }
+.help-section { margin-bottom: var(--space-lg); }
+.help-section > .section-title,
+.shortcuts-section > .section-title { display: block; margin-bottom: var(--space-sm); }
+.faq-item { border-bottom: 1px solid var(--color-border-subtle); }
 .faq-question {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; cursor: pointer;
-  font-size: 13px; font-weight: 600;
+  padding: var(--space-sm) 0; cursor: pointer;
+  font-size: var(--font-sm); font-weight: 600; color: var(--color-text-primary);
 }
 .faq-question:hover { color: var(--color-accent); }
-.faq-toggle { font-size: 16px; color: var(--color-text-tertiary); }
+.faq-toggle { font-size: var(--font-lg); color: var(--color-text-tertiary); }
 .faq-answer {
-  padding: 0 0 12px 0; font-size: 12px; color: var(--color-text-secondary);
+  padding-bottom: var(--space-md); font-size: var(--font-xs); color: var(--color-text-secondary);
   line-height: 1.6;
 }
-.shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; }
-.shortcut-item { font-size: 11px; padding: 4px 8px; background: var(--color-bg-subtle); border-radius: var(--radius-sm); }
+.shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-sm); }
+.shortcut-item {
+  font-size: var(--font-xs); padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-subtle); border-radius: var(--radius-sm); color: var(--color-text-secondary);
+}
 kbd {
-  display: inline-block; padding: 1px 5px; font-size: 10px; font-family: 'JetBrains Mono', monospace;
-  background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: 3px; margin-right: 4px;
+  display: inline-block; padding: 0 var(--space-xs); font-size: var(--font-xs); font-family: var(--font-mono);
+  background: var(--color-bg-input); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); margin-right: var(--space-xs); color: var(--color-text-primary);
 }
 </style>

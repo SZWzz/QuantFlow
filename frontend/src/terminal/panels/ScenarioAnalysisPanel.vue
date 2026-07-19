@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { usePortfolioStore } from '@/stores/portfolio'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const portfolio = usePortfolioStore()
@@ -98,9 +98,7 @@ function formatMoney(v: number): string {
 
 <template>
   <div class="scenario-analysis-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.scenario_analysis') }}</h3>
-    </div>
+    <PanelHeader title="情景分析" />
 
     <div class="params-section">
       <div class="param-row">
@@ -111,17 +109,17 @@ function formatMoney(v: number): string {
         <label>{{ $t('misc.scenario') }}</label>
         <div class="scenario-tabs">
           <button v-for="(s, idx) in scenarios" :key="s.name"
-            :class="['sc-tab', { active: selectedScenario === idx }]"
+            :class="['btn btn-sm', { 'btn-primary': selectedScenario === idx }]"
             @click="selectedScenario = idx">
             {{ s.name }}
           </button>
         </div>
       </div>
       <div class="scenario-desc">{{ scenarios[selectedScenario].description }}</div>
-      <button class="run-btn" @click="runScenario" :disabled="loading">{{ $t('misc.run_scenario') }}</button>
+      <button class="btn btn-primary" @click="runScenario" :disabled="loading">{{ $t('misc.run_scenario') }}</button>
     </div>
 
-    <SkeletonPanel v-if="loading" type="card" :rows="2" />
+    <LoadingState v-if="loading" type="card" :rows="2" />
 
     <div v-else-if="scenarioResult" class="result-section">
       <div class="result-cards">
@@ -148,39 +146,24 @@ function formatMoney(v: number): string {
       </div>
     </div>
 
-    <div v-else class="empty-state">{{ $t('misc.set_params_tip') }}</div>
+    <EmptyState v-else title="设置参数并运行" description="选择情景和本金后点击「运行」查看结果" />
   </div>
 </template>
 
 <style scoped>
-.scenario-analysis-panel {
-  padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
-}
-
-.params-section { margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
-.param-row { display: flex; align-items: center; gap: 8px; }
-.param-row label { font-size: 12px; color: var(--color-text-secondary); min-width: 60px; }
-.capital-input { padding: 4px 8px; font-size: 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 120px; }
-.scenario-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
-.sc-tab {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px;
-}
-.sc-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
-.scenario-desc { font-size: 11px; color: var(--color-text-tertiary); }
-.run-btn {
-  align-self: flex-start; padding: 6px 20px; border: none; border-radius: var(--radius-sm);
-  background: var(--color-accent); color: var(--color-text-primary); cursor: pointer; font-size: 12px; font-weight: 500;
-}
-.run-btn:hover { background: var(--color-accent); }
-.run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.result-section { flex: 1; }
-.result-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.res-card { padding: 12px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center; }
-.res-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
-.res-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.scenario-analysis-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.params-section { padding: var(--space-md) var(--panel-padding); display: flex; flex-direction: column; gap: var(--space-md); border-bottom: 1px solid var(--color-border-subtle); }
+.param-row { display: flex; align-items: center; gap: var(--space-sm); }
+.param-row label { font-size: var(--font-xs); color: var(--color-text-secondary); min-width: 60px; }
+.capital-input { padding: var(--space-xs) var(--space-sm); font-size: var(--font-xs); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 120px; }
+.scenario-tabs { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.scenario-desc { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.result-section { flex: 1; padding: var(--space-md) var(--panel-padding); overflow-y: auto; }
+.result-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
+.res-card { padding: var(--space-md); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center; background: var(--color-bg-subtle); }
+.res-label { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-bottom: var(--space-xs); }
+.res-value { font-size: var(--font-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
 .up { color: var(--color-up); }
 .down { color: var(--color-down); }
 </style>
+

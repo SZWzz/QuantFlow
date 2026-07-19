@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { API_KEY_REGISTRY, type ApiKeyEntry } from '@/lib/apiKeyRegistry'
 import { GetCredential, SaveCredential, DeleteCredential, ListCredentialNames } from '@/lib/wails'
 import { useToast } from '@/lib/composables/useToast'
+import { PanelHeader } from '@/terminal/components/panel'
 
 const toast = useToast()
 const entries = ref(API_KEY_REGISTRY)
@@ -87,38 +88,41 @@ const marketLabels: Record<string, string> = {
 </script>
 
 <template>
-  <div class="api-key-manager">
-    <div v-for="group in marketGroups" :key="group.market" class="market-group">
-      <h4>{{ marketLabels[group.market] || group.market }}</h4>
-      <div v-for="entry in group.entries" :key="entry.id" class="key-entry">
-        <div class="entry-header">
-          <span class="entry-name">{{ entry.name }}</span>
-          <span class="entry-type">{{ entry.type === 'broker' ? '券商' : entry.type === 'ai' ? 'AI' : '数据源' }}</span>
-          <span v-if="savedKeys.includes(entry.id)" class="status-saved">已配置</span>
-        </div>
-        <div class="entry-desc">{{ entry.description }}</div>
-        <div v-if="entry.keys.length > 0" class="key-inputs">
-          <input
-            v-for="keyName in entry.keys"
-            :key="keyName"
-            v-model="keyValues[entry.id]![keyName]"
-            :placeholder="keyName"
-            type="password"
-            class="key-input"
-          />
-        </div>
-        <div v-else class="no-key">无需 API Key</div>
-        <div class="entry-actions">
-          <button v-if="entry.keys.length > 0" class="btn-save" @click="handleSave(entry)">保存</button>
-          <button v-if="savedKeys.includes(entry.id)" class="btn-delete" @click="handleDelete(entry)">删除</button>
-          <button
-            v-if="entry.verifyEndpoint && savedKeys.includes(entry.id)"
-            class="btn-verify"
-            :disabled="verifyStatus[entry.id] === 'verifying'"
-            @click="handleVerify(entry)"
-          >
-            {{ verifyStatus[entry.id] === 'verifying' ? '验证中...' : verifyStatus[entry.id] === 'ok' ? '✅ 已验证' : verifyStatus[entry.id] === 'fail' ? '❌ 重试' : '验证' }}
-          </button>
+  <div class="api-key-panel">
+    <PanelHeader title="API 密钥管理" />
+    <div class="api-key-list">
+      <div v-for="group in marketGroups" :key="group.market" class="market-group">
+        <h4 class="section-title group-title">{{ marketLabels[group.market] || group.market }}</h4>
+        <div v-for="entry in group.entries" :key="entry.id" class="key-entry">
+          <div class="entry-header">
+            <span class="entry-name">{{ entry.name }}</span>
+            <span class="entry-type">{{ entry.type === 'broker' ? '券商' : entry.type === 'ai' ? 'AI' : '数据源' }}</span>
+            <span v-if="savedKeys.includes(entry.id)" class="status-saved">已配置</span>
+          </div>
+          <div class="entry-desc">{{ entry.description }}</div>
+          <div v-if="entry.keys.length > 0" class="key-inputs">
+            <input
+              v-for="keyName in entry.keys"
+              :key="keyName"
+              v-model="keyValues[entry.id]![keyName]"
+              :placeholder="keyName"
+              type="password"
+              class="key-input"
+            />
+          </div>
+          <div v-else class="no-key">无需 API Key</div>
+          <div class="entry-actions">
+            <button v-if="entry.keys.length > 0" class="btn btn-sm btn-primary" @click="handleSave(entry)">保存</button>
+            <button v-if="savedKeys.includes(entry.id)" class="btn btn-sm btn-danger" @click="handleDelete(entry)">删除</button>
+            <button
+              v-if="entry.verifyEndpoint && savedKeys.includes(entry.id)"
+              class="btn btn-sm btn-verify"
+              :disabled="verifyStatus[entry.id] === 'verifying'"
+              @click="handleVerify(entry)"
+            >
+              {{ verifyStatus[entry.id] === 'verifying' ? '验证中...' : verifyStatus[entry.id] === 'ok' ? '✅ 已验证' : verifyStatus[entry.id] === 'fail' ? '❌ 重试' : '验证' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -126,34 +130,39 @@ const marketLabels: Record<string, string> = {
 </template>
 
 <style scoped>
-.api-key-manager { padding: 16px; overflow-y: auto; height: 100%; }
-.market-group { margin-bottom: 20px; }
-.market-group h4 { font-size: 13px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--color-border); }
+.api-key-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.api-key-list { flex: 1; overflow-y: auto; padding: var(--space-md) var(--panel-padding); }
+.market-group { margin-bottom: var(--space-lg); }
+.group-title {
+  display: block; margin-bottom: var(--space-sm); padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
 .key-entry {
-  padding: 10px 12px; margin-bottom: 8px;
+  padding: var(--space-md); margin-bottom: var(--space-sm);
   border: 1px solid var(--color-border); border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
 }
-.entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.entry-name { font-weight: 600; font-size: 13px; }
-.entry-type { font-size: 10px; padding: 1px 6px; background: var(--color-bg-panel); border-radius: 10px; color: var(--color-text-tertiary); }
-.status-saved { font-size: 10px; padding: 1px 6px; background: var(--color-success-soft); color: var(--color-success); border-radius: 10px; font-weight: 600; }
-.entry-desc { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 8px; }
-.key-inputs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.entry-header { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+.entry-name { font-weight: 600; font-size: var(--font-sm); color: var(--color-text-primary); }
+.entry-type {
+  font-size: var(--font-xs); padding: 0 var(--space-sm);
+  background: var(--color-bg-input); border-radius: var(--radius-lg); color: var(--color-text-tertiary);
+}
+.status-saved {
+  font-size: var(--font-xs); padding: 0 var(--space-sm);
+  background: var(--color-success-soft); color: var(--color-success);
+  border-radius: var(--radius-lg); font-weight: 600;
+}
+.entry-desc { font-size: var(--font-xs); color: var(--color-text-secondary); margin-bottom: var(--space-sm); }
+.key-inputs { display: flex; gap: var(--space-sm); margin-bottom: var(--space-sm); flex-wrap: wrap; }
 .key-input {
   flex: 1; min-width: 140px;
-  padding: 4px 8px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  padding: var(--space-xs) var(--space-sm); font-size: var(--font-xs); font-family: var(--font-mono);
   border: 1px solid var(--color-border); border-radius: var(--radius-sm);
-  background: var(--color-bg-panel); color: var(--color-text-primary);
+  background: var(--color-bg-input); color: var(--color-text-primary);
 }
-.no-key { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; }
-.entry-actions { display: flex; gap: 6px; }
-.btn-save, .btn-delete, .btn-verify {
-  padding: 3px 12px; font-size: 11px; font-weight: 600;
-  border: none; border-radius: var(--radius-sm); cursor: pointer;
-}
-.btn-save { background: var(--color-accent); color: #fff; }
-.btn-delete { background: var(--color-danger-soft); color: var(--color-danger); }
-.btn-verify { background: var(--color-success-soft); color: var(--color-success); }
-.btn-verify:disabled { opacity: 0.5; cursor: not-allowed; }
+.no-key { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-bottom: var(--space-xs); }
+.entry-actions { display: flex; gap: var(--space-sm); }
+.btn-verify { color: var(--color-success); border-color: var(--color-success); }
+.btn-verify:hover { color: var(--color-success); border-color: var(--color-success); background: var(--color-success-soft); }
 </style>

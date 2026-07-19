@@ -23,7 +23,7 @@ describe('TickerTapePanel', () => {
     const wrapper = mount(TickerTapePanel, {
       props: { panelId: 'test-ticker', params: {} },
     })
-    expect(wrapper.find('.tape-title').text()).toContain('Ticker Tape')
+    expect(wrapper.find('.panel-title').text()).toContain('快讯')
   })
 
   it('has scroll animation class', async () => {

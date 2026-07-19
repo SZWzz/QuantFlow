@@ -3,6 +3,7 @@ import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
+import { PanelHeader } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -168,15 +169,17 @@ watch(() => messages.value.length, scrollToBottom)
 <template>
   <div class="chat-panel">
     <!-- Header: Profile + Model selectors -->
-    <div class="chat-header">
-      <select v-model="selectedProfile" class="header-select">
-        <option v-for="p in profiles" :key="p.name" :value="p.name">{{ p.display }}</option>
-      </select>
-      <select v-model="selectedModel" class="header-select model-select">
-        <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
-      </select>
-      <button class="new-chat-btn" @click="newChat" title="新对话">+</button>
-    </div>
+    <PanelHeader title="AI 对话">
+      <template #controls>
+        <select v-model="selectedProfile" class="header-select">
+          <option v-for="p in profiles" :key="p.name" :value="p.name">{{ p.display }}</option>
+        </select>
+        <select v-model="selectedModel" class="header-select">
+          <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
+        </select>
+        <button class="btn btn-sm" @click="newChat" title="新对话">+</button>
+      </template>
+    </PanelHeader>
 
     <!-- Messages -->
     <div ref="messagesContainer" class="messages">
@@ -229,58 +232,55 @@ watch(() => messages.value.length, scrollToBottom)
         :disabled="isLoading"
         @keyup.enter="send"
       />
-      <button class="send-btn" @click="send" :disabled="isLoading">发送</button>
+      <button class="btn btn-sm btn-primary send-btn" @click="send" :disabled="isLoading">发送</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.chat-panel { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-input); }
-.chat-header { display: flex; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-input); }
-.header-select { flex: 1; padding: 4px 6px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: 11px; outline: none; max-width: 50%; }
+.chat-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.header-select { min-width: 0; max-width: 45%; padding: var(--space-xs) var(--space-sm); background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: var(--font-xs); outline: none; }
 .header-select:focus { border-color: var(--color-accent); }
-.new-chat-btn { padding: 4px 10px; background: var(--color-bg-subtle); border: 1px solid var(--color-border); color: var(--color-text-primary); border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
-.messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-.msg { max-width: 88%; padding: 10px 12px; border-radius: var(--radius-lg); font-size: 12px; line-height: 1.6; }
+/* 聊天气泡/消息流为自绘布局（PanelTable 表达不了），保留但全部 token 化 */
+.messages { flex: 1; overflow-y: auto; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-md); }
+.msg { max-width: 88%; padding: var(--space-md); border-radius: var(--radius-lg); font-size: var(--font-xs); line-height: 1.6; }
 .msg.user { align-self: flex-end; background: var(--color-accent-soft); border: 1px solid var(--color-accent); }
 .msg.assistant { align-self: flex-start; background: var(--color-bg-input); border: 1px solid var(--color-border); }
-.msg.system { align-self: center; background: var(--color-bg-subtle); border: 1px solid var(--color-border); max-width: 95%; font-size: 11px; color: var(--color-text-tertiary); }
-.msg-role { font-size: 10px; color: var(--color-accent); font-weight: 600; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-.msg-time { font-weight: 400; color: var(--color-text-tertiary); font-size: 9px; }
-.msg-content :deep(h1), .msg-content :deep(h2), .msg-content :deep(h3) { color: var(--color-text-primary); margin: 10px 0 6px; font-size: 15px; }
-.msg-content :deep(p) { margin: 4px 0; color: var(--color-text-primary); }
-.msg-content :deep(ul), .msg-content :deep(ol) { margin: 4px 0; padding-left: 18px; }
-.msg-content :deep(li) { margin: 2px 0; color: var(--color-text-primary); }
-.msg-content :deep(code) { background: var(--color-bg-subtle); padding: 2px 5px; border-radius: var(--radius-sm); font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 11px; color: var(--color-accent); }
-.msg-content :deep(pre) { background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px; overflow-x: auto; margin: 6px 0; }
+.msg.system { align-self: center; background: var(--color-bg-subtle); border: 1px solid var(--color-border); max-width: 95%; font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.msg-role { font-size: var(--font-xs); color: var(--color-accent); font-weight: 600; margin-bottom: var(--space-xs); display: flex; justify-content: space-between; align-items: center; }
+.msg-time { font-weight: 400; color: var(--color-text-tertiary); font-size: var(--font-xs); }
+.msg-content :deep(h1), .msg-content :deep(h2), .msg-content :deep(h3) { color: var(--color-text-primary); margin: var(--space-md) 0 var(--space-sm); font-size: var(--font-lg); }
+.msg-content :deep(p) { margin: var(--space-xs) 0; color: var(--color-text-primary); }
+.msg-content :deep(ul), .msg-content :deep(ol) { margin: var(--space-xs) 0; padding-left: var(--space-lg); }
+.msg-content :deep(li) { margin: var(--space-xs) 0; color: var(--color-text-primary); }
+.msg-content :deep(code) { background: var(--color-bg-subtle); padding: var(--space-xs); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: var(--font-xs); color: var(--color-accent); }
+.msg-content :deep(pre) { background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); overflow-x: auto; margin: var(--space-sm) 0; }
 .msg-content :deep(pre code) { background: none; padding: 0; color: var(--color-text-primary); }
-.msg-content :deep(table) { border-collapse: collapse; margin: 6px 0; width: 100%; font-size: 11px; }
-.msg-content :deep(th) { background: var(--color-bg-subtle); padding: 4px 8px; text-align: left; border: 1px solid var(--color-border); color: var(--color-text-tertiary); }
-.msg-content :deep(td) { padding: 3px 8px; border: 1px solid var(--color-border); color: var(--color-text-primary); }
-.msg-content :deep(blockquote) { border-left: 3px solid var(--color-accent); padding-left: 10px; margin: 6px 0; color: var(--color-text-tertiary); }
+.msg-content :deep(table) { border-collapse: collapse; margin: var(--space-sm) 0; width: 100%; font-size: var(--font-xs); }
+.msg-content :deep(th) { background: var(--color-bg-subtle); padding: var(--space-xs) var(--space-sm); text-align: left; border: 1px solid var(--color-border); color: var(--color-text-tertiary); }
+.msg-content :deep(td) { padding: var(--space-xs) var(--space-sm); border: 1px solid var(--color-border); color: var(--color-text-primary); }
+.msg-content :deep(blockquote) { border-left: 3px solid var(--color-accent); padding-left: var(--space-md); margin: var(--space-sm) 0; color: var(--color-text-tertiary); }
 .msg-content :deep(strong) { color: var(--color-text-primary); }
-.tool-calls { margin-top: 8px; }
-.tool-call-card { background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 4px; overflow: hidden; }
-.tool-call-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; font-size: 11px; }
+.tool-calls { margin-top: var(--space-sm); }
+.tool-call-card { background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: var(--space-xs); overflow: hidden; }
+.tool-call-header { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) var(--space-sm); cursor: pointer; font-size: var(--font-xs); }
 .tool-call-header:hover { background: var(--color-bg-subtle); }
-.tool-call-icon { font-size: 8px; color: var(--color-text-tertiary); }
+.tool-call-icon { font-size: var(--font-xs); color: var(--color-text-tertiary); }
 .tool-call-name { color: var(--color-accent); font-weight: 500; }
-.tool-call-body { padding: 6px 8px; border-top: 1px solid var(--color-border); }
-.tool-section { margin-bottom: 6px; }
-.tool-label { font-size: 9px; color: var(--color-text-tertiary); text-transform: uppercase; display: block; margin-bottom: 2px; }
-.tool-pre { font-size: 10px; color: var(--color-text-tertiary); white-space: pre-wrap; word-break: break-all; margin: 0; font-family: 'SF Mono', monospace; }
-.token-info { font-size: 9px; color: var(--color-text-tertiary); margin-top: 4px; text-align: right; }
-.typing-indicator { display: flex; gap: 3px; }
+.tool-call-body { padding: var(--space-xs) var(--space-sm); border-top: 1px solid var(--color-border); }
+.tool-section { margin-bottom: var(--space-sm); }
+.tool-label { font-size: var(--font-xs); color: var(--color-text-tertiary); text-transform: uppercase; display: block; margin-bottom: var(--space-xs); }
+.tool-pre { font-size: var(--font-xs); color: var(--color-text-tertiary); white-space: pre-wrap; word-break: break-all; margin: 0; font-family: var(--font-mono); }
+.token-info { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-top: var(--space-xs); text-align: right; }
+.typing-indicator { display: flex; gap: var(--space-xs); }
 .typing-indicator span { width: 6px; height: 6px; background: var(--color-text-tertiary); border-radius: 50%; animation: typing 1.4s infinite; }
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }
-.input-area { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--color-border); }
-.chat-input { flex: 1; padding: 8px 10px; background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); font-size: 12px; outline: none; }
+.input-area { display: flex; gap: var(--space-sm); padding: var(--space-sm) var(--panel-padding); border-top: 1px solid var(--color-border-subtle); flex-shrink: 0; }
+.chat-input { flex: 1; padding: var(--space-sm) var(--space-md); background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); font-size: var(--font-xs); outline: none; }
 .chat-input:focus { border-color: var(--color-accent); }
 .chat-input:disabled { opacity: 0.5; }
 .chat-input::placeholder { color: var(--color-text-tertiary); }
-.send-btn { padding: 8px 16px; background: var(--color-accent-soft); border: 1px solid var(--color-accent); color: var(--color-accent); border-radius: var(--radius-md); cursor: pointer; font-size: 12px; font-weight: 600; }
-.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.send-btn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-text-inverse); }
+.send-btn { flex-shrink: 0; }
 </style>
