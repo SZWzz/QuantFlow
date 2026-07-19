@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSchedule } from '@/lib/composables/useSchedule'
+import { PanelHeader, EmptyState, LoadingState } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -42,9 +43,17 @@ onMounted(fetchScheduleTasks)
 
 <template>
   <div class="schedule-panel">
-    <div class="toolbar"><span class="task-count">{{ tasks.length }} {{ t('schedule.tasks') }}</span><button class="new-btn" @click="openNew">{{ t('schedule.new_task') }}</button></div>
-    <div v-if="loading" class="empty-state">{{ t('common.loading') }}</div>
-    <div v-else-if="!tasks.length" class="empty-state">{{ t('schedule.no_tasks') }}</div>
+    <PanelHeader
+      :title="t('schedule.title')"
+      :subtitle="`${tasks.length} ${t('schedule.tasks')}`"
+    >
+      <template #controls>
+        <button class="btn btn-sm btn-primary" @click="openNew">{{ t('schedule.new_task') }}</button>
+      </template>
+    </PanelHeader>
+
+    <LoadingState v-if="loading" type="card" :rows="3" />
+    <EmptyState v-else-if="!tasks.length" :title="t('schedule.no_tasks')" />
     <div v-else class="task-list">
       <div v-for="task in tasks" :key="task.id" class="task-row">
         <div class="task-info"><span class="task-name">{{ task.name }}</span><span class="task-cron">{{ task.cron_expr }}</span></div>
@@ -54,6 +63,7 @@ onMounted(fetchScheduleTasks)
         </div>
       </div>
     </div>
+
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal"><h3 class="modal-title">{{ t('schedule.new_task') }}</h3>
         <div class="form-group"><label>{{ t('schedule.name') }}</label><input v-model="editTask.name" class="form-input" placeholder="Task name" /></div>
@@ -68,32 +78,36 @@ onMounted(fetchScheduleTasks)
 </template>
 
 <style scoped>
-.schedule-panel { padding: 12px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; font-variant-numeric: tabular-nums; }
-.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.task-count { font-size: 12px; color: var(--color-text-tertiary); }
-.new-btn { padding: 6px 14px; background: var(--color-accent-soft); border: none; border-radius: var(--radius-sm); color: var(--color-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
+.schedule-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; font-variant-numeric: tabular-nums; }
+.task-list { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-md) var(--panel-padding); }
 
-.task-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--color-bg-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; }
-.task-info { display: flex; flex-direction: column; gap: 3px; }
-.task-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
-.task-cron { font-size: 12px; font-family: monospace; color: var(--color-accent); }
-.task-actions { display: flex; gap: 6px; align-items: center; }
-.toggle-btn { padding: 4px 10px; border: none; border-radius: var(--radius-sm); font-size: 11px; font-weight: 600; cursor: pointer; }
-.toggle-btn.on { background: var(--color-down); color: var(--color-down); }
-.toggle-btn.off { background: var(--color-bg-panel); color: var(--color-text-tertiary); }
-.delete-btn { background: none; border: none; cursor: pointer; font-size: 14px; }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: var(--color-bg-panel); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-lg); padding: 20px; width: 420px; }
-.modal-title { font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px; }
-.form-group { margin-bottom: 10px; }
-.form-group label { display: block; font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 4px; }
-.form-input { width: 100%; padding: 6px 8px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: 13px; outline: none; box-sizing: border-box; }
+.task-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--space-sm) var(--space-md); background: var(--color-bg-subtle);
+  border-radius: var(--radius-sm); margin-bottom: var(--space-sm);
+}
+.task-info { display: flex; flex-direction: column; gap: var(--space-xs); }
+.task-name { font-size: var(--font-sm); font-weight: 600; color: var(--color-text-primary); }
+.task-cron { font-size: var(--font-xs); font-family: var(--font-mono); color: var(--color-accent); }
+.task-actions { display: flex; gap: var(--space-sm); align-items: center; }
+.toggle-btn { padding: var(--space-xs) var(--space-sm); border: none; border-radius: var(--radius-sm); font-size: var(--font-xs); font-weight: 600; cursor: pointer; }
+.toggle-btn.on { background: var(--color-down); color: var(--color-text-inverse); }
+.toggle-btn.off { background: var(--color-bg-elevated); color: var(--color-text-tertiary); }
+.delete-btn { background: none; border: none; cursor: pointer; font-size: var(--font-base); }
+
+/* 浮层弹窗（floating layer） */
+.modal-overlay { position: fixed; inset: 0; background: var(--color-overlay); display: flex; align-items: center; justify-content: center; z-index: var(--z-overlay); }
+.modal { background: var(--color-bg-panel); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-lg); width: 420px; }
+.modal-title { font-size: var(--font-lg); font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-md); }
+.form-group { margin-bottom: var(--space-sm); }
+.form-group label { display: block; font-size: var(--font-xs); color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: var(--space-xs); }
+.form-input { width: 100%; padding: var(--space-xs) var(--space-sm); background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-primary); font-size: var(--font-sm); outline: none; box-sizing: border-box; }
 .form-input:focus { border-color: var(--color-accent); }
-.form-input.mono { font-family: monospace; }
-.presets { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
-.preset-btn { padding: 3px 8px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-sm); color: var(--color-text-tertiary); font-size: 10px; cursor: pointer; }
+.form-input.mono { font-family: var(--font-mono); }
+.presets { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-sm); }
+.preset-btn { padding: var(--space-xs) var(--space-sm); background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-tertiary); font-size: var(--font-xs); cursor: pointer; }
 .preset-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-.cancel-btn { padding: 6px 14px; background: var(--color-bg-input); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-sm); color: var(--color-text-tertiary); font-size: 12px; cursor: pointer; }
-.save-btn { padding: 6px 14px; background: var(--color-accent-soft); border: none; border-radius: var(--radius-sm); color: var(--color-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
+.modal-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+.cancel-btn { padding: var(--space-xs) var(--space-md); background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-tertiary); font-size: var(--font-xs); cursor: pointer; }
+.save-btn { padding: var(--space-xs) var(--space-md); background: var(--color-accent-soft); border: none; border-radius: var(--radius-sm); color: var(--color-accent); font-size: var(--font-xs); font-weight: 600; cursor: pointer; }
 </style>
