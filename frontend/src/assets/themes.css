@@ -462,6 +462,13 @@ body {
   border-color: var(--color-border);
 }
 
+/* ── 小按钮修饰符（与 .btn 组合使用） ─────────────────────────── */
+.btn-sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-xs);
+  border-radius: var(--radius-sm);
+}
+
 /* ── Workflow add-to button ────────────────────────────────────── */
 .wf-btn {
   display: inline-flex;

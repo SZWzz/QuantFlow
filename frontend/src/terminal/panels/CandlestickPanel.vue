@@ -43,7 +43,7 @@ const crosshairCanvasRef = ref<HTMLCanvasElement | null>(null)
 
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
-const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId, symbol)
+const { control: addToWfControl } = useAddToWorkflow(props.panelId, symbol)
 
 const WS_KEY = 'quantflow-watchlist'
 function getWatchlist(): string[] {
@@ -742,7 +742,6 @@ onUnmounted(() => {
       :showDepth="showDepth"
       @toggleWatchlist="toggleWatchlist"
       @toggleDrawingMode="toggleDrawingMode"
-      @addToWorkflow="addToWorkflow"
       @update:activeTab="activeTab = $event"
       @update:interval="interval = $event"
       @update:topOverlay="topOverlay = $event"

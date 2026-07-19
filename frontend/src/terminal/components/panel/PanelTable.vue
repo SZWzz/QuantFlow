@@ -15,6 +15,8 @@ const props = withDefaults(defineProps<{
   rowClass?: (row: any) => string
   /** 隐藏表头行（分组表格中仅首组显示表头） */
   hideHeader?: boolean
+  /** 表头粘性定位（长表滚动时保持可见） */
+  stickyHeader?: boolean
   /** 受控排序状态：当前排序列与方向（null 表示未排序） */
   sortKey?: string
   sortDir?: 'asc' | 'desc' | null
@@ -23,6 +25,7 @@ const props = withDefaults(defineProps<{
   loading: false,
   clickable: false,
   hideHeader: false,
+  stickyHeader: false,
   sortKey: '',
   sortDir: null,
 })
@@ -72,6 +75,14 @@ function colorize(v: number): string {
   return v >= 0 ? 'var(--color-up)' : 'var(--color-down)'
 }
 
+/** 仅有限数值才上色；占位（undefined/null/字符串 '--' 等）不着色 */
+function colorizeColor(row: any, col: Column): string | undefined {
+  if (!col.colorize) return undefined
+  const v = row[col.key]
+  if (typeof v !== 'number' || !Number.isFinite(v)) return undefined
+  return colorize(v)
+}
+
 const NUMERIC_FORMATS = new Set(['price', 'percent', 'volume', 'number'])
 function isMono(col: Column): boolean {
   return col.mono ?? (col.format ? NUMERIC_FORMATS.has(col.format) : false)
@@ -93,7 +104,7 @@ const hasAction = computed(() => !!slots.action)
 
 <template>
   <div class="panel-table-wrapper">
-    <div v-if="!hideHeader" class="table-header-row">
+    <div v-if="!hideHeader" class="table-header-row" :class="{ sticky: stickyHeader }">
       <span
         v-for="col in columns"
         :key="col.key"
@@ -123,7 +134,7 @@ const hasAction = computed(() => !!slots.action)
           v-for="col in columns"
           :key="col.key"
           :class="['td', col.align || 'left', { colorize: col.colorize, mono: isMono(col) }]"
-          :style="[{ color: col.colorize ? colorize(row[col.key]) : undefined }, colStyle(col)]"
+          :style="[{ color: colorizeColor(row, col) }, colStyle(col)]"
         >
           {{ formatCell(row, col) }}
         </span>
@@ -153,6 +164,13 @@ const hasAction = computed(() => !!slots.action)
   font-weight: var(--table-header-weight);
   flex-shrink: 0;
   letter-spacing: 0.01em;
+}
+
+.table-header-row.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-bg-panel);
 }
 
 .th,

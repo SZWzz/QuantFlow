@@ -20,7 +20,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'toggleWatchlist': []
   'toggleDrawingMode': []
-  'addToWorkflow': []
   'update:activeTab': [value: 'kline' | 'minute']
   'update:interval': [value: string]
   'update:topOverlay': [value: 'none' | 'ma' | 'bb' | 'sar' | 'ema']

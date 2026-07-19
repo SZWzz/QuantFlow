@@ -131,13 +131,15 @@ export const useDataStore = defineStore('data', () => {
     const cachedSectors = getCached<SectorRanking[]>(sectorsCacheKey)
 
     marketLoading.value = true
+    error.value = null
     try {
       // Run GetMarketOverview and GetIndustryRanks in parallel
       const [overviewResult, industryResult] = await Promise.all([
         (async () => {
           try {
             return await app.GetMarketOverview(market)
-          } catch {
+          } catch (e) {
+            error.value = e instanceof Error ? e.message : String(e)
             return null
           }
         })(),

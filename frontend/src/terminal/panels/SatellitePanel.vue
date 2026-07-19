@@ -369,8 +369,8 @@ function wildfireClass(count: number): string {
   border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
 }
-.summary-badge.up { color: var(--color-down); }
-.summary-badge.down { color: var(--color-up); }
+.summary-badge.up { color: var(--color-up); }
+.summary-badge.down { color: var(--color-down); }
 .summary-badge.stable { color: var(--color-text-secondary); }
 
 .btn-sm {

@@ -105,4 +105,21 @@ describe('PanelTable', () => {
     const withoutHeader = mount(PanelTable, { props: { columns: cols, data, hideHeader: true } })
     expect(withoutHeader.find('.table-header-row').exists()).toBe(false)
   })
+
+  it('applies sticky class to header when stickyHeader', () => {
+    const w = mount(PanelTable, { props: { columns: cols, data, stickyHeader: true } })
+    expect(w.find('.table-header-row').classes()).toContain('sticky')
+  })
+
+  it('colorize does not paint non-numeric placeholder', () => {
+    const w = mount(PanelTable, { props: { columns: cols, data: [{ name: 'X', price: 1, chg: undefined }] } })
+    const chgCell = w.findAll('.td.colorize')[0]
+    expect(chgCell.attributes('style') ?? '').not.toContain('var(--color-down)')
+  })
+
+  it('mono:false overrides numeric format auto-mono', () => {
+    const c2: Column[] = [{ key: 'v', label: 'V', format: 'price', mono: false }]
+    const w = mount(PanelTable, { props: { columns: c2, data: [{ v: 1.5 }] } })
+    expect(w.find('.td').classes()).not.toContain('mono')
+  })
 })

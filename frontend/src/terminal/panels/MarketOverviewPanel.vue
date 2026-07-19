@@ -258,9 +258,15 @@ function onIntervalChange(iv: string) {
   loadKlineChart()
 }
 
-function refresh() {
+async function refresh() {
   loadError.value = ''
-  dataStore.fetchMarketOverview(activeMarket.value)
+  try {
+    await dataStore.fetchMarketOverview(activeMarket.value)
+    if (dataStore.error) loadError.value = dataStore.error
+    else if (!dataStore.marketOverview) loadError.value = '加载失败'
+  } catch (e: any) {
+    loadError.value = e?.message || '加载失败'
+  }
   loadChart()
 }
 
