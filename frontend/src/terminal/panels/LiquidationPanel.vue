@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const { t } = useI18n()
 
 interface Liquidation {
   symbol: string
@@ -17,7 +19,6 @@ interface Liquidation {
 }
 
 const symbol = ref(props.params?.symbol || '')
-const range = ref<'24h' | '7d'>('24h')
 const liquidations = ref<Liquidation[]>([])
 const loading = ref(false)
 const loadError = ref('')
@@ -76,18 +77,23 @@ function formatTime(ts: number): string {
   return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-function isLongLiq(orderSide: string): boolean {
-  return orderSide === 'SELL'
+/** SELL = 多单被强平（多→空），BUY = 空单被强平（空→多） */
+function directionLabel(side: string): string {
+  return side === 'SELL' ? '多→空' : '空→多'
 }
 
-function directionLabel(l: Liquidation): string {
-  if (l.order_side === 'SELL') return '多→空'
-  return '空→多'
+function directionClass(l: Liquidation): string {
+  return l.order_side === 'SELL' ? 'dir-up' : 'dir-down'
 }
 
-function directionColor(l: Liquidation): string {
-  return isLongLiq(l.order_side) ? '#dc2626' : '#16a34a'
-}
+const cols = computed<Column[]>(() => [
+  { key: 'time', label: t('common.time'), formatter: formatTime, cellClass: () => 'muted-cell' },
+  { key: 'symbol', label: t('quote.symbol') },
+  { key: 'order_side', label: t('misc.direction'), align: 'center', formatter: directionLabel, cellClass: directionClass },
+  { key: 'price', label: t('common.price'), align: 'right', formatter: (v: number) => '$' + v.toFixed(2) },
+  { key: 'qty', label: t('common.size'), align: 'right', formatter: (v: number) => v.toFixed(4) },
+  { key: 'amount', label: t('common.amount'), align: 'right', formatter: formatAmount },
+])
 
 onMounted(() => {
   fetchData()
@@ -101,19 +107,23 @@ onUnmounted(() => {
 
 <template>
   <div class="liquidation-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.liquidation') }}</h3>
-      <input v-model="symbol" class="sym-input" :placeholder="$t('misc.symbol_filter')" @change="fetchData" />
-      <button class="auto-btn" :class="{ active: autoRefresh }" @click="autoRefresh = !autoRefresh">
-        {{ autoRefresh ? '自动(30s)' : '手动' }}
-      </button>
-      <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.liquidation')"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchData, loading }]"
+    >
+      <template #controls>
+        <input v-model="symbol" class="sym-input" :placeholder="$t('misc.symbol_filter')" @change="fetchData" />
+        <button class="btn btn-sm btn-ghost auto-toggle" :class="{ active: autoRefresh }" @click="autoRefresh = !autoRefresh">
+          {{ autoRefresh ? '自动(30s)' : '手动' }}
+        </button>
+      </template>
+    </PanelHeader>
 
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <SkeletonPanel v-if="loading && liquidations.length === 0" type="card" :rows="3" />
+    <ErrorState v-if="loadError" :description="loadError" @retry="fetchData" />
+    <LoadingState v-else-if="loading && liquidations.length === 0" type="card" :rows="3" />
 
     <template v-else-if="liquidations.length > 0">
+      <!-- 自绘统计卡：StatItem 不支持值涨跌着色，保留但 token 化 -->
       <div class="stats-row">
         <div class="stat-card">
           <div class="stat-label">24h {{ $t('misc.liquidation_total') }}</div>
@@ -133,85 +143,56 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="table-wrapper">
-        <div class="table-header">
-          <span class="col-time">{{ $t('common.time') }}</span>
-          <span class="col-sym">{{ $t('quote.symbol') }}</span>
-          <span class="col-dir">{{ $t('misc.direction') }}</span>
-          <span class="col-price">{{ $t('common.price') }}</span>
-          <span class="col-qty">{{ $t('common.size') }}</span>
-          <span class="col-amt">{{ $t('common.amount') }}</span>
-        </div>
-        <div class="table-body">
-          <div v-for="l in liquidations" :key="l.time + l.symbol + l.price" class="table-row">
-            <span class="col-time">{{ formatTime(l.time) }}</span>
-            <span class="col-sym">{{ l.symbol }}</span>
-            <span class="col-dir" :style="{ color: directionColor(l) }">{{ directionLabel(l) }}</span>
-            <span class="col-price">${{ l.price.toFixed(2) }}</span>
-            <span class="col-qty">{{ l.qty.toFixed(4) }}</span>
-            <span class="col-amt">{{ formatAmount(l.amount) }}</span>
-          </div>
-        </div>
-      </div>
+      <PanelTable
+        :columns="cols"
+        :data="liquidations"
+        :loading="loading"
+        :row-key="(l: any) => l.time + l.symbol + l.price"
+        sticky-header
+      />
     </template>
 
-    <div v-else class="empty-state">{{ $t('common.no_data') }}</div>
+    <EmptyState v-else :title="$t('common.no_data')" />
   </div>
 </template>
 
 <style scoped>
 .liquidation-panel {
-  padding: 12px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 
 .sym-input {
-  padding: 2px 6px; font-size: 11px; border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 80px;
+  width: 80px;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-xs);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
 }
-.auto-btn {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
+.auto-toggle.active {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
-.auto-btn.active { color: var(--color-accent); border-color: var(--color-accent); }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-  margin-left: auto;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .stats-row {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm);
+  padding: var(--space-sm) var(--panel-padding);
+  flex-shrink: 0;
 }
 .stat-card {
-  padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center;
+  padding: var(--space-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center;
 }
-.stat-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
-.stat-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-bottom: var(--space-xs); }
+.stat-value { font-size: var(--font-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
 .up { color: var(--color-up); }
 .down { color: var(--color-down); }
 
-.table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.table-header {
-  display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0;
-}
-.table-body { flex: 1; overflow-y: auto; font-size: 12px; }
-.table-row {
-  display: flex; padding: 3px 0; align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.table-row:hover { background: var(--color-bg-elevated); }
-.col-time { width: 56px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
-.col-sym { width: 48px; font-weight: 600; }
-.col-dir { width: 48px; text-align: center; font-weight: 500; font-size: 11px; }
-.col-price { width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
-.col-qty { width: 64px; text-align: right; color: var(--color-text-secondary); }
-.col-amt { flex: 1; text-align: right; font-weight: 500; }
+:deep(.td.muted-cell) { color: var(--color-text-tertiary); }
+:deep(.td.dir-up) { color: var(--color-up); font-weight: 500; }
+:deep(.td.dir-down) { color: var(--color-down); font-weight: 500; }
 </style>

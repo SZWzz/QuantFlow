@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '@/terminal/components/panel'
+import KlineChart from '@/terminal/components/panel/KlineChart.vue'
+import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { logger } from '@/lib/logger'
 
-const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+const { t } = useI18n()
 
 interface MinuteFlow {
   time: string
@@ -31,6 +36,16 @@ const history = ref<DailyHistory[]>([])
 const loading = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
+const headerTabs = computed(() => [
+  { key: 'northbound', label: t('misc.northbound') },
+  { key: 'quota', label: t('misc.quota') },
+])
+
+function onTabChange(key: string) {
+  if (key !== 'northbound' && key !== 'quota') return
+  activeTab.value = key
+}
+
 const todayTotal = computed(() => {
   if (minuteFlow.value.length === 0) return 0
   const last = minuteFlow.value[minuteFlow.value.length - 1]
@@ -53,38 +68,48 @@ const cumulativeTotal = computed(() => {
   return (last.sh_cum || 0) + (last.sz_cum || 0)
 })
 
-const chartData = computed(() => ({
-  categories: minuteFlow.value.map(f => f.time),
+/** 历史表格行：累计列预映射（sh_cum + sz_cum），供 PanelTable colorize 直接取数 */
+const historyRows = computed(() =>
+  history.value.map(h => ({ ...h, cum: (h.sh_cum || 0) + (h.sz_cum || 0) })),
+)
+
+// ── 北向资金分时图（computed option，主题切换自动重绘） ──
+const flowOption = computed<ECBasicOption>(() => ({
+  animation: false,
+  backgroundColor: 'transparent',
+  tooltip: { trigger: 'axis' },
+  legend: {
+    data: ['沪股通', '深股通', '合计'],
+    bottom: 0,
+    textStyle: { color: chartTheme.axisColor, fontSize: 10 },
+  },
+  grid: { left: 50, right: 16, top: 8, bottom: 32 },
+  xAxis: {
+    type: 'category',
+    data: minuteFlow.value.map(f => f.time),
+    axisLabel: { color: chartTheme.axisColor, fontSize: 10 },
+    axisLine: { lineStyle: { color: chartTheme.splitColor } },
+  },
+  yAxis: {
+    type: 'value',
+    splitLine: { lineStyle: { color: chartTheme.gridColor } },
+    axisLabel: { color: chartTheme.axisColor, fontSize: 10, formatter: (v: number) => v + '亿' },
+  },
   series: [
-    { name: '沪股通', data: minuteFlow.value.map(f => f.sh_net), color: '#ef4444' },
-    { name: '深股通', data: minuteFlow.value.map(f => f.sz_net), color: '#22c55e' },
-    { name: '合计', data: minuteFlow.value.map(f => f.total), color: '#3b82f6' },
-  ],
+    { name: '沪股通', data: minuteFlow.value.map(f => f.sh_net), color: chartTheme.upColor },
+    { name: '深股通', data: minuteFlow.value.map(f => f.sz_net), color: chartTheme.downColor },
+    { name: '合计', data: minuteFlow.value.map(f => f.total), color: chartTheme.palette[0] },
+  ].map(s => ({
+    name: s.name,
+    type: 'line',
+    smooth: true,
+    data: s.data,
+    lineStyle: { width: 1.5, color: s.color },
+    itemStyle: { color: s.color },
+    areaStyle: { opacity: 0.1, color: s.color },
+    symbol: 'none',
+  })),
 }))
-
-let chartInstance: any = null
-
-function renderChart() {
-  if (typeof window === 'undefined' || !(window as any).echarts) return
-  const echarts = (window as any).echarts
-  const el = document.getElementById('hk-flow-chart')
-  if (!el) return
-  if (!chartInstance) chartInstance = echarts.init(el)
-  const option = {
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['沪股通', '深股通', '合计'], bottom: 0, textStyle: { color: chartTheme.axisColor, fontSize: 10 } },
-    grid: { left: 50, right: 16, top: 8, bottom: 32 },
-    xAxis: { type: 'category', data: chartData.value.categories, axisLabel: { color: chartTheme.axisColor, fontSize: 10 } },
-    yAxis: { type: 'value', splitLine: { lineStyle: { color: chartTheme.gridColor } }, axisLabel: { color: chartTheme.axisColor, fontSize: 10, formatter: (v: number) => v + '亿' } },
-    series: chartData.value.series.map(s => ({
-      name: s.name, type: 'line', smooth: true, data: s.data,
-      lineStyle: { width: 1.5 },
-      areaStyle: { opacity: 0.1 },
-      symbol: 'none',
-    })),
-  }
-  chartInstance.setOption(option, true)
-}
 
 async function fetchData() {
   const app = (window as any).go?.main?.App
@@ -124,34 +149,40 @@ function formatAmount(v: number): string {
   return v.toFixed(0)
 }
 
+const cols = computed<Column[]>(() => [
+  { key: 'date', label: t('common.date') },
+  { key: 'sh_net', label: t('misc.sh_connect'), align: 'right', formatter: formatAmount, colorize: true },
+  { key: 'sz_net', label: t('misc.sz_connect'), align: 'right', formatter: formatAmount, colorize: true },
+  { key: 'total_net', label: t('common.total'), align: 'right', formatter: formatAmount, colorize: true },
+  { key: 'cum', label: t('misc.cumulative'), align: 'right', formatter: formatAmount, colorize: true },
+])
+
 onMounted(() => {
   fetchData()
   timer = setInterval(fetchData, 60000)
-  setTimeout(renderChart, 500)
 })
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
-  if (chartInstance) { chartInstance.dispose(); chartInstance = null }
 })
 </script>
 
 <template>
   <div class="hk-connect-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.hk_connect') }}</h3>
-      <div class="header-tabs">
-        <button :class="['tab', { active: activeTab === 'northbound' }]" @click="activeTab = 'northbound'">{{ $t('misc.northbound') }}</button>
-        <button :class="['tab', { active: activeTab === 'quota' }]" @click="activeTab = 'quota'">{{ $t('misc.quota') }}</button>
-      </div>
-      <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.hk_connect')"
+      :tabs="headerTabs"
+      :active-tab="activeTab"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchData, loading }]"
+      @tab-change="onTabChange"
+    />
 
-    <SkeletonPanel v-if="loading && minuteFlow.length === 0" type="card" :rows="4" />
+    <LoadingState v-if="loading && minuteFlow.length === 0" type="card" :rows="4" />
 
     <template v-else-if="activeTab === 'northbound'">
-      <div v-if="minuteFlow.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
+      <EmptyState v-if="minuteFlow.length === 0" :title="$t('common.no_data')" />
       <template v-else>
+        <!-- 自绘统计卡：StatItem 不支持值涨跌着色，保留但 token 化 -->
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-label">{{ $t('misc.sh_connect') }}</div>
@@ -171,26 +202,11 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div id="hk-flow-chart" class="flow-chart"></div>
-
-        <div class="table-wrapper">
-          <div class="table-header">
-            <span class="col-date">{{ $t('common.date') }}</span>
-            <span class="col-sh">{{ $t('misc.sh_connect') }}</span>
-            <span class="col-sz">{{ $t('misc.sz_connect') }}</span>
-            <span class="col-total">{{ $t('common.total') }}</span>
-            <span class="col-cum">{{ $t('misc.cumulative') }}</span>
-          </div>
-          <div class="table-body">
-            <div v-for="h in history" :key="h.date" class="table-row">
-              <span class="col-date">{{ h.date }}</span>
-              <span class="col-sh" :class="h.sh_net >= 0 ? 'up' : 'down'">{{ formatAmount(h.sh_net) }}</span>
-              <span class="col-sz" :class="h.sz_net >= 0 ? 'up' : 'down'">{{ formatAmount(h.sz_net) }}</span>
-              <span class="col-total" :class="h.total_net >= 0 ? 'up' : 'down'">{{ formatAmount(h.total_net) }}</span>
-              <span class="col-cum" :class="(h.sh_cum + h.sz_cum) >= 0 ? 'up' : 'down'">{{ formatAmount(h.sh_cum + h.sz_cum) }}</span>
-            </div>
-          </div>
+        <div class="flow-chart">
+          <KlineChart :option="flowOption" symbol="northbound" :loading="loading" />
         </div>
+
+        <PanelTable :columns="cols" :data="historyRows" :loading="loading" sticky-header />
       </template>
     </template>
 
@@ -217,70 +233,47 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-      <div class="empty-state" style="flex:0;padding-top:8px">{{ $t('misc.quota_note') }}</div>
+      <div class="quota-note">{{ $t('misc.quota_note') }}</div>
     </template>
   </div>
 </template>
 
 <style scoped>
 .hk-connect-panel {
-  padding: 12px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
 
-.header-tabs { display: flex; gap: 4px; }
-.header-tabs .tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-  margin-left: auto;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .stats-row {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm);
+  padding: var(--space-sm) var(--panel-padding);
+  flex-shrink: 0;
 }
 .stat-card {
-  padding: 10px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center;
+  padding: var(--space-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-align: center;
 }
-.stat-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; }
-.stat-value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-bottom: var(--space-xs); }
+.stat-value { font-size: var(--font-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
 .up { color: var(--color-up); }
 .down { color: var(--color-down); }
 
-.flow-chart { height: 160px; margin-bottom: 12px; flex-shrink: 0; }
-
-.table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.table-header {
-  display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0;
-}
-.table-body { flex: 1; overflow-y: auto; font-size: 12px; }
-.table-row {
-  display: flex; padding: 3px 0; align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.table-row:hover { background: var(--color-bg-elevated); }
-.col-date { width: 80px; }
-.col-sh, .col-sz, .col-total, .col-cum { width: 80px; text-align: right; font-weight: 500; }
+.flow-chart { height: 160px; margin: 0 var(--panel-padding) var(--space-sm); flex-shrink: 0; }
 
 .quota-section {
-  display: flex; flex-direction: column; gap: 16px; padding: 16px 0;
+  display: flex; flex-direction: column; gap: var(--space-lg); padding: var(--space-lg) var(--panel-padding);
 }
-.quota-card { display: flex; flex-direction: column; gap: 6px; }
-.quota-label { font-size: 13px; font-weight: 600; }
+.quota-card { display: flex; flex-direction: column; gap: var(--space-xs); }
+.quota-label { font-size: var(--font-sm); font-weight: 600; }
 .quota-bar-track { height: 12px; background: var(--color-bg-elevated); border-radius: var(--radius-md); overflow: hidden; }
 .quota-bar-fill { height: 100%; border-radius: var(--radius-md); }
 .sh-bar { background: var(--color-up); }
 .sz-bar { background: var(--color-down); }
-.quota-detail { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); }
+.quota-detail { display: flex; justify-content: space-between; font-size: var(--font-xs); color: var(--color-text-secondary); }
+.quota-note {
+  padding: 0 var(--panel-padding);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+}
 </style>

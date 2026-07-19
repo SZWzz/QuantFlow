@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 import { logger } from '@/lib/logger'
 
-const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
 
 interface GasData {
@@ -55,12 +55,13 @@ function usdEstimate(gwei: string, secs?: string): string {
   return `~${base.toFixed(2)} USD`
 }
 
+/** gas 水平分档着色：>100 危险 / >30 偏高 / 其余正常（自绘卡片用，token 化） */
 function gasColor(gwei: string): string {
   const n = Number(gwei)
   if (isNaN(n)) return 'var(--color-text-tertiary)'
-  if (n > 100) return '#dc2626'
-  if (n > 30) return '#eab308'
-  return '#16a34a'
+  if (n > 100) return 'var(--color-danger)'
+  if (n > 30) return 'var(--color-warn)'
+  return 'var(--color-success)'
 }
 
 function blockTime(ratio: string): string {
@@ -81,36 +82,38 @@ onUnmounted(() => {
 
 <template>
   <div class="gas-fee-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.gas_tracker') }}</h3>
-      <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.gas_tracker')"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchData, loading }]"
+    />
 
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <SkeletonPanel v-if="loading && !gas" type="table" :rows="3" />
+    <ErrorState v-if="loadError" :description="loadError" @retry="fetchData" />
+    <LoadingState v-else-if="loading && !gas" type="card" :rows="1" />
 
-    <div v-else-if="!gas" class="empty-state">
-      <div>{{ $t('misc.gas_empty') }}</div>
-      <div class="hint">{{ $t('misc.gas_hint') }}</div>
-    </div>
+    <EmptyState
+      v-else-if="!gas"
+      :title="$t('misc.gas_empty')"
+      :description="$t('misc.gas_hint')"
+    />
 
-    <template v-else>
+    <div v-else class="gas-body">
+      <!-- 自绘卡片：PanelTable/StatItem 表达不了动态边框+分档着色，保留但 token 化 -->
       <div class="gas-card-grid">
-        <div class="gas-card safe" :style="{ borderColor: gasColor(gas.SafeGasPrice) }">
+        <div class="gas-card" :style="{ borderColor: gasColor(gas.SafeGasPrice) }">
           <div class="gas-label">{{ $t('misc.gas_safe') }}</div>
           <div class="gas-value" :style="{ color: gasColor(gas.SafeGasPrice) }">
             {{ gweiPrice(gas.SafeGasPrice) }}
           </div>
           <div class="gas-est">{{ usdEstimate(gas.SafeGasPrice, '~30m') }}</div>
         </div>
-        <div class="gas-card average" :style="{ borderColor: gasColor(gas.ProposeGasPrice) }">
+        <div class="gas-card" :style="{ borderColor: gasColor(gas.ProposeGasPrice) }">
           <div class="gas-label">{{ $t('misc.gas_average') }}</div>
           <div class="gas-value" :style="{ color: gasColor(gas.ProposeGasPrice) }">
             {{ gweiPrice(gas.ProposeGasPrice) }}
           </div>
           <div class="gas-est">{{ usdEstimate(gas.ProposeGasPrice, '~3m') }}</div>
         </div>
-        <div class="gas-card fast" :style="{ borderColor: gasColor(gas.FastGasPrice) }">
+        <div class="gas-card" :style="{ borderColor: gasColor(gas.FastGasPrice) }">
           <div class="gas-label">{{ $t('misc.gas_fast') }}</div>
           <div class="gas-value" :style="{ color: gasColor(gas.FastGasPrice) }">
             {{ gweiPrice(gas.FastGasPrice) }}
@@ -133,34 +136,34 @@ onUnmounted(() => {
           <span class="detail-value">{{ usdEstimate(gas.ProposeGasPrice) }}</span>
         </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .gas-fee-panel {
-  padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-  margin-left: auto;
+.gas-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--panel-padding);
 }
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.hint { font-size: 11px; opacity: 0.6; }
-.gas-card-grid { display: flex; gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
+.gas-card-grid { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); }
 .gas-card {
-  flex: 1; border: 1px solid; border-radius: var(--radius-lg); padding: 12px 8px; text-align: center;
+  flex: 1; border: 1px solid; border-radius: var(--radius-lg); padding: var(--space-md) var(--space-sm); text-align: center;
   background: var(--color-bg-elevated);
 }
-.gas-label { font-size: 10px; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
-.gas-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.gas-est { font-size: 10px; color: var(--color-text-tertiary); margin-top: 4px; }
-.gas-detail { display: flex; flex-direction: column; gap: 4px; }
-.detail-row { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
+.gas-label { font-size: var(--font-xs); text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: var(--space-xs); }
+.gas-value { font-size: var(--font-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.gas-est { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-top: var(--space-xs); }
+.gas-detail { display: flex; flex-direction: column; gap: var(--space-xs); }
+.detail-row { display: flex; justify-content: space-between; font-size: var(--font-xs); padding: var(--space-xs) 0; }
 .detail-label { color: var(--color-text-tertiary); }
 .detail-value { font-weight: 500; font-variant-numeric: tabular-nums; }
 </style>
