@@ -2,14 +2,14 @@
   "extends": "stylelint-config-standard-vue",
   "defaultSeverity": "warning",
   "rules": {
-    "color-no-hex": [true, { "severity": "warning" }],
+    "color-no-hex": [true, { "severity": "error" }],
     "declaration-property-unit-disallowed-list": [
       { "font-size": ["px"] },
-      { "severity": "warning" }
+      { "severity": "error" }
     ],
     "declaration-property-value-disallowed-list": [
       { "/^border$/": ["none"] },
-      { "severity": "warning" }
+      { "severity": "error" }
     ],
     "selector-class-pattern": null,
     "no-descending-specificity": null,
