@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
-const pg = ctx.getOrCreatePanelGroup(props.panelId)
+ctx.getOrCreatePanelGroup(props.panelId)
+
+const { t } = useI18n()
 
 interface EarningsEvent {
   symbol: string
@@ -25,6 +28,12 @@ const events = ref<EarningsEvent[]>([])
 const loading = ref(false)
 const loadError = ref('')
 const dateRange = ref<'week' | 'month' | 'quarter'>('week')
+
+const tabs = computed(() => [
+  { key: 'week', label: t('misc.this_week') },
+  { key: 'month', label: t('misc.this_month') },
+  { key: 'quarter', label: t('misc.this_quarter') },
+])
 
 function getDateRange(): { from: string; to: string } {
   const now = new Date()
@@ -72,11 +81,9 @@ async function fetchData() {
   }
 }
 
-function formatMoney(v: number): string {
-  if (v >= 1e12) return '$' + (v / 1e12).toFixed(2) + '万亿'
-  if (v >= 1e8) return '$' + (v / 1e8).toFixed(1) + '亿'
-  if (v >= 1e4) return '$' + (v / 1e4).toFixed(0) + '万'
-  return '$' + v.toFixed(0)
+function onTabChange(key: string) {
+  dateRange.value = key as 'week' | 'month' | 'quarter'
+  fetchData()
 }
 
 function hourLabel(h: string): string {
@@ -96,21 +103,19 @@ onMounted(fetchData)
 
 <template>
   <div class="earnings-calendar-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.earnings_calendar') }}</h3>
-      <div class="range-tabs">
-        <button :class="['r-tab', { active: dateRange === 'week' }]" @click="dateRange = 'week'; fetchData()">{{ $t('misc.this_week') }}</button>
-        <button :class="['r-tab', { active: dateRange === 'month' }]" @click="dateRange = 'month'; fetchData()">{{ $t('misc.this_month') }}</button>
-        <button :class="['r-tab', { active: dateRange === 'quarter' }]" @click="dateRange = 'quarter'; fetchData()">{{ $t('misc.this_quarter') }}</button>
-      </div>
-      <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.earnings_calendar')"
+      :tabs="tabs"
+      :active-tab="dateRange"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchData, loading }]"
+      @tab-change="onTabChange"
+    />
 
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <SkeletonPanel v-if="loading && events.length === 0" type="table" :rows="5" />
+    <ErrorState v-if="loadError" :description="loadError" @retry="fetchData" />
+    <LoadingState v-else-if="loading && events.length === 0" type="table" :rows="5" />
+    <EmptyState v-else-if="events.length === 0" :title="$t('common.no_data')" />
 
-    <div v-else-if="events.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
-
+    <!-- 按日期分组的自定义列表：粘性日期头 + 多段行，PanelTable 无法表达，保留自绘 -->
     <div v-else class="calendar-scroll">
       <div v-for="dateKey in dateKeys" :key="dateKey" class="day-group">
         <div class="day-header">{{ dateKey }}</div>
@@ -132,30 +137,45 @@ onMounted(fetchData)
 
 <style scoped>
 .earnings-calendar-panel {
-  padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.range-tabs { display: flex; gap: 4px; }
-.r-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
+.calendar-scroll { flex: 1; overflow-y: auto; padding: 0 var(--panel-padding); }
+.day-group { margin-bottom: var(--space-md); }
+.day-header {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-panel);
+  z-index: 1;
 }
-.r-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
-.refresh-btn { margin-left: auto; padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.calendar-scroll { flex: 1; overflow-y: auto; }
-.day-group { margin-bottom: 12px; }
-.day-header { font-size: 12px; font-weight: 600; padding: 6px 0; border-bottom: 1px solid var(--color-border-strong); color: var(--color-text-primary); position: sticky; top: 0; background: var(--color-bg-panel); z-index: 1; }
-.event-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--color-border-subtle); }
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  font-size: var(--font-xs);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
 .event-row:hover { background: var(--color-bg-elevated); }
-.evt-hour { width: 32px; font-size: 10px; color: var(--color-text-tertiary); }
-.evt-symbol { width: 64px; font-weight: 600; cursor: pointer; color: var(--color-accent); }
-.evt-quarter { width: 24px; font-size: 10px; color: var(--color-text-tertiary); }
-.evt-est, .evt-act { width: 60px; text-align: right; font-variant-numeric: tabular-nums; color: var(--color-text-tertiary); }
+.evt-hour { width: 32px; font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.evt-symbol { width: 64px; font-weight: 600; color: var(--color-accent); }
+.evt-quarter { width: 24px; font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.evt-est, .evt-act {
+  width: 60px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
 .evt-act.has-value { color: var(--color-text-primary); font-weight: 500; }
-.evt-surprise { width: 56px; text-align: right; font-weight: 500; font-size: 11px; }
+.evt-surprise { width: 56px; text-align: right; font-weight: 500; font-size: var(--font-xs); }
 .up { color: var(--color-down); }
 .down { color: var(--color-up); }
 </style>

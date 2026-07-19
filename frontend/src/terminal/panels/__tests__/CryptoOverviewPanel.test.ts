@@ -32,7 +32,7 @@ describe('CryptoOverviewPanel', () => {
     // Wait for async data fetch to complete
     await new Promise(r => setTimeout(r, 50))
     await nextTick()
-    const rows = wrapper.findAll('tbody tr')
+    const rows = wrapper.findAll('.table-row')
     expect(rows.length).toBeGreaterThanOrEqual(2)
   })
 

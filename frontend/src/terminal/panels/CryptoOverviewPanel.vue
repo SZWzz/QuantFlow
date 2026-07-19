@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { PanelHeader, PanelTable, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 const { fetchWithCache } = usePanelCache()
 
-const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+const { t } = useI18n()
 
 interface CryptoRow {
   symbol: string
@@ -14,7 +18,7 @@ interface CryptoRow {
 }
 
 const sortKey = ref<string>('changePct24h')
-const sortDir = ref<number>(-1)
+const sortDir = ref<'asc' | 'desc' | null>('desc')
 
 const { data: cryptos, loading, error, execute: refreshExec } = useDataFetch<CryptoRow[]>(async () => {
   const { data: result } = await fetchWithCache<any>('crypto_overview', () => (window as any).go?.main?.App?.GetCryptoOverview([]), 3 * 60 * 1000)
@@ -30,25 +34,24 @@ const { data: cryptos, loading, error, execute: refreshExec } = useDataFetch<Cry
 
 const sortedCryptos = computed(() => {
   const arr = [...(cryptos.value || [])]
+  if (!sortKey.value || !sortDir.value) return arr
   arr.sort((a, b) => {
     const aVal = a[sortKey.value as keyof CryptoRow]
     const bVal = b[sortKey.value as keyof CryptoRow]
-    if (typeof aVal === 'number' && typeof bVal === 'number') {
-      return (aVal - bVal) * sortDir.value
-    }
-    return 0
+    const cmp = typeof aVal === 'number' && typeof bVal === 'number'
+      ? aVal - bVal
+      : String(aVal).localeCompare(String(bVal))
+    return sortDir.value === 'asc' ? cmp : -cmp
   })
   return arr
 })
 
-function toggleSort(key: string) {
-  if (sortKey.value === key) { sortDir.value *= -1 }
-  else { sortKey.value = key; sortDir.value = -1 }
-}
+/** rank 列为展示序号，排好序后预映射进数据行 */
+const rows = computed(() => sortedCryptos.value.map((c, i) => ({ ...c, rank: i + 1 })))
 
-function sortArrow(key: string): string {
-  if (sortKey.value !== key) return ''
-  return sortDir.value === -1 ? ' ▼' : ' ▲'
+function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
+  sortKey.value = dir ? key : ''
+  sortDir.value = dir
 }
 
 function formatPrice(p: number): string {
@@ -58,11 +61,12 @@ function formatPrice(p: number): string {
   return p.toFixed(8)
 }
 
-function pctColor(pct: number): string {
-  if (pct > 0) return '#ef4444'
-  if (pct < 0) return '#22c55e'
-  return 'var(--color-text-secondary)'
-}
+const cols = computed<Column[]>(() => [
+  { key: 'rank', label: '#', width: 28, align: 'center' },
+  { key: 'symbol', label: t('quote.symbol'), sortable: true },
+  { key: 'price', label: t('common.price'), align: 'right', sortable: true, formatter: formatPrice },
+  { key: 'changePct24h', label: '24h涨跌%', align: 'right', format: 'percent', colorize: true, sortable: true },
+])
 
 function refresh() {
   refreshExec()
@@ -73,102 +77,31 @@ onMounted(refresh)
 
 <template>
   <div class="crypto-overview-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.crypto_overview') }}</h3>
-      <button class="refresh-btn" @click="refresh">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.crypto_overview')"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: refresh, loading }]"
+    />
 
-    <!-- Crypto Table -->
-    <div v-if="loading && !cryptos" class="empty-state">{{ $t('common.loading') }}</div>
-    <div v-else-if="error" class="empty-state error-state">{{ error }}</div>
-    <div v-else class="crypto-table-wrap">
-      <table class="crypto-table">
-        <thead>
-          <tr>
-            <th class="col-rank">#</th>
-            <th class="col-symbol sortable" @click="toggleSort('symbol')">{{ $t('quote.symbol') }}{{ sortArrow('symbol') }}</th>
-            <th class="col-price sortable" @click="toggleSort('price')">{{ $t('common.price') }}{{ sortArrow('price') }}</th>
-            <th class="col-change sortable" @click="toggleSort('changePct24h')">24h涨跌%{{ sortArrow('changePct24h') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(c, idx) in sortedCryptos" :key="c.symbol">
-            <td class="col-rank">{{ idx + 1 }}</td>
-            <td class="col-symbol">{{ c.symbol }}</td>
-            <td class="col-price">{{ formatPrice(c.price) }}</td>
-            <td class="col-change" :style="{ color: pctColor(c.changePct24h) }">
-              {{ c.changePct24h >= 0 ? '+' : '' }}{{ c.changePct24h.toFixed(2) }}%
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <LoadingState v-if="loading && !cryptos" type="table" :rows="6" :cols="cols.length" />
+    <ErrorState v-else-if="error" :description="error" @retry="refresh" />
+    <PanelTable
+      v-else
+      :columns="cols"
+      :data="rows"
+      :loading="loading"
+      :sort-key="sortKey"
+      :sort-dir="sortDir"
+      sticky-header
+      @sort-change="onSortChange"
+    />
   </div>
 </template>
 
 <style scoped>
 .crypto-overview-panel {
-  padding: 16px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
 }
-
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-}
-
-.error-state {
-  color: var(--color-up);
-}
-
-/* Dominance */
-.dominance-section {
-  display: flex; gap: 24px; margin-bottom: 12px;
-}
-.dominance-item {
-  flex: 1; display: flex; align-items: center; gap: 8px;
-}
-.dom-label { font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; }
-.dom-bar-track {
-  flex: 1; height: 8px; background: var(--color-bg-elevated); border-radius: var(--radius-sm); overflow: hidden;
-}
-.dom-bar-fill { height: 100%; border-radius: var(--radius-sm); }
-.btc-bar { background: var(--color-accent); }
-.eth-bar { background: var(--color-accent); }
-.dom-value { font-size: 12px; font-weight: 600; min-width: 44px; text-align: right; }
-
-/* Table */
-.crypto-table-wrap {
-  flex: 1; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent;
-}
-.crypto-table {
-  width: 100%; border-collapse: collapse; font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.crypto-table thead {
-  position: sticky; top: 0; z-index: 1;
-}
-.crypto-table th {
-  padding: 6px 4px; text-align: right; font-size: 11px; color: var(--color-text-tertiary);
-  font-weight: 500; border-bottom: 1px solid var(--color-border-strong); background: var(--color-bg-panel);
-}
-.crypto-table th.sortable { cursor: pointer; user-select: none; }
-.crypto-table th.sortable:hover { color: var(--color-text-primary); }
-.crypto-table td {
-  padding: 4px; text-align: right; border-bottom: 1px solid var(--color-bg-elevated);
-}
-.col-rank, th:first-child { width: 24px; text-align: center; }
-.col-symbol { text-align: left !important; }
-.crypto-symbol { font-weight: 600; color: var(--color-text-primary); }
-.crypto-name { color: var(--color-text-tertiary); font-size: 10px; margin-left: 4px; }
-.col-price { width: 90px; }
-.col-change { width: 80px; font-weight: 500; }
-.col-volume { width: 80px; color: var(--color-text-secondary); }
-.col-mcap { width: 90px; color: var(--color-text-secondary); }
 </style>
