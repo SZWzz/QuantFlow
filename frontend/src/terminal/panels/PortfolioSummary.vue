@@ -623,7 +623,7 @@ const pieChartOption = computed(() => {
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
   cursor: pointer;
   line-height: 1;
@@ -662,7 +662,7 @@ const pieChartOption = computed(() => {
 }
 
 .kpi-value {
-  font-size: 15px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--text);
 }
@@ -721,7 +721,7 @@ const pieChartOption = computed(() => {
 .pos-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .pos-table th {
@@ -742,7 +742,7 @@ const pieChartOption = computed(() => {
 .pos-row:hover { background: var(--input); }
 
 .pos-symbol { font-weight: 600; font-size: var(--font-sm); color: var(--text); }
-.pos-name { font-size: 11px; color: var(--muted); }
+.pos-name { font-size: var(--font-xs); color: var(--muted); }
 
 .empty-state-cell { text-align: center; color: var(--muted); padding: 24px; }
 
@@ -780,13 +780,13 @@ const pieChartOption = computed(() => {
 
 .risk-empty {
   display: flex; align-items: center; justify-content: center;
-  padding: 40px 0; color: var(--color-text-tertiary); font-size: 13px;
+  padding: 40px 0; color: var(--color-text-tertiary); font-size: var(--font-sm);
 }
 
 .risk-header { margin-bottom: 10px; }
 
 .exposure-badge {
-  font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm);
+  font-size: var(--font-xs); padding: 2px 8px; border-radius: var(--radius-sm);
   background: rgba(240, 136, 62, 0.15); color: var(--color-accent);
   font-family: 'JetBrains Mono', monospace;
 }
@@ -801,11 +801,11 @@ const pieChartOption = computed(() => {
 }
 
 .risk-kpi-label {
-  display: block; font-size: 10px; color: var(--color-text-tertiary);
+  display: block; font-size: var(--font-xs); color: var(--color-text-tertiary);
   text-transform: uppercase; margin-bottom: 4px;
 }
 
-.risk-kpi-value { font-size: 18px; font-weight: 700; }
+.risk-kpi-value { font-size: var(--font-xl); font-weight: 700; }
 
 .risk-chart-section {
   background: var(--color-bg-elevated, var(--color-bg-panel));
@@ -814,7 +814,7 @@ const pieChartOption = computed(() => {
 }
 
 .risk-dd-info {
-  text-align: center; font-size: 11px; color: var(--color-text-tertiary);
+  text-align: center; font-size: var(--font-xs); color: var(--color-text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -829,23 +829,23 @@ const pieChartOption = computed(() => {
   margin-bottom: 8px; flex-shrink: 0;
 }
 
-.chart-panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.chart-panel-header h3 { margin: 0; font-size: var(--font-sm); font-weight: 600; }
 
 .refresh-btn {
   padding: 4px 10px; border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm); background: var(--color-bg-elevated);
-  color: var(--color-text-primary); cursor: pointer; font-size: 13px;
+  color: var(--color-text-primary); cursor: pointer; font-size: var(--font-sm);
 }
 
 .refresh-btn:hover { background: var(--color-border-strong); }
 
 .chart-error {
-  color: var(--color-danger); font-size: 12px; margin-bottom: 8px;
+  color: var(--color-danger); font-size: var(--font-sm); margin-bottom: 8px;
 }
 
 .chart-fallback {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
+  color: var(--color-text-tertiary); font-size: var(--font-sm);
 }
 
 .chart-curve-content {
@@ -869,15 +869,15 @@ const pieChartOption = computed(() => {
 }
 
 .chart-stat-label {
-  font-size: 10px; color: var(--color-text-secondary); white-space: nowrap;
+  font-size: var(--font-xs); color: var(--color-text-secondary); white-space: nowrap;
 }
 
 .chart-stat-value {
-  font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: var(--font-lg); font-weight: 700; font-variant-numeric: tabular-nums;
 }
 
 .chart-empty-state {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
+  color: var(--color-text-tertiary); font-size: var(--font-sm);
 }
 </style>

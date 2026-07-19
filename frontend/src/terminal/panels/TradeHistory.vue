@@ -310,7 +310,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 .filter-input:focus { border-color: var(--accent); }
@@ -322,7 +322,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 
@@ -336,7 +336,7 @@ function exportData() {
   background: var(--input);
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -356,7 +356,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -401,7 +401,7 @@ td {
 
 .symbol { font-weight: 600; color: var(--text); }
 
-.muted { color: var(--muted); font-size: 11px; }
+.muted { color: var(--muted); font-size: var(--font-xs); }
 .up   { color: var(--up); font-weight: 600; }
 .down { color: var(--down); font-weight: 600; }
 
@@ -422,7 +422,7 @@ td {
 }
 
 .load-count {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--muted);
 }
 
@@ -432,7 +432,7 @@ td {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -482,7 +482,7 @@ td {
   border: 1px solid var(--down);
   border-radius: var(--radius-sm);
   color: var(--down);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -512,7 +512,7 @@ td {
 }
 
 .stat-value {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text);
 }

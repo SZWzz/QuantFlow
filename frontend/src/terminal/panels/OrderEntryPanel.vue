@@ -157,27 +157,27 @@ function placeOrder() {
 .form-group label { font-size: var(--font-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .form-input {
   padding: 6px 8px; background: var(--input); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--color-text-primary); font-size: 13px; outline: none;
+  color: var(--color-text-primary); font-size: var(--font-sm); outline: none;
 }
 .form-input:focus { border-color: var(--accent); }
 
-.quote-status { font-size: 10px; color: var(--color-accent); margin-left: 4px; }
+.quote-status { font-size: var(--font-xs); color: var(--color-accent); margin-left: 4px; }
 
 .side-toggle { display: flex; gap: 0; }
 .side-toggle button {
   flex: 1; padding: 8px; border: 1px solid var(--border); background: var(--input); color: var(--muted);
-  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  font-size: var(--font-sm); font-weight: 600; cursor: pointer; transition: all 0.15s;
 }
 .side-toggle button:first-child { border-radius: var(--radius-sm) 0 0 4px; }
 .side-toggle button:last-child { border-radius: 0 4px 4px 0; }
 .side-toggle button.active.buy { background: var(--color-down); border-color: var(--up); color: var(--up); }
 .side-toggle button.active.sell { background: var(--color-up-bg, rgba(220,38,38,0.08)); border-color: var(--down); color: var(--down); }
 
-.estimated { display: flex; justify-content: space-between; padding: 8px 0; font-size: 12px; color: var(--muted); }
+.estimated { display: flex; justify-content: space-between; padding: 8px 0; font-size: var(--font-sm); color: var(--muted); }
 .total-value { color: var(--text); font-weight: 600; }
 
 .place-order-btn {
-  padding: 10px; border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  padding: 10px; border: none; border-radius: var(--radius-md); font-size: var(--font-sm); font-weight: 600; cursor: pointer; transition: opacity 0.15s;
 }
 .place-order-btn.buy { background: var(--up); color: #000; }
 .place-order-btn.sell { background: var(--down); color: var(--color-text-primary); }

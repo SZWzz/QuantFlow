@@ -356,12 +356,12 @@ onMounted(async () => {
   padding: 12px;
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-variant-numeric: tabular-nums;
 }
 
 .panel-title {
-  font-size: 15px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--color-bg-elevated);
   margin: 0 0 10px;
@@ -385,7 +385,7 @@ onMounted(async () => {
 }
 
 .section-label {
-  font-size: 11px;
+  font-size: var(--font-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--color-text-secondary);
@@ -408,7 +408,7 @@ onMounted(async () => {
 }
 
 .sub-label {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -424,7 +424,7 @@ onMounted(async () => {
 
 .alloc-name {
   width: 55px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 600;
   text-align: right;
   flex-shrink: 0;
@@ -448,7 +448,7 @@ onMounted(async () => {
 
 .alloc-pct {
   width: 44px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-secondary);
   flex-shrink: 0;
   text-align: left;
@@ -456,7 +456,7 @@ onMounted(async () => {
 
 /* --- Section B: Target Table --- */
 .weight-summary {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 
@@ -471,14 +471,14 @@ onMounted(async () => {
 .target-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--font-xs);
   margin-bottom: 6px;
 }
 
 .target-table th {
   text-align: left;
   padding: 5px 6px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   font-weight: 500;
   text-transform: uppercase;
@@ -509,7 +509,7 @@ onMounted(async () => {
   color: var(--color-text-primary);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-variant-numeric: tabular-nums;
   width: 100%;
   outline: none;
@@ -536,7 +536,7 @@ onMounted(async () => {
   padding: 3px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--font-xs);
   transition: background 0.15s;
 }
 
@@ -551,7 +551,7 @@ onMounted(async () => {
   padding: 5px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
   width: 100%;
   transition: border-color 0.15s, color 0.15s;
 }
@@ -563,7 +563,7 @@ onMounted(async () => {
 
 /* --- Section C: 交易清单 --- */
 .trade-summary {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 
@@ -575,13 +575,13 @@ onMounted(async () => {
 .trade-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .trade-table th {
   text-align: left;
   padding: 5px 8px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   font-weight: 500;
   text-transform: uppercase;
@@ -618,7 +618,7 @@ onMounted(async () => {
 }
 
 .market-badge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
 }
 
@@ -626,7 +626,7 @@ onMounted(async () => {
   display: inline-block;
   padding: 1px 8px;
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
 }
 
@@ -652,7 +652,7 @@ onMounted(async () => {
   padding: 8px 20px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 600;
   width: 100%;
   transition: background 0.15s;

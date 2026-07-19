@@ -297,7 +297,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 }
 
 .welcome-title {
-  font-size: 24px;
+  font-size: var(--font-xl);
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
@@ -305,7 +305,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 }
 
 .welcome-subtitle {
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-tertiary);
   margin: 0;
 }
@@ -423,7 +423,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   border-color: transparent;
 }
 .chip-count {
-  font-size: 11px;
+  font-size: var(--font-xs);
   padding: 0 6px;
   border-radius: var(--radius-lg);
   background: var(--color-bg-subtle);
@@ -457,7 +457,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 }
 
 .category-title {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
   margin: 0;
@@ -465,7 +465,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 }
 
 .category-count {
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   color: var(--color-text-tertiary);
   padding: 1px 8px;
@@ -524,14 +524,14 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 }
 
 .card-label {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 500;
   color: var(--color-text-primary);
   transition: color var(--transition-fast);
 }
 
 .card-desc {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   white-space: nowrap;
   overflow: hidden;
@@ -577,7 +577,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 10px;
@@ -603,7 +603,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   border-radius: var(--radius-lg);
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
-  font-size: 11px;
+  font-size: var(--font-xs);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -626,17 +626,17 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   border-radius: var(--radius-lg);
 }
 .snap-name {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--color-text-secondary);
 }
 .snap-price {
-  font-size: 14px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 .snap-pct {
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 500;
 }
 .snap-pct.up { color: var(--color-up); }

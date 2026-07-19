@@ -224,7 +224,7 @@ function statusDotClass(s: string): string {
 </template>
 
 <style scoped>
-.resolving-hint { font-size: 11px; color: var(--color-accent); padding: 4px 0; font-style: italic; }
+.resolving-hint { font-size: var(--font-xs); color: var(--color-accent); padding: 4px 0; font-style: italic; }
 
 .basket-panel {
   padding: 10px;
@@ -278,7 +278,7 @@ function statusDotClass(s: string): string {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
   min-width: 0;
 }
@@ -286,7 +286,7 @@ function statusDotClass(s: string): string {
 
 .cell-symbol { flex: 2; }
 .cell-name {
-  font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: var(--font-xs); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   max-width: 80px; line-height: 28px;
 }
 .cell-num { flex: 1; }
@@ -297,7 +297,7 @@ function statusDotClass(s: string): string {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--font-xs);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -317,7 +317,7 @@ function statusDotClass(s: string): string {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -338,7 +338,7 @@ function statusDotClass(s: string): string {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-family: monospace;
   outline: none;
   resize: vertical;
@@ -369,7 +369,7 @@ function statusDotClass(s: string): string {
 }
 
 .s-value {
-  font-size: 15px;
+  font-size: var(--font-lg);
   font-weight: 700;
   color: var(--text);
 }
@@ -380,7 +380,7 @@ function statusDotClass(s: string): string {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 
@@ -391,7 +391,7 @@ function statusDotClass(s: string): string {
   border: none;
   border-radius: var(--radius-md);
   color: #000;
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -443,17 +443,17 @@ function statusDotClass(s: string): string {
 
 .log-symbol {
   font-weight: 600;
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--text);
 }
 
 .log-msg {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--muted);
 }
 
 .log-time {
-  font-size: 9px;
+  font-size: var(--font-xs);
   color: var(--muted);
 }
 
@@ -461,6 +461,6 @@ function statusDotClass(s: string): string {
   text-align: center;
   color: var(--muted);
   padding: 24px;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 </style>

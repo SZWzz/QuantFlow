@@ -4,8 +4,7 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
-import { PanelHeader, PanelTable, EmptyState, LoadingState } from '@/terminal/components/panel'
+import { PanelHeader, PanelTable, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -463,8 +462,8 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
         <div v-if="dtError" class="error-state" @click="dtActiveTab === 'daily' ? fetchDtDaily() : fetchDtHistory()">{{ dtError }} ⟳</div>
 
-        <SkeletonPanel v-else-if="dtLoading && dtActiveTab === 'daily'" type="table" :rows="8" />
-        <SkeletonPanel v-else-if="dtHistoryLoading && dtActiveTab === 'history'" type="table" :rows="8" />
+        <LoadingState v-else-if="dtLoading && dtActiveTab === 'daily'" type="table" :rows="8" />
+        <LoadingState v-else-if="dtHistoryLoading && dtActiveTab === 'history'" type="table" :rows="8" />
 
         <template v-else-if="dtActiveTab === 'daily'">
           <div v-if="dtStocks.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
@@ -576,7 +575,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: none;
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-sm);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
 }
@@ -673,7 +672,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
 .pane-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   font-weight: 600;
 }
 
@@ -689,7 +688,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .mkt-tab.active {
@@ -712,7 +711,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: var(--color-bg-elevated);
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .auto-btn.active {
@@ -727,7 +726,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 
 .refresh-btn:disabled {
@@ -741,7 +740,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   justify-content: center;
   flex: 1;
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 
 .stocks-table-wrapper {
@@ -755,7 +754,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   display: flex;
   padding: 4px 0;
   border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   flex-shrink: 0;
@@ -764,7 +763,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .table-body {
   flex: 1;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: var(--font-sm);
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-strong) transparent;
 }
@@ -796,7 +795,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
 .refreshing-indicator {
   padding: 4px 0;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-align: center;
   flex-shrink: 0;
@@ -820,7 +819,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .header-tabs .sub-tab.active {
@@ -833,7 +832,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .min-input,
 .symbol-input {
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
@@ -850,7 +849,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   justify-content: center;
   padding: 12px;
   color: var(--color-danger);
-  font-size: 13px;
+  font-size: var(--font-sm);
   cursor: pointer;
 }
 
@@ -865,7 +864,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   display: flex;
   padding: 4px 0;
   border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   flex-shrink: 0;
@@ -874,7 +873,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .dragon-pane .table-body {
   flex: 1;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: var(--font-sm);
 }
 
 .dragon-pane .table-row {
@@ -905,7 +904,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
 .detail-section { flex: 1; min-width: 0; }
 .detail-title {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   margin-bottom: 4px;
   text-transform: uppercase;
@@ -920,7 +919,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .detail-item {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--font-xs);
   padding: 2px 0;
 }
 
@@ -937,7 +936,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 }
 
 .detail-empty {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 
