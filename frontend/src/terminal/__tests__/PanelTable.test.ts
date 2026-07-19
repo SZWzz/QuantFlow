@@ -122,4 +122,25 @@ describe('PanelTable', () => {
     const w = mount(PanelTable, { props: { columns: c2, data: [{ v: 1.5 }] } })
     expect(w.find('.td').classes()).not.toContain('mono')
   })
+
+  it('renders col.title hook as td title attribute; columns without hook have none', () => {
+    const c: Column[] = [
+      { key: 'name', label: '名称', title: (row: any) => `full:${row.name}` },
+      { key: 'price', label: '现价', align: 'right' },
+    ]
+    const w = mount(PanelTable, { props: { columns: c, data } })
+    const tds = w.findAll('.table-row')[0].findAll('.td')
+    expect(tds[0].attributes('title')).toBe('full:平安银行')
+    expect(tds[1].attributes('title')).toBeUndefined()
+  })
+
+  it('applies col.cellClass result to the td element', () => {
+    const c: Column[] = [
+      { key: 'chg', label: '涨跌', align: 'right', cellClass: (row: any) => (row.chg > 1 ? 'cell-warn' : '') },
+    ]
+    const w = mount(PanelTable, { props: { columns: c, data } })
+    const rows = w.findAll('.table-row')
+    expect(rows[0].find('.td').classes()).toContain('cell-warn')
+    expect(rows[1].find('.td').classes()).not.toContain('cell-warn')
+  })
 })

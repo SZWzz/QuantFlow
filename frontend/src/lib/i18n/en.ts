@@ -434,4 +434,10 @@ export default {
     confirmDelete: 'Delete layout "{name}"?',
     hint: 'Ctrl+Shift+1..9 to switch saved layouts',
   },
+  panels: {
+    cb_arbitrage: 'CB Arbitrage', arbitrage_opp: 'Arbitrage Opps', redeem_warn: 'Redeem Warnings', put_opp: 'Put Opps',
+    python_required: 'Python environment required', no_data: 'No data',
+    ex_dividend: 'Ex-Dividend', today_ex: 'Today Ex', this_week_ex: 'This Week', this_month_ex: 'This Month',
+    dividend_yield_col: 'Div Yield',
+  },
 }

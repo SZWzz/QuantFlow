@@ -34,7 +34,7 @@ const columnDefs: Record<TabKey, Column[]> = {
     { key: 'stock_price', label: '正股价', align: 'right', formatter: (v: any) => fmt(v) },
     { key: 'convert_price', label: '转股价', align: 'right', formatter: (v: any) => fmt(v) },
     { key: 'convert_value', label: '转股价值', align: 'right', formatter: (v: any) => fmt(v) },
-    { key: 'premium_ratio', label: '溢价率%', align: 'right', formatter: fmtPct, colorize: true },
+    { key: 'premium_ratio', label: '溢价率%', align: 'right', formatter: fmtPct, cellClass: premiumCellClass },
     { key: 'ytm_ratio', label: '税前收益率', align: 'right', formatter: fmtPct },
     { key: 'price', label: '转债价格', align: 'right', formatter: (v: any) => fmt(v) },
   ],
@@ -45,7 +45,7 @@ const columnDefs: Record<TabKey, Column[]> = {
     { key: 'stock_price', label: '正股价', align: 'right', formatter: (v: any) => fmt(v) },
     { key: 'redeem_cond', label: '强赎条件' },
     { key: 'redeem_price', label: '强赎触发价', align: 'right', formatter: (v: any) => fmt(v) },
-    { key: 'premium_ratio', label: '溢价率%', align: 'right', formatter: fmtPct, colorize: true },
+    { key: 'premium_ratio', label: '溢价率%', align: 'right', formatter: fmtPct, cellClass: premiumCellClass },
   ],
   put: [
     { key: 'bond_code', label: '转债代码', mono: true },
@@ -53,7 +53,7 @@ const columnDefs: Record<TabKey, Column[]> = {
     { key: 'stock_code', label: '正股代码', mono: true },
     { key: 'stock_price', label: '正股价', align: 'right', formatter: (v: any) => fmt(v) },
     { key: 'put_cond', label: '回售条件' },
-    { key: 'premium_ratio', label: '溢价率%', align: 'right', formatter: fmtPct, colorize: true },
+    { key: 'premium_ratio', label: '溢价率%', align: 'right', formatter: fmtPct, cellClass: premiumCellClass },
     { key: 'price', label: '转债价格', align: 'right', formatter: (v: any) => fmt(v) },
   ],
 }
@@ -135,6 +135,15 @@ function fmtPct(v: any): string {
   return (n >= 0 ? '+' : '') + n.toFixed(2) + '%'
 }
 
+/** 溢价率三段式着色（恢复迁移前 premiumColor 语义）：<0 折价=机会；>50 极端预警；中间不着色 */
+function premiumCellClass(row: any): string {
+  const n = typeof row.premium_ratio === 'number' ? row.premium_ratio : parseFloat(row.premium_ratio)
+  if (!Number.isFinite(n)) return ''
+  if (n < 0) return 'cell-neg'
+  if (n > 50) return 'cell-warn'
+  return ''
+}
+
 function onTabChange(key: string) {
   activeTab.value = key as TabKey
 }
@@ -178,4 +187,8 @@ onMounted(() => {
   flex-direction: column;
   overflow: hidden;
 }
+
+/* PanelTable cellClass 命中在子组件 td 上，需 :deep 穿透 */
+:deep(.td.cell-neg) { color: var(--color-down); font-weight: 500; }
+:deep(.td.cell-warn) { color: var(--color-danger); font-weight: 600; }
 </style>

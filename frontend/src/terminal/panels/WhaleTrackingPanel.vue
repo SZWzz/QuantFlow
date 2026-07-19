@@ -104,8 +104,8 @@ function rowClass(tx: WhaleTx): string {
 const cols = computed<Column[]>(() => [
   { key: 'time', label: t('misc.time'), sortable: true, formatter: formatTime, width: 88 },
   { key: 'token', label: t('misc.token'), sortable: true },
-  { key: 'from', label: t('misc.from'), mono: true, formatter: shorten },
-  { key: 'to', label: t('misc.to'), mono: true, formatter: shorten },
+  { key: 'from', label: t('misc.from'), mono: true, formatter: shorten, title: (row: any) => row.from },
+  { key: 'to', label: t('misc.to'), mono: true, formatter: shorten, title: (row: any) => row.to },
   { key: 'usd_value', label: t('misc.whale_value'), align: 'right', sortable: true, formatter: fmUSD },
 ])
 

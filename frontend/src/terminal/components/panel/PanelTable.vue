@@ -88,6 +88,17 @@ function isMono(col: Column): boolean {
   return col.mono ?? (col.format ? NUMERIC_FORMATS.has(col.format) : false)
 }
 
+/** 单元格原生 tooltip：仅当列定义了 title hook 时输出 */
+function cellTitle(row: any, col: Column): string | undefined {
+  return col.title ? col.title(row) : undefined
+}
+
+/** 单元格附加 class：空串归一为 undefined，避免输出空 class */
+function cellClass(row: any, col: Column): string | undefined {
+  if (!col.cellClass) return undefined
+  return col.cellClass(row) || undefined
+}
+
 function onSort(col: Column) {
   let dir: 'asc' | 'desc' | null
   if (props.sortKey === col.key) {
@@ -133,8 +144,9 @@ const hasAction = computed(() => !!slots.action)
         <span
           v-for="col in columns"
           :key="col.key"
-          :class="['td', col.align || 'left', { colorize: col.colorize, mono: isMono(col) }]"
+          :class="['td', col.align || 'left', { colorize: col.colorize, mono: isMono(col) }, cellClass(row, col)]"
           :style="[{ color: colorizeColor(row, col) }, colStyle(col)]"
+          :title="cellTitle(row, col)"
         >
           {{ formatCell(row, col) }}
         </span>

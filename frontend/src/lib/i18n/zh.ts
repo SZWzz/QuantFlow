@@ -460,5 +460,11 @@ export default {
     confirmDelete: '确认删除布局 "{name}"？',
     hint: 'Ctrl+Shift+1..9 快速切换已保存布局',
   },
+  panels: {
+    cb_arbitrage: '可转债套利', arbitrage_opp: '套利机会', redeem_warn: '强赎预警', put_opp: '回售机会',
+    python_required: '需要 Python 环境', no_data: '暂无数据',
+    ex_dividend: '分红除权', today_ex: '今日除权', this_week_ex: '本周除权', this_month_ex: '本月除权',
+    dividend_yield_col: '股息率',
+  },
 }
 // Append nothing - we'll use sed to add keys
