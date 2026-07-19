@@ -160,7 +160,7 @@ function getIconForType(type: string): string {
   gap: 5px;
   padding: 3px 8px 3px 6px;
   border-radius: var(--radius-lg);
-  font-size: 11px;
+  font-size: var(--font-xs);
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);

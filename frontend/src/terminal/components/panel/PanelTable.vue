@@ -122,6 +122,15 @@ function onRowKeydown(row: any, e: KeyboardEvent) {
   emit('rowClick', row)
 }
 
+/** 行间方向键导航：↑↓ 在相邻行间移动焦点 */
+function focusSiblingRow(e: KeyboardEvent, dir: 1 | -1) {
+  if (!props.clickable || e.target !== e.currentTarget) return
+  e.preventDefault()
+  const row = e.currentTarget as HTMLElement
+  const sibling = (dir === 1 ? row.nextElementSibling : row.previousElementSibling) as HTMLElement | null
+  if (sibling?.classList.contains('table-row')) sibling.focus()
+}
+
 const slots = useSlots()
 const hasAction = computed(() => !!slots.action)
 </script>
@@ -161,6 +170,8 @@ const hasAction = computed(() => !!slots.action)
         @click="emit('rowClick', row)"
         @keydown.enter="onRowKeydown(row, $event)"
         @keydown.space="onRowKeydown(row, $event)"
+        @keydown.down="focusSiblingRow($event, 1)"
+        @keydown.up="focusSiblingRow($event, -1)"
         @contextmenu="emit('rowContextmenu', row, $event)"
       >
         <span

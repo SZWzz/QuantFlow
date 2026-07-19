@@ -71,6 +71,7 @@ const pollingActive = ref(true)
 // Context menu
 const ctxMenu = ref<{ x: number; y: number; symbol: string } | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
+const rootEl = ref<HTMLElement | null>(null)
 /** 打开菜单的触发元素（行或头部按钮），关闭时归还焦点 */
 let menuTrigger: HTMLElement | null = null
 
@@ -215,12 +216,22 @@ function handleWSQuote(topic: string, data: any) {
 }
 
 function removeSymbol(sym: string) {
+  // 键盘场景：删除前定位焦点锚点行（右键菜单触发行或当前焦点行），删除后焦点落到补位的行
+  const rowsBefore = Array.from(rootEl.value?.querySelectorAll('[data-testid="watchlist-row"]') ?? []) as HTMLElement[]
+  const anchor = (menuTrigger?.matches('[data-testid="watchlist-row"]') ? menuTrigger : document.activeElement) as HTMLElement | null
+  const focusIdx = rowsBefore.findIndex(el => el === anchor || el.contains(anchor))
   symbols.value = symbols.value.filter(s => s !== sym)
   saveSymbols(symbols.value)
   clearTimeout(flashTimers[sym])
   delete flashTimers[sym]
   delete flashMap[sym]
   window.dispatchEvent(new CustomEvent('watchlist-changed'))
+  if (focusIdx >= 0) {
+    nextTick(() => {
+      const rowsAfter = Array.from(rootEl.value?.querySelectorAll('[data-testid="watchlist-row"]') ?? []) as HTMLElement[]
+      if (rowsAfter.length > 0) rowsAfter[Math.min(focusIdx, rowsAfter.length - 1)].focus()
+    })
+  }
 }
 
 function selectSymbol(sym: string) {
@@ -385,7 +396,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="watchlist-panel" data-testid="watchlist-panel">
+  <div class="watchlist-panel" data-testid="watchlist-panel" ref="rootEl">
     <PanelHeader
       :title="t('watchlist.title')"
       :controls="controls"

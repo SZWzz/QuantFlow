@@ -330,7 +330,7 @@ onUnmounted(() => clearTimeout(debounceTimer))
 .market-badge {
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
   flex-shrink: 0;
   background: var(--color-bg-active);

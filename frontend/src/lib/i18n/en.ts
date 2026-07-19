@@ -1,6 +1,6 @@
 export default {
   common: {
-    search: 'Search', export: 'Export', filter: 'Filter', all: 'All',
+    search: 'Search', export: 'Export', filter: 'Filter', all: 'All', more: 'More',
     on: 'ON', off: 'OFF', save: 'Save', cancel: 'Cancel', delete: 'Delete',
     test: 'Test', connect: 'Connect', connected: 'Connected', disconnected: 'Disconnected',
     loading: 'Loading...', no_data: 'No Data', refresh: 'Refresh', close: 'Close', select: 'Select',
@@ -316,6 +316,9 @@ export default {
     recent_panels: 'Recent', market_snapshot: 'Market Snapshot',
     cmdbar_history: 'Recent Commands', cmdbar_commands: 'Commands', cmdbar_navigation: 'Navigation',
     cmdbar_quick: 'Quick', cmdbar_empty_hint: 'Type to search panels, or enter a symbol to view quotes',
+    cmdbar_toggle_mode: 'Toggle Workflow/Terminal', cmdbar_toggle_mode_desc: 'Switch between terminal and workflow mode',
+    cmdbar_toggle_focus: 'Focus Mode', cmdbar_toggle_focus_desc: 'Toggle focus mode',
+    cmdbar_clear_history: 'Clear Command History', cmdbar_clear_history_desc: 'Clear recent command history',
     // Batch P1 panels
     dragon_tiger: 'Dragon & Tiger', daily_board: 'Daily Board', stock_history: 'History',
     net_buy: 'Net Buy', buy_top5: 'Buy TOP5', sell_top5: 'Sell TOP5',

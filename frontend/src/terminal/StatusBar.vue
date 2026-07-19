@@ -336,17 +336,17 @@ const allOK = computed(() => badItems.value.length === 0)
   padding: 24px;
   min-width: 300px;
 }
-.detail-modal h3 { margin-bottom: 16px; font-size: 15px; }
+.detail-modal h3 { margin-bottom: 16px; font-size: var(--font-lg); }
 .detail-row {
   display: flex; justify-content: space-between;
   padding: 8px 0;
   border-bottom: 1px solid var(--color-border);
 }
-.detail-label { font-weight: 600; font-size: 13px; }
-.detail-value { font-size: 13px; }
+.detail-label { font-weight: 600; font-size: var(--font-sm); }
+.detail-value { font-size: var(--font-sm); }
 .btn-close {
   margin-top: 16px; padding: 8px 24px;
-  background: var(--color-accent); color: #fff;
-  border: none; border-radius: 8px; cursor: pointer;
+  background: var(--color-accent); color: var(--color-text-inverse);
+  border: 0; border-radius: 8px; cursor: pointer;
 }
 </style>

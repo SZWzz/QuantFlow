@@ -4,11 +4,14 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useToast } from '@/lib/composables/useToast'
 import { useSymbolContext } from '@/stores/symbolContext'
+import { useTerminalStore } from '@/stores/terminal'
 import { detectMarket } from '@/lib/wails'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
 const toast = useToast()
+const terminal = useTerminalStore()
+const isLive = computed(() => terminal.tradingMode === 'live')
 
 // ── Symbol linkage ─────────────────────────────────────────────────────
 const ctx = useSymbolContext()
@@ -243,6 +246,7 @@ function onSubmitKey() {
       <div v-if="orderType === 'stop'" class="form-group">
         <label>{{ $t('trade.stop_price') }}</label>
         <input v-model.number="stopPrice" type="number" step="0.01" class="form-input" data-testid="order-stop-price-input" />
+        <div v-if="isLive" class="stop-hint">实盘模式下止损价仅记录在本地订单，不会转发给券商</div>
       </div>
 
       <div class="estimated">
@@ -270,6 +274,7 @@ function onSubmitKey() {
 
 .form-group { display: flex; flex-direction: column; gap: 3px; }
 .form-group label { font-size: var(--font-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.stop-hint { font-size: var(--font-xs); color: var(--color-warn); }
 .form-input {
   padding: 6px 8px; background: var(--input); border: 1px solid var(--border); border-radius: var(--radius-sm);
   color: var(--color-text-primary); font-size: var(--font-sm); outline: none;
@@ -300,7 +305,7 @@ function onSubmitKey() {
 .total-value { color: var(--text); font-weight: 600; }
 
 .place-order-btn {
-  padding: 10px; border: none; border-radius: var(--radius-md); font-size: var(--font-sm); font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  padding: 10px; border: 0; border-radius: var(--radius-md); font-size: var(--font-sm); font-weight: 600; cursor: pointer; transition: opacity 0.15s;
 }
 .place-order-btn.buy { background: var(--color-up); color: var(--color-text-inverse); }
 .place-order-btn.sell { background: var(--color-down); color: var(--color-text-inverse); }
@@ -319,7 +324,7 @@ function onSubmitKey() {
 .confirm-value.sell { color: var(--color-down); }
 .confirm-actions { display: flex; gap: 8px; }
 .confirm-btn {
-  flex: 1; padding: 10px; border: none; border-radius: var(--radius-md);
+  flex: 1; padding: 10px; border: 0; border-radius: var(--radius-md);
   font-size: var(--font-sm); font-weight: 600; cursor: pointer; transition: opacity 0.15s;
 }
 .confirm-btn.buy { background: var(--color-up); color: var(--color-text-inverse); }

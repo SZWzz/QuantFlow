@@ -341,6 +341,9 @@ export default {
     recent_panels: '最近使用', market_snapshot: '市场快照',
     cmdbar_history: '最近命令', cmdbar_commands: '命令', cmdbar_navigation: '导航',
     cmdbar_quick: '快捷', cmdbar_empty_hint: '输入关键词搜索面板，或直接输入代码查看行情',
+    cmdbar_toggle_mode: '切换工作流/终端', cmdbar_toggle_mode_desc: '在终端与工作流模式间切换',
+    cmdbar_toggle_focus: '专注模式', cmdbar_toggle_focus_desc: '切换专注模式显示',
+    cmdbar_clear_history: '清除命令历史', cmdbar_clear_history_desc: '清空最近命令记录',
     asset_market: '资产/市场',
     // Batch P1 panels
     dragon_tiger: '龙虎榜', daily_board: '日榜单', stock_history: '个股历史',

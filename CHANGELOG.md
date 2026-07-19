@@ -5,8 +5,17 @@
 
 ## [2026.7.19] - 2026-07-19
 
+### 新增
+
+- [Frontend] PanelTable 行间↑↓方向键导航 — `focusSiblingRow` 辅助函数在相邻行间移动焦点，空投资产排序面板等可键盘逐行操作
+- [Frontend] WatchlistPanel 删除后焦点智能归还 — 右键盘删除股票后自动聚焦到补位的行（而非跳转到页面顶部），保证键盘连续操作不掉链
+- [Frontend] OrderEntryPanel 实盘止损提示 — Live 模式下止损价输入框下方显示「实盘模式下止损价仅记录在本地订单，不会转发给券商」警告文字，防止用户误以为券商支持止损单
+- [Frontend] CommandBar 命令项 i18n 化 — 3 个系统命令（切换模式/专注模式/清除历史）从硬编码改为调用 `t()`，新增 6 个 i18n key
+
 ### 变更
 
+- [Frontend] TickerBar/TickerTapePanel 涨跌色改用 CSS class — 移除 `marketChangeColor()` 运行时开销（高频滚动场景每次 getComputedStyle），改用 `.is-up`/`.is-down`/`.is-flat` class + `var(--color-up/down)` token，性能与主题一致性双提升
+- [Frontend] CSS 变量收尾 — PushPinBar/StatusBar/SymbolSearch/CommandBar 中残留的硬编码 `font-size: 10/11/15px`、`border: none`、`#fff` 等统一替换为 `var(--font-*)`/`border: 0`/`var(--color-text-inverse)` 等 token
 - [Frontend] Phase 2 骨架屏迁移完成 — 所有面板组（chart-group-a/b、prediction-valuation、research-tools、system-aux、funding/hk、arbitrage/calendar、bonds/funds/futures、toolbar-variant）全面迁移至 `SkeletonPanel` / `LoadingState` / `ErrorState` 共享组件，消除约 8,183 行重复架子代码
 - [Frontend] 剩余面板批量 Token 化 — font-size 全部改用 `--font-*` CSS 变量（最小字号 11px），padding/margin 改用 `--space-*` token，消除面板层级硬编码色值
 - [Frontend] stylelint 规则提升至 error 级别 — Phase 2 所有 CSS 合规检查通过

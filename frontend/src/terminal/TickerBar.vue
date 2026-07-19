@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { detectMarket } from '@/lib/wails'
-import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
+
+// 涨跌色走 CSS class + token，避免高频渲染下每项一次 getComputedStyle
+const changeClass = (pct: number) => (pct > 0 ? 'is-up' : pct < 0 ? 'is-down' : 'is-flat')
 
 interface TickerItem {
   symbol: string
@@ -107,7 +109,7 @@ onUnmounted(() => {
         <span v-for="(item, idx) in items" :key="idx" class="tape-item">
           <span class="tape-name">{{ item.name }}</span>
           <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-          <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
+          <span class="tape-change" :class="changeClass(item.changePct)">
             {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
           </span>
         </span>
@@ -115,7 +117,7 @@ onUnmounted(() => {
           <span v-for="(item, idx) in items" :key="'dup-' + idx" class="tape-item">
             <span class="tape-name">{{ item.name }}</span>
             <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-            <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
+            <span class="tape-change" :class="changeClass(item.changePct)">
               {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
             </span>
           </span>
@@ -178,6 +180,15 @@ onUnmounted(() => {
 }
 .tape-change {
   font-weight: 500;
+}
+.tape-change.is-up {
+  color: var(--color-up);
+}
+.tape-change.is-down {
+  color: var(--color-down);
+}
+.tape-change.is-flat {
+  color: var(--color-text-secondary);
 }
 @keyframes scroll {
   from { transform: translateX(0); }

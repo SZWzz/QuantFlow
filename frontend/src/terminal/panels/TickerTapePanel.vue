@@ -2,8 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
 import { detectMarket } from '@/lib/wails'
-import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { PanelHeader, LoadingState } from '@/terminal/components/panel'
+
+// 涨跌色走 CSS class + token，避免高频渲染下每项一次 getComputedStyle
+const changeClass = (pct: number) => (pct > 0 ? 'is-up' : pct < 0 ? 'is-down' : 'is-flat')
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -70,7 +72,7 @@ onMounted(() => execute())
           <span class="tape-symbol">{{ item.symbol }}</span>
           <span class="tape-name">{{ item.name }}</span>
           <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-          <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
+          <span class="tape-change" :class="changeClass(item.changePct)">
             {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
           </span>
         </span>
@@ -80,7 +82,7 @@ onMounted(() => execute())
             <span class="tape-symbol">{{ item.symbol }}</span>
             <span class="tape-name">{{ item.name }}</span>
             <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-            <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
+            <span class="tape-change" :class="changeClass(item.changePct)">
               {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
             </span>
           </span>
@@ -101,6 +103,9 @@ onMounted(() => execute())
 .tape-name { color: var(--color-text-secondary); font-size: var(--font-xs); }
 .tape-price { color: var(--color-text-primary); }
 .tape-change { font-weight: 500; }
+.tape-change.is-up { color: var(--color-up); }
+.tape-change.is-down { color: var(--color-down); }
+.tape-change.is-flat { color: var(--color-text-secondary); }
 
 .tape-clone { display: contents; }
 
