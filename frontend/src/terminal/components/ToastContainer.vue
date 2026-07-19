@@ -6,13 +6,13 @@ const { toasts, removeToast } = useToast()
 const typeColors: Record<string, { bg: string; border: string; icon: string }> = {
   info: { bg: 'var(--color-info-soft)', border: 'var(--color-info)', icon: 'ℹ️' },
   success: { bg: 'var(--color-success-soft)', border: 'var(--color-success)', icon: '✅' },
-  warning: { bg: 'var(--color-warning-soft)', border: 'var(--color-warning)', icon: '⚠️' },
+  warning: { bg: 'var(--color-warn-soft)', border: 'var(--color-warn)', icon: '⚠️' },
   error: { bg: 'var(--color-danger-soft)', border: 'var(--color-danger)', icon: '❌' },
 }
 </script>
 
 <template>
-  <div class="toast-container">
+  <div class="toast-container" aria-live="polite">
     <div
       v-for="toast in toasts"
       :key="toast.id"
@@ -27,9 +27,9 @@ const typeColors: Record<string, { bg: string; border: string; icon: string }> =
       <div class="toast-content">
         <div class="toast-title">{{ toast.title }}</div>
         <div class="toast-message">{{ toast.message }}</div>
-        <span v-if="toast.action" class="toast-action" @click="toast.action.onClick">
+        <button v-if="toast.action" type="button" class="toast-action" @click="toast.action.onClick">
           {{ toast.action.label }}
-        </span>
+        </button>
       </div>
       <button
         v-if="toast.duration === 0"
@@ -68,7 +68,10 @@ const typeColors: Record<string, { bg: string; border: string; icon: string }> =
 .toast-content { flex: 1; min-width: 0; }
 .toast-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
 .toast-message { font-size: 12px; color: var(--color-text-secondary); word-break: break-word; }
-.toast-action { font-size: 12px; color: var(--color-accent); cursor: pointer; font-weight: 600; }
+.toast-action {
+  padding: 0; border: 0; background: none; font-family: inherit; text-align: left;
+  font-size: var(--font-xs); color: var(--color-accent); cursor: pointer; font-weight: 600;
+}
 .toast-dismiss {
   background: none; border: none; color: var(--color-text-tertiary);
   cursor: pointer; font-size: 14px; padding: 0; line-height: 1;

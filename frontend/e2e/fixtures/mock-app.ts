@@ -2,6 +2,8 @@ import type { Page } from '@playwright/test'
 
 export async function setupMocks(page: Page) {
   await page.addInitScript(() => {
+    // 跳过首次运行向导（mock 环境恒为首跑，向导遮罩会拦截点击）
+    try { localStorage.setItem('quantflow-first-run-completed', 'true') } catch {}
     // Mock Wails IPC — window.go.main.App
     const mockApp = {
       SearchSymbols: async (q: string, limit: number) => {
@@ -13,7 +15,8 @@ export async function setupMocks(page: Page) {
           { code: '00700', name: '腾讯控股', market: 'HK', pinyin: '' },
         ]
         const filtered = q ? symbols.filter(s => s.code.includes(q) || s.name.includes(q)) : symbols
-        return { data: filtered.slice(0, limit) }
+        // Real backend returns a bare array (app.go SearchSymbols)
+        return filtered.slice(0, limit)
       },
 
       GetQuote: async (market: string, symbol: string) => {
@@ -25,22 +28,33 @@ export async function setupMocks(page: Page) {
           '600519': 1650.00, '000001': 12.50, '300750': 210.00,
           'AAPL': 195.50, '00700': 320.00,
         }
-        return {
-          data: [{
-            symbol, name: names[symbol] || symbol,
-            last: prices[symbol] || 100, change: 1.5, changePct: 1.0,
-            open: (prices[symbol] || 100) - 2, high: (prices[symbol] || 100) + 2,
-            low: (prices[symbol] || 100) - 3, volume: 1000000, turnover: 150000000,
-            bid: (prices[symbol] || 100) - 0.1, ask: (prices[symbol] || 100) + 0.1,
-            prevClose: (prices[symbol] || 100) - 1.5, timestamp: Date.now(),
-          }]
-        }
+        // Real backend (app_market.go GetQuote) returns (snapshot, source, error)
+        // → Wails serializes multi-return as a positional array
+        return [{
+          symbol, name: names[symbol] || symbol,
+          last: prices[symbol] || 100, change: 1.5, changePct: 1.0,
+          open: (prices[symbol] || 100) - 2, high: (prices[symbol] || 100) + 2,
+          low: (prices[symbol] || 100) - 3, volume: 1000000, turnover: 150000000,
+          bid: (prices[symbol] || 100) - 0.1, ask: (prices[symbol] || 100) + 0.1,
+          prevClose: (prices[symbol] || 100) - 1.5, timestamp: Date.now(),
+        }, 'mock']
       },
 
       FetchOHLCV: async () => ({ data: [] }),
       GetMinuteLine: async () => ({ data: [] }),
 
       PlaceOrder: async (_symbol: string, _side: string, _orderType: string, _brokerName: string, _qty: number, _price: number) => {
+        ;(window as any).__placedOrders = (window as any).__placedOrders || []
+        ;(window as any).__placedOrders.push({ symbol: _symbol, side: _side, orderType: _orderType, broker: _brokerName, qty: _qty, price: _price, stopPrice: 0 })
+        return { id: 'test-' + Date.now(), symbol: _symbol, side: _side, orderType: _orderType, status: 'filled', quantity: _qty, price: _price, placedAt: new Date().toISOString() }
+      },
+
+      PlaceOrderWithStop: async (_symbol: string, _side: string, _orderType: string, _brokerName: string, _qty: number, _price: number, _stopPrice: number) => {
+        if (_symbol === 'FAIL') throw new Error('mock 下单失败')
+        ;(window as any).__placedOrders = (window as any).__placedOrders || []
+        ;(window as any).__placedOrders.push({ symbol: _symbol, side: _side, orderType: _orderType, broker: _brokerName, qty: _qty, price: _price, stopPrice: _stopPrice })
+        // Small delay so tests can observe the submitting state
+        await new Promise(r => setTimeout(r, 300))
         return { id: 'test-' + Date.now(), symbol: _symbol, side: _side, orderType: _orderType, status: 'filled', quantity: _qty, price: _price, placedAt: new Date().toISOString() }
       },
 

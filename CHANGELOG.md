@@ -12,6 +12,25 @@
 - [Frontend] stylelint 规则提升至 error 级别 — Phase 2 所有 CSS 合规检查通过
 - [Frontend] PanelTable 增强 — 粘性表头（sticky header）、`colorize` 守卫、全局 `btn-sm` 类，恢复 Whale Tracking 地址 tooltip 和 CB Arbitrage 阈值高亮
 - [Frontend] 测试覆盖率补充 — WatchlistPanel 新增 49 条测试用例，更新 SurfaceChartPanel/TickerTapePanel 测试适配新组件
+- [Frontend] 无障碍（a11y）全面改造 — 37 个组件添加 ARIA 角色/属性、键盘导航（↑↓ Home/End/Enter/Space/Escape）、焦点管理（焦点环 token、菜单关闭焦点归还）、语义化标签、`<button>` 化、`aria-live` 区域
+- [Frontend] 去装饰化第二阶段 — 删除 StatusBar 辉光渐变分割线、WelcomePanel 圆点装饰/分类色背景、canvas-theme.ts、CommandBar 英文提示改为中文、面板分类色仅用于图标文字（去除彩色背景）
+- [Frontend] Token 化收尾 — 工作流组件（NodePalette/CustomNode/StickyNote/WorkflowCanvas/ContextMenu/WorkflowMode/ExecutionLog/ExecutionHistory/CredentialManager/WorkflowList）硬编码色值全部替换为 CSS 变量，分类色与面板共享 `--cat-*` token，阴影/背景 token 化，StickyNote 双主题色
+- [Frontend] WelcomePanel 增强 — 分类 chips 折叠「更多」、最近使用面板加图标、区块标题对齐终端风格、分类色仅用于 icon 文字
+- [Frontend] OrderEntryPanel 重构 — SymbolContext 联动、确认下单两步流程（confirm → submit）、止损价支持、数量预设 chips、Ctrl+Enter 快捷键、接入 toast 提示、定价预设/空态处理
+- [Frontend] SymbolSearch 重构 — spinner CSS 动画替代 emoji、市场徽标改用中性色文字（去颜色编码）、combobox ARIA、键盘导航 scrollIntoView、Enter 选中第一项
+- [Frontend] PushPinBar 交互增强 — 点击导航到对应面板/自选股/工作流、删除撤销 toast、`focus-within` 键盘可达
+- [Frontend] PanelTable ARIA 改造 — role table/row/cell/columnheader/rowgroup、排序按钮化、行 tabindex + 键盘点击
+- [Frontend] WatchlistPanel 上下文菜单键盘可达 — role menu/menuitem、↑↓ Home/End/Esc/Tab、焦点归还
+- [Frontend] 工作流无障碍 — NodePalette 键盘可达（Enter/双击添加节点到画布）、CustomNode/ContextMenu 焦点环
+- [Frontend] WorkflowCanvas 控件 token 化 — vue-flow 控制按钮/框选/minimap 样式 token 化
+- [Frontend] TickerBar/TickerTapePanel `prefers-reduced-motion` — 减少动画时隐藏无缝滚动克隆
+- [Frontend] TradeHistory/OptionsPanel 色值 token 化 — 硬编码 rgba 色值替换为 `--color-danger-soft` / `--color-accent-soft`
+- [Frontend] PanelHeader/ToastContainer 按钮规范 — 所有按钮加 `type="button"`、Toast 操作使用 `<button>` 替代 `<span>`、ToastContainer 添加 `aria-live="polite"`
+- [Frontend] CommandBar/DockView 无障碍 — CommandBar aria-modal/aria-activedescendant、DockView 布局按钮 aria-label
+- [Frontend] useMarketColors 重构 — 移除 `detectMarket` 依赖、改用 `cssVar()` 读取 `--color-up`/`--color-down` token、支持 `body.color-us` 涨跌色偏好
+- [Frontend] buildChartOption MACD/K 线颜色改用 upCol/downCol 变量 — 消除硬编码 `#ef5350`/`#66bb6a`
+- [Backend] `PlaceOrderWithStop` IPC — 新增带止损价的下单方法、StopPrice 写入 Order 指针（paper matcher 共享，实盘路径仅记录）
+- [E2E] 下单流程测试增强 — 确认/取消/止损价/错误 toast/Ctrl+Enter 快捷键测试；新增 screenshot-walkthrough 截图漫游 E2E
 
 ## [2026.7.17] - 2026-07-17
 

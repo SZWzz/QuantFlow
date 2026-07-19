@@ -274,7 +274,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 .market-selector { display: flex; gap: 0; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); overflow: hidden; }
 .market-tab { padding: 2px 10px; border: none; background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: var(--font-xs); font-weight: 500; }
 .market-tab + .market-tab { border-left: 1px solid var(--color-border-strong); }
-.market-tab.active { color: var(--color-accent); background: rgba(59,130,246,0.1); }
+.market-tab.active { color: var(--color-accent); background: var(--color-accent-soft); }
 
 /* CN */
 .panel-body { flex: 1; overflow: auto; padding: 12px; }
@@ -291,7 +291,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 .down { color: var(--color-down); }
 
 /* US */
-.symbol-badge { font-size: var(--font-xs); padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; }
+.symbol-badge { font-size: var(--font-xs); padding: 2px 8px; border-radius: var(--radius-sm); background: var(--color-accent-soft); color: var(--color-accent); font-family: monospace; }
 .sym-input { padding: 2px 6px; font-size: var(--font-xs); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 70px; }
 
 .expiry-bar { display: flex; align-items: center; gap: 6px; padding: 6px 12px; flex-shrink: 0; border-bottom: 1px solid var(--color-border-subtle); }

@@ -109,26 +109,44 @@ function onSort(col: Column) {
   emit('sortChange', col.key, dir)
 }
 
+/** 当前排序列的 aria-sort 值；仅应用于排序中的列（ARIA 规范不要求每列都标 none） */
+function ariaSort(col: Column): 'ascending' | 'descending' | undefined {
+  if (!col.sortable || props.sortKey !== col.key || !props.sortDir) return undefined
+  return props.sortDir === 'asc' ? 'ascending' : 'descending'
+}
+
+/** 行键盘激活：仅当事件源自行本身（避免行内按钮等交互元素的 keydown 冒泡误触发行点击） */
+function onRowKeydown(row: any, e: KeyboardEvent) {
+  if (!props.clickable || e.target !== e.currentTarget) return
+  e.preventDefault()
+  emit('rowClick', row)
+}
+
 const slots = useSlots()
 const hasAction = computed(() => !!slots.action)
 </script>
 
 <template>
-  <div class="panel-table-wrapper">
-    <div v-if="!hideHeader" class="table-header-row" :class="{ sticky: stickyHeader }">
+  <div class="panel-table-wrapper" role="table">
+    <div v-if="!hideHeader" class="table-header-row" :class="{ sticky: stickyHeader }" role="row">
       <span
         v-for="col in columns"
         :key="col.key"
         :class="['th', col.align || 'left', { sortable: col.sortable }]"
         :style="colStyle(col)"
+        role="columnheader"
+        :aria-sort="ariaSort(col)"
         @click="col.sortable && onSort(col)"
       >
-        {{ col.label }}
-        <span v-if="col.sortable && sortKey === col.key && sortDir" class="sort-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+        <button v-if="col.sortable" type="button" class="sort-trigger">
+          {{ col.label }}
+          <span v-if="sortKey === col.key && sortDir" class="sort-arrow" aria-hidden="true">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+        </button>
+        <template v-else>{{ col.label }}</template>
       </span>
-      <span v-if="hasAction" class="th action-th"> </span>
+      <span v-if="hasAction" class="th action-th" role="columnheader"> </span>
     </div>
-    <div class="table-body">
+    <div class="table-body" role="rowgroup">
       <div
         v-for="(row, idx) in data"
         :key="getKey(row, idx)"
@@ -138,7 +156,11 @@ const hasAction = computed(() => !!slots.action)
           props.rowClass ? props.rowClass(row) : '',
         ]"
         :data-testid="rowTestId"
+        role="row"
+        :tabindex="clickable ? 0 : undefined"
         @click="emit('rowClick', row)"
+        @keydown.enter="onRowKeydown(row, $event)"
+        @keydown.space="onRowKeydown(row, $event)"
         @contextmenu="emit('rowContextmenu', row, $event)"
       >
         <span
@@ -147,10 +169,11 @@ const hasAction = computed(() => !!slots.action)
           :class="['td', col.align || 'left', { colorize: col.colorize, mono: isMono(col) }, cellClass(row, col)]"
           :style="[{ color: colorizeColor(row, col) }, colStyle(col)]"
           :title="cellTitle(row, col)"
+          role="cell"
         >
           {{ formatCell(row, col) }}
         </span>
-        <span v-if="hasAction" class="td action-td">
+        <span v-if="hasAction" class="td action-td" role="cell">
           <slot name="action" :row="row" />
         </span>
       </div>
@@ -205,6 +228,19 @@ const hasAction = computed(() => !!slots.action)
 
 .th.sortable:hover {
   color: var(--color-text-primary);
+}
+
+/* 排序触发器：内嵌 button 提供原生键盘可达，外观与表头文字一致（click 冒泡到 th 处理） */
+.sort-trigger {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
 }
 
 .sort-arrow {

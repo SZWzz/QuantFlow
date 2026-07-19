@@ -68,6 +68,24 @@ const panelCategories = computed(() => {
 const searchQuery = ref('')
 const activeCat = ref('')
 
+// 主行只保留高频分类（全部 + 6 个），其余收进「更多」展开区，默认折叠
+const PRIMARY_CAT_KEYS = ['market', 'trading', 'portfolio', 'chart', 'research', 'crypto']
+const showMoreCats = ref(false)
+
+const primaryCategories = computed(() =>
+  panelCategories.value.filter(c => PRIMARY_CAT_KEYS.includes(c.key)))
+const moreCategories = computed(() =>
+  panelCategories.value.filter(c => !PRIMARY_CAT_KEYS.includes(c.key)))
+const moreHasActive = computed(() =>
+  moreCategories.value.some(c => c.key === activeCat.value))
+// 折叠时若选中项在「更多」里，将该 chip 钉在主行，选中态保持可见
+const pinnedMoreCat = computed(() =>
+  showMoreCats.value ? undefined : moreCategories.value.find(c => c.key === activeCat.value))
+
+function selectCat(key: string) {
+  activeCat.value = activeCat.value === key ? '' : key
+}
+
 const filteredCategories = computed(() => {
   const q = searchQuery.value.trim().toLowerCase().replace(/\s+/g, '')
   const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '')
@@ -132,39 +150,62 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
           {{ $t('common.all') }}
         </button>
         <button
-          v-for="cat in panelCategories"
+          v-for="cat in primaryCategories"
           :key="cat.key"
           :class="['cat-chip', { active: activeCat === cat.key }]"
-          @click="activeCat = activeCat === cat.key ? '' : cat.key"
+          @click="selectCat(cat.key)"
         >
           {{ catLabel(cat.title) }}
           <span class="chip-count">{{ cat.items.length }}</span>
         </button>
+        <button
+          v-if="pinnedMoreCat"
+          class="cat-chip active"
+          @click="selectCat(pinnedMoreCat.key)"
+        >
+          {{ catLabel(pinnedMoreCat.title) }}
+          <span class="chip-count">{{ pinnedMoreCat.items.length }}</span>
+        </button>
+        <button
+          v-if="moreCategories.length"
+          :class="['cat-chip', 'cat-chip-more', { 'has-active': moreHasActive }]"
+          :aria-expanded="showMoreCats"
+          @click="showMoreCats = !showMoreCats"
+        >
+          更多
+          <span class="chip-chevron" v-html="getIcon(showMoreCats ? 'chevron-up' : 'chevron-down')" />
+        </button>
+        <template v-if="showMoreCats">
+          <button
+            v-for="cat in moreCategories"
+            :key="cat.key"
+            :class="['cat-chip', { active: activeCat === cat.key }]"
+            @click="selectCat(cat.key)"
+          >
+            {{ catLabel(cat.title) }}
+            <span class="chip-count">{{ cat.items.length }}</span>
+          </button>
+        </template>
       </div>
     </div>
 
     <div v-if="recentPanels.length > 0 && !searchQuery && !activeCat" class="dashboard-section">
-      <div class="section-title">
-        <span class="section-dot accent" />
-        {{ $t('misc.recent_panels') }}
-      </div>
+      <h2 class="section-title">{{ $t('misc.recent_panels') }}</h2>
       <div class="recent-row">
         <button
           v-for="p in recentPanels"
           :key="p"
-          class="recent-chip"
+          class="recent-item"
           @click="openPanel(p)"
         >
-          {{ getPanelMeta(p)?.label || p }}
+          <span class="recent-icon" v-html="getIconSvg(p)" />
+          <span class="recent-label">{{ getPanelMeta(p)?.label || p }}</span>
         </button>
       </div>
     </div>
 
     <div v-if="shIndex || hkIndex" class="dashboard-section">
-      <div class="section-title">
-        <span class="section-dot market" />
-        {{ $t('misc.market_snapshot') }}
-      </div>
+      <h2 class="section-title">{{ $t('misc.market_snapshot') }}</h2>
       <div class="snapshot-row">
         <div v-if="shIndex" class="snapshot-item">
           <span class="snap-name">{{ shIndex.name }}</span>
@@ -191,7 +232,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
         :data-cat="cat.key"
       >
         <div class="category-header">
-          <span class="category-dot" />
           <h2 class="category-title">{{ catLabel(cat.title) }}</h2>
           <span class="category-count">{{ cat.items.length }}</span>
         </div>
@@ -220,49 +260,38 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 
 <style scoped>
 .welcome-panel {
-  padding: 32px;
+  padding: var(--space-2xl);
   background: var(--color-bg-panel);
   height: 100%;
   overflow-y: auto;
 }
 
-/* Category accent colors via data-cat */
-.category-section[data-cat="market"] .category-dot,
-.category-section[data-cat="market"] .card-icon { background: var(--cat-market-bg); color: var(--cat-market); }
-.category-section[data-cat="trading"] .category-dot,
-.category-section[data-cat="trading"] .card-icon { background: var(--cat-trading-bg); color: var(--cat-trading); }
-.category-section[data-cat="portfolio"] .category-dot,
-.category-section[data-cat="portfolio"] .card-icon { background: var(--cat-portfolio-bg); color: var(--cat-portfolio); }
-.category-section[data-cat="chart"] .category-dot,
-.category-section[data-cat="chart"] .card-icon { background: var(--cat-chart-bg); color: var(--cat-chart); }
-.category-section[data-cat="research"] .category-dot,
-.category-section[data-cat="research"] .card-icon { background: var(--cat-research-bg); color: var(--cat-research); }
-.category-section[data-cat="quant"] .category-dot,
-.category-section[data-cat="quant"] .card-icon { background: var(--cat-quant-bg); color: var(--cat-quant); }
-.category-section[data-cat="altdata"] .category-dot,
-.category-section[data-cat="altdata"] .card-icon { background: var(--cat-altdata-bg); color: var(--cat-altdata); }
-.category-section[data-cat="hk"] .category-dot,
-.category-section[data-cat="hk"] .card-icon { background: var(--cat-hk-bg); color: var(--cat-hk); }
-.category-section[data-cat="us"] .category-dot,
-.category-section[data-cat="us"] .card-icon { background: var(--cat-us-bg); color: var(--cat-us); }
-.category-section[data-cat="crypto"] .category-dot,
-.category-section[data-cat="crypto"] .card-icon { background: var(--cat-crypto-bg); color: var(--cat-crypto); }
-.category-section[data-cat="system"] .category-dot,
-.category-section[data-cat="system"] .card-icon { background: var(--cat-system-bg); color: var(--cat-system); }
+/* 分类色仅用于图标本体；图标底色保持中性，降低彩色底噪 */
+.category-section[data-cat="market"] .card-icon { color: var(--cat-market); }
+.category-section[data-cat="trading"] .card-icon { color: var(--cat-trading); }
+.category-section[data-cat="portfolio"] .card-icon { color: var(--cat-portfolio); }
+.category-section[data-cat="chart"] .card-icon { color: var(--cat-chart); }
+.category-section[data-cat="research"] .card-icon { color: var(--cat-research); }
+.category-section[data-cat="quant"] .card-icon { color: var(--cat-quant); }
+.category-section[data-cat="altdata"] .card-icon { color: var(--cat-altdata); }
+.category-section[data-cat="hk"] .card-icon { color: var(--cat-hk); }
+.category-section[data-cat="us"] .card-icon { color: var(--cat-us); }
+.category-section[data-cat="crypto"] .card-icon { color: var(--cat-crypto); }
+.category-section[data-cat="system"] .card-icon { color: var(--cat-system); }
 
 .welcome-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
-  padding-bottom: 20px;
+  margin-bottom: var(--space-2xl);
+  padding-bottom: var(--space-xl);
   border-bottom: 1px solid var(--color-border);
 }
 
 .logo-area {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .logo-badge {
@@ -293,7 +322,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 .logo-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xs);
 }
 
 .welcome-title {
@@ -312,14 +341,14 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 
 .welcome-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--color-border);
   background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
@@ -352,16 +381,16 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 /* ── Toolbar: search + category rail ─────────────────────────── */
 .welcome-toolbar {
   max-width: 960px;
-  margin: 0 auto 24px;
+  margin: 0 auto var(--space-xl);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 .search-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
   background: var(--color-bg-input);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -383,7 +412,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   flex: 1;
   border: none;
   background: transparent;
-  padding: 9px 0;
+  padding: var(--space-sm) 0;
   font-size: var(--font-sm);
   color: var(--color-text-primary);
   outline: none;
@@ -392,13 +421,14 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 .cat-rail {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: var(--space-xs);
 }
 .cat-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: transparent;
@@ -417,47 +447,57 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   border-color: var(--color-accent);
   color: var(--color-text-inverse);
 }
-.cat-chip.active .chip-count {
-  background: color-mix(in srgb, var(--color-text-inverse) 20%, transparent);
-  color: var(--color-text-inverse);
-  border-color: transparent;
-}
+/* 计数徽标弱化：无底色、仅 tertiary 文本 */
 .chip-count {
   font-size: var(--font-xs);
-  padding: 0 6px;
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-subtle);
-  border: 1px solid var(--color-border);
   color: var(--color-text-tertiary);
   line-height: 1.5;
+}
+.cat-chip.active .chip-count {
+  color: color-mix(in srgb, var(--color-text-inverse) 80%, transparent);
+}
+.cat-chip-more.has-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.chip-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+}
+.chip-chevron :deep(svg) { width: 100%; height: 100%; }
+
+/* 键盘可达性：焦点环走 border-glow token */
+.cat-chip:focus-visible,
+.recent-item:focus-visible,
+.action-btn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-border-glow);
 }
 
 .panel-grid {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: var(--space-xl);
   max-width: 960px;
   margin: 0 auto;
 }
 
+/* 区块标题行对齐终端面板头语言（参考 WatchlistPanel 组头）：小字、无装饰 */
 .category-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-xs);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.category-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .category-title {
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   font-weight: 600;
   color: var(--color-text-secondary);
   margin: 0;
@@ -466,28 +506,24 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 
 .category-count {
   font-size: var(--font-xs);
-  font-weight: 500;
   color: var(--color-text-tertiary);
-  padding: 1px 8px;
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .panel-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   background: var(--color-bg-subtle);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  font-family: inherit;
   cursor: pointer;
   text-align: left;
   transition: border-color var(--transition-normal), background var(--transition-normal), box-shadow var(--transition-normal);
@@ -495,9 +531,15 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 }
 
 .panel-card:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-bg-panel);
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-card:focus-visible {
+  outline: none;
   border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 0 0 3px var(--color-border-glow);
 }
 
 .card-icon {
@@ -507,6 +549,7 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   width: 32px;
   height: 32px;
   border-radius: var(--radius-md);
+  background: var(--color-bg-hover);
   flex-shrink: 0;
 }
 
@@ -520,14 +563,14 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   flex-direction: column;
   min-width: 0;
   flex: 1;
-  gap: 2px;
+  gap: var(--space-xs);
 }
 
+/* 标题与描述拉开层级：600/font-sm vs tertiary/font-xs 单行省略 */
 .card-label {
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
-  transition: color var(--transition-fast);
 }
 
 .card-desc {
@@ -536,11 +579,6 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color var(--transition-fast);
-}
-
-.panel-card:hover .card-desc {
-  color: var(--color-text-secondary);
 }
 
 .card-arrow {
@@ -561,66 +599,70 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
   height: 100%;
 }
 
-.panel-card:hover .card-arrow {
+.panel-card:hover .card-arrow,
+.panel-card:focus-visible .card-arrow {
   opacity: 1;
   transform: translateX(0);
-  color: var(--color-accent);
+  color: var(--color-text-secondary);
 }
 
 /* Dashboard sections */
 .dashboard-section {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-border);
+  max-width: 960px;
+  margin: 0 auto var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 .section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 10px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-sm);
 }
-.section-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.section-dot.accent { background: var(--color-accent); }
-.section-dot.market { background: var(--color-up); }
+/* 最近使用：紧凑横排条目，与主网格卡片明确区分 */
 .recent-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-xs);
 }
-.recent-chip {
+.recent-item {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-elevated);
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
   font-size: var(--font-xs);
+  font-family: inherit;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
-.recent-chip:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
+.recent-item:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
+.recent-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+.recent-icon :deep(svg) { width: 100%; height: 100%; }
 .snapshot-row {
   display: flex;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 .snapshot-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);

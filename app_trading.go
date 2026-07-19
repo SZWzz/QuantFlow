@@ -11,6 +11,21 @@ import (
 
 // PlaceOrder submits an order to the trading engine (paper or live broker).
 func (a *App) PlaceOrder(symbol, side, orderType, brokerName string, qty, price float64) (*trading.Order, error) {
+	return a.placeOrder(symbol, side, orderType, brokerName, qty, price, 0)
+}
+
+// PlaceOrderWithStop is PlaceOrder with an optional stop price for stop orders.
+// A zero or negative stopPrice behaves exactly like PlaceOrder.
+//
+// Note: OMS.PlaceOrder does not accept a stop price, so it is set on the
+// returned order record after placement. The paper matcher shares the order
+// pointer, so stop orders work in paper trading; for the live-broker path the
+// stop price is recorded in the OMS book but is NOT forwarded to the broker.
+func (a *App) PlaceOrderWithStop(symbol, side, orderType, brokerName string, qty, price, stopPrice float64) (*trading.Order, error) {
+	return a.placeOrder(symbol, side, orderType, brokerName, qty, price, stopPrice)
+}
+
+func (a *App) placeOrder(symbol, side, orderType, brokerName string, qty, price, stopPrice float64) (*trading.Order, error) {
 	if a.oms == nil {
 		return nil, fmt.Errorf("OMS not initialized")
 	}
@@ -26,7 +41,13 @@ func (a *App) PlaceOrder(symbol, side, orderType, brokerName string, qty, price 
 		}
 	}
 
-	return a.oms.PlaceOrder(symbol, trading.OrderSide(side), trading.OrderType(orderType), brokerName, qty, price)
+	order, err := a.oms.PlaceOrder(symbol, trading.OrderSide(side), trading.OrderType(orderType), brokerName, qty, price)
+	if err == nil && order != nil && stopPrice > 0 {
+		// The order pointer is shared with the OMS order book, so this also
+		// updates the stored order used by the paper stop-order matcher.
+		order.StopPrice = stopPrice
+	}
+	return order, err
 }
 
 // GetPositions returns all current positions.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } from 'vue'
 import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
@@ -24,6 +24,8 @@ const controls = computed(() => {
   const list: any[] = []
   if (addToWfControl.value) list.push(addToWfControl.value)
   list.push({ icon: 'refresh', label: t('common.refresh'), action: refreshAll })
+  // 右键菜单操作的键盘可达入口：对当前选中 symbol 打开同一操作菜单
+  list.push({ icon: 'dots', title: t('common.actions'), action: openSymbolActions })
   return list
 })
 
@@ -68,6 +70,9 @@ const pollingActive = ref(true)
 
 // Context menu
 const ctxMenu = ref<{ x: number; y: number; symbol: string } | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
+/** 打开菜单的触发元素（行或头部按钮），关闭时归还焦点 */
+let menuTrigger: HTMLElement | null = null
 
 const tableColumns = computed<Column[]>(() => [
   { key: 'symbol', label: t('common.symbol'), width: 70 },
@@ -235,11 +240,70 @@ function onRowContextMenu(row: WatchRow, e: MouseEvent) {
   openContextMenu(e, row.symbol)
 }
 
-// Context menu
-function openContextMenu(e: MouseEvent, sym: string) {
-  ctxMenu.value = { x: e.clientX, y: e.clientY, symbol: sym }
+// Context menu：打开后聚焦首个菜单项，关闭时焦点归还触发元素
+function focusFirstMenuItem() {
+  nextTick(() => menuRef.value?.querySelector<HTMLElement>('[role="menuitem"]')?.focus())
 }
-function closeContextMenu() { ctxMenu.value = null }
+
+function openContextMenu(e: MouseEvent, sym: string) {
+  menuTrigger = e.currentTarget instanceof HTMLElement ? e.currentTarget : null
+  ctxMenu.value = { x: e.clientX, y: e.clientY, symbol: sym }
+  focusFirstMenuItem()
+}
+
+/** PanelHeader controls 的键盘可达入口：对当前选中 symbol（缺省取首只）打开同一菜单 */
+function openSymbolActions(e: MouseEvent) {
+  e.stopPropagation() // 阻止 document click 立即关闭刚打开的菜单
+  const sym = ctx.getGroupSymbol(pg.groupId) || symbols.value[0]
+  if (!sym) return
+  const btn = e.currentTarget instanceof HTMLElement ? e.currentTarget : null
+  const rect = btn?.getBoundingClientRect()
+  menuTrigger = btn
+  ctxMenu.value = { x: rect?.left ?? 0, y: (rect?.bottom ?? 0) + 4, symbol: sym }
+  focusFirstMenuItem()
+}
+
+function closeContextMenu() {
+  if (!ctxMenu.value) return
+  const focusInside = menuRef.value?.contains(document.activeElement) ?? false
+  ctxMenu.value = null
+  if (focusInside && menuTrigger?.isConnected) menuTrigger.focus()
+  menuTrigger = null
+}
+
+/** 菜单内键盘导航：↑↓ 循环、Home/End、Esc 关闭归还焦点、Tab 关闭 */
+function onMenuKeydown(e: KeyboardEvent) {
+  const items = Array.from(menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    closeContextMenu()
+    return
+  }
+  if (e.key === 'Tab') {
+    closeContextMenu()
+    return
+  }
+  if (items.length === 0) return
+  const idx = items.indexOf(document.activeElement as HTMLElement)
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault()
+      items[(idx + 1) % items.length].focus()
+      break
+    case 'ArrowUp':
+      e.preventDefault()
+      items[(idx - 1 + items.length) % items.length].focus()
+      break
+    case 'Home':
+      e.preventDefault()
+      items[0].focus()
+      break
+    case 'End':
+      e.preventDefault()
+      items[items.length - 1].focus()
+      break
+  }
+}
 
 function contextOpenKline() {
   if (!ctxMenu.value) return
@@ -337,11 +401,16 @@ onUnmounted(() => {
       <LoadingState v-if="!initialLoadDone" type="table" :rows="5" :cols="tableColumns.length" />
       <template v-else>
         <template v-for="(g, gi) in groupList" :key="g.mkt">
-          <div class="group-header" @click="toggleGroup(g.mkt)">
-            <span class="group-arrow">{{ expandedGroups[g.mkt] ? '▼' : '▶' }}</span>
+          <button
+            type="button"
+            class="group-header"
+            :aria-expanded="expandedGroups[g.mkt]"
+            @click="toggleGroup(g.mkt)"
+          >
+            <span class="group-arrow" aria-hidden="true">{{ expandedGroups[g.mkt] ? '▼' : '▶' }}</span>
             <span class="group-label">{{ t('watchlist.group_' + g.mkt.toLowerCase()) }}</span>
             <span class="group-count">{{ g.rows.length }}</span>
-          </div>
+          </button>
           <PanelTable
             v-if="expandedGroups[g.mkt]"
             :columns="tableColumns"
@@ -370,16 +439,24 @@ onUnmounted(() => {
 
     <!-- Context menu -->
     <Teleport to="body">
-      <div v-if="ctxMenu" class="context-menu" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }">
-        <div class="menu-item" @click="contextOpenKline">{{ t('watchlist.context_open_kline') }}</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item" @click="contextOpenAnalysis('dupont-analysis')">杜邦分析</div>
-        <div class="menu-item" @click="contextOpenAnalysis('shareholder-analysis')">股东分析</div>
-        <div class="menu-item" @click="contextOpenAnalysis('event-study')">事件分析</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item" @click="contextCopyCode">{{ t('watchlist.context_copy') }}</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item danger" @click="contextDelete">{{ t('watchlist.context_delete') }}</div>
+      <div
+        v-if="ctxMenu"
+        ref="menuRef"
+        class="context-menu"
+        role="menu"
+        :aria-label="ctxMenu.symbol"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @keydown="onMenuKeydown"
+      >
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenKline">{{ t('watchlist.context_open_kline') }}</button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('dupont-analysis')">杜邦分析</button>
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('shareholder-analysis')">股东分析</button>
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('event-study')">事件分析</button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="contextCopyCode">{{ t('watchlist.context_copy') }}</button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item danger" role="menuitem" @click="contextDelete">{{ t('watchlist.context_delete') }}</button>
       </div>
     </Teleport>
   </div>
@@ -414,9 +491,9 @@ onUnmounted(() => {
 
 .group-header {
   display: flex; align-items: center; gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm); cursor: pointer; user-select: none;
-  background: var(--color-bg-elevated); border-bottom: 1px solid var(--color-border-subtle);
-  font-size: var(--font-xs); color: var(--color-text-secondary);
+  width: 100%; padding: var(--space-xs) var(--space-sm); cursor: pointer; user-select: none;
+  background: var(--color-bg-elevated); border: 0; border-bottom: 1px solid var(--color-border-subtle);
+  font-family: inherit; font-size: var(--font-xs); text-align: left; color: var(--color-text-secondary);
   position: sticky; top: 0; z-index: 1;
 }
 .group-header:hover { color: var(--color-text-primary); }
@@ -425,12 +502,15 @@ onUnmounted(() => {
 
 /* Remove button (#action slot content renders in this scope) */
 .remove-btn {
-  background: none; border: none; color: var(--color-text-tertiary);
+  background: none; border: 0; color: var(--color-text-tertiary);
   cursor: pointer; font-size: var(--font-xs); padding: var(--space-xs);
   opacity: 0; transition: opacity var(--transition-fast);
 }
 .table-row:hover .remove-btn { opacity: 0.5; }
+/* 键盘焦点进入行/按钮时同样需要可见，否则键盘用户无法发现删除入口 */
+.table-row:focus-within .remove-btn { opacity: 0.5; }
 .remove-btn:hover { opacity: 1 !important; color: var(--color-down); }
+.remove-btn:focus-visible { opacity: 1 !important; }
 
 /* Polling badge */
 .polling-badge {
@@ -447,8 +527,15 @@ onUnmounted(() => {
   min-width: 120px;
   box-shadow: var(--shadow-md);
 }
-.menu-item { padding: var(--space-xs) var(--space-md); font-size: var(--font-xs); cursor: pointer; color: var(--color-text-primary); transition: background var(--transition-fast); }
-.menu-item:hover { background: var(--color-accent); color: var(--color-text-inverse); }
-.menu-item.danger:hover { background: var(--color-down); }
+.menu-item {
+  display: block; width: 100%;
+  padding: var(--space-xs) var(--space-md);
+  border: 0; background: none;
+  font-family: inherit; font-size: var(--font-xs); text-align: left;
+  cursor: pointer; color: var(--color-text-primary); transition: background var(--transition-fast);
+}
+/* 键盘焦点与悬停同视觉：焦点移动即当前项 */
+.menu-item:hover, .menu-item:focus-visible { background: var(--color-accent); color: var(--color-text-inverse); outline: none; }
+.menu-item.danger:hover, .menu-item.danger:focus-visible { background: var(--color-down); }
 .menu-sep { height: 1px; margin: var(--space-xs) var(--space-sm); background: var(--color-border-subtle); }
 </style>

@@ -159,7 +159,8 @@ interface AppMethods {
   MarkNotificationRead(id: number): Promise<void>
 
   // --- Trading ---
-  PlaceOrder(symbol: string, side: string, orderType: string, qty: number, price: number): Promise<any>
+  PlaceOrder(symbol: string, side: string, orderType: string, brokerName: string, qty: number, price: number): Promise<any>
+  PlaceOrderWithStop(symbol: string, side: string, orderType: string, brokerName: string, qty: number, price: number, stopPrice: number): Promise<any>
   GetPositions(): Promise<any[]>
   GetOrders(): Promise<any[]>
   GetTrades(): Promise<any[]>

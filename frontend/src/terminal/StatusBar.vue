@@ -12,10 +12,24 @@ const session = useSessionStore()
 const terminal = useTerminalStore()
 const ctx = useSymbolContext()
 
-const time = ref(new Date().toLocaleTimeString())
+const time = ref(formatTime())
 const version = ref('...')
 let timer: ReturnType<typeof setInterval> | null = null
 let statusTimer: ReturnType<typeof setInterval> | null = null
+
+function formatTime(): string {
+  return new Date().toLocaleTimeString('zh-CN', { hour12: false })
+}
+
+const EXECUTION_STATUS_LABELS: Record<string, string> = {
+  idle: '空闲',
+  running: '运行中',
+  completed: '已完成',
+  failed: '失败',
+}
+const executionStatusLabel = computed(() =>
+  EXECUTION_STATUS_LABELS[workflow.executionStatus] ?? workflow.executionStatus
+)
 
 async function refreshConnectionStatus() {
   try {
@@ -25,7 +39,7 @@ async function refreshConnectionStatus() {
 }
 
 onMounted(async () => {
-  timer = setInterval(() => time.value = new Date().toLocaleTimeString(), 1000)
+  timer = setInterval(() => time.value = formatTime(), 1000)
   try { version.value = await GetVersion() } catch { version.value = '?' }
 
   // Fetch connection status immediately, then refresh every 30s
@@ -134,11 +148,11 @@ const allOK = computed(() => badItems.value.length === 0)
     <div class="status-center">
       <span class="status-item">
         <span class="item-icon" v-html="getIcon('workflow')" />
-        {{ workflow.executionStatus }}
+        {{ executionStatusLabel }}
       </span>
       <span class="status-item">
         <span class="item-icon" v-html="getIcon('terminal')" />
-        {{ terminal.activePanels.length }} panels
+        {{ terminal.activePanels.length }} 个面板
       </span>
     </div>
     <div class="status-right">
@@ -182,24 +196,6 @@ const allOK = computed(() => badItems.value.length === 0)
   flex-wrap: wrap;
 }
 
-.status-bar::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(59, 130, 246, 0.2) 15%,
-    rgba(59, 130, 246, 0.5) 50%,
-    rgba(59, 130, 246, 0.2) 85%,
-    transparent 100%
-  );
-  opacity: 0.8;
-}
-
 .status-left, .status-center, .status-right { display: flex; gap: 10px; align-items: center; }
 
 .status-badge {
@@ -212,7 +208,7 @@ const allOK = computed(() => badItems.value.length === 0)
   border-radius: var(--radius-lg);
   font-weight: 600;
   color: var(--color-success);
-  font-size: 10px;
+  font-size: var(--font-xs);
   transition: all var(--transition-fast);
   cursor: pointer;
 }
@@ -255,7 +251,7 @@ const allOK = computed(() => badItems.value.length === 0)
 .group-badge {
   display: flex; align-items: center; gap: 4px;
   padding: 1px 7px; border: 1px solid; border-radius: var(--radius-lg);
-  font-size: 10px; font-weight: 600;
+  font-size: var(--font-xs); font-weight: 600;
   transition: all var(--transition-fast);
 }
 
@@ -294,7 +290,7 @@ const allOK = computed(() => badItems.value.length === 0)
   padding: 1px 6px;
   background: var(--color-bg-subtle);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
 }
 
@@ -309,7 +305,7 @@ const allOK = computed(() => badItems.value.length === 0)
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .time-icon {

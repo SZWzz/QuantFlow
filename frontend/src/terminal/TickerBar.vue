@@ -111,11 +111,13 @@ onUnmounted(() => {
             {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
           </span>
         </span>
-        <span v-for="(item, idx) in items" :key="'dup-' + idx" class="tape-item">
-          <span class="tape-name">{{ item.name }}</span>
-          <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-          <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
-            {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
+        <span class="tape-clone" aria-hidden="true">
+          <span v-for="(item, idx) in items" :key="'dup-' + idx" class="tape-item">
+            <span class="tape-name">{{ item.name }}</span>
+            <span class="tape-price">{{ item.price.toFixed(2) }}</span>
+            <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
+              {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
+            </span>
           </span>
         </span>
       </div>
@@ -180,5 +182,19 @@ onUnmounted(() => {
 @keyframes scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
+}
+
+.tape-clone {
+  display: contents;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-track {
+    animation: none;
+  }
+  /* 停止滚动后隐藏无缝循环用的克隆份，退化为静态截断列表 */
+  .tape-clone {
+    display: none;
+  }
 }
 </style>

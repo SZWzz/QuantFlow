@@ -9,7 +9,6 @@ import NodePalette from './NodePalette.vue'
 import ExecutionLog from './ExecutionLog.vue'
 import WorkflowList from './WorkflowList.vue'
 import { getIcon } from '@/lib/icons'
-import { logger } from '@/lib/logger'
 
 import { onMounted } from 'vue'
 
@@ -61,23 +60,6 @@ async function animateExecution() {
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-function onSave() {
-  const wfJSON = workflow.toWorkflowJSON()
-  localStorage.setItem('quantflow-current-workflow', JSON.stringify(wfJSON))
-  logger.info('Workflow saved')
-}
-
-function onLoad() {
-  const saved = localStorage.getItem('quantflow-current-workflow')
-  if (!saved) return
-  try {
-    const wf = JSON.parse(saved)
-    workflow.fromWorkflowJSON(wf)
-  } catch (e) {
-    logger.error('Failed to load workflow:', e)
-  }
 }
 
 function pinToTerminal() {
@@ -195,17 +177,6 @@ function onKeydown(event: KeyboardEvent) {
   z-index: 10;
 }
 
-.wf-header::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
-  opacity: 0.3;
-}
-
 .wf-left {
   display: flex;
   align-items: center;
@@ -315,7 +286,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .key-hint {
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: 600;
   color: var(--color-text-tertiary);
   padding: 1px 5px;

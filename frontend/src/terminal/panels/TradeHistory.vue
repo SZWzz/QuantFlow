@@ -471,17 +471,17 @@ td {
 }
 
 .badge.rejected {
-  background: var(--color-up-bg, rgba(220,38,38,0.08));
-  color: var(--down);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 /* -- Cancel button -- */
 .cancel-btn {
   padding: 2px 8px;
-  background: var(--color-up-bg, rgba(220,38,38,0.08));
-  border: 1px solid var(--down);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
   border-radius: var(--radius-sm);
-  color: var(--down);
+  color: var(--color-danger);
   font-size: var(--font-xs);
   font-weight: 600;
   cursor: pointer;

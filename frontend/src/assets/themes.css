@@ -272,6 +272,15 @@ body {
   --wf-minimap-mask: rgba(255, 255, 255, 0.7);
   --wf-chart-grid: #d6dce3;
   --wf-chart-text: #43505f;
+  /* Node header — 文字压在饱和分类色上，双主题均为白 */
+  --wf-node-header-text: #ffffff;
+  /* Sticky note 便签 */
+  --wf-note-yellow: #fef3c7;
+  --wf-note-blue: #dbeafe;
+  --wf-note-pink: #fce7f3;
+  --wf-note-green: #d1fae5;
+  --wf-note-indigo: #e0e7ff;
+  --wf-note-text: #1e293b;
 }
 
 body.theme-dark {
@@ -300,6 +309,13 @@ body.theme-dark {
   --wf-minimap-mask: rgba(0, 0, 0, 0.5);
   --wf-chart-grid: #2a2a3a;
   --wf-chart-text: #8b8ba0;
+  --wf-node-header-text: #ffffff;
+  --wf-note-yellow: #4a3d10;
+  --wf-note-blue: #16324f;
+  --wf-note-pink: #4a1d33;
+  --wf-note-green: #143e2a;
+  --wf-note-indigo: #2b2b52;
+  --wf-note-text: #e8e6df;
 }
 
 /* ── Density ───────────────────────────────────────────────────── */

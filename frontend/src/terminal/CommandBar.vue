@@ -38,8 +38,8 @@ interface CommandItem {
 const allPanels = getAllPanelMeta().filter(p => p.id !== 'welcome')
 
 const commands: { id: string; label: string; description: string; shortcut?: string; icon: string }[] = [
-  { id: 'toggle-mode', label: 'Toggle Workflow/Terminal', description: '切换工作流/终端模式', shortcut: 'Ctrl+W', icon: getIcon('workflow') },
-  { id: 'toggle-focus', label: 'Toggle Focus Mode', description: '专注模式', shortcut: 'Ctrl+Shift+F', icon: getIcon('terminal') },
+  { id: 'toggle-mode', label: 'Toggle Workflow/Terminal', description: '切换工作流/终端模式', icon: getIcon('workflow') },
+  { id: 'toggle-focus', label: 'Toggle Focus Mode', description: '专注模式', icon: getIcon('terminal') },
   { id: 'clear-history', label: 'Clear Command History', description: '清除命令历史', icon: getIcon('delete') },
 ]
 
@@ -227,51 +227,61 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="command-bar-overlay" @click.self="close">
-      <div class="command-bar" @keydown="onKeydown">
+      <div class="command-bar" role="dialog" aria-modal="true" :aria-label="$t('common.search')" @keydown="onKeydown">
         <div class="search-input-wrapper">
-          <span class="search-icon" v-html="getIcon('search')" />
+          <span class="search-icon" aria-hidden="true" v-html="getIcon('search')" />
           <input
             ref="inputRef"
             v-model="query"
             type="text"
             class="search-input"
+            role="combobox"
+            :aria-expanded="results.length > 0"
+            aria-controls="cmd-results"
+            aria-autocomplete="list"
+            :aria-activedescendant="results[selectedIndex] ? `cmd-opt-${selectedIndex}` : undefined"
             :placeholder="$t('common.search') + '...'"
             autocomplete="off"
           />
           <kbd class="shortcut-hint">Esc</kbd>
         </div>
-        <div v-if="results.length > 0" class="results-list">
+        <div v-if="results.length > 0" id="cmd-results" class="results-list" role="listbox">
           <template v-for="(item, idx) in results" :key="item.id">
             <div
               v-if="idx === 0 || results[idx - 1].category !== item.category"
               class="category-header"
+              role="presentation"
             >
               {{ item.category }}
             </div>
             <div
+              :id="`cmd-opt-${idx}`"
               class="result-item"
               :class="{ selected: idx === selectedIndex }"
+              role="option"
+              :aria-selected="idx === selectedIndex"
               @click="item.action()"
               @mouseenter="selectedIndex = idx"
             >
-              <span class="item-icon" v-html="item.icon" />
+              <span class="item-icon" aria-hidden="true" v-html="item.icon" />
               <span class="item-label">{{ item.label }}</span>
               <span class="item-desc">{{ item.description }}</span>
             </div>
           </template>
         </div>
         <div v-else-if="!query" class="no-results">
-          <span class="no-results-icon" v-html="getIcon('search')" />
+          <span class="no-results-icon" aria-hidden="true" v-html="getIcon('search')" />
           {{ $t('misc.cmdbar_empty_hint') }}
         </div>
         <div v-else class="no-results">
-          <span class="no-results-icon" v-html="getIcon('search')" />
+          <span class="no-results-icon" aria-hidden="true" v-html="getIcon('search')" />
           {{ $t('common.no_data') }}
         </div>
         <div class="command-footer">
           <div class="footer-hints">
-            <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-            <span class="hint"><kbd>Enter</kbd> Select</span>
+            <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> 导航</span>
+            <span class="hint"><kbd>Enter</kbd> 选择</span>
+            <span class="hint"><kbd>Esc</kbd> 关闭</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import type { StockEntry } from '@/lib/symbolSearch'
 
 const props = defineProps<{
@@ -70,8 +70,9 @@ function select(entry: StockEntry) {
   emit('select', entry)
 }
 
-// Keyboard navigation
+// Keyboard navigation — 索引作用于当前过滤后的列表（与渲染一致）
 function onKeydown(e: KeyboardEvent) {
+  const list = filteredResults.value
   if (!open.value || results.value.length === 0) {
     if (e.key === 'Enter') {
       emit('update:modelValue', displayValue.value)
@@ -81,7 +82,7 @@ function onKeydown(e: KeyboardEvent) {
   switch (e.key) {
     case 'ArrowDown':
       e.preventDefault()
-      selectedIndex.value = Math.min(selectedIndex.value + 1, results.value.length - 1)
+      selectedIndex.value = Math.min(selectedIndex.value + 1, list.length - 1)
       break
     case 'ArrowUp':
       e.preventDefault()
@@ -89,9 +90,8 @@ function onKeydown(e: KeyboardEvent) {
       break
     case 'Enter':
       e.preventDefault()
-      if (selectedIndex.value >= 0 && selectedIndex.value < results.value.length) {
-        select(results.value[selectedIndex.value])
-      }
+      // 未高亮任何项时选中第一项
+      if (list.length > 0) select(list[selectedIndex.value >= 0 ? selectedIndex.value : 0])
       break
     case 'Escape':
       open.value = false
@@ -99,6 +99,14 @@ function onKeydown(e: KeyboardEvent) {
       break
   }
 }
+
+// 高亮项保持滚动可见
+watch(selectedIndex, (i) => {
+  if (i < 0) return
+  nextTick(() => {
+    listRef.value?.querySelector('.dropdown-item.active')?.scrollIntoView({ block: 'nearest' })
+  })
+})
 
 function onFocus() {
   if (displayValue.value) {
@@ -135,16 +143,12 @@ function marketBadge(market: string): string {
   }
 }
 
-function marketColor(market: string): string {
-  switch (market) {
-    case 'SH': return '#ef4444'  // red
-    case 'SZ': return '#22c55e'  // green
-    case 'BJ': return '#3b82f6'  // blue
-    case 'HK': return '#f59e0b'  // amber
-    case 'US': return '#8b5cf6'  // purple
-    default: return '#6b7280'
-  }
-}
+/** combobox 的 aria-activedescendant：指向当前高亮 option 的 id */
+const activeDescendant = computed(() => {
+  if (!open.value || selectedIndex.value < 0) return undefined
+  const entry = filteredResults.value[selectedIndex.value]
+  return entry ? `ss-opt-${entry.code}` : undefined
+})
 
 // Close on outside click
 function onClickOutside(e: MouseEvent) {
@@ -165,6 +169,11 @@ onUnmounted(() => clearTimeout(debounceTimer))
       <input
         ref="inputRef"
         class="search-input"
+        role="combobox"
+        :aria-expanded="open && results.length > 0"
+        aria-controls="symbol-search-listbox"
+        aria-autocomplete="list"
+        :aria-activedescendant="activeDescendant"
         :value="selectedName || displayValue"
         :placeholder="placeholder ?? $t('common.search') + '...'"
         @input="onInput"
@@ -173,30 +182,34 @@ onUnmounted(() => clearTimeout(debounceTimer))
         @keydown="onKeydown"
         autocomplete="off"
       />
-      <span v-if="loading" class="spinner">⏳</span>
+      <span v-if="loading" class="spinner" aria-hidden="true"></span>
     </div>
 
-    <ul v-if="open && results.length > 0" ref="listRef" class="dropdown">
-      <li class="filter-row">
+    <ul v-if="open && results.length > 0" id="symbol-search-listbox" ref="listRef" class="dropdown" role="listbox">
+      <li class="filter-row" role="presentation">
         <button
           v-for="tab in MARKET_TABS" :key="tab.key"
+          type="button"
           :class="['filter-tab', { active: marketFilter === tab.key }]"
+          :aria-pressed="marketFilter === tab.key"
           @mousedown.prevent="marketFilter = tab.key"
+          @click="marketFilter = tab.key"
         >{{ tab.label }}</button>
       </li>
       <li
         v-for="(entry, i) in filteredResults"
         :key="entry.code"
+        :id="`ss-opt-${entry.code}`"
         :class="['dropdown-item', { active: i === selectedIndex }]"
+        role="option"
+        :aria-selected="i === selectedIndex"
         @mousedown.prevent="select(entry)"
       >
-        <span class="market-badge" :style="{ background: marketColor(entry.market) }">
-          {{ marketBadge(entry.market) }}
-        </span>
+        <span class="market-badge">{{ marketBadge(entry.market) }}</span>
         <span class="item-code">{{ entry.code }}</span>
         <span class="item-name">{{ entry.name }}</span>
       </li>
-      <li v-if="filteredResults.length === 0" class="empty-result">{{ $t('common.no_data') }}</li>
+      <li v-if="filteredResults.length === 0" class="empty-result" role="option" aria-disabled="true">{{ $t('common.no_data') }}</li>
     </ul>
 
     <div v-if="open && query && !loading && results.length === 0" class="dropdown empty">
@@ -235,7 +248,18 @@ onUnmounted(() => clearTimeout(debounceTimer))
 .spinner {
   position: absolute;
   right: 8px;
-  font-size: 12px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border-strong);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: ss-spin 0.8s linear infinite;
+}
+@keyframes ss-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
 }
 .dropdown {
   position: absolute;
@@ -302,13 +326,16 @@ onUnmounted(() => clearTimeout(debounceTimer))
   font-size: 12px;
   text-align: center;
 }
+/* 市场徽标：中性底色 + 文字区分（不依赖颜色编码，避免与涨跌红绿语义冲突） */
 .market-badge {
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 600;
-  color: #fff;
   flex-shrink: 0;
+  background: var(--color-bg-active);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-strong);
 }
 .item-code {
   font-weight: 600;

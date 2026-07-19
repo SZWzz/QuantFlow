@@ -49,11 +49,13 @@ defineEmits<{
       <button
         v-for="ctrl in controls"
         :key="ctrl.icon || ctrl.label"
+        type="button"
         :class="['btn btn-ghost', { loading: ctrl.loading }]"
         @click="ctrl.action"
         :title="ctrl.title"
+        :aria-label="ctrl.title"
       >
-        <span v-if="ctrl.icon" class="icon" v-html="getIcon(ctrl.icon as IconName)" />
+        <span v-if="ctrl.icon" class="icon" aria-hidden="true" v-html="getIcon(ctrl.icon as IconName)" />
         <span v-if="ctrl.label">{{ ctrl.label }}</span>
       </button>
     </div>
