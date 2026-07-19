@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBrokerStatus } from '@/lib/composables/useBrokerStatus'
+import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -17,12 +18,13 @@ onMounted(fetchBrokerStatuses)
 
 <template>
   <div class="broker-status">
-    <div class="panel-header">
-      <span class="header-title">{{ $t('broker.title') }}</span>
-      <button class="refresh-btn" @click="fetchBrokerStatuses" :disabled="loading">{{ loading ? $t('broker.refreshing') : t('broker.refresh') }}</button>
-    </div>
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <div class="card-grid">
+    <PanelHeader
+      :title="t('broker.title')"
+      :controls="[{ icon: 'refresh', title: t('broker.refresh'), action: fetchBrokerStatuses, loading }]"
+    />
+    <LoadingState v-if="loading && !brokers.length" type="card" :rows="2" />
+    <ErrorState v-else-if="loadError && !brokers.length" :description="loadError" @retry="fetchBrokerStatuses" />
+    <div v-else class="card-grid">
       <div v-for="b in brokers" :key="b.name" :class="['broker-card', { dimmed: !b.connected }]">
         <div class="card-header">
           <div class="card-name-row">
@@ -36,32 +38,30 @@ onMounted(fetchBrokerStatuses)
           <div class="info-row"><span class="info-value muted">{{ b.detail }}</span></div>
         </div>
       </div>
-      <div v-if="!loading && !brokers.length" class="empty-state">{{ $t('broker.no_brokers') }}</div>
+      <EmptyState v-if="!loading && !brokers.length" :title="t('broker.no_brokers')" class="grid-empty" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.broker-status { padding: 10px; background: var(--color-bg-panel); height: 100%; overflow-y: auto; color: var(--color-text-primary); }
+.broker-status { height: 100%; display: flex; flex-direction: column; overflow: hidden; color: var(--color-text-primary); }
 
-.header-title { font-size: 13px; font-weight: 600; }
-.refresh-btn { padding: 3px 10px; background: var(--color-bg-subtle); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-sm); color: var(--color-accent); font-size: 11px; cursor: pointer; }
-.refresh-btn:disabled { opacity: 0.4; cursor: default; }
-.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.broker-card { background: var(--color-bg-subtle); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.card-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); padding: var(--space-sm) var(--panel-padding); align-content: start; }
+.grid-empty { grid-column: 1 / -1; }
+.broker-card { background: var(--color-bg-subtle); border: 1px solid var(--color-accent-soft); border-radius: var(--radius-md); padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); }
 .broker-card.dimmed { opacity: 0.55; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
-.card-name-row { display: flex; align-items: center; gap: 8px; }
+.card-name-row { display: flex; align-items: center; gap: var(--space-sm); }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .dot-connected { background: var(--color-down); }
 .dot-disconnected { background: var(--color-text-tertiary); }
-.card-name { font-size: 14px; font-weight: 700; }
-.status-badge { padding: 2px 8px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 500; }
-.status-badge.connected { background: rgba(34,197,94,0.12); color: var(--color-down); }
+.card-name { font-size: var(--font-base); font-weight: 700; }
+.status-badge { padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-size: var(--font-xs); font-weight: 500; }
+.status-badge.connected { background: var(--color-down-soft); color: var(--color-down); }
 .status-badge.disconnected { background: var(--color-bg-elevated); color: var(--color-text-tertiary); }
-.card-body { display: flex; flex-direction: column; gap: 2px; }
+.card-body { display: flex; flex-direction: column; gap: var(--space-xs); }
 .info-row { display: flex; justify-content: space-between; align-items: center; }
-.info-label { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; }
-.info-value { font-size: 12px; font-weight: 500; }
-.info-value.muted { color: var(--color-text-tertiary); font-size: 11px; }
+.info-label { font-size: var(--font-xs); color: var(--color-text-tertiary); text-transform: uppercase; }
+.info-value { font-size: var(--font-xs); font-weight: 500; }
+.info-value.muted { color: var(--color-text-tertiary); }
 </style>

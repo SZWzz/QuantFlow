@@ -24,7 +24,7 @@ describe('BrokerStatusPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    expect(wrapper.find('.header-title').text()).toContain('Broker Status')
+    expect(wrapper.find('.panel-title').text()).toContain('Broker Status')
   })
 
   it('renders broker cards', () => {
@@ -46,7 +46,7 @@ describe('BrokerStatusPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true, echarts: true } },
     })
-    const btns = wrapper.findAll('.refresh-btn')
+    const btns = wrapper.findAll('.header-controls button')
     expect(btns.length).toBe(1) // Single refresh button in header, not per broker
   })
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
@@ -9,10 +9,11 @@ const loading = ref(false)
 const error = ref('')
 const rawData = ref<any>(null)
 const sortKey = ref('')
-const sortAsc = ref(true)
+const sortDir = ref<'asc' | 'desc' | null>(null)
 
 const SOURCE = 'sec'
 const DATA_TYPE = '13f'
+const MAX_ROWS = 100
 
 const holdings = computed<any[]>(() => {
   if (!rawData.value) return []
@@ -25,22 +26,19 @@ const holdings = computed<any[]>(() => {
 })
 
 const sorted = computed(() => {
-  if (!sortKey.value) return holdings.value
+  if (!sortKey.value || !sortDir.value) return holdings.value
   return [...holdings.value].sort((a, b) => {
     const av = a[sortKey.value] ?? 0; const bv = b[sortKey.value] ?? 0
     const cmp = typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv))
-    return sortAsc.value ? cmp : -cmp
+    return sortDir.value === 'asc' ? cmp : -cmp
   })
 })
 
-function toggleSort(key: string) {
-  if (sortKey.value === key) { sortAsc.value = !sortAsc.value; return }
-  sortKey.value = key; sortAsc.value = false
-}
+const visibleRows = computed(() => sorted.value.slice(0, MAX_ROWS))
 
-function colKeys(): string[] {
-  if (holdings.value.length === 0) return []
-  return Object.keys(holdings.value[0]).filter(k => typeof holdings.value[0][k] !== 'object' || holdings.value[0][k] === null)
+function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
+  sortKey.value = dir ? key : ''
+  sortDir.value = dir
 }
 
 function colLabel(key: string): string {
@@ -67,6 +65,24 @@ function fmtVal(v: any): string {
   return String(v)
 }
 
+const cols = computed<Column[]>(() => {
+  if (holdings.value.length === 0) return []
+  const first = holdings.value[0]
+  return Object.keys(first)
+    .filter(k => typeof first[k] !== 'object' || first[k] === null)
+    .map(k => {
+      const numeric = typeof first[k] === 'number'
+      return {
+        key: k,
+        label: colLabel(k),
+        align: numeric ? 'right' as const : 'left' as const,
+        mono: numeric,
+        sortable: true,
+        ...(numeric ? { formatter: fmtVal } : {}),
+      }
+    })
+})
+
 async function loadData() {
   loading.value = true; error.value = ''
   try {
@@ -85,45 +101,41 @@ onMounted(loadData)
 
 <template>
   <div class="sec-13f-panel">
-    <div class="panel-header">
-      <h3>13F 机构持仓</h3>
-      <button class="refresh-btn" @click="loadData" :disabled="loading">⟳</button>
-    </div>
-    <SkeletonPanel v-if="loading && holdings.length === 0" type="table" :rows="6" />
-    <div v-else-if="error" class="status error">{{ error }}</div>
-    <div v-else-if="!loading && holdings.length === 0" class="status">暂无 13F 数据 — 输入机构 CIK 代码查看 SEC 13F 持仓报告</div>
-    <div v-else class="table-wrapper">
-      <div class="table-header">
-        <span v-for="key in colKeys()" :key="key" class="th-cell" @click="toggleSort(key)">
-          {{ colLabel(key) }}
-          <span v-if="sortKey === key" class="sort-arrow">{{ sortAsc ? '▲' : '▼' }}</span>
-        </span>
-      </div>
-      <div class="table-body">
-        <div v-for="(row, i) in sorted.slice(0, 100)" :key="i" class="table-row">
-          <span v-for="key in colKeys()" :key="key" class="td-cell">{{ fmtVal(row[key]) }}</span>
-        </div>
-      </div>
-      <div v-if="holdings.length > 100" class="table-footer">显示前 100 条，共 {{ holdings.length }} 条</div>
-    </div>
+    <PanelHeader
+      title="13F 机构持仓"
+      :controls="[{ icon: 'refresh', title: '刷新', action: loadData, loading }]"
+    />
+    <LoadingState v-if="loading && holdings.length === 0" type="table" :rows="6" />
+    <ErrorState v-else-if="error" :description="error" @retry="loadData" />
+    <EmptyState
+      v-else-if="holdings.length === 0"
+      title="暂无 13F 数据"
+      description="输入机构 CIK 代码查看 SEC 13F 持仓报告"
+    />
+    <template v-else>
+      <PanelTable
+        :columns="cols"
+        :data="visibleRows"
+        :loading="loading"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        sticky-header
+        @sort-change="onSortChange"
+      />
+      <div v-if="holdings.length > MAX_ROWS" class="table-footer">显示前 {{ MAX_ROWS }} 条，共 {{ holdings.length }} 条</div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.sec-13f-panel { padding: 12px; height: 100%; display: flex; flex-direction: column; color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden; }
+.sec-13f-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 
-.refresh-btn { padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px; }
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.status { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
-.status.error { color: var(--color-danger); }
-.table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.table-header { display: flex; padding: 6px 0; border-bottom: 2px solid var(--color-border-strong); font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0; overflow-x: auto; }
-.th-cell { flex: 1; min-width: 80px; padding: 0 6px; cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.th-cell:hover { color: var(--color-accent); }
-.sort-arrow { font-size: 8px; margin-left: 2px; }
-.table-body { flex: 1; overflow: auto; font-size: 12px; }
-.table-row { display: flex; padding: 3px 0; align-items: center; border-bottom: 1px solid var(--color-border-subtle); }
-.table-row:hover { background: var(--color-bg-elevated); }
-.td-cell { flex: 1; min-width: 80px; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.table-footer { padding: 6px; font-size: 10px; color: var(--color-text-tertiary); text-align: center; flex-shrink: 0; }
+.table-footer {
+  padding: var(--space-sm);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  text-align: center;
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
 </style>
