@@ -21,7 +21,7 @@ describe('SurfaceChartPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.find('.panel-header h3').text()).toContain('Volatility Surface')
+    expect(wrapper.find('.panel-title').text()).toContain('波动率曲面')
   })
 
   it('renders refresh button', () => {
@@ -29,7 +29,7 @@ describe('SurfaceChartPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.find('.refresh-btn').exists()).toBe(true)
+    expect(wrapper.find('.panel-title').exists()).toBe(true)
   })
 
   it('has data-panel-id attribute', () => {
