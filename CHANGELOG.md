@@ -3,6 +3,16 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.19] - 2026-07-19
+
+### 变更
+
+- [Frontend] Phase 2 骨架屏迁移完成 — 所有面板组（chart-group-a/b、prediction-valuation、research-tools、system-aux、funding/hk、arbitrage/calendar、bonds/funds/futures、toolbar-variant）全面迁移至 `SkeletonPanel` / `LoadingState` / `ErrorState` 共享组件，消除约 8,183 行重复架子代码
+- [Frontend] 剩余面板批量 Token 化 — font-size 全部改用 `--font-*` CSS 变量（最小字号 11px），padding/margin 改用 `--space-*` token，消除面板层级硬编码色值
+- [Frontend] stylelint 规则提升至 error 级别 — Phase 2 所有 CSS 合规检查通过
+- [Frontend] PanelTable 增强 — 粘性表头（sticky header）、`colorize` 守卫、全局 `btn-sm` 类，恢复 Whale Tracking 地址 tooltip 和 CB Arbitrage 阈值高亮
+- [Frontend] 测试覆盖率补充 — WatchlistPanel 新增 49 条测试用例，更新 SurfaceChartPanel/TickerTapePanel 测试适配新组件
+
 ## [2026.7.17] - 2026-07-17
 
 ### 新增
