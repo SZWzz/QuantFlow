@@ -492,6 +492,22 @@ body {
   color: var(--color-accent);
   background: var(--color-accent-soft);
 }
+/* ── 按钮 loading 态（PanelHeader controls 等） ────────────────── */
+.btn.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.btn.loading .icon svg {
+  animation: btn-spin 1s linear infinite;
+}
+@keyframes btn-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.loading .icon svg { animation: none; }
+}
+
 .wf-btn svg {
   width: 16px;
   height: 16px;
