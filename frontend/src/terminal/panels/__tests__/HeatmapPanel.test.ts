@@ -27,7 +27,7 @@ describe('HeatmapPanel', () => {
     const wrapper = mount(HeatmapPanel, {
       props: { panelId: 'test-heatmap', params: {} },
     })
-    const tabs = wrapper.findAll('.mkt-tab')
+    const tabs = wrapper.findAll('.panel-tabs .tab')
     expect(tabs.length).toBe(3)
   })
 })

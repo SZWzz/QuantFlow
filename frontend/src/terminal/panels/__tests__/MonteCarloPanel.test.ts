@@ -38,7 +38,7 @@ describe('MonteCarloPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.find('.run-btn').exists()).toBe(true)
+    expect(wrapper.find('.btn-primary').exists()).toBe(true)
   })
 
   it('shows empty state initially', () => {
@@ -55,7 +55,7 @@ describe('MonteCarloPanel', () => {
       global: { stubs: { VChart: true } },
     })
     // Click run button
-    await wrapper.find('.run-btn').trigger('click')
+    await wrapper.find('.btn-primary').trigger('click')
     // Wait a tick for computation
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 20))

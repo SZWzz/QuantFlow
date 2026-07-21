@@ -3,11 +3,11 @@ import { shallowRef, watch, onUnmounted } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { CandlestickChart, BarChart, LineChart, ScatterChart } from 'echarts/charts'
-import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, MarkLineComponent } from 'echarts/components'
+import { TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, MarkLineComponent, LegendComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 
-use([CanvasRenderer, CandlestickChart, BarChart, LineChart, ScatterChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, MarkLineComponent])
+use([CanvasRenderer, CandlestickChart, BarChart, LineChart, ScatterChart, TitleComponent, TooltipComponent, GridComponent, DataZoomComponent, MarkLineComponent, LegendComponent])
 
 const props = defineProps<{
   option: ECBasicOption

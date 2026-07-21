@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useDataStore } from '@/stores/data'
-import type { SectorRanking, MarketOverview } from '@/stores/data'
+import type { MarketOverview } from '@/stores/data'
+import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -11,6 +12,12 @@ const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
 const cacheKey = computed(() => `market:overview:${activeMarket.value}`)
+
+const marketTabs = [
+  { key: 'CN', label: 'CN' },
+  { key: 'HK', label: 'HK' },
+  { key: 'US', label: 'US' },
+]
 
 interface HeatmapCell {
   name: string
@@ -27,19 +34,17 @@ const cells = computed<HeatmapCell[]>(() => {
   }))
 })
 
-function changeColor(pct: number): string {
-  if (pct > 2) return '#dc2626'
-  if (pct > 0.5) return '#ef4444'
-  if (pct > -0.5) return '#4b5563'
-  if (pct > -2) return '#22c55e'
-  return '#16a34a'
+/** 涨跌分档 → 色带 class（token 化：强档实底反白，弱档 soft 底 + 同向文字） */
+function bandClass(pct: number): string {
+  if (pct > 2) return 'band-up-strong'
+  if (pct > 0.5) return 'band-up'
+  if (pct > -0.5) return 'band-flat'
+  if (pct > -2) return 'band-down'
+  return 'band-down-strong'
 }
 
-function textColor(pct: number): string {
-  return Math.abs(pct) > 1.5 ? '#fff' : '#e5e7eb'
-}
-
-function switchMarket(mkt: typeof activeMarket.value) {
+function switchMarket(mkt: string) {
+  if (mkt !== 'CN' && mkt !== 'HK' && mkt !== 'US') return
   activeMarket.value = mkt
   const cached = dataStore.getCached<MarketOverview>(cacheKey.value)
   if (cached) {
@@ -73,112 +78,84 @@ onMounted(() => {
 
 <template>
   <div class="heatmap-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.heatmap') }}</h3>
-      <div class="market-tabs">
-        <button v-for="mkt in (['CN', 'HK', 'US'] as const)" :key="mkt"
-          :class="['mkt-tab', { active: activeMarket === mkt }]"
-          @click="switchMarket(mkt)"
-        >{{ mkt }}</button>
-      </div>
-      <button class="refresh-btn" @click="refresh" :disabled="loading">
-        {{ loading ? '...' : '⟳' }}
-      </button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.heatmap')"
+      :tabs="marketTabs"
+      :active-tab="activeMarket"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: refresh, loading }]"
+      @tab-change="switchMarket"
+    />
 
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <div v-if="loading" class="loading-state">{{ $t('common.loading') }}</div>
+    <ErrorState v-if="loadError" :description="loadError" @retry="refresh" />
+    <LoadingState v-else-if="loading" type="card" :rows="2" />
 
+    <!-- 自绘热力网格：PanelTable 表达不了按市值伸缩的色块，保留但 token 化 -->
     <div v-else-if="cells.length > 0" class="heatmap-grid">
       <div
         v-for="cell in cells"
         :key="cell.name"
         class="heatmap-cell"
-        :style="{
-          background: changeColor(cell.changePct),
-          color: textColor(cell.changePct),
-          flexGrow: Math.max(1, Math.round(cell.marketCap / 1000)),
-        }"
+        :class="bandClass(cell.changePct)"
+        :style="{ flexGrow: Math.max(1, Math.round(cell.marketCap / 1000)) }"
       >
         <span class="cell-name">{{ cell.name }}</span>
         <span class="cell-pct">{{ cell.changePct >= 0 ? '+' : '' }}{{ cell.changePct }}%</span>
       </div>
     </div>
 
-    <div v-else class="empty-state">
-      {{ activeMarket === 'HK' ? $t('misc.no_hk_sector_data') :
-         activeMarket === 'US' ? $t('misc.no_us_sector_data') :
-         $t('misc.no_sector_data') }}
-    </div>
+    <EmptyState
+      v-else
+      :title="activeMarket === 'HK' ? $t('misc.no_hk_sector_data') :
+             activeMarket === 'US' ? $t('misc.no_us_sector_data') :
+             $t('misc.no_sector_data')"
+    />
 
     <div class="legend">
-      <span class="legend-item"><span class="swatch" style="background:#dc2626"></span> +2%+</span>
-      <span class="legend-item"><span class="swatch" style="background:#ef4444"></span> +0.5~2%</span>
-      <span class="legend-item"><span class="swatch" style="background:#4b5563"></span> -0.5~0.5%</span>
-      <span class="legend-item"><span class="swatch" style="background:#22c55e"></span> -2~-0.5%</span>
-      <span class="legend-item"><span class="swatch" style="background:#16a34a"></span> -2%+</span>
+      <span class="legend-item"><span class="swatch band-up-strong"></span> +2%+</span>
+      <span class="legend-item"><span class="swatch band-up"></span> +0.5~2%</span>
+      <span class="legend-item"><span class="swatch band-flat"></span> -0.5~0.5%</span>
+      <span class="legend-item"><span class="swatch band-down"></span> -2~-0.5%</span>
+      <span class="legend-item"><span class="swatch band-down-strong"></span> -2%+</span>
     </div>
   </div>
 </template>
 
 <style scoped>
 .heatmap-panel {
-  padding: 16px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg, var(--color-bg-panel));
   overflow: hidden;
-}
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.market-tabs { display: flex; gap: 4px; }
-.mkt-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.mkt-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.loading-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
 }
 
 /* Heatmap Grid */
 .heatmap-grid {
   flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start;
-  gap: 2px; overflow-y: auto;
+  gap: 2px; overflow-y: auto; padding: var(--panel-padding);
   scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent;
 }
 .heatmap-cell {
-  min-width: 70px; min-height: 32px; padding: 6px 8px;
+  min-width: 70px; min-height: 32px; padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm); display: flex; flex-wrap: wrap;
   align-items: center; justify-content: space-between;
-  font-size: 11px; transition: filter 0.15s; cursor: default;
+  font-size: var(--font-xs); transition: filter var(--transition-fast); cursor: default;
 }
 .heatmap-cell:hover { filter: brightness(1.2); }
 .cell-name { font-weight: 500; white-space: nowrap; }
-.cell-pct { font-variant-numeric: tabular-nums; margin-left: 4px; }
+.cell-pct { font-variant-numeric: tabular-nums; margin-left: var(--space-xs); }
+
+/* 涨跌色带（heatmap 单元格与 legend 色块共用） */
+.band-up-strong { background: var(--color-up); color: var(--color-text-inverse); }
+.band-up { background: var(--color-up-soft); color: var(--color-up); }
+.band-flat { background: var(--color-bg-elevated); color: var(--color-text-secondary); }
+.band-down { background: var(--color-down-soft); color: var(--color-down); }
+.band-down-strong { background: var(--color-down); color: var(--color-text-inverse); }
 
 .legend {
-  display: flex; gap: 12px; padding-top: 8px; flex-wrap: wrap;
-  border-top: 1px solid var(--color-border-strong); margin-top: 8px; font-size: 10px; color: var(--color-text-tertiary);
+  display: flex; gap: var(--space-md); padding: var(--space-sm) var(--panel-padding); flex-wrap: wrap;
+  border-top: 1px solid var(--color-border-subtle); font-size: var(--font-xs); color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }
-.legend-item { display: flex; align-items: center; gap: 3px; }
-.swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.legend-item { display: flex; align-items: center; gap: var(--space-xs); }
+.swatch { width: 10px; height: 10px; border-radius: var(--radius-sm); display: inline-block; }
 </style>

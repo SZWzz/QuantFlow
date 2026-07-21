@@ -171,7 +171,7 @@ function highlightSearch(text: string): string {
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: inherit;
   transition: all 0.15s;
 }
@@ -197,7 +197,7 @@ function highlightSearch(text: string): string {
   border-radius: var(--radius-sm);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-family: inherit;
   width: 160px;
   outline: none;
@@ -214,7 +214,7 @@ function highlightSearch(text: string): string {
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: inherit;
 }
 
@@ -249,7 +249,7 @@ function highlightSearch(text: string): string {
   padding: 1px var(--space-sm);
   line-height: 1.5;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .log-line:hover {
@@ -298,11 +298,11 @@ function highlightSearch(text: string): string {
   padding: var(--space-md);
   text-align: center;
   color: var(--color-danger);
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 :deep(.log-highlight) {
-  background: var(--color-warn-soft, rgba(240, 173, 78, 0.3));
+  background: var(--color-accent-soft);
   border-radius: 2px;
   padding: 0 1px;
 }

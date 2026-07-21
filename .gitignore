@@ -36,6 +36,12 @@ python/**/*.egg-info/
 # Claude Code local settings
 .claude/settings.local.json
 
+# Impeccable skill output
+.impeccable/
+
+# Test results
+frontend/test-results/
+
 # Code graph daemon
 .codegraph/
 

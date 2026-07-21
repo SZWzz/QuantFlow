@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Handle, Position } from '@vue-flow/core'
 import { nodeLabel, paramLabel } from '@/workflow/nodeLabels'
+import { cssVar } from '@/lib/cssVar'
 
 const { t } = useI18n()
 
@@ -32,12 +33,26 @@ const CAT_ICONS: Record<string, string> = {
   utility: '🔧', research: '🔍', alternative_data: '🛰️', notify: '🔔', schedule: '⏰',
   backtest: '📉', alpha: '⭐',
 }
+// 分类色 → themes.css 现有 --cat-* token（与 NodePalette 同一映射；fallback 为亮色值）
 const CAT_COLORS: Record<string, string> = {
-  data: '#58a6ff', indicator: '#3fb950', signal: '#f0883e', trading: '#e94560',
-  risk: '#ef4444', portfolio: '#14b8a6', strategy: '#06b6d4', ml: '#a855f7',
-  ai: '#ec4899', output: '#a371f7', control: '#6366f1', utility: '#64748b',
-  research: '#0ea5e9', alternative_data: '#84cc16', notify: '#f97316', schedule: '#6366f1',
-  backtest: '#8b5cf6', alpha: '#f59e0b',
+  data: cssVar('--cat-market', '#2563eb'),
+  indicator: cssVar('--cat-chart', '#0891b2'),
+  signal: cssVar('--cat-quant', '#d97706'),
+  trading: cssVar('--cat-trading', '#059669'),
+  risk: cssVar('--color-danger', '#c62828'),
+  portfolio: cssVar('--cat-hk', '#0d9488'),
+  strategy: cssVar('--cat-chart', '#0891b2'),
+  ml: cssVar('--cat-research', '#7c3aed'),
+  ai: cssVar('--cat-altdata', '#db2777'),
+  output: cssVar('--cat-system', '#475569'),
+  control: cssVar('--cat-altdata', '#db2777'),
+  utility: cssVar('--cat-system', '#475569'),
+  research: cssVar('--cat-market', '#2563eb'),
+  alternative_data: cssVar('--cat-altdata', '#db2777'),
+  notify: cssVar('--cat-crypto', '#d97706'),
+  schedule: cssVar('--cat-portfolio', '#4f46e5'),
+  backtest: cssVar('--cat-research', '#7c3aed'),
+  alpha: cssVar('--cat-quant', '#d97706'),
 }
 
 const category = computed(() => (props.data as any).category || 'utility')
@@ -192,7 +207,7 @@ function setRetryCount(n: number) {
   min-width: 170px;
   max-width: 240px;
   font-size: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
   transition: border-color 0.15s, box-shadow 0.15s;
   position: relative;
   overflow: visible;
@@ -211,35 +226,35 @@ function setRetryCount(n: number) {
 
 .node-header {
   padding: 6px 12px; border-radius: 7px 7px 0 0;
-  color: #fff; font-weight: 600; font-size: 12px;
+  color: var(--wf-node-header-text); font-weight: 600; font-size: 12px;
   display: flex; align-items: center; gap: 6px;
 }
 
 /* ── Inline params ── */
 .node-params {
   padding: 4px 12px; border-bottom: 1px solid var(--wf-node-divider);
-  background: rgba(0,0,0,.15);
+  background: var(--wf-node-input-bg);
 }
 
 /* ── Badges ── */
 .node-badges { position: absolute; top: -8px; right: -8px; display: flex; gap: 2px; z-index: 30; }
-.badge { font-size: 12px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.badge { font-size: 12px; line-height: 1; }
 .param-row { display: flex; align-items: center; gap: 6px; padding: 1px 0; cursor: pointer; }
 .param-row { position: relative; }
 .param-row:hover { background: rgba(var(--wf-accent-rgb), .12); border-radius: 3px; }
 .param-row:hover .edit-hint { opacity: 1; }
 .edit-hint {
-  position: absolute; right: 4px; font-size: 9px; color: var(--color-accent);
+  position: absolute; right: 4px; font-size: var(--font-xs); color: var(--color-accent);
   opacity: 0; transition: opacity .15s;
 }
 .params-hint {
-  font-size: 9px; color: var(--wf-node-hint);
+  font-size: var(--font-xs); color: var(--wf-node-hint);
   padding: 0 0 3px; font-style: italic;
 }
-.param-key { font-size: 11px; color: var(--wf-node-subtext); flex-shrink: 0; }
+.param-key { font-size: var(--font-xs); color: var(--wf-node-subtext); flex-shrink: 0; }
 .param-key::after { content: ':'; margin-right: 1px; }
 .param-val { font-size: 12px; color: var(--wf-node-text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.param-input { width: 100%; padding: 2px 6px; border: 1px solid var(--color-accent); border-radius: 3px; background: var(--wf-node-input-bg); color: var(--wf-node-text); font-size: 11px; font-family: monospace; outline: none; }
+.param-input { width: 100%; padding: 2px 6px; border: 1px solid var(--color-accent); border-radius: 3px; background: var(--wf-node-input-bg); color: var(--wf-node-text); font-size: var(--font-xs); font-family: monospace; outline: none; }
 
 /* ── Port rows ── */
 .node-ports { padding: 4px 0; }
@@ -247,7 +262,7 @@ function setRetryCount(n: number) {
   display: flex; justify-content: space-between; align-items: center;
   height: 26px; padding: 0 12px; position: relative;
 }
-.port-label { font-size: 10px; color: var(--color-text-tertiary); user-select: none; white-space: nowrap; }
+.port-label { font-size: var(--font-xs); color: var(--color-text-tertiary); user-select: none; white-space: nowrap; }
 .right-label { text-align: right; }
 
 /* ── Port dots on card edges ── */
@@ -268,17 +283,17 @@ function setRetryCount(n: number) {
 /* ── Error handling (selected only) ── */
 .node-error-section {
   padding: 4px 8px; border-top: 1px solid var(--wf-node-divider);
-  background: rgba(0,0,0,.1);
+  background: var(--wf-node-input-bg);
 }
 .error-row { display: flex; align-items: center; gap: 4px; }
 .error-select {
-  flex: 1; padding: 2px 4px; font-size: 10px;
+  flex: 1; padding: 2px 4px; font-size: var(--font-xs);
   background: var(--color-bg-input); border: 1px solid var(--color-border);
   border-radius: 3px; color: var(--color-text-secondary); outline: none; cursor: pointer;
 }
 .error-select:focus { border-color: var(--color-accent); }
 .retry-input {
-  width: 44px; padding: 2px 4px; font-size: 10px;
+  width: 44px; padding: 2px 4px; font-size: var(--font-xs);
   background: var(--color-bg-input); border: 1px solid var(--color-border);
   border-radius: 3px; color: var(--color-text-primary); outline: none; text-align: center;
 }
@@ -287,5 +302,5 @@ function setRetryCount(n: number) {
 /* ── Status ── */
 .running-indicator { position: absolute; bottom: 4px; right: 4px; width: 8px; height: 8px; background: var(--wf-warn); border-radius: 50%; }
 .success-check { position: absolute; bottom: 2px; right: 6px; color: var(--wf-success); font-size: 14px; font-weight: bold; }
-.failed-mark { position: absolute; bottom: 2px; left: 6px; color: var(--wf-danger); font-size: 10px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.failed-mark { position: absolute; bottom: 2px; left: 6px; color: var(--wf-danger); font-size: var(--font-xs); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

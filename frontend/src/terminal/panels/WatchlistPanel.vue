@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
-import { useDataStore } from '@/stores/data'
+import { ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } from 'vue'
+import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { detectMarket } from '@/lib/wails'
-import { PanelHeader } from '@/terminal/components/panel'
+import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '@/terminal/components/panel'
+import type { FlashClass } from '@/lib/composables/useFlashOnUpdate'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
 import { useI18n } from 'vue-i18n'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
-const dataStore = useDataStore()
+const terminal = useTerminalStore()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const { fetchWithCache } = usePanelCache()
@@ -23,11 +24,12 @@ const controls = computed(() => {
   const list: any[] = []
   if (addToWfControl.value) list.push(addToWfControl.value)
   list.push({ icon: 'refresh', label: t('common.refresh'), action: refreshAll })
+  // 右键菜单操作的键盘可达入口：对当前选中 symbol 打开同一操作菜单
+  list.push({ icon: 'dots', title: t('common.actions'), action: openSymbolActions })
   return list
 })
 
 const WS_KEY = 'quantflow-watchlist'
-const CONFIG_KEY = 'quantflow-watchlist-config'
 const defaultSymbols = ['600519', '000001', '300750', '601318', '000858', '600036', '601166', '600276']
 
 interface QuoteRow {
@@ -36,42 +38,16 @@ interface QuoteRow {
   turnoverRate: number; volumeRatio: number; amplitude: number; prevLast?: number
 }
 
-interface ColumnDef {
-  key: string; label: string; visible: boolean; sortable: boolean; format?: 'price' | 'percent' | 'volume' | 'number'
+/** PanelTable 行；0 值视为无数据（显示 '--'），与迁移前 formatCell 的零值处理一致 */
+interface WatchRow {
+  symbol: string
+  name: string
+  last?: number
+  changePct?: number
+  turnover?: number
 }
 
 interface SortState { key: string; dir: 'asc' | 'desc' | null }
-
-const defaultColumns: ColumnDef[] = [
-  { key: 'symbol', label: 'common.symbol', visible: true, sortable: false },
-  { key: 'name', label: 'common.name', visible: true, sortable: false },
-  { key: 'last', label: 'common.price', visible: true, sortable: true, format: 'price' },
-  { key: 'changePct', label: 'quote.change_pct', visible: true, sortable: true, format: 'percent' },
-  { key: 'change', label: 'quote.change', visible: false, sortable: true, format: 'price' },
-  { key: 'speed', label: 'watchlist.speed', visible: true, sortable: true, format: 'percent' },
-  { key: 'volumeRatio', label: 'kline.volume_ratio', visible: true, sortable: true, format: 'number' },
-  { key: 'turnoverRate', label: 'kline.turnover', visible: false, sortable: true, format: 'percent' },
-  { key: 'amplitude', label: 'kline.amplitude', visible: false, sortable: true, format: 'percent' },
-  { key: 'volume', label: 'common.volume', visible: false, sortable: true, format: 'volume' },
-  { key: 'turnover', label: 'quote.turnover', visible: false, sortable: true, format: 'volume' },
-  { key: 'high', label: 'quote.high', visible: false, sortable: true, format: 'price' },
-  { key: 'low', label: 'quote.low', visible: false, sortable: true, format: 'price' },
-]
-
-function loadColumns(): ColumnDef[] {
-  try {
-    const saved = localStorage.getItem(CONFIG_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {}
-  return defaultColumns.map(c => ({ ...c }))
-}
-
-function saveColumns(cols: ColumnDef[]) {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(cols))
-}
 
 function loadSymbols(): string[] {
   try {
@@ -87,120 +63,109 @@ function saveSymbols(syms: string[]) {
 
 const symbols = ref<string[]>(loadSymbols())
 const quotes = reactive<Record<string, QuoteRow>>({})
-const loading = ref<Record<string, boolean>>({})
 const initialLoadDone = ref(false)
 const sort = ref<SortState>({ key: '', dir: null })
-const columns = ref<ColumnDef[]>(loadColumns())
-const showColumnSettings = ref(false)
 const expandedGroups = reactive<Record<string, boolean>>({ CN: true, HK: true, US: true, CRYPTO: true })
 const pollingActive = ref(true)
 
 // Context menu
 const ctxMenu = ref<{ x: number; y: number; symbol: string } | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
+const rootEl = ref<HTMLElement | null>(null)
+/** 打开菜单的触发元素（行或头部按钮），关闭时归还焦点 */
+let menuTrigger: HTMLElement | null = null
 
-// Drag state
-const dragSymbol = ref<string | null>(null)
+const tableColumns = computed<Column[]>(() => [
+  { key: 'symbol', label: t('common.symbol'), width: 70 },
+  { key: 'name', label: t('common.name'), flex: 1 },
+  { key: 'last', label: t('common.price'), align: 'right', format: 'price', width: 72, sortable: true },
+  { key: 'changePct', label: t('quote.change_pct'), align: 'right', format: 'percent', colorize: true, width: 76, sortable: true },
+  { key: 'turnover', label: t('quote.turnover'), align: 'right', format: 'volume', width: 80, sortable: true },
+])
 
-const visibleColumns = computed(() => columns.value.filter(c => c.visible))
+const tableRows = computed<WatchRow[]>(() =>
+  symbols.value.map(sym => {
+    const q = quotes[sym]
+    return {
+      symbol: sym,
+      name: q?.name || sym,
+      last: q?.last,
+      changePct: q?.changePct || undefined,
+      turnover: q?.turnover || undefined,
+    }
+  }),
+)
 
-const gridTemplateCols = computed(() => {
-  const sizes: Record<string, string> = {
-    symbol: '70px', name: '1fr', last: '72px', changePct: '76px',
-    change: '68px', speed: '64px', volumeRatio: '56px', turnoverRate: '64px',
-    amplitude: '64px', volume: '72px', turnover: '80px', high: '68px', low: '68px',
-  }
-  const cols = visibleColumns.value.map(c => sizes[c.key] || '60px')
-  cols.push('28px')
-  return cols.join(' ')
-})
-
-function getValue(sym: string, key: string): number {
-  const q = quotes[sym]
-  if (!q) return 0
-  switch (key) {
-    case 'last': return q.last
-    case 'change': return q.change
-    case 'changePct': return q.changePct
-    case 'speed': return q.prevLast != null && q.prevLast > 0 ? (q.last - q.prevLast) / q.prevLast * 100 : 0
-    case 'volumeRatio': return q.volumeRatio
-    case 'turnoverRate': return q.turnoverRate
-    case 'amplitude': return q.amplitude
-    case 'volume': return q.volume
-    case 'turnover': return q.turnover
-    case 'high': return q.high
-    case 'low': return q.low
-    default: return 0
-  }
-}
-
-const displaySymbols = computed(() => {
+// 排序语义与旧版 toggleSort 一致：新列 asc → 同列 desc → 同列清除；仅数值列可排，缺失值按 0
+const sortedRows = computed<WatchRow[]>(() => {
   const s = sort.value
-  if (!s.dir || !s.key) return symbols.value
-  return [...symbols.value].sort((a, b) => {
-    const va = getValue(a, s.key); const vb = getValue(b, s.key)
+  if (!s.dir || !s.key) return tableRows.value
+  return [...tableRows.value].sort((a, b) => {
+    const va = (a[s.key as keyof WatchRow] as number) ?? 0
+    const vb = (b[s.key as keyof WatchRow] as number) ?? 0
     if (va === vb) return 0
     return s.dir === 'asc' ? (va - vb) : (vb - va)
   })
 })
 
+function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
+  sort.value = dir ? { key, dir } : { key: '', dir: null }
+}
+
 const groups = computed(() => {
-  const map: Record<string, string[]> = { CN: [], HK: [], US: [], CRYPTO: [] }
-  for (const sym of displaySymbols.value) {
-    const m = detectMarket(sym)
-    if (map[m]) map[m].push(sym); else map.CN.push(sym)
+  const map: Record<string, WatchRow[]> = { CN: [], HK: [], US: [], CRYPTO: [] }
+  for (const row of sortedRows.value) {
+    const m = detectMarket(row.symbol)
+    if (map[m]) map[m].push(row); else map.CN.push(row)
   }
   return map
 })
 
-function toggleSort(key: string) {
-  if (sort.value.key === key) {
-    if (sort.value.dir === 'asc') sort.value.dir = 'desc'
-    else if (sort.value.dir === 'desc') sort.value = { key: '', dir: null }
-    else sort.value.dir = 'asc'
-  } else {
-    sort.value = { key, dir: 'asc' }
-  }
-}
+// 仅非空分组，保持 CN/HK/US/CRYPTO 固定顺序；首个展开的分组显示表头
+const groupList = computed(() =>
+  (['CN', 'HK', 'US', 'CRYPTO'] as const)
+    .map(mkt => ({ mkt, rows: groups.value[mkt] }))
+    .filter(g => g.rows.length > 0),
+)
+
+// 表头跟随第一个展开的分组，避免折叠首组后排序 UI 不可达
+const firstExpandedIndex = computed(() => groupList.value.findIndex(g => expandedGroups[g.mkt]))
 
 function toggleGroup(market: string) {
   expandedGroups[market] = !expandedGroups[market]
 }
 
-function formatCell(sym: string, col: ColumnDef): string {
-  const q = quotes[sym]
-  if (!q) return '--'
-  const v = getValue(sym, col.key)
-  if (v == null || (v === 0 && col.key !== 'volumeRatio' && col.key !== 'last')) return '--'
-  switch (col.format) {
-    case 'price': return v.toFixed(2)
-    case 'percent': return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'
-    case 'volume': {
-      if (v >= 1e8) return (v / 1e8).toFixed(2) + '亿'
-      if (v >= 1e4) return (v / 1e4).toFixed(1) + '万'
-      return v.toFixed(0)
+// 涨跌闪烁：watch 每个 symbol 的现价，变化时在该行根元素加 .flash-up/.flash-down，600ms 后移除。
+// 语义与 useFlashOnUpdate 一致：前后值均为有限数值才闪烁；窗口内同向变化只重排清除
+// 计时器（class 字符串不变，CSS 动画不重启，避免高频行情频闪）。
+// prev === 0 视为无基线跳过——名称解析阶段会以 last: 0 占位，避免初始加载整表闪烁。
+const flashMap = reactive<Record<string, FlashClass>>({})
+const flashTimers: Record<string, ReturnType<typeof setTimeout>> = {}
+
+watch(
+  () => Object.fromEntries(symbols.value.map(sym => [sym, quotes[sym]?.last] as const)),
+  (next, prev) => {
+    for (const sym of Object.keys(next)) {
+      const n = next[sym]
+      const p = prev[sym]
+      if (typeof n !== 'number' || typeof p !== 'number' || p === 0) continue
+      if (!Number.isFinite(n) || !Number.isFinite(p) || n === p) continue
+      flashMap[sym] = n > p ? 'flash-up' : 'flash-down'
+      clearTimeout(flashTimers[sym])
+      flashTimers[sym] = setTimeout(() => { flashMap[sym] = '' }, 600)
     }
-    default: return String(v)
-  }
-}
+  },
+)
 
-function rowClasses(sym: string) {
-  const q = quotes[sym]
-  const chg = q?.change ?? 0
-  const active = ctx.getGroupSymbol(pg.groupId) === sym
-  return { up: chg >= 0, down: chg < 0, active }
-}
-
-function cellColor(sym: string, key: string): string {
-  if (key === 'change' || key === 'changePct' || key === 'speed') {
-    const v = getValue(sym, key)
-    if (v > 0) return 'var(--color-up)'
-    if (v < 0) return 'var(--color-down)'
-  }
-  return 'var(--color-text-primary)'
+function rowClass(row: WatchRow): string {
+  const cls: string[] = []
+  if (ctx.getGroupSymbol(pg.groupId) === row.symbol) cls.push('active')
+  const f = flashMap[row.symbol]
+  if (f) cls.push(f)
+  return cls.join(' ')
 }
 
 async function refreshQuote(sym: string) {
-  loading.value[sym] = true
   try {
     const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => (window as any).go?.main?.App?.GetQuote(detectMarket(sym), sym), 10 * 1000)
     const snap = Array.isArray(result) ? result[0] : result
@@ -223,7 +188,6 @@ async function refreshQuote(sym: string) {
       prevLast: prev?.last,
     }
   } catch { /* best-effort */ }
-  delete loading.value[sym]
 }
 
 function handleWSQuote(topic: string, data: any) {
@@ -249,13 +213,25 @@ function handleWSQuote(topic: string, data: any) {
     amplitude: snap.amplitude ?? 0,
     prevLast: prev?.last,
   }
-  delete loading.value[sym]
 }
 
 function removeSymbol(sym: string) {
+  // 键盘场景：删除前定位焦点锚点行（右键菜单触发行或当前焦点行），删除后焦点落到补位的行
+  const rowsBefore = Array.from(rootEl.value?.querySelectorAll('[data-testid="watchlist-row"]') ?? []) as HTMLElement[]
+  const anchor = (menuTrigger?.matches('[data-testid="watchlist-row"]') ? menuTrigger : document.activeElement) as HTMLElement | null
+  const focusIdx = rowsBefore.findIndex(el => el === anchor || el.contains(anchor))
   symbols.value = symbols.value.filter(s => s !== sym)
   saveSymbols(symbols.value)
+  clearTimeout(flashTimers[sym])
+  delete flashTimers[sym]
+  delete flashMap[sym]
   window.dispatchEvent(new CustomEvent('watchlist-changed'))
+  if (focusIdx >= 0) {
+    nextTick(() => {
+      const rowsAfter = Array.from(rootEl.value?.querySelectorAll('[data-testid="watchlist-row"]') ?? []) as HTMLElement[]
+      if (rowsAfter.length > 0) rowsAfter[Math.min(focusIdx, rowsAfter.length - 1)].focus()
+    })
+  }
 }
 
 function selectSymbol(sym: string) {
@@ -266,11 +242,79 @@ async function refreshAll() {
   await Promise.all(symbols.value.map(sym => refreshQuote(sym)))
 }
 
-// Context menu
-function openContextMenu(e: MouseEvent, sym: string) {
-  ctxMenu.value = { x: e.clientX, y: e.clientY, symbol: sym }
+function onRowClick(row: WatchRow) {
+  selectSymbol(row.symbol)
 }
-function closeContextMenu() { ctxMenu.value = null }
+
+function onRowContextMenu(row: WatchRow, e: MouseEvent) {
+  e.preventDefault()
+  openContextMenu(e, row.symbol)
+}
+
+// Context menu：打开后聚焦首个菜单项，关闭时焦点归还触发元素
+function focusFirstMenuItem() {
+  nextTick(() => menuRef.value?.querySelector<HTMLElement>('[role="menuitem"]')?.focus())
+}
+
+function openContextMenu(e: MouseEvent, sym: string) {
+  menuTrigger = e.currentTarget instanceof HTMLElement ? e.currentTarget : null
+  ctxMenu.value = { x: e.clientX, y: e.clientY, symbol: sym }
+  focusFirstMenuItem()
+}
+
+/** PanelHeader controls 的键盘可达入口：对当前选中 symbol（缺省取首只）打开同一菜单 */
+function openSymbolActions(e: MouseEvent) {
+  e.stopPropagation() // 阻止 document click 立即关闭刚打开的菜单
+  const sym = ctx.getGroupSymbol(pg.groupId) || symbols.value[0]
+  if (!sym) return
+  const btn = e.currentTarget instanceof HTMLElement ? e.currentTarget : null
+  const rect = btn?.getBoundingClientRect()
+  menuTrigger = btn
+  ctxMenu.value = { x: rect?.left ?? 0, y: (rect?.bottom ?? 0) + 4, symbol: sym }
+  focusFirstMenuItem()
+}
+
+function closeContextMenu() {
+  if (!ctxMenu.value) return
+  const focusInside = menuRef.value?.contains(document.activeElement) ?? false
+  ctxMenu.value = null
+  if (focusInside && menuTrigger?.isConnected) menuTrigger.focus()
+  menuTrigger = null
+}
+
+/** 菜单内键盘导航：↑↓ 循环、Home/End、Esc 关闭归还焦点、Tab 关闭 */
+function onMenuKeydown(e: KeyboardEvent) {
+  const items = Array.from(menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    closeContextMenu()
+    return
+  }
+  if (e.key === 'Tab') {
+    closeContextMenu()
+    return
+  }
+  if (items.length === 0) return
+  const idx = items.indexOf(document.activeElement as HTMLElement)
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault()
+      items[(idx + 1) % items.length].focus()
+      break
+    case 'ArrowUp':
+      e.preventDefault()
+      items[(idx - 1 + items.length) % items.length].focus()
+      break
+    case 'Home':
+      e.preventDefault()
+      items[0].focus()
+      break
+    case 'End':
+      e.preventDefault()
+      items[items.length - 1].focus()
+      break
+  }
+}
 
 function contextOpenKline() {
   if (!ctxMenu.value) return
@@ -294,37 +338,10 @@ function contextOpenAnalysis(panelId: string) {
   closeContextMenu()
 }
 
-// Drag & drop
-function onDragStart(e: DragEvent, sym: string) {
-  dragSymbol.value = sym
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
-}
-function onDragOver(e: DragEvent, _sym: string) {
-  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
-}
-function onDrop(e: DragEvent, targetSym: string) {
-  if (!dragSymbol.value || dragSymbol.value === targetSym) return
-  const list = [...symbols.value]
-  const fromIdx = list.indexOf(dragSymbol.value)
-  const toIdx = list.indexOf(targetSym)
-  if (fromIdx < 0 || toIdx < 0) return
-  list.splice(fromIdx, 1)
-  list.splice(toIdx, 0, dragSymbol.value)
-  symbols.value = list
-  saveSymbols(list)
-  dragSymbol.value = null
-}
-
 function onVisibility() {
   pollingActive.value = !document.hidden
   if (!pollingActive.value) return
   refreshAll()
-}
-
-// Column settings
-function toggleColumn(key: string) {
-  const col = columns.value.find(c => c.key === key)
-  if (col) { col.visible = !col.visible; saveColumns(columns.value) }
 }
 
 async function onWatchlistChanged() {
@@ -335,6 +352,8 @@ async function onWatchlistChanged() {
 onMounted(async () => {
   window.addEventListener('watchlist-changed', onWatchlistChanged)
   document.addEventListener('click', closeContextMenu)
+  // 一次性清理迁移前列设置遗留的 localStorage key（列设置已随 5 列固定规格下线）
+  localStorage.removeItem('quantflow-watchlist-config')
 
   try {
     const app = (window as any).go?.main?.App
@@ -371,101 +390,84 @@ onUnmounted(() => {
   window.removeEventListener('watchlist-changed', onWatchlistChanged)
   document.removeEventListener('click', closeContextMenu)
   document.removeEventListener('visibilitychange', onVisibility)
+  for (const k of Object.keys(flashTimers)) clearTimeout(flashTimers[k])
   ws.disconnect()
 })
 </script>
 
 <template>
-  <div class="watchlist-panel" data-testid="watchlist-panel">
+  <div class="watchlist-panel" data-testid="watchlist-panel" ref="rootEl">
     <PanelHeader
-      :title="$t('watchlist.title')"
+      :title="t('watchlist.title')"
       :controls="controls"
     />
 
-    <!-- Empty state -->
-    <div v-if="symbols.length === 0" class="empty-state" data-testid="watchlist-empty">
-      <div class="empty-icon">📋</div>
-      <div class="empty-text">{{ $t('watchlist.empty') }}</div>
-    </div>
+    <EmptyState
+      v-if="symbols.length === 0"
+      :title="t('watchlist.empty')"
+      data-testid="watchlist-empty"
+    />
 
-    <!-- Table -->
-    <div v-else class="symbol-table">
-      <!-- Header row -->
-      <div class="table-header" :style="{ gridTemplateColumns: gridTemplateCols }">
-        <div v-for="col in visibleColumns" :key="col.key"
-          class="th" :class="{ sortable: col.sortable, asc: sort.key === col.key && sort.dir === 'asc', desc: sort.key === col.key && sort.dir === 'desc' }"
-          :style="{ cursor: col.sortable ? 'pointer' : 'default' }"
-          @click="col.sortable && toggleSort(col.key)">
-          {{ $t(col.label) }}
-          <span v-if="sort.key === col.key" class="sort-arrow">{{ sort.dir === 'asc' ? '↑' : '↓' }}</span>
-        </div>
-        <div class="th-actions">
-          <button class="col-settings-btn" @click.stop="showColumnSettings = !showColumnSettings" :title="$t('watchlist.column_settings')">⚙</button>
-          <div v-if="showColumnSettings" class="col-settings-popover" @click.stop>
-            <div class="popover-title">{{ $t('watchlist.column_settings') }}</div>
-            <label v-for="col in columns" :key="col.key" class="col-toggle">
-              <input type="checkbox" :checked="col.visible" @change="toggleColumn(col.key)" />
-              <span>{{ $t(col.label) }}</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Group accordion -->
-      <template v-for="(syms, mkt) in groups" :key="mkt">
-        <div v-if="syms.length" class="group-header" @click="toggleGroup(mkt)">
-          <span class="group-arrow">{{ expandedGroups[mkt] ? '▼' : '▶' }}</span>
-          <span class="group-label">{{ $t('watchlist.group_' + mkt.toLowerCase()) }}</span>
-          <span class="group-count">{{ syms.length }}</span>
-        </div>
-
-        <template v-if="expandedGroups[mkt]">
-          <!-- Loading skeleton -->
-          <div v-if="!initialLoadDone" v-for="i in Math.min(syms.length, 3)" :key="'skel-' + mkt + '-' + i" class="table-row skeleton" :style="{ gridTemplateColumns: gridTemplateCols }">
-            <div v-for="col in visibleColumns" :key="col.key" class="td"><div class="skeleton-bar"></div></div>
-            <div class="td-actions"></div>
-          </div>
-
-          <!-- Data rows -->
-          <div v-for="sym in syms" v-else :key="sym"
-            class="table-row" :class="rowClasses(sym)" data-testid="watchlist-row"
-            :style="{ gridTemplateColumns: gridTemplateCols }"
-            @click="selectSymbol(sym)"
-            @contextmenu.prevent="openContextMenu($event, sym)"
-            draggable="true"
-            @dragstart="onDragStart($event, sym)"
-            @dragover="onDragOver($event, sym)"
-            @drop="onDrop($event, sym)">
-            <template v-for="col in visibleColumns" :key="col.key">
-              <div v-if="col.key === 'symbol'" class="td code" :style="{ color: cellColor(sym, 'changePct') }">{{ sym }}</div>
-              <div v-else-if="col.key === 'name'" class="td name"><span class="name-text">{{ quotes[sym]?.name || sym }}</span></div>
-              <div v-else class="td" :style="{ color: cellColor(sym, col.key) }">
-                {{ loading[sym] ? '--' : formatCell(sym, col) }}
-              </div>
+    <div v-else class="watchlist-groups">
+      <LoadingState v-if="!initialLoadDone" type="table" :rows="5" :cols="tableColumns.length" />
+      <template v-else>
+        <template v-for="(g, gi) in groupList" :key="g.mkt">
+          <button
+            type="button"
+            class="group-header"
+            :aria-expanded="expandedGroups[g.mkt]"
+            @click="toggleGroup(g.mkt)"
+          >
+            <span class="group-arrow" aria-hidden="true">{{ expandedGroups[g.mkt] ? '▼' : '▶' }}</span>
+            <span class="group-label">{{ t('watchlist.group_' + g.mkt.toLowerCase()) }}</span>
+            <span class="group-count">{{ g.rows.length }}</span>
+          </button>
+          <PanelTable
+            v-if="expandedGroups[g.mkt]"
+            :columns="tableColumns"
+            :data="g.rows"
+            :striped="false"
+            clickable
+            row-test-id="watchlist-row"
+            :row-class="rowClass"
+            :sort-key="sort.key"
+            :sort-dir="sort.dir"
+            :hide-header="gi !== firstExpandedIndex"
+            @row-click="onRowClick"
+            @row-contextmenu="onRowContextMenu"
+            @sort-change="onSortChange"
+          >
+            <template #action="{ row }">
+              <button class="remove-btn" :title="t('common.delete')" @click.stop="removeSymbol(row.symbol)">✕</button>
             </template>
-            <div class="td-actions">
-              <button class="remove-btn" @click.stop="removeSymbol(sym)" :title="$t('common.delete')">✕</button>
-            </div>
-          </div>
+          </PanelTable>
         </template>
       </template>
     </div>
 
     <!-- Polling indicator -->
-    <div v-if="!pollingActive && symbols.length" class="polling-badge">{{ $t('watchlist.polling_paused') }}</div>
+    <div v-if="!pollingActive && symbols.length" class="polling-badge">{{ t('watchlist.polling_paused') }}</div>
 
     <!-- Context menu -->
     <Teleport to="body">
-      <div v-if="ctxMenu" class="context-menu" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }">
-        <div class="menu-item" @click="contextOpenKline">{{ $t('watchlist.context_open_kline') }}</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item" @click="contextOpenAnalysis('dupont-analysis')">杜邦分析</div>
-        <div class="menu-item" @click="contextOpenAnalysis('shareholder-analysis')">股东分析</div>
-        <div class="menu-item" @click="contextOpenAnalysis('event-study')">事件分析</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item" @click="contextCopyCode">{{ $t('watchlist.context_copy') }}</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item danger" @click="contextDelete">{{ $t('watchlist.context_delete') }}</div>
+      <div
+        v-if="ctxMenu"
+        ref="menuRef"
+        class="context-menu"
+        role="menu"
+        :aria-label="ctxMenu.symbol"
+        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+        @keydown="onMenuKeydown"
+      >
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenKline">{{ t('watchlist.context_open_kline') }}</button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('dupont-analysis')">杜邦分析</button>
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('shareholder-analysis')">股东分析</button>
+        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('event-study')">事件分析</button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="contextCopyCode">{{ t('watchlist.context_copy') }}</button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item danger" role="menuitem" @click="contextDelete">{{ t('watchlist.context_delete') }}</button>
       </div>
     </Teleport>
   </div>
@@ -473,104 +475,78 @@ onUnmounted(() => {
 
 <style scoped>
 .watchlist-panel {
-  display: flex; flex-direction: column; height: 100%;
-  background: var(--color-bg-panel); position: relative;
+  height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  position: relative;
 }
-.empty-state {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 12px; color: var(--color-text-tertiary);
+
+/* Selected row (rows live inside PanelTable, hence :deep)：规范 §3.3 选中行只用 --color-bg-selected，无装饰色条 */
+.watchlist-panel :deep(.table-row.active) {
+  background: var(--color-bg-selected);
 }
-.empty-icon { font-size: 32px; opacity: 0.4; }
-.empty-text { font-size: var(--font-sm); text-align: center; padding: 0 24px; line-height: 1.5; }
 
-.symbol-table { flex: 1; overflow-y: auto; font-size: var(--font-xs); }
-
-/* Header */
-.table-header {
-  display: grid; gap: 0; position: sticky; top: 0; z-index: 2;
-  background: var(--color-bg-elevated); border-bottom: 1px solid var(--color-border-strong);
-  padding: 0 8px; font-size: 10px; color: var(--color-text-tertiary);
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+/* Group accordion：单一滚动容器，分组内 PanelTable 按内容自然撑高 */
+.watchlist-groups {
+  flex: 1;
+  overflow-y: auto;
 }
-.th { padding: 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
-.th.sortable:hover { color: var(--color-text-primary); }
-.sort-arrow { margin-left: 2px; font-size: 9px; }
-.th-actions { display: flex; align-items: center; justify-content: flex-end; padding: 2px; position: relative; }
-.col-settings-btn { background: none; border: none; color: var(--color-text-tertiary); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: var(--radius-sm); }
-.col-settings-btn:hover { color: var(--color-text-primary); background: var(--color-bg-hover); }
 
-.col-settings-popover {
-  position: absolute; top: 100%; right: 0; z-index: 100;
-  background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md); padding: 8px; min-width: 140px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+.watchlist-groups :deep(.panel-table-wrapper) {
+  flex: none;
+  overflow: visible;
 }
-.popover-title { font-size: 11px; font-weight: 600; margin-bottom: 6px; color: var(--color-text-primary); }
-.col-toggle { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; cursor: pointer; color: var(--color-text-secondary); }
-.col-toggle:hover { color: var(--color-text-primary); }
-.col-toggle input { margin: 0; }
 
-/* Group header */
+.watchlist-groups :deep(.table-body) {
+  flex: none;
+  overflow: visible;
+}
+
 .group-header {
-  display: flex; align-items: center; gap: 6px;
-  padding: 4px 10px; cursor: pointer; user-select: none;
-  background: var(--color-bg-elevated); border-bottom: 1px solid var(--color-border-subtle);
-  font-size: 11px; color: var(--color-text-secondary); position: sticky; top: 28px; z-index: 1;
+  display: flex; align-items: center; gap: var(--space-xs);
+  width: 100%; padding: var(--space-xs) var(--space-sm); cursor: pointer; user-select: none;
+  background: var(--color-bg-elevated); border: 0; border-bottom: 1px solid var(--color-border-subtle);
+  font-family: inherit; font-size: var(--font-xs); text-align: left; color: var(--color-text-secondary);
+  position: sticky; top: 0; z-index: 1;
 }
 .group-header:hover { color: var(--color-text-primary); }
-.group-arrow { font-size: 8px; width: 12px; }
-.group-count { margin-left: auto; font-size: 10px; color: var(--color-text-tertiary); }
+.group-arrow { font-size: var(--font-xs); width: var(--space-md); }
+.group-count { margin-left: auto; font-size: var(--font-xs); color: var(--color-text-tertiary); }
 
-/* Row */
-.table-row {
-  display: grid; gap: 0; align-items: center;
-  padding: 0 8px; cursor: pointer; transition: background var(--transition-fast);
-  border-bottom: 1px solid var(--color-border-subtle);
-  min-height: 32px;
-}
-.table-row:hover { background: var(--color-bg-hover); }
-.table-row.active {
-  background: var(--color-accent-soft);
-  border-left: 2px solid var(--color-accent);
-  padding-left: 6px;
-}
-.table-row.dragging { opacity: 0.4; }
-.td { padding: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.td.code { font-weight: 600; font-size: var(--font-xs); }
-.td.name { overflow: hidden; }
-.name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: var(--color-text-tertiary); font-size: 10px; }
-.td-actions { display: flex; align-items: center; justify-content: flex-end; }
+/* Remove button (#action slot content renders in this scope) */
 .remove-btn {
-  background: none; border: none; color: var(--color-text-tertiary);
-  cursor: pointer; font-size: 10px; padding: 2px 4px; opacity: 0;
-  transition: opacity var(--transition-fast);
+  background: none; border: 0; color: var(--color-text-tertiary);
+  cursor: pointer; font-size: var(--font-xs); padding: var(--space-xs);
+  opacity: 0; transition: opacity var(--transition-fast);
 }
 .table-row:hover .remove-btn { opacity: 0.5; }
+/* 键盘焦点进入行/按钮时同样需要可见，否则键盘用户无法发现删除入口 */
+.table-row:focus-within .remove-btn { opacity: 0.5; }
 .remove-btn:hover { opacity: 1 !important; color: var(--color-down); }
-
-/* Skeleton */
-.skeleton-bar {
-  height: 10px; background: var(--color-border-strong); border-radius: 4px;
-  animation: shimmer 1.2s ease-in-out infinite;
-}
-@keyframes shimmer { 0% { opacity: 0.3; } 50% { opacity: 0.7; } 100% { opacity: 0.3; } }
+.remove-btn:focus-visible { opacity: 1 !important; }
 
 /* Polling badge */
 .polling-badge {
-  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-  font-size: 9px; color: var(--color-text-tertiary); background: var(--color-bg-elevated);
-  padding: 2px 8px; border-radius: 8px; border: 1px solid var(--color-border-subtle);
+  position: absolute; bottom: var(--space-sm); left: 50%; transform: translateX(-50%);
+  font-size: var(--font-xs); color: var(--color-text-tertiary); background: var(--color-bg-elevated);
+  padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);
 }
 
 /* Context menu */
 .context-menu {
   position: fixed; z-index: var(--z-tooltip);
   background: var(--color-bg-elevated); border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md); padding: 4px 0;
-  min-width: 120px; box-shadow: var(--shadow-md);
+  border-radius: var(--radius-md); padding: var(--space-xs) 0;
+  min-width: 120px;
+  box-shadow: var(--shadow-md);
 }
-.menu-item { padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--color-text-primary); transition: background 0.1s; }
-.menu-item:hover { background: var(--color-accent); color: #fff; }
-.menu-item.danger:hover { background: var(--color-down); }
-.menu-sep { height: 1px; margin: 4px 8px; background: var(--color-border-subtle); }
+.menu-item {
+  display: block; width: 100%;
+  padding: var(--space-xs) var(--space-md);
+  border: 0; background: none;
+  font-family: inherit; font-size: var(--font-xs); text-align: left;
+  cursor: pointer; color: var(--color-text-primary); transition: background var(--transition-fast);
+}
+/* 键盘焦点与悬停同视觉：焦点移动即当前项 */
+.menu-item:hover, .menu-item:focus-visible { background: var(--color-accent); color: var(--color-text-inverse); outline: none; }
+.menu-item.danger:hover, .menu-item.danger:focus-visible { background: var(--color-down); }
+.menu-sep { height: 1px; margin: var(--space-xs) var(--space-sm); background: var(--color-border-subtle); }
 </style>

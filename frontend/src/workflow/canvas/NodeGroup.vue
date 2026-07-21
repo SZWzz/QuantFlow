@@ -29,9 +29,9 @@ defineProps<{
 .group-header {
   padding: 4px 12px;
   border-radius: 9px 9px 0 0;
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 600;
-  color: #fff;
+  color: var(--wf-node-header-text);
   user-select: none;
 }
 .group-label {

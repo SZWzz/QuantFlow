@@ -46,20 +46,13 @@ withDefaults(defineProps<{
   gap: var(--space-md);
   padding: var(--space-xl);
   text-align: center;
-  animation: empty-enter 0.4s ease-out;
-}
-
-@keyframes empty-enter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .empty-icon {
   display: inline-flex;
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   color: var(--color-text-tertiary);
-  opacity: 0.5;
 }
 
 .empty-icon :deep(svg) {
@@ -68,18 +61,18 @@ withDefaults(defineProps<{
 }
 
 .empty-title {
-  font-size: var(--font-lg);
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: 500;
   color: var(--color-text-secondary);
   margin: 0;
 }
 
 .empty-desc {
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   margin: 0;
   max-width: 280px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .empty-actions {

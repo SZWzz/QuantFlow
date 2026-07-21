@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, EmptyState, LoadingState } from '@/terminal/components/panel'
 
-const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+const { t } = useI18n()
 
 interface CalendarEvent {
   date: string
@@ -21,6 +24,12 @@ const filter = ref<string>('all')
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
 const loadError = ref('')
+
+const tabs = computed(() => [
+  { key: 'all', label: t('common.all') },
+  { key: 'CN', label: 'CN' },
+  { key: 'US', label: 'US' },
+])
 
 const filteredEvents = computed(() => {
   if (filter.value === 'all') return events.value
@@ -103,6 +112,10 @@ async function fetchData() {
   }
 }
 
+function onTabChange(key: string) {
+  filter.value = key
+}
+
 function impactClass(impact: string): string {
   if (impact === 'high') return 'impact-high'
   if (impact === 'medium') return 'impact-medium'
@@ -112,7 +125,6 @@ function impactClass(impact: string): string {
 function formatDateKey(key: string): string {
   const d = new Date(key)
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  const weekdaysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const day = weekdays[d.getDay()]
   return `${key} ${day}`
 }
@@ -122,21 +134,20 @@ onMounted(fetchData)
 
 <template>
   <div class="economic-calendar-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.economic_calendar') }}</h3>
-      <div class="filter-tabs">
-        <button :class="['f-tab', { active: filter === 'all' }]" @click="filter = 'all'">{{ $t('common.all') }}</button>
-        <button :class="['f-tab', { active: filter === 'CN' }]" @click="filter = 'CN'">CN</button>
-        <button :class="['f-tab', { active: filter === 'US' }]" @click="filter = 'US'">US</button>
-      </div>
-      <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.economic_calendar')"
+      :tabs="tabs"
+      :active-tab="filter"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchData, loading }]"
+      @tab-change="onTabChange"
+    />
 
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <SkeletonPanel v-if="loading && events.length === 0" type="table" :rows="5" />
+    <!-- 内联错误条：API 失败时仍展示 mock 兜底列表，故不用整页 ErrorState -->
+    <div v-if="loadError" class="error-banner">{{ loadError }}</div>
+    <LoadingState v-if="loading && events.length === 0" type="table" :rows="5" />
+    <EmptyState v-else-if="events.length === 0" :title="$t('common.no_data')" />
 
-    <div v-else-if="events.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
-
+    <!-- 按日期分组的自定义列表：粘性日期头 + 多段行，PanelTable 无法表达，保留自绘 -->
     <div v-else class="calendar-scroll">
       <div v-for="dateKey in dateKeys" :key="dateKey" class="day-group">
         <div class="day-header">{{ formatDateKey(dateKey) }}</div>
@@ -159,66 +170,59 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .economic-calendar-panel {
-  padding: 12px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+
+.error-banner {
   flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.filter-tabs { display: flex; gap: 4px; }
-.f-tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.f-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-  margin-left: auto;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
+  padding: var(--space-xs) var(--panel-padding);
+  color: var(--color-danger);
+  font-size: var(--font-xs);
 }
 
 .calendar-scroll {
-  flex: 1; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: var(--color-border-strong) transparent;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--panel-padding);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
 }
-.day-group { margin-bottom: 12px; }
+.day-group { margin-bottom: var(--space-md); }
 .day-header {
-  font-size: 12px; font-weight: 600; padding: 6px 0; margin-bottom: 4px;
-  border-bottom: 1px solid var(--color-border-strong);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  padding: var(--space-xs) 0;
+  margin-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-text-primary);
-  position: sticky; top: 0; background: var(--color-bg-panel); z-index: 1;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-panel);
+  z-index: 1;
 }
 .event-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 0; font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  font-size: var(--font-xs);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .event-row:hover { background: var(--color-bg-elevated); }
 .event-time { width: 40px; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
-.event-country { width: 24px; font-size: 10px; font-weight: 600; text-align: center; }
+.event-country { width: 24px; font-size: var(--font-xs); font-weight: 600; text-align: center; }
 .event-country.cn { color: var(--color-up); }
 .event-country.us { color: var(--color-accent); }
 .event-impact { width: 20px; text-align: center; }
 .event-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .event-prev, .event-forecast, .event-actual {
-  width: 60px; text-align: right; font-variant-numeric: tabular-nums;
+  width: 60px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-tertiary);
 }
 .event-actual.has-value { color: var(--color-text-primary); font-weight: 500; }

@@ -135,15 +135,9 @@ onMounted(() => statsFetcher.execute())
   height: 100%;
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-color, #333);
-}
+
 .panel-title {
   font-weight: 600;
 }
@@ -153,7 +147,7 @@ onMounted(() => statsFetcher.execute())
   border-radius: 4px;
   cursor: pointer;
   padding: 2px 8px;
-  font-size: 14px;
+  font-size: var(--font-sm);
 }
 .storage-content {
   flex: 1;
@@ -192,7 +186,7 @@ onMounted(() => statsFetcher.execute())
   cursor: pointer;
   padding: 2px 6px;
   margin: 0 2px;
-  font-size: 14px;
+  font-size: var(--font-sm);
 }
 .storage-table button.danger:hover {
   background: rgba(255, 50, 50, 0.2);

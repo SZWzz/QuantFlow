@@ -122,7 +122,7 @@ export function buildKlineOption(
       { type: 'line', name: 'DEA', data: m.dea, gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
       { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => {
         if (v === null) return null
-        return { value: v, itemStyle: { color: v >= 0 ? '#ef5350' : '#66bb6a' } }
+        return { value: v, itemStyle: { color: v >= 0 ? upCol : downCol } }
       }), gridIndex: 1, xAxisIndex: 1, yAxisIndex: 1 },
     )
   } else if (bottomMode === 'kdj') {
@@ -268,7 +268,7 @@ export function buildKlineOption(
                 if (prev) {
                   const chg = item.close - prev.close
                   const chgPct = prev.close !== 0 ? (chg / prev.close) * 100 : 0
-                  const chgColor = chg >= 0 ? '#ef5350' : '#66bb6a'
+                  const chgColor = chg >= 0 ? upCol : downCol
                   lines.push(`<div style="margin-top:2px">${t('quote.change')}: <span style="color:${chgColor}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}</span></div>`)
                   lines.push(`<div>${t('quote.change_pct')}: <span style="color:${chgColor}">${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%</span></div>`)
                 }
@@ -365,7 +365,7 @@ export function buildMinuteOption(
     series.push(
       { type: 'line', name: 'DIF', data: m.dif, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: theme.axisColor } },
       { type: 'line', name: 'DEA', data: m.dea, xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx, symbol: 'none', lineStyle: { width: 1, color: '#ff9800' } },
-      { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => v === null ? null : { value: v, itemStyle: { color: v >= 0 ? '#ef5350' : '#66bb6a' } }), xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx },
+      { type: 'bar', name: 'MACD', data: m.hist.map((v: number | null) => v === null ? null : { value: v, itemStyle: { color: v >= 0 ? upCol : downCol } }), xAxisIndex: botAxisIdx, yAxisIndex: botAxisIdx },
     )
   } else if (bottomMode === 'kdj') {
     const n = 9
@@ -410,7 +410,7 @@ export function buildMinuteOption(
       const chgPct = prevClose > 0 ? (chg / prevClose * 100) : 0
       const chgStr = (chg >= 0 ? '+' : '') + chg.toFixed(2)
       const pctStr = (chgPct >= 0 ? '+' : '') + chgPct.toFixed(2) + '%'
-      const chgColor = chg >= 0 ? '#ef5350' : '#66bb6a'
+      const chgColor = chg >= 0 ? upCol : downCol
       return `<div style="font-size:12px;font-weight:600;margin-bottom:4px">${tick.time}</div>
 <div>${t('common.price')}: <b>${tick.price.toFixed(2)}</b> <span style="color:${chgColor}">${chgStr} ${pctStr}</span></div>
 <div>${t('kline.avg_price')}: ${tick.avg_price.toFixed(2)}</div>

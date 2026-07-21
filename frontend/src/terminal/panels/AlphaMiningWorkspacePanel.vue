@@ -129,8 +129,6 @@ const tableColumns = [
 </template>
 
 <style scoped>
-.panel-error { padding: 12px; margin-bottom: 10px; color: var(--color-up); background: var(--color-up-soft); border: 1px solid var(--color-up-glow); border-radius: var(--radius-md); font-size: 12px; }
-
 .alpha-mining-panel {
   display: flex;
   flex-direction: column;

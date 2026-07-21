@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
 import { logger } from '@/lib/logger'
 
 const { t } = useI18n()
@@ -195,7 +195,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
         </select>
       </div>
 
-      <SkeletonPanel v-if="usLoading && usRows.length === 0" type="table" />
+      <LoadingState v-if="usLoading && usRows.length === 0" type="table" />
 
       <div v-else-if="usError" class="error-state">
         <span class="error-text">{{ usError }}</span>
@@ -263,25 +263,25 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 </template>
 
 <style scoped>
-.options-panel { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-panel); color: var(--color-text-primary); font-size: 13px; overflow: hidden; }
-.panel-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; flex-wrap: wrap; }
-.title { font-weight: 600; font-size: 14px; }
-.btn-sm { padding: 2px 8px; font-size: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+.options-panel { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-panel); color: var(--color-text-primary); font-size: var(--font-sm); overflow: hidden; }
+
+.title { font-weight: 600; font-size: var(--font-sm); }
+.btn-sm { padding: 2px 8px; font-size: var(--font-xs); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
 .btn-sm:hover { background: var(--color-bg-hover); }
 .btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Market selector */
 .market-selector { display: flex; gap: 0; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); overflow: hidden; }
-.market-tab { padding: 2px 10px; border: none; background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px; font-weight: 500; }
+.market-tab { padding: 2px 10px; border: none; background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: var(--font-xs); font-weight: 500; }
 .market-tab + .market-tab { border-left: 1px solid var(--color-border-strong); }
-.market-tab.active { color: var(--color-accent); background: rgba(59,130,246,0.1); }
+.market-tab.active { color: var(--color-accent); background: var(--color-accent-soft); }
 
 /* CN */
 .panel-body { flex: 1; overflow: auto; padding: 12px; }
-.state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); font-size: 13px; }
-.state.error { color: var(--color-error); }
+.state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-tertiary); font-size: var(--font-sm); }
+.state.error { color: var(--color-danger); }
 .table-wrap { overflow-x: auto; }
-.opt-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.opt-table { width: 100%; border-collapse: collapse; font-size: var(--font-sm); font-variant-numeric: tabular-nums; }
 .opt-table th { text-align: right; padding: 4px 8px; color: var(--color-text-tertiary); font-weight: 500; border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; }
 .opt-table th:first-child { text-align: left; }
 .opt-table td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border-subtle); }
@@ -291,22 +291,22 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 .down { color: var(--color-down); }
 
 /* US */
-.symbol-badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(59,130,246,0.15); color: var(--color-accent); font-family: monospace; }
-.sym-input { padding: 2px 6px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 70px; }
+.symbol-badge { font-size: var(--font-xs); padding: 2px 8px; border-radius: var(--radius-sm); background: var(--color-accent-soft); color: var(--color-accent); font-family: monospace; }
+.sym-input { padding: 2px 6px; font-size: var(--font-xs); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); width: 70px; }
 
 .expiry-bar { display: flex; align-items: center; gap: 6px; padding: 6px 12px; flex-shrink: 0; border-bottom: 1px solid var(--color-border-subtle); }
-.expiry-label { font-size: 11px; color: var(--color-text-tertiary); }
-.expiry-select { padding: 2px 4px; font-size: 11px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); }
+.expiry-label { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.expiry-select { padding: 2px 4px; font-size: var(--font-xs); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); }
 
 .chain-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow: hidden; padding: 0 8px; }
 .chain-side { display: flex; flex-direction: column; overflow: hidden; }
-.side-header { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 0; margin-bottom: 2px; border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0; }
+.side-header { font-size: var(--font-xs); font-weight: 700; text-transform: uppercase; padding: 4px 0; margin-bottom: 2px; border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0; }
 .calls-header { color: var(--color-down); }
 .puts-header { color: var(--color-up); }
 
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.table-header-row { display: flex; padding: 3px 0; border-bottom: 1px solid var(--color-border-strong); font-size: 9px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0; }
-.table-body { flex: 1; overflow-y: auto; font-size: 11px; }
+.table-header-row { display: flex; padding: 3px 0; border-bottom: 1px solid var(--color-border-strong); font-size: var(--font-xs); color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0; }
+.table-body { flex: 1; overflow-y: auto; font-size: var(--font-xs); }
 .table-row { display: flex; padding: 2px 0; align-items: center; border-bottom: 1px solid var(--color-border-subtle); }
 .table-row:hover { background: var(--color-bg-elevated); }
 
@@ -318,8 +318,7 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 .col-iv { width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
 .col-grk { width: 58px; text-align: right; font-variant-numeric: tabular-nums; }
 
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); font-size: 13px; }
 .error-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
-.error-text { color: var(--color-up); font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.retry-btn { padding: 4px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 11px; }
+.error-text { color: var(--color-up); font-size: var(--font-xs); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.retry-btn { padding: 4px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: var(--font-xs); }
 </style>

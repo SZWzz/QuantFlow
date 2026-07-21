@@ -9,7 +9,7 @@ describe('DockView', () => {
     setActivePinia(createPinia())
     // Initialize store with welcome layout
     const store = useTerminalStore()
-    store.layout.value = {
+    store.layout = {
       id: 'root',
       type: 'tab',
       tabs: [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }],

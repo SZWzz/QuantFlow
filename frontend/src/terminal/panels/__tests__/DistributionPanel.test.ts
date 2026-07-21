@@ -24,7 +24,7 @@ describe('DistributionPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.find('.panel-header h3').text()).toContain('Return Distribution')
+    expect(wrapper.find('.panel-title').text()).toContain('收益率分布')
   })
 
   it('renders placeholder before compute', () => {
@@ -32,8 +32,7 @@ describe('DistributionPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    // Placeholder shows Chinese text as rendered
-    expect(wrapper.find('.placeholder-msg').exists()).toBe(true)
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
   it('computes and shows stats after button click', async () => {
@@ -41,11 +40,10 @@ describe('DistributionPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    const btn = wrapper.find('button.compute-btn')
+    const btn = wrapper.find('.btn-primary')
     expect(btn.exists()).toBe(true)
     await btn.trigger('click')
     await nextTick()
-    // After compute, stats should appear (Mean, Std Dev, etc.)
     expect(wrapper.text()).toContain('Mean')
     expect(wrapper.text()).toContain('Std Dev')
     expect(wrapper.text()).toContain('Skewness')

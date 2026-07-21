@@ -207,10 +207,10 @@ onUnmounted(() => { unwatch(); window.removeEventListener('keydown', onKeydown) 
   <div class="dock-view">
     <div class="dock-view-toolbar">
       <div class="preset-buttons">
-        <button title="Single (Ctrl+1)" @click="applyPreset(1)">□</button>
-        <button title="Split H (Ctrl+2)" @click="applyPreset(2)">◫</button>
-        <button title="2×2 (Ctrl+3)" @click="applyPreset(3)">⊞</button>
-        <button title="Sidebar (Ctrl+4)" @click="applyPreset(4)">⊟</button>
+        <button type="button" title="单栏布局 (Ctrl+1)" aria-label="单栏布局 (Ctrl+1)" @click="applyPreset(1)"><span aria-hidden="true">□</span></button>
+        <button type="button" title="左右分栏 (Ctrl+2)" aria-label="左右分栏 (Ctrl+2)" @click="applyPreset(2)"><span aria-hidden="true">◫</span></button>
+        <button type="button" title="四格布局 (Ctrl+3)" aria-label="四格布局 (Ctrl+3)" @click="applyPreset(3)"><span aria-hidden="true">⊞</span></button>
+        <button type="button" title="侧边栏布局 (Ctrl+4)" aria-label="侧边栏布局 (Ctrl+4)" @click="applyPreset(4)"><span aria-hidden="true">⊟</span></button>
       </div>
     </div>
     <div class="dock-view-content">

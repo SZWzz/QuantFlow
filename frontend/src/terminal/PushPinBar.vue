@@ -1,11 +1,67 @@
 <script setup lang="ts">
 import { useTerminalStore, type PushPin } from '@/stores/terminal'
+import { useSymbolContext } from '@/stores/symbolContext'
+import { useToast } from '@/lib/composables/useToast'
 import { getIcon } from '@/lib/icons'
+import type { DockLayoutTree } from '@/terminal/DockView/types'
 
 const terminal = useTerminalStore()
+const ctx = useSymbolContext()
+const toast = useToast()
 
 function removePin(id: string) {
-  terminal.pushPins = terminal.pushPins.filter((p) => p.id !== id)
+  const idx = terminal.pushPins.findIndex((p) => p.id === id)
+  if (idx < 0) return
+  const [pin] = terminal.pushPins.splice(idx, 1)
+  toast.addToast({
+    type: 'info',
+    title: '已删除',
+    message: `已删除 pin「${getLabel(pin)}」`,
+    duration: 5000,
+    action: {
+      label: '撤销',
+      onClick: () => {
+        if (!terminal.pushPins.some((p) => p.id === pin.id)) {
+          terminal.pushPins.splice(Math.min(idx, terminal.pushPins.length), 0, pin)
+        }
+      },
+    },
+  })
+}
+
+/** Find the leaf (tab container) that holds a given tab id. */
+function findTabLeaf(node: DockLayoutTree, tabId: string): DockLayoutTree | null {
+  if (node.type === 'tab' && node.tabs?.some((t) => t.id === tabId)) return node
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findTabLeaf(child, tabId)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+function navigateToPin(pin: PushPin) {
+  switch (pin.type) {
+    case 'symbol': {
+      const symbol = pin.payload?.symbol
+      if (symbol) ctx.setGroupSymbol(ctx.activeGroupId, symbol)
+      break
+    }
+    case 'panel':
+    case 'workflow': {
+      const instanceId = pin.payload?.instanceId
+      if (instanceId) {
+        const leaf = findTabLeaf(terminal.layout, instanceId)
+        if (leaf) {
+          terminal.selectTab(leaf.id, instanceId)
+          return
+        }
+      }
+      if (pin.payload?.panelId) terminal.openPanel(pin.payload.panelId, pin.payload?.params)
+      break
+    }
+  }
 }
 
 function getLabel(pin: PushPin): string {
@@ -38,11 +94,21 @@ function getIconForType(type: string): string {
       :key="pin.id"
       class="pin-item"
       :class="pin.type"
-      @click="removePin(pin.id)"
+      role="button"
+      tabindex="0"
+      :title="getLabel(pin)"
+      @click="navigateToPin(pin)"
+      @keydown.enter="navigateToPin(pin)"
     >
       <span class="pin-type-icon" v-html="getIconForType(pin.type)" />
       <span class="pin-label">{{ getLabel(pin) }}</span>
-      <span class="pin-remove" v-html="getIcon('close')" />
+      <button
+        class="pin-remove"
+        :aria-label="`删除 ${getLabel(pin)}`"
+        title="删除"
+        @click.stop="removePin(pin.id)"
+        v-html="getIcon('close')"
+      />
     </div>
   </div>
 </template>
@@ -64,7 +130,7 @@ function getIconForType(type: string): string {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 9px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -94,7 +160,7 @@ function getIconForType(type: string): string {
   gap: 5px;
   padding: 3px 8px 3px 6px;
   border-radius: var(--radius-lg);
-  font-size: 11px;
+  font-size: var(--font-xs);
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
@@ -160,8 +226,14 @@ function getIconForType(type: string): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   opacity: 0;
   transition: all var(--transition-fast);
   margin-left: 2px;
@@ -172,7 +244,8 @@ function getIconForType(type: string): string {
   height: 100%;
 }
 
-.pin-item:hover .pin-remove {
+.pin-item:hover .pin-remove,
+.pin-item:focus-within .pin-remove {
   opacity: 0.5;
 }
 

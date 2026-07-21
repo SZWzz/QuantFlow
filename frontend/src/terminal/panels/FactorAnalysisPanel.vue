@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { PanelHeader } from '@/terminal/components/panel'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 
 const props = defineProps<{
@@ -8,6 +9,7 @@ const props = defineProps<{
   params?: Record<string, any>
 }>()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const chartTheme = useChartTheme()
 
 const searchQuery = ref('')
 const selectedCategory = ref<string | null>(null)
@@ -89,11 +91,11 @@ function selectCategory(cat: string | null) {
 
 function categoryColor(cat: string): string {
   const colors: Record<string, string> = {
-    momentum: '#58a6ff',
-    trend: '#3fb950',
-    volatility: '#f0883e',
-    volume: '#bc8cff',
-    cross_sectional: '#f85149',
+    momentum: chartTheme.palette[0],
+    trend: chartTheme.palette[1],
+    volatility: chartTheme.palette[2],
+    volume: chartTheme.palette[4],
+    cross_sectional: chartTheme.palette[3],
   }
   return colors[cat] || 'var(--color-text-tertiary)'
 }
@@ -166,153 +168,26 @@ function categoryColor(cat: string): string {
 </template>
 
 <style scoped>
-.factor-panel {
-  padding: 10px;
-  background: var(--color-bg-input);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--color-text-primary);
-  font-size: 12px;
-}
-
-.search-bar {
-  margin-bottom: 8px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 6px 10px;
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text-primary);
-  font-size: 12px;
-  outline: none;
-}
-
-.search-input:focus {
-  border-color: var(--color-accent);
-}
-
-.search-input::placeholder {
-  color: var(--color-text-tertiary);
-}
-
-.category-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.cat-chip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  font-size: 10px;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
+.factor-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.search-bar { margin-bottom: var(--space-sm); padding: 0 var(--panel-padding); }
+.search-input { width: 100%; padding: var(--space-sm) var(--space-md); background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); font-size: var(--font-xs); outline: none; }
+.search-input:focus { border-color: var(--color-accent); }
+.search-input::placeholder { color: var(--color-text-tertiary); }
+.category-filters { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-bottom: var(--space-sm); padding: 0 var(--panel-padding); }
+.cat-chip { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-xs) var(--space-sm); background: var(--color-bg-input); border: 1px solid var(--color-border); border-radius: var(--radius-lg); font-size: var(--font-xs); color: var(--color-text-tertiary); cursor: pointer; transition: all 0.15s; }
 .cat-chip:hover { border-color: var(--color-accent); color: var(--color-text-primary); }
 .cat-chip.active { background: var(--color-bg-subtle); color: var(--color-text-primary); }
-
-.cat-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.cat-count {
-  color: var(--color-text-tertiary);
-  font-size: 9px;
-}
-
-.factor-list {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.factor-item {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--color-bg-subtle);
-  transition: background 0.15s;
-}
-
-.factor-item:hover {
-  background: var(--color-bg-subtle);
-}
-
-.factor-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
-}
-
-.factor-category-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.factor-name {
-  font-weight: 600;
-  font-family: 'SF Mono', 'Cascadia Code', monospace;
-  font-size: 12px;
-}
-
-.factor-category {
-  margin-left: auto;
-  font-size: 9px;
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-}
-
-.factor-desc {
-  color: var(--color-text-tertiary);
-  font-size: 11px;
-  margin-left: 14px;
-  margin-bottom: 2px;
-}
-
-.factor-params {
-  margin-left: 14px;
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.param-tag {
-  padding: 1px 5px;
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  color: var(--color-accent);
-  font-family: 'SF Mono', monospace;
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
-}
-
-.summary-bar {
-  padding-top: 8px;
-  border-top: 1px solid var(--color-border);
-  font-size: 10px;
-  color: var(--color-text-tertiary);
-  text-align: center;
-}
+.cat-dot { width: 6px; height: 6px; border-radius: 50%; }
+.cat-count { color: var(--color-text-tertiary); font-size: var(--font-xs); }
+.factor-list { flex: 1; overflow-y: auto; }
+.factor-item { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-bg-subtle); transition: background 0.15s; }
+.factor-item:hover { background: var(--color-bg-subtle); }
+.factor-header { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+.factor-category-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.factor-name { font-weight: 600; font-family: var(--font-mono); font-size: var(--font-xs); }
+.factor-category { margin-left: auto; font-size: var(--font-xs); color: var(--color-text-tertiary); text-transform: uppercase; }
+.factor-desc { color: var(--color-text-tertiary); font-size: var(--font-xs); margin-left: var(--space-lg); margin-bottom: var(--space-xs); }
+.factor-params { margin-left: var(--space-lg); display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+.param-tag { padding: 0 var(--space-xs); background: var(--color-bg-subtle); border-radius: var(--radius-sm); font-size: var(--font-xs); color: var(--color-accent); font-family: var(--font-mono); }
+.summary-bar { padding: var(--space-sm) 0; border-top: 1px solid var(--color-border); font-size: var(--font-xs); color: var(--color-text-tertiary); text-align: center; }
 </style>

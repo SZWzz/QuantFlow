@@ -278,24 +278,18 @@ function formatPct(v: number): string {
   gap: 10px;
   overflow-y: auto;
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+
 .header-left h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-lg);
 }
 .subtitle {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary, var(--color-text-tertiary));
   margin-left: 6px;
 }
 .symbol-info {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-accent, var(--color-accent));
   margin-left: 8px;
   font-weight: 600;
@@ -310,7 +304,7 @@ function formatPct(v: number): string {
   border: 1px solid var(--color-border, var(--color-bg-elevated));
   background: var(--color-bg-panel, var(--color-bg-panel));
   color: var(--color-text, var(--color-border));
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 .query-btn {
   padding: 4px 12px;
@@ -318,7 +312,7 @@ function formatPct(v: number): string {
   color: var(--color-text-primary);
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 .query-btn:disabled {
   opacity: 0.5;
@@ -340,7 +334,7 @@ function formatPct(v: number): string {
   background: var(--color-bg-panel, var(--color-bg-panel));
   color: var(--color-text-tertiary, var(--color-text-tertiary));
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-sm);
 }
 .tabs button.active {
   background: var(--color-accent, var(--color-accent));
@@ -355,13 +349,13 @@ function formatPct(v: number): string {
   display: flex;
   gap: 16px;
   padding: 6px 0;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--color-text-tertiary, var(--color-text-tertiary));
 }
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--font-sm);
 }
 .data-table th, .data-table td {
   padding: 4px 8px;
@@ -387,16 +381,8 @@ function formatPct(v: number): string {
   padding: 20px 0;
   text-align: center;
 }
-.empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary, var(--color-text-tertiary));
-  gap: 4px;
-}
-.empty-state p { font-size: 14px; margin: 0; }
-.empty-state small { font-size: 11px; }
-.error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); color: var(--color-up); font-size: 12px; }
+
+.empty-state p { font-size: var(--font-sm); margin: 0; }
+.empty-state small { font-size: var(--font-xs); }
+.error-msg { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-md); color: var(--color-up); font-size: var(--font-sm); }
 </style>

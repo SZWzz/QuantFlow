@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { cssVar } from '@/lib/cssVar'
 
 const props = defineProps<{
   id: string
@@ -7,7 +8,14 @@ const props = defineProps<{
   selected?: boolean
 }>()
 
-const colors = ['#fef3c7', '#dbeafe', '#fce7f3', '#d1fae5', '#e0e7ff']
+// 便签色 → themes.css --wf-note-* token（启动时读一次；fallback 为亮色值）
+const colors = [
+  cssVar('--wf-note-yellow', '#fef3c7'),
+  cssVar('--wf-note-blue', '#dbeafe'),
+  cssVar('--wf-note-pink', '#fce7f3'),
+  cssVar('--wf-note-green', '#d1fae5'),
+  cssVar('--wf-note-indigo', '#e0e7ff'),
+]
 const color = ref(props.data.color || colors[Math.floor(Math.random() * colors.length)])
 const editing = ref(false)
 const text = ref(props.data.text || '双击编辑...')
@@ -37,7 +45,7 @@ function finishEdit() { editing.value = false }
   min-height: 60px;
   padding: 12px;
   border-radius: 4px;
-  box-shadow: 2px 3px 8px rgba(0,0,0,.4);
+  box-shadow: var(--shadow-md);
   font-size: 12px;
   line-height: 1.5;
   cursor: grab;
@@ -49,7 +57,7 @@ function finishEdit() { editing.value = false }
   transform: rotate(0deg);
 }
 .sticky-text {
-  color: #1e293b;
+  color: var(--wf-note-text);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -62,7 +70,7 @@ function finishEdit() { editing.value = false }
   resize: vertical;
   font-family: inherit;
   font-size: 12px;
-  color: #1e293b;
+  color: var(--wf-note-text);
   line-height: 1.5;
 }
 </style>

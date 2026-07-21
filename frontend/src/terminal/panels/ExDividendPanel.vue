@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 
 const { t } = useI18n()
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -30,6 +30,12 @@ const activeTab = ref<Tab>('today')
 const data = ref<ExDividendStock[]>([])
 const loading = ref(false)
 const loadError = ref('')
+
+const tabs = computed(() => [
+  { key: 'today', label: t('panels.today_ex') },
+  { key: 'week', label: t('panels.this_week_ex') },
+  { key: 'month', label: t('panels.this_month_ex') },
+])
 
 function pad(n: number): string {
   return n.toString().padStart(2, '0')
@@ -91,8 +97,8 @@ async function fetchData() {
   }
 }
 
-function switchTab(tab: Tab) {
-  activeTab.value = tab
+function onTabChange(key: string) {
+  activeTab.value = key as Tab
   fetchData()
 }
 
@@ -113,22 +119,18 @@ onMounted(fetchData)
 
 <template>
   <div class="ex-dividend-panel">
-    <div class="panel-header">
-      <h3>{{ t('panels.ex_dividend') }}</h3>
-      <div class="header-tabs">
-        <button :class="['tab', { active: activeTab === 'today' }]" @click="switchTab('today')">{{ t('panels.today_ex') }}</button>
-        <button :class="['tab', { active: activeTab === 'week' }]" @click="switchTab('week')">{{ t('panels.this_week_ex') }}</button>
-        <button :class="['tab', { active: activeTab === 'month' }]" @click="switchTab('month')">{{ t('panels.this_month_ex') }}</button>
-      </div>
-    </div>
+    <PanelHeader
+      :title="t('panels.ex_dividend')"
+      :tabs="tabs"
+      :active-tab="activeTab"
+      @tab-change="onTabChange"
+    />
 
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <SkeletonPanel v-if="loading && data.length === 0" type="table" :rows="6" />
+    <ErrorState v-if="loadError" :description="loadError" @retry="fetchData" />
+    <LoadingState v-else-if="loading && data.length === 0" type="table" :rows="6" :cols="8" />
+    <EmptyState v-else-if="data.length === 0" :title="t('panels.no_data')" />
 
-    <div v-else-if="data.length === 0" class="empty-state">
-      <span>{{ t('panels.no_data') }}</span>
-    </div>
-
+    <!-- 保留自绘表格：代码列为单元格级符号联动点击、股息率 >3% 阈值高亮，PanelTable 均无法表达 -->
     <div v-else class="table-wrapper">
       <div class="table-header">
         <span class="col-code">{{ t('common.symbol') }}</span>
@@ -157,42 +159,27 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .ex-dividend-panel {
-  padding: 12px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.header-tabs { display: flex; gap: 4px; }
-.header-tabs .tab {
-  padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.header-tabs .tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.1); }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px; gap: 6px;
-}
+
 .table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .table-header {
-  display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0;
+  display: flex;
+  padding: var(--space-xs) var(--panel-padding);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }
-.table-body { flex: 1; overflow-y: auto; font-size: 12px; }
+.table-body { flex: 1; overflow-y: auto; font-size: var(--font-xs); padding: 0 var(--panel-padding); }
 .table-row {
-  display: flex; padding: 3px 0; align-items: center;
+  display: flex;
+  padding: var(--space-xs) 0;
+  align-items: center;
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .table-row:hover { background: var(--color-bg-elevated); }

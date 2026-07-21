@@ -180,7 +180,7 @@ onConnect((connection: Connection) => {
     targetHandle: connection.targetHandle,
     type: 'default',
     animated: false,
-    style: { stroke: 'var(--color-border)', strokeWidth: 2 },
+    style: { stroke: 'var(--wf-edge)', strokeWidth: 2 },
   }
   workflow.addEdge(edge)
 })
@@ -307,8 +307,36 @@ async function onDrop(event: DragEvent) {
 }
 .breadcrumb-back {
   padding: 2px 8px; border: 1px solid var(--color-border);
-  border-radius: 4px; background: none; color: var(--color-accent); cursor: pointer; font-size: 11px;
+  border-radius: 4px; background: none; color: var(--color-accent); cursor: pointer; font-size: var(--font-xs);
 }
 .breadcrumb-back:hover { background: rgba(var(--wf-accent-rgb), 0.1); }
-.breadcrumb-path { color: var(--color-text-tertiary); font-size: 11px; }
+.breadcrumb-path { color: var(--color-text-tertiary); font-size: var(--font-xs); }
+
+/* ── vue-flow 内置控件 / 框选 — 对齐 token（默认主题在暗色下为白底） ── */
+.workflow-canvas :deep(.vue-flow__controls-button) {
+  background: var(--color-bg-panel);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  fill: var(--color-text-secondary);
+}
+.workflow-canvas :deep(.vue-flow__controls-button:hover) {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  fill: var(--color-text-primary);
+}
+.workflow-canvas :deep(.vue-flow__controls) {
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.workflow-canvas :deep(.vue-flow__selection) {
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+}
+.workflow-canvas :deep(.vue-flow__minimap) {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
 </style>

@@ -1,0 +1,42 @@
+{
+  "extends": "stylelint-config-standard-vue",
+  "defaultSeverity": "warning",
+  "rules": {
+    "color-no-hex": [true, { "severity": "error" }],
+    "declaration-property-unit-disallowed-list": [
+      { "font-size": ["px"] },
+      { "severity": "error" }
+    ],
+    "declaration-property-value-disallowed-list": [
+      { "/^border$/": ["none"] },
+      { "severity": "error" }
+    ],
+    "selector-class-pattern": null,
+    "no-descending-specificity": null,
+    "declaration-block-no-duplicate-properties": null,
+    "no-empty-source": null,
+    "font-family-no-duplicate-names": null,
+    "property-no-deprecated": null,
+    "media-feature-name-no-vendor-prefix": null,
+    "value-no-vendor-prefix": null,
+    "alpha-value-notation": null,
+    "color-function-notation": null,
+    "length-zero-no-unit": null,
+    "shorthand-property-no-redundant-values": null,
+    "selector-not-notation": null,
+    "keyframes-name-pattern": null,
+    "hue-degree-notation": null,
+    "import-notation": null,
+    "media-feature-range-notation": null
+  },
+  "overrides": [
+    {
+      "files": ["src/assets/**/*.css"],
+      "rules": {
+        "color-no-hex": null,
+        "declaration-property-unit-disallowed-list": null,
+        "declaration-property-value-disallowed-list": null
+      }
+    }
+  ]
+}

@@ -31,7 +31,7 @@ describe('PredictionMarketPanel', () => {
     const wrapper = mount(PredictionMarketPanel, {
       props: { panelId: 'prediction-market-1' },
     })
-    const tabs = wrapper.findAll('.tab')
+    const tabs = wrapper.findAll('.category-tabs .btn-sm')
     expect(tabs.length).toBeGreaterThanOrEqual(4)
   })
 
@@ -52,13 +52,13 @@ describe('PredictionMarketPanel', () => {
     const wrapper = mount(PredictionMarketPanel, {
       props: { panelId: 'prediction-market-1' },
     })
-    const tabs = wrapper.findAll('.tab')
+    const tabs = wrapper.findAll('.category-tabs .btn-sm')
     const cryptoTab = tabs.find(t => t.text().includes('加密'))
     if (cryptoTab) {
       await cryptoTab.trigger('click')
       await nextTick()
       // After click, crypto tab should be active
-      expect(cryptoTab.classes()).toContain('active')
+      expect(cryptoTab.classes()).toContain('btn-primary')
     }
   })
 

@@ -296,16 +296,6 @@ function exportData() {
   color: var(--text);
 }
 
-.panel-error {
-  padding: 8px 12px;
-  color: var(--color-up);
-  background: var(--color-up-soft);
-  border: 1px solid var(--color-up-glow);
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
 /* -- Filter bar -- */
 .filter-bar {
   display: flex;
@@ -320,7 +310,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 .filter-input:focus { border-color: var(--accent); }
@@ -332,7 +322,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 
@@ -346,7 +336,7 @@ function exportData() {
   background: var(--input);
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -366,7 +356,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -411,7 +401,7 @@ td {
 
 .symbol { font-weight: 600; color: var(--text); }
 
-.muted { color: var(--muted); font-size: 11px; }
+.muted { color: var(--muted); font-size: var(--font-xs); }
 .up   { color: var(--up); font-weight: 600; }
 .down { color: var(--down); font-weight: 600; }
 
@@ -432,7 +422,7 @@ td {
 }
 
 .load-count {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--muted);
 }
 
@@ -442,7 +432,7 @@ td {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -481,18 +471,18 @@ td {
 }
 
 .badge.rejected {
-  background: var(--color-up-bg, rgba(220,38,38,0.08));
-  color: var(--down);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 /* -- Cancel button -- */
 .cancel-btn {
   padding: 2px 8px;
-  background: var(--color-up-bg, rgba(220,38,38,0.08));
-  border: 1px solid var(--down);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
   border-radius: var(--radius-sm);
-  color: var(--down);
-  font-size: 10px;
+  color: var(--color-danger);
+  font-size: var(--font-xs);
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -522,7 +512,7 @@ td {
 }
 
 .stat-value {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text);
 }

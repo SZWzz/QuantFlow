@@ -4,12 +4,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { mockWailsIPC } from '@/test-utils/mocks'
 import CorrelationPanel from '../CorrelationPanel.vue'
 
-// Mock ResizeObserver (required by vue-echarts)
-global.ResizeObserver = class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-} as any
+globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as any
 
 describe('CorrelationPanel', () => {
   beforeEach(() => {
@@ -30,7 +25,7 @@ describe('CorrelationPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.find('.panel-header h3').text()).toContain('Correlation Matrix')
+    expect(wrapper.find('.panel-title').text()).toContain('相关性分析')
   })
 
   it('renders placeholder before compute', () => {
@@ -38,7 +33,7 @@ describe('CorrelationPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    expect(wrapper.find('.placeholder-msg').exists()).toBe(true)
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
   it('computes and hides placeholder', async () => {
@@ -46,13 +41,10 @@ describe('CorrelationPanel', () => {
       props: { panelId: 'test', params: {} },
       global: { stubs: { VChart: true } },
     })
-    // Before compute — shows placeholder
-    expect(wrapper.find('.placeholder-msg').exists()).toBe(true)
-    // Click compute button
-    const btn = wrapper.find('button.compute-btn')
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
+    const btn = wrapper.find('.btn-primary')
     expect(btn.exists()).toBe(true)
     await btn.trigger('click')
-    // After compute — placeholder disappears, results rendered
-    expect(wrapper.find('.placeholder-msg').exists()).toBe(false)
+    expect(wrapper.find('.empty-state').exists()).toBe(false)
   })
 })

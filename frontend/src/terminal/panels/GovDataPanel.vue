@@ -624,9 +624,7 @@ function changeClass(c: number): string {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  font-size: 13px;
 }
 
 .signal-summary {
@@ -639,8 +637,8 @@ function changeClass(c: number): string {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  padding: 2px 6px;
+  font-size: var(--font-xs);
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--color-bg-subtle);
 }
@@ -719,7 +717,7 @@ function changeClass(c: number): string {
   gap: 4px;
 }
 .card-name {
-  font-size: 12px;
+  font-size: var(--font-xs);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -728,12 +726,12 @@ function changeClass(c: number): string {
 
 .card-value { margin-bottom: 4px; }
 .value {
-  font-size: 20px;
+  font-size: var(--font-xl);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .card-tap {
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 
@@ -741,12 +739,12 @@ function changeClass(c: number): string {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 .change-text { font-variant-numeric: tabular-nums; }
 .card-unit {
   color: var(--color-text-tertiary);
-  font-size: 10px;
+  font-size: var(--font-xs);
   margin-left: auto;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -771,14 +769,14 @@ function changeClass(c: number): string {
   align-items: flex-start;
   margin-bottom: 8px;
 }
-.detail-header h4 { margin: 0; font-size: 15px; }
+.detail-header h4 { margin: 0; font-size: var(--font-lg); }
 .detail-subtitle {
-  margin: 2px 0 0 0;
-  font-size: 11px;
+  margin: var(--space-xs) 0 0 0;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 .btn-close {
-  background: none; border: none; font-size: 18px;
+  background: none; border: none; font-size: var(--font-lg);
   color: var(--color-text-secondary); cursor: pointer;
 }
 
@@ -797,12 +795,12 @@ function changeClass(c: number): string {
   gap: 2px;
 }
 .info-label {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
 }
 .info-value {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   display: flex;
@@ -813,10 +811,10 @@ function changeClass(c: number): string {
 .chart-container { margin-bottom: 12px; }
 
 .trend-summary {
-  padding: 8px 10px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
-  font-size: 12px;
+  font-size: var(--font-xs);
   line-height: 1.5;
   display: flex;
   align-items: center;

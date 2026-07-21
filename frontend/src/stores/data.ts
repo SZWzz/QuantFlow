@@ -131,13 +131,15 @@ export const useDataStore = defineStore('data', () => {
     const cachedSectors = getCached<SectorRanking[]>(sectorsCacheKey)
 
     marketLoading.value = true
+    error.value = null
     try {
       // Run GetMarketOverview and GetIndustryRanks in parallel
       const [overviewResult, industryResult] = await Promise.all([
         (async () => {
           try {
             return await app.GetMarketOverview(market)
-          } catch {
+          } catch (e) {
+            error.value = e instanceof Error ? e.message : String(e)
             return null
           }
         })(),
@@ -164,6 +166,7 @@ export const useDataStore = defineStore('data', () => {
             name: idx.name,
             last: idx.price,
             changePct: idx.change_pct,
+            prevClose: idx.prev_close ?? 0,
             sparkline: [],
             ohlcv: idx.ohlcv as { open: number; high: number; low: number; close: number }[] | undefined,
           }))
