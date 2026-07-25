@@ -2,9 +2,6 @@
 import { ref } from 'vue'
 import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader } from '@/terminal/components/panel'
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
-
-const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -41,30 +38,26 @@ function getCurrentConfig(): Record<string, string> {
 </script>
 
 <template>
-  <PanelShell :state="state">
-    <template #loaded>
-      <div class="broker-config-panel">
-        <PanelHeader :title="$t('broker.title')" />
-        <div class="broker-form">
-          <div class="form-group"><label>{{ $t('broker.title') }}</label><select v-model="broker" class="form-input"><option value="binance">Binance</option><option value="futu">Futu</option></select></div>
-          <div v-if="broker === 'binance'" class="config-section">
-            <h4 class="section-title">{{ $t('broker.config_title') }}</h4>
-            <div class="form-group"><label>{{ $t('broker.api_key') }}</label><input v-model="binanceKey" type="password" class="form-input" :placeholder="$t('broker.api_key')" /></div>
-            <div class="form-group"><label>{{ $t('broker.secret_key') }}</label><input v-model="binanceSecret" type="password" class="form-input" :placeholder="$t('broker.secret_key')" /></div>
-            <div class="form-group checkbox-group"><label><input v-model="binanceTestnet" type="checkbox" /> Use Testnet (testnet.binance.vision)</label></div>
-          </div>
-          <div v-if="broker === 'futu'" class="config-section">
-            <h4 class="section-title">{{ $t('broker.config_title') }}</h4>
-            <p class="section-note">{{ $t('broker.futu_setup_hint') }}</p>
-            <div class="form-group"><label>{{ $t('broker.host') }}</label><input v-model="futu主机" class="form-input" /></div>
-            <div class="form-group"><label>{{ $t('broker.port') }}</label><input v-model.number="futu端口" type="number" class="form-input" /></div>
-            <div class="connection-status"><span class="status-dot off"></span><span class="status-text">{{ $t('common.disconnected') }}</span></div>
-          </div>
-          <div class="actions"><button class="btn" @click="testConnection">{{ $t('common.test') }}</button><button class="btn btn-primary" @click="saveConfig">{{ $t('common.save') }}</button></div>
-        </div>
+  <div class="broker-config-panel">
+    <PanelHeader :title="$t('broker.title')" />
+    <div class="broker-form">
+      <div class="form-group"><label>{{ $t('broker.title') }}</label><select v-model="broker" class="form-input"><option value="binance">Binance</option><option value="futu">Futu</option></select></div>
+      <div v-if="broker === 'binance'" class="config-section">
+        <h4 class="section-title">{{ $t('broker.config_title') }}</h4>
+        <div class="form-group"><label>{{ $t('broker.api_key') }}</label><input v-model="binanceKey" type="password" class="form-input" :placeholder="$t('broker.api_key')" /></div>
+        <div class="form-group"><label>{{ $t('broker.secret_key') }}</label><input v-model="binanceSecret" type="password" class="form-input" :placeholder="$t('broker.secret_key')" /></div>
+        <div class="form-group checkbox-group"><label><input v-model="binanceTestnet" type="checkbox" /> Use Testnet (testnet.binance.vision)</label></div>
       </div>
-    </template>
-  </PanelShell>
+      <div v-if="broker === 'futu'" class="config-section">
+        <h4 class="section-title">{{ $t('broker.config_title') }}</h4>
+        <p class="section-note">{{ $t('broker.futu_setup_hint') }}</p>
+        <div class="form-group"><label>{{ $t('broker.host') }}</label><input v-model="futu主机" class="form-input" /></div>
+        <div class="form-group"><label>{{ $t('broker.port') }}</label><input v-model.number="futu端口" type="number" class="form-input" /></div>
+        <div class="connection-status"><span class="status-dot off"></span><span class="status-text">{{ $t('common.disconnected') }}</span></div>
+      </div>
+      <div class="actions"><button class="btn" @click="testConnection">{{ $t('common.test') }}</button><button class="btn btn-primary" @click="saveConfig">{{ $t('common.save') }}</button></div>
+    </div>
+  </div>
 </template>
 
 <style scoped>

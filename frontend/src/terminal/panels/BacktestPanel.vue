@@ -7,7 +7,6 @@ import { TooltipComponent, GridComponent, DataZoomComponent, MarkPointComponent 
 import VChart from 'vue-echarts'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { PanelHeader, PanelTable, PanelCard, EmptyState, LoadingState } from '@/terminal/components/panel'
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { confirmDialog, alertDialog } from '@/lib/wails'
 import { useI18n } from 'vue-i18n'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
@@ -18,8 +17,6 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 
 use([CanvasRenderer, CandlestickChart, BarChart, LineChart, TooltipComponent, GridComponent, DataZoomComponent, MarkPointComponent])
-
-const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 interface BacktestSummary {
   id: number
@@ -247,75 +244,71 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
 </script>
 
 <template>
-  <PanelShell :state="state">
-    <template #loaded>
-      <div class="backtest-panel" data-testid="backtest-panel">
-        <template v-if="view === 'list'">
-          <PanelHeader
-            title="回测历史"
-            :subtitle="`${items.length} 条记录`"
-            :controls="listControls"
-          />
-          <div class="panel-body">
-            <LoadingState v-if="loading && items.length === 0" type="table" :rows="5" :cols="7" />
-            <EmptyState
-              v-else-if="items.length === 0 && !loading"
-              icon="inbox"
-              title="暂无回测记录"
-              description="在 Workflow Editor 中运行回测工作流后，结果将在此显示。"
-            />
-            <template v-else>
-              <PanelTable
-                :columns="columns"
-                :data="items"
-                :loading="loading"
-                clickable
-                rowTestId="backtest-row"
-                @rowClick="openRow"
-              >
-                <template #action="{ row }">
-                  <button class="btn-icon-sm" title="删除" @click.stop="deleteSingleList(row.id)">✕</button>
-                </template>
-              </PanelTable>
-            </template>
-          </div>
-        </template>
-
+  <div class="backtest-panel" data-testid="backtest-panel">
+    <template v-if="view === 'list'">
+      <PanelHeader
+        title="回测历史"
+        :subtitle="`${items.length} 条记录`"
+        :controls="listControls"
+      />
+      <div class="panel-body">
+        <LoadingState v-if="loading && items.length === 0" type="table" :rows="5" :cols="7" />
+        <EmptyState
+          v-else-if="items.length === 0 && !loading"
+          icon="inbox"
+          title="暂无回测记录"
+          description="在 Workflow Editor 中运行回测工作流后，结果将在此显示。"
+        />
         <template v-else>
-          <PanelHeader
-            :title="storedData?.strategy_name || '回测详情'"
-            :subtitle="storedData ? `${storedData.symbol} ｜ ${storedData.backtest_start?.slice(0,10) || '?'} → ${storedData.backtest_end?.slice(0,10) || '?'}` : ''"
-            :controls="detailControls"
-          />
-          <div class="panel-body scrollable">
-            <LoadingState v-if="storedLoading" type="chart" />
-            <EmptyState v-else-if="deleted" icon="inbox" title="已删除" description="此回测记录已被删除。" />
-            <EmptyState v-else-if="!storedData" icon="chart" title="暂无回测结果" description="历史回测数据加载失败或数据不完整。" />
-            <template v-else>
-              <div v-if="klineData.length > 0" class="chart-section">
-                <div class="section-label">K 线 + 买卖点</div>
-                <VChart :option="chartOption" autoresize class="kline-chart" />
-              </div>
-              <div v-if="storedData.equity_curve?.length >= 2" class="chart-section">
-                <div class="section-label">净值曲线</div>
-                <VChart :option="equityOption" autoresize class="equity-chart" />
-              </div>
-              <div v-if="metricCards.length" class="section">
-                <div class="section-label">回测指标</div>
-                <div class="metrics-grid" data-testid="backtest-metrics">
-                  <PanelCard v-for="m in metricCards" :key="m.label" :title="m.label" :value="m.value" :format="m.format" />
-                </div>
-              </div>
-              <div v-if="storedData.trades?.length" class="section">
-                <div class="section-label">交易记录 ({{ storedData.trades.length }})</div>
-                <PanelTable :columns="tradeColumns" :data="storedData.trades.slice(0, 50)" :striped="true" />
-              </div>
+          <PanelTable
+            :columns="columns"
+            :data="items"
+            :loading="loading"
+            clickable
+            rowTestId="backtest-row"
+            @rowClick="openRow"
+          >
+            <template #action="{ row }">
+              <button class="btn-icon-sm" title="删除" @click.stop="deleteSingleList(row.id)">✕</button>
             </template>
+          </PanelTable>
+        </template>
+      </div>
+    </template>
+
+    <template v-else>
+      <PanelHeader
+        :title="storedData?.strategy_name || '回测详情'"
+        :subtitle="storedData ? `${storedData.symbol} ｜ ${storedData.backtest_start?.slice(0,10) || '?'} → ${storedData.backtest_end?.slice(0,10) || '?'}` : ''"
+        :controls="detailControls"
+      />
+      <div class="panel-body scrollable">
+        <LoadingState v-if="storedLoading" type="chart" />
+        <EmptyState v-else-if="deleted" icon="inbox" title="已删除" description="此回测记录已被删除。" />
+        <EmptyState v-else-if="!storedData" icon="chart" title="暂无回测结果" description="历史回测数据加载失败或数据不完整。" />
+        <template v-else>
+          <div v-if="klineData.length > 0" class="chart-section">
+            <div class="section-label">K 线 + 买卖点</div>
+            <VChart :option="chartOption" autoresize class="kline-chart" />
+          </div>
+          <div v-if="storedData.equity_curve?.length >= 2" class="chart-section">
+            <div class="section-label">净值曲线</div>
+            <VChart :option="equityOption" autoresize class="equity-chart" />
+          </div>
+          <div v-if="metricCards.length" class="section">
+            <div class="section-label">回测指标</div>
+            <div class="metrics-grid" data-testid="backtest-metrics">
+              <PanelCard v-for="m in metricCards" :key="m.label" :title="m.label" :value="m.value" :format="m.format" />
+            </div>
+          </div>
+          <div v-if="storedData.trades?.length" class="section">
+            <div class="section-label">交易记录 ({{ storedData.trades.length }})</div>
+            <PanelTable :columns="tradeColumns" :data="storedData.trades.slice(0, 50)" :striped="true" />
           </div>
         </template>
       </div>
     </template>
-  </PanelShell>
+  </div>
 </template>
 
 <style scoped>

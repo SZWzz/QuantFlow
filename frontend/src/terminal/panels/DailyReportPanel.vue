@@ -4,9 +4,6 @@ import { usePortfolioStore, type DailyReport } from '@/stores/portfolio'
 import { GetDailyReport, ListDailyReports, GenerateDailyReport, ExportReportCSV } from '@/lib/wails'
 import { getIcon } from '@/lib/icons'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
-
-const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 const portfolio = usePortfolioStore()
 const selectedDate = ref(new Date().toISOString().slice(0, 10))
@@ -24,52 +21,48 @@ onMounted(() => { loadReport(selectedDate.value); loadHistory() })
 </script>
 
 <template>
-  <PanelShell :state="state">
-    <template #loaded>
-      <div class="daily-report-panel">
-        <PanelHeader title="日结报告">
-          <template #controls>
-            <input v-model="selectedDate" type="date" class="date-input" />
-            <button class="btn btn-primary" @click="handleGenerate" :disabled="loading">{{ loading ? '生成中...' : '生成报告' }}</button>
-            <button class="btn btn-sm" @click="showHistory = !showHistory">历史报告</button>
-          </template>
-        </PanelHeader>
+  <div class="daily-report-panel">
+    <PanelHeader title="日结报告">
+      <template #controls>
+        <input v-model="selectedDate" type="date" class="date-input" />
+        <button class="btn btn-primary" @click="handleGenerate" :disabled="loading">{{ loading ? '生成中...' : '生成报告' }}</button>
+        <button class="btn btn-sm" @click="showHistory = !showHistory">历史报告</button>
+      </template>
+    </PanelHeader>
 
-        <LoadingState v-if="loading" type="card" :rows="3" />
+    <LoadingState v-if="loading" type="card" :rows="3" />
 
-        <div v-else-if="report" class="report-content">
-          <div class="report-summary">
-            <div class="summary-card" :class="pnlClass"><span class="summary-label">今日盈亏</span><span class="summary-value">{{ report.day_pnl >= 0 ? '+' : '' }}{{ report.day_pnl?.toFixed(2) }}<span class="summary-pct">({{ report.day_pnl_percent?.toFixed(2) }}%)</span></span></div>
-            <div class="summary-card"><span class="summary-label">累计盈亏</span><span class="summary-value">{{ report.total_pnl >= 0 ? '+' : '' }}{{ report.total_pnl?.toFixed(2) }}<span class="summary-pct">({{ report.total_pnl_percent?.toFixed(2) }}%)</span></span></div>
-            <div class="summary-card"><span class="summary-label">持仓市值</span><span class="summary-value">¥{{ report.market_value?.toFixed(2) }}</span></div>
-            <div class="summary-card"><span class="summary-label">交易</span><span class="summary-value">{{ report.trades }} 笔 | 佣金 ¥{{ report.commission?.toFixed(2) }}</span></div>
-          </div>
-
-          <div v-if="report.best_trade || report.worst_trade" class="trade-highlights">
-            <div v-if="report.best_trade" class="highlight best">🏆 最佳: {{ report.best_trade.symbol }} +{{ report.best_trade.pnl?.toFixed(2) }}</div>
-            <div v-if="report.worst_trade" class="highlight worst">😞 最差: {{ report.worst_trade.symbol }} {{ report.worst_trade.pnl?.toFixed(2) }}</div>
-          </div>
-
-          <div v-if="report.positions?.length" class="positions-section">
-            <h4>持仓 ({{ report.positions.length }})</h4>
-            <div v-for="pos in report.positions" :key="pos.symbol" class="position-row"><span class="pos-symbol">{{ pos.symbol }}</span><span class="pos-qty">{{ pos.quantity }}</span><span class="pos-val">¥{{ pos.market_val?.toFixed(2) }}</span><span class="pos-pnl" :class="pos.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'">{{ pos.pnl >= 0 ? '+' : '' }}{{ pos.pnl_pct?.toFixed(2) }}%</span></div>
-          </div>
-
-          <div class="report-footer"><button class="btn btn-primary" @click="handleExport">导出 CSV</button><span class="report-date">{{ report.date }}</span></div>
-        </div>
-
-        <EmptyState v-else title="选择日期并生成报告" description="选择日期并点击「生成报告」以创建日结报告" />
-
-        <div v-if="showHistory" class="history-panel">
-          <h4>历史报告</h4>
-          <EmptyState v-if="history.length === 0" title="暂无历史报告" />
-          <div v-for="h in history" :key="h.date" class="history-item" @click="selectedDate = h.date; showHistory = false; loadReport(h.date)">
-            <span class="history-date">{{ h.date }}</span><span class="history-pnl" :class="h.day_pnl >= 0 ? 'pnl-positive' : 'pnl-negative'">{{ h.day_pnl >= 0 ? '+' : '' }}{{ h.day_pnl?.toFixed(2) }}</span><span class="history-trades">{{ h.trades }} 笔</span>
-          </div>
-        </div>
+    <div v-else-if="report" class="report-content">
+      <div class="report-summary">
+        <div class="summary-card" :class="pnlClass"><span class="summary-label">今日盈亏</span><span class="summary-value">{{ report.day_pnl >= 0 ? '+' : '' }}{{ report.day_pnl?.toFixed(2) }}<span class="summary-pct">({{ report.day_pnl_percent?.toFixed(2) }}%)</span></span></div>
+        <div class="summary-card"><span class="summary-label">累计盈亏</span><span class="summary-value">{{ report.total_pnl >= 0 ? '+' : '' }}{{ report.total_pnl?.toFixed(2) }}<span class="summary-pct">({{ report.total_pnl_percent?.toFixed(2) }}%)</span></span></div>
+        <div class="summary-card"><span class="summary-label">持仓市值</span><span class="summary-value">¥{{ report.market_value?.toFixed(2) }}</span></div>
+        <div class="summary-card"><span class="summary-label">交易</span><span class="summary-value">{{ report.trades }} 笔 | 佣金 ¥{{ report.commission?.toFixed(2) }}</span></div>
       </div>
-    </template>
-  </PanelShell>
+
+      <div v-if="report.best_trade || report.worst_trade" class="trade-highlights">
+        <div v-if="report.best_trade" class="highlight best">🏆 最佳: {{ report.best_trade.symbol }} +{{ report.best_trade.pnl?.toFixed(2) }}</div>
+        <div v-if="report.worst_trade" class="highlight worst">😞 最差: {{ report.worst_trade.symbol }} {{ report.worst_trade.pnl?.toFixed(2) }}</div>
+      </div>
+
+      <div v-if="report.positions?.length" class="positions-section">
+        <h4>持仓 ({{ report.positions.length }})</h4>
+        <div v-for="pos in report.positions" :key="pos.symbol" class="position-row"><span class="pos-symbol">{{ pos.symbol }}</span><span class="pos-qty">{{ pos.quantity }}</span><span class="pos-val">¥{{ pos.market_val?.toFixed(2) }}</span><span class="pos-pnl" :class="pos.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'">{{ pos.pnl >= 0 ? '+' : '' }}{{ pos.pnl_pct?.toFixed(2) }}%</span></div>
+      </div>
+
+      <div class="report-footer"><button class="btn btn-primary" @click="handleExport">导出 CSV</button><span class="report-date">{{ report.date }}</span></div>
+    </div>
+
+    <EmptyState v-else title="选择日期并生成报告" description="选择日期并点击「生成报告」以创建日结报告" />
+
+    <div v-if="showHistory" class="history-panel">
+      <h4>历史报告</h4>
+      <EmptyState v-if="history.length === 0" title="暂无历史报告" />
+      <div v-for="h in history" :key="h.date" class="history-item" @click="selectedDate = h.date; showHistory = false; loadReport(h.date)">
+        <span class="history-date">{{ h.date }}</span><span class="history-pnl" :class="h.day_pnl >= 0 ? 'pnl-positive' : 'pnl-negative'">{{ h.day_pnl >= 0 ? '+' : '' }}{{ h.day_pnl?.toFixed(2) }}</span><span class="history-trades">{{ h.trades }} 笔</span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>

@@ -5,9 +5,6 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader } from '@/terminal/components/panel'
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
-
-const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -171,78 +168,74 @@ watch(() => messages.value.length, scrollToBottom)
 </script>
 
 <template>
-  <PanelShell :state="state">
-    <template #loaded>
-      <div class="chat-panel">
-        <!-- Header: Profile + Model selectors -->
-        <PanelHeader title="AI 对话">
-          <template #controls>
-            <select v-model="selectedProfile" class="header-select">
-              <option v-for="p in profiles" :key="p.name" :value="p.name">{{ p.display }}</option>
-            </select>
-            <select v-model="selectedModel" class="header-select">
-              <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
-            </select>
-            <button class="btn btn-sm" @click="newChat" title="新对话">+</button>
-          </template>
-        </PanelHeader>
+  <div class="chat-panel">
+    <!-- Header: Profile + Model selectors -->
+    <PanelHeader title="AI 对话">
+      <template #controls>
+        <select v-model="selectedProfile" class="header-select">
+          <option v-for="p in profiles" :key="p.name" :value="p.name">{{ p.display }}</option>
+        </select>
+        <select v-model="selectedModel" class="header-select">
+          <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
+        </select>
+        <button class="btn btn-sm" @click="newChat" title="新对话">+</button>
+      </template>
+    </PanelHeader>
 
-        <!-- Messages -->
-        <div ref="messagesContainer" class="messages">
-          <div v-for="msg in messages" :key="msg.id" :class="['msg', msg.role]">
-            <div class="msg-role">
-              {{ msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'AI' }}
-              <span class="msg-time">{{ msg.time }}</span>
+    <!-- Messages -->
+    <div ref="messagesContainer" class="messages">
+      <div v-for="msg in messages" :key="msg.id" :class="['msg', msg.role]">
+        <div class="msg-role">
+          {{ msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'AI' }}
+          <span class="msg-time">{{ msg.time }}</span>
+        </div>
+        <div class="msg-content" v-html="renderMarkdown(msg.content)"></div>
+
+        <!-- Tool call cards -->
+        <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="tool-calls">
+          <div v-for="(tc, i) in msg.toolCalls" :key="i" class="tool-call-card">
+            <div class="tool-call-header" @click="toggleToolCall(msg, i)">
+              <span class="tool-call-icon">{{ tc.expanded ? '▼' : '▶' }}</span>
+              <span class="tool-call-name">🔧 {{ tc.tool }}</span>
             </div>
-            <div class="msg-content" v-html="renderMarkdown(msg.content)"></div>
-
-            <!-- Tool call cards -->
-            <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="tool-calls">
-              <div v-for="(tc, i) in msg.toolCalls" :key="i" class="tool-call-card">
-                <div class="tool-call-header" @click="toggleToolCall(msg, i)">
-                  <span class="tool-call-icon">{{ tc.expanded ? '▼' : '▶' }}</span>
-                  <span class="tool-call-name">🔧 {{ tc.tool }}</span>
-                </div>
-                <div v-if="tc.expanded" class="tool-call-body">
-                  <div class="tool-section">
-                    <span class="tool-label">Args:</span>
-                    <pre class="tool-pre">{{ tc.args }}</pre>
-                  </div>
-                  <div class="tool-section">
-                    <span class="tool-label">Result:</span>
-                    <pre class="tool-pre">{{ tc.result }}</pre>
-                  </div>
-                </div>
+            <div v-if="tc.expanded" class="tool-call-body">
+              <div class="tool-section">
+                <span class="tool-label">Args:</span>
+                <pre class="tool-pre">{{ tc.args }}</pre>
+              </div>
+              <div class="tool-section">
+                <span class="tool-label">Result:</span>
+                <pre class="tool-pre">{{ tc.result }}</pre>
               </div>
             </div>
-
-            <div v-if="msg.tokens" class="token-info">
-              {{ msg.tokens.prompt }} + {{ msg.tokens.completion }} tokens
-            </div>
-          </div>
-
-          <div v-if="isLoading" class="msg assistant">
-            <div class="msg-content typing-indicator">
-              <span></span><span></span><span></span>
-            </div>
           </div>
         </div>
 
-        <!-- Input area -->
-        <div class="input-area">
-          <input
-            v-model="input"
-            type="text"
-            :placeholder="isLoading ? 'AI 思考中...' : '向 AI 助手提问...'"
-            class="chat-input"
-            :disabled="isLoading"
-            @keyup.enter="send"
-          />
-          <button class="btn btn-sm btn-primary send-btn" @click="send" :disabled="isLoading">发送</button>
+        <div v-if="msg.tokens" class="token-info">
+          {{ msg.tokens.prompt }} + {{ msg.tokens.completion }} tokens
         </div>
       </div>
-    </template>
-  </PanelShell>
+
+      <div v-if="isLoading" class="msg assistant">
+        <div class="msg-content typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <input
+        v-model="input"
+        type="text"
+        :placeholder="isLoading ? 'AI 思考中...' : '向 AI 助手提问...'"
+        class="chat-input"
+        :disabled="isLoading"
+        @keyup.enter="send"
+      />
+      <button class="btn btn-sm btn-primary send-btn" @click="send" :disabled="isLoading">发送</button>
+    </div>
+  </div>
 </template>
 
 <style scoped>

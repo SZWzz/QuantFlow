@@ -5,9 +5,6 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
-
-const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -88,29 +85,25 @@ onMounted(loadData)
 </script>
 
 <template>
-  <PanelShell :state="state">
-    <template #loaded>
-      <div class="bonds-panel">
-        <PanelHeader
-          title="可转债实时行情"
-          :subtitle="subtitle"
-          :controls="[{ icon: 'refresh', title: '刷新', action: loadData, loading }]"
-        >
-          <template #controls>
-            <input class="search-input" v-model="searchQuery" placeholder="搜索代码/名称" />
-          </template>
-        </PanelHeader>
+  <div class="bonds-panel">
+    <PanelHeader
+      title="可转债实时行情"
+      :subtitle="subtitle"
+      :controls="[{ icon: 'refresh', title: '刷新', action: loadData, loading }]"
+    >
+      <template #controls>
+        <input class="search-input" v-model="searchQuery" placeholder="搜索代码/名称" />
+      </template>
+    </PanelHeader>
 
-        <LoadingState v-if="loading && !hasRows" type="table" :rows="6" :cols="cols.length" />
-        <ErrorState v-else-if="loadError" :description="loadError" @retry="loadData" />
-        <EmptyState v-else-if="!data || !data.success" :title="data?.error || '暂无数据'" />
-        <template v-else>
-          <div class="info-row">共 {{ filteredData.length }} 只可转债</div>
-          <PanelTable :columns="cols" :data="tableRows" :loading="loading" sticky-header />
-        </template>
-      </div>
+    <LoadingState v-if="loading && !hasRows" type="table" :rows="6" :cols="cols.length" />
+    <ErrorState v-else-if="loadError" :description="loadError" @retry="loadData" />
+    <EmptyState v-else-if="!data || !data.success" :title="data?.error || '暂无数据'" />
+    <template v-else>
+      <div class="info-row">共 {{ filteredData.length }} 只可转债</div>
+      <PanelTable :columns="cols" :data="tableRows" :loading="loading" sticky-header />
     </template>
-  </PanelShell>
+  </div>
 </template>
 
 <style scoped>

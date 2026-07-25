@@ -5,9 +5,6 @@ import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
-
-const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 const { t } = useI18n()
 
@@ -158,34 +155,30 @@ onMounted(() => {
 </script>
 
 <template>
-  <PanelShell :state="state">
-    <template #loaded>
-      <div class="cb-arbitrage-panel">
-        <PanelHeader
-          :title="t('panels.cb_arbitrage')"
-          :tabs="tabs"
-          :active-tab="activeTab"
-          :controls="[{ icon: 'refresh', title: '刷新', action: fetchData, loading }]"
-          @tab-change="onTabChange"
-        />
+  <div class="cb-arbitrage-panel">
+    <PanelHeader
+      :title="t('panels.cb_arbitrage')"
+      :tabs="tabs"
+      :active-tab="activeTab"
+      :controls="[{ icon: 'refresh', title: '刷新', action: fetchData, loading }]"
+      @tab-change="onTabChange"
+    />
 
-        <LoadingState v-if="loading && !data" type="table" :rows="8" :cols="currentCols.length" />
-        <EmptyState v-else-if="showPythonRequired" :title="t('panels.python_required')" />
-        <ErrorState v-else-if="error" :description="error" @retry="fetchData" />
-        <EmptyState v-else-if="currentRows.length === 0" :title="t('panels.no_data')" />
-        <PanelTable
-          v-else
-          :columns="currentCols"
-          :data="currentRows"
-          :loading="loading"
-          :row-key="(r: any) => r.bond_code"
-          clickable
-          sticky-header
-          @row-click="onRowClick"
-        />
-      </div>
-    </template>
-  </PanelShell>
+    <LoadingState v-if="loading && !data" type="table" :rows="8" :cols="currentCols.length" />
+    <EmptyState v-else-if="showPythonRequired" :title="t('panels.python_required')" />
+    <ErrorState v-else-if="error" :description="error" @retry="fetchData" />
+    <EmptyState v-else-if="currentRows.length === 0" :title="t('panels.no_data')" />
+    <PanelTable
+      v-else
+      :columns="currentCols"
+      :data="currentRows"
+      :loading="loading"
+      :row-key="(r: any) => r.bond_code"
+      clickable
+      sticky-header
+      @row-click="onRowClick"
+    />
+  </div>
 </template>
 
 <style scoped>
