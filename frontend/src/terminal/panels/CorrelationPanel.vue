@@ -14,6 +14,9 @@ import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
+
+const panelState = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 use([HeatmapChart, TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, CanvasRenderer])
 
@@ -161,63 +164,67 @@ onUnmounted(() => { if (renderTimer) clearTimeout(renderTimer) })
 </script>
 
 <template>
-  <div class="correlation-panel">
-    <PanelHeader title="相关性分析" :tabs="viewTabs" :active-tab="activeView" @tab-change="(k: string) => { activeView = k as CorrelationTab; if (k === 'presets' && !presetAssetList.length) fetchPresetData() }">
-      <template #controls>
-        <button v-if="addToWfControl" class="btn btn-sm" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
-      </template>
-    </PanelHeader>
+  <PanelShell :state="panelState">
+    <template #loaded>
+      <div class="correlation-panel">
+        <PanelHeader title="相关性分析" :tabs="viewTabs" :active-tab="activeView" @tab-change="(k: string) => { activeView = k as CorrelationTab; if (k === 'presets' && !presetAssetList.length) fetchPresetData() }">
+          <template #controls>
+            <button v-if="addToWfControl" class="btn btn-sm" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
+          </template>
+        </PanelHeader>
 
-    <!-- Custom -->
-    <div v-if="activeView === 'custom'" class="corr-content">
-      <div class="controls-row">
-        <textarea v-model="symbolText" class="symbol-input" rows="4" placeholder="输入代码，每行一个"></textarea>
-        <div class="controls-right">
-          <label class="control-label">回溯<select v-model="lookback" class="lookback-select"><option v-for="opt in lookbackOptions" :key="opt" :value="opt">{{ opt }}d</option></select></label>
-          <button class="btn btn-primary" @click="compute">计算</button>
+        <!-- Custom -->
+        <div v-if="activeView === 'custom'" class="corr-content">
+          <div class="controls-row">
+            <textarea v-model="symbolText" class="symbol-input" rows="4" placeholder="输入代码，每行一个"></textarea>
+            <div class="controls-right">
+              <label class="control-label">回溯<select v-model="lookback" class="lookback-select"><option v-for="opt in lookbackOptions" :key="opt" :value="opt">{{ opt }}d</option></select></label>
+              <button class="btn btn-primary" @click="compute">计算</button>
+            </div>
+          </div>
+
+          <div v-if="customError" class="panel-error">{{ customError }}</div>
+          <LoadingState v-if="customLoading" type="chart" />
+          <EmptyState v-else-if="!matrix" title="输入标的并点击计算" description="输入股票代码后点击计算查看相关性矩阵" />
+          <div v-else class="chart-body">
+            <template v-if="hasECharts">
+              <VChart v-if="chartOption" :option="chartOption" autoresize class="echarts-container" />
+            </template>
+            <div v-else class="fallback-table-wrap">
+              <table class="corr-table">
+                <thead><tr><th></th><th v-for="s in symbols" :key="s">{{ s }}</th></tr></thead>
+                <tbody><tr v-for="(row, i) in matrix" :key="symbols[i]"><td class="row-label">{{ symbols[i] }}</td><td v-for="(val, j) in row" :key="`${i}-${j}`" class="corr-cell" :style="j <= i ? { background: cellBg(val) } : { opacity: 0.2 }"><template v-if="j <= i">{{ val.toFixed(2) }}</template><template v-else>-</template></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Presets -->
+        <div v-if="activeView === 'presets'" class="corr-content">
+          <div class="presets-header">
+            <div class="preset-scroll">
+              <button v-for="(p, idx) in assetPresets" :key="p.label" :class="['btn btn-sm', { 'btn-primary': activePreset === idx }]" @click="selectPreset(idx)">{{ p.label }}</button>
+            </div>
+            <button class="btn btn-sm" @click="fetchPresetData" :disabled="presetLoading">⟳</button>
+          </div>
+
+          <div v-if="presetError" class="panel-error">{{ presetError }}</div>
+          <LoadingState v-if="presetLoading && presetAssetList.length === 0" type="chart" />
+          <template v-else-if="presetAssetList.length > 0">
+            <div id="correlation-preset-chart" class="corr-chart"></div>
+            <div class="corr-legend">
+              <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[3] }" />&gt;0.7</span>
+              <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[2] }" />0.4~0.7</span>
+              <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[2] }" />0.1~0.4</span>
+              <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[0] }" />-0.3~-0.1</span>
+              <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[0] }" />&lt;-0.3</span>
+            </div>
+          </template>
+          <EmptyState v-else title="暂无数据" />
         </div>
       </div>
-
-      <div v-if="customError" class="panel-error">{{ customError }}</div>
-      <LoadingState v-if="customLoading" type="chart" />
-      <EmptyState v-else-if="!matrix" title="输入标的并点击计算" description="输入股票代码后点击计算查看相关性矩阵" />
-      <div v-else class="chart-body">
-        <template v-if="hasECharts">
-          <VChart v-if="chartOption" :option="chartOption" autoresize class="echarts-container" />
-        </template>
-        <div v-else class="fallback-table-wrap">
-          <table class="corr-table">
-            <thead><tr><th></th><th v-for="s in symbols" :key="s">{{ s }}</th></tr></thead>
-            <tbody><tr v-for="(row, i) in matrix" :key="symbols[i]"><td class="row-label">{{ symbols[i] }}</td><td v-for="(val, j) in row" :key="`${i}-${j}`" class="corr-cell" :style="j <= i ? { background: cellBg(val) } : { opacity: 0.2 }"><template v-if="j <= i">{{ val.toFixed(2) }}</template><template v-else>-</template></td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Presets -->
-    <div v-if="activeView === 'presets'" class="corr-content">
-      <div class="presets-header">
-        <div class="preset-scroll">
-          <button v-for="(p, idx) in assetPresets" :key="p.label" :class="['btn btn-sm', { 'btn-primary': activePreset === idx }]" @click="selectPreset(idx)">{{ p.label }}</button>
-        </div>
-        <button class="btn btn-sm" @click="fetchPresetData" :disabled="presetLoading">⟳</button>
-      </div>
-
-      <div v-if="presetError" class="panel-error">{{ presetError }}</div>
-      <LoadingState v-if="presetLoading && presetAssetList.length === 0" type="chart" />
-      <template v-else-if="presetAssetList.length > 0">
-        <div id="correlation-preset-chart" class="corr-chart"></div>
-        <div class="corr-legend">
-          <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[3] }" />&gt;0.7</span>
-          <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[2] }" />0.4~0.7</span>
-          <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[2] }" />0.1~0.4</span>
-          <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[0] }" />-0.3~-0.1</span>
-          <span class="legend-item"><span class="legend-dot" :style="{ background: chartTheme.palette[0] }" />&lt;-0.3</span>
-        </div>
-      </template>
-      <EmptyState v-else title="暂无数据" />
-    </div>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

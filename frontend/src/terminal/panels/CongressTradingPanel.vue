@@ -2,6 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useResearchStore } from '@/stores/research'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
+
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const store = useResearchStore()
@@ -22,31 +25,35 @@ function amountColor(amount: string): string { if (!amount) return 'var(--color-
 </script>
 
 <template>
-  <div class="congress-panel">
-    <PanelHeader title="国会交易" :controls="[{ icon: 'refresh', title: '刷新', action: refresh, loading: store.loading }]" />
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="congress-panel">
+        <PanelHeader title="国会交易" :controls="[{ icon: 'refresh', title: '刷新', action: refresh, loading: store.loading }]" />
 
-    <div class="filter-bar">
-      <div class="filter-group"><span class="filter-label">{{ $t('research.party') }}</span>
-        <div class="filter-buttons"><button v-for="p in parties" :key="p" :class="['btn btn-sm', { 'btn-primary': partyFilter === p }]" @click="setPartyFilter(p)">{{ p === 'All' ? $t('common.all') : p }}</button></div>
+        <div class="filter-bar">
+          <div class="filter-group"><span class="filter-label">{{ $t('research.party') }}</span>
+            <div class="filter-buttons"><button v-for="p in parties" :key="p" :class="['btn btn-sm', { 'btn-primary': partyFilter === p }]" @click="setPartyFilter(p)">{{ p === 'All' ? $t('common.all') : p }}</button></div>
+          </div>
+          <div class="filter-group"><span class="filter-label">{{ $t('research.chamber') }}</span>
+            <div class="filter-buttons"><button v-for="c in chambers" :key="c" :class="['btn btn-sm', { 'btn-primary': chamberFilter === c }]" @click="setChamberFilter(c)">{{ c === 'All' ? $t('common.all') : c }}</button></div>
+          </div>
+        </div>
+
+        <div class="summary-bar" v-if="store.congressTrades"><span>Showing {{ filteredTrades.length }} / {{ store.congressTrades.length }} trades</span><span>{{ totalBuyVolume }}</span></div>
+
+        <div v-if="loadError" class="panel-error">{{ loadError }}</div>
+        <LoadingState v-if="store.loading" type="table" :rows="8" :cols="7" />
+        <EmptyState v-else-if="!store.congressTrades" title="暂无数据" />
+        <div v-else class="panel-content">
+          <table v-if="filteredTrades.length > 0" class="congress-table">
+            <thead><tr><th>{{ $t('common.name') }}</th><th>{{ $t('research.chamber') }}</th><th>{{ $t('research.party') }}</th><th>{{ $t('quote.symbol') }}</th><th>{{ $t('common.type') }}</th><th>{{ $t('common.amount') }}</th><th>{{ $t('common.date') }}</th></tr></thead>
+            <tbody><tr v-for="(t, i) in filteredTrades" :key="t.name + t.symbol + t.date + i"><td class="name-cell">{{ t.name }}</td><td>{{ t.chamber }}</td><td><span :class="['party-badge', (t.party ?? '').toLowerCase()]">{{ t.party }}</span></td><td class="symbol-cell">{{ t.symbol }}</td><td><span :class="['type-badge', (t.type ?? '').toLowerCase()]">{{ t.type }}</span></td><td class="amount-cell" :style="{ color: amountColor(t.amount) }">{{ t.amount }}</td><td class="date-cell">{{ t.date }}</td></tr></tbody>
+          </table>
+          <EmptyState v-else title="无匹配交易" />
+        </div>
       </div>
-      <div class="filter-group"><span class="filter-label">{{ $t('research.chamber') }}</span>
-        <div class="filter-buttons"><button v-for="c in chambers" :key="c" :class="['btn btn-sm', { 'btn-primary': chamberFilter === c }]" @click="setChamberFilter(c)">{{ c === 'All' ? $t('common.all') : c }}</button></div>
-      </div>
-    </div>
-
-    <div class="summary-bar" v-if="store.congressTrades"><span>Showing {{ filteredTrades.length }} / {{ store.congressTrades.length }} trades</span><span>{{ totalBuyVolume }}</span></div>
-
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-    <LoadingState v-if="store.loading" type="table" :rows="8" :cols="7" />
-    <EmptyState v-else-if="!store.congressTrades" title="暂无数据" />
-    <div v-else class="panel-content">
-      <table v-if="filteredTrades.length > 0" class="congress-table">
-        <thead><tr><th>{{ $t('common.name') }}</th><th>{{ $t('research.chamber') }}</th><th>{{ $t('research.party') }}</th><th>{{ $t('quote.symbol') }}</th><th>{{ $t('common.type') }}</th><th>{{ $t('common.amount') }}</th><th>{{ $t('common.date') }}</th></tr></thead>
-        <tbody><tr v-for="(t, i) in filteredTrades" :key="t.name + t.symbol + t.date + i"><td class="name-cell">{{ t.name }}</td><td>{{ t.chamber }}</td><td><span :class="['party-badge', (t.party ?? '').toLowerCase()]">{{ t.party }}</span></td><td class="symbol-cell">{{ t.symbol }}</td><td><span :class="['type-badge', (t.type ?? '').toLowerCase()]">{{ t.type }}</span></td><td class="amount-cell" :style="{ color: amountColor(t.amount) }">{{ t.amount }}</td><td class="date-cell">{{ t.date }}</td></tr></tbody>
-      </table>
-      <EmptyState v-else title="无匹配交易" />
-    </div>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

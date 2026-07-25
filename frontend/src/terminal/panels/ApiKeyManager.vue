@@ -4,7 +4,9 @@ import { API_KEY_REGISTRY, type ApiKeyEntry } from '@/lib/apiKeyRegistry'
 import { GetCredential, SaveCredential, DeleteCredential, ListCredentialNames } from '@/lib/wails'
 import { useToast } from '@/lib/composables/useToast'
 import { PanelHeader } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 const toast = useToast()
 const entries = ref(API_KEY_REGISTRY)
 const keyValues = ref<Record<string, Record<string, string>>>({})
@@ -88,45 +90,49 @@ const marketLabels: Record<string, string> = {
 </script>
 
 <template>
-  <div class="api-key-panel">
-    <PanelHeader title="API 密钥管理" />
-    <div class="api-key-list">
-      <div v-for="group in marketGroups" :key="group.market" class="market-group">
-        <h4 class="section-title group-title">{{ marketLabels[group.market] || group.market }}</h4>
-        <div v-for="entry in group.entries" :key="entry.id" class="key-entry">
-          <div class="entry-header">
-            <span class="entry-name">{{ entry.name }}</span>
-            <span class="entry-type">{{ entry.type === 'broker' ? '券商' : entry.type === 'ai' ? 'AI' : '数据源' }}</span>
-            <span v-if="savedKeys.includes(entry.id)" class="status-saved">已配置</span>
-          </div>
-          <div class="entry-desc">{{ entry.description }}</div>
-          <div v-if="entry.keys.length > 0" class="key-inputs">
-            <input
-              v-for="keyName in entry.keys"
-              :key="keyName"
-              v-model="keyValues[entry.id]![keyName]"
-              :placeholder="keyName"
-              type="password"
-              class="key-input"
-            />
-          </div>
-          <div v-else class="no-key">无需 API Key</div>
-          <div class="entry-actions">
-            <button v-if="entry.keys.length > 0" class="btn btn-sm btn-primary" @click="handleSave(entry)">保存</button>
-            <button v-if="savedKeys.includes(entry.id)" class="btn btn-sm btn-danger" @click="handleDelete(entry)">删除</button>
-            <button
-              v-if="entry.verifyEndpoint && savedKeys.includes(entry.id)"
-              class="btn btn-sm btn-verify"
-              :disabled="verifyStatus[entry.id] === 'verifying'"
-              @click="handleVerify(entry)"
-            >
-              {{ verifyStatus[entry.id] === 'verifying' ? '验证中...' : verifyStatus[entry.id] === 'ok' ? '✅ 已验证' : verifyStatus[entry.id] === 'fail' ? '❌ 重试' : '验证' }}
-            </button>
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="api-key-panel">
+        <PanelHeader title="API 密钥管理" />
+        <div class="api-key-list">
+          <div v-for="group in marketGroups" :key="group.market" class="market-group">
+            <h4 class="section-title group-title">{{ marketLabels[group.market] || group.market }}</h4>
+            <div v-for="entry in group.entries" :key="entry.id" class="key-entry">
+              <div class="entry-header">
+                <span class="entry-name">{{ entry.name }}</span>
+                <span class="entry-type">{{ entry.type === 'broker' ? '券商' : entry.type === 'ai' ? 'AI' : '数据源' }}</span>
+                <span v-if="savedKeys.includes(entry.id)" class="status-saved">已配置</span>
+              </div>
+              <div class="entry-desc">{{ entry.description }}</div>
+              <div v-if="entry.keys.length > 0" class="key-inputs">
+                <input
+                  v-for="keyName in entry.keys"
+                  :key="keyName"
+                  v-model="keyValues[entry.id]![keyName]"
+                  :placeholder="keyName"
+                  type="password"
+                  class="key-input"
+                />
+              </div>
+              <div v-else class="no-key">无需 API Key</div>
+              <div class="entry-actions">
+                <button v-if="entry.keys.length > 0" class="btn btn-sm btn-primary" @click="handleSave(entry)">保存</button>
+                <button v-if="savedKeys.includes(entry.id)" class="btn btn-sm btn-danger" @click="handleDelete(entry)">删除</button>
+                <button
+                  v-if="entry.verifyEndpoint && savedKeys.includes(entry.id)"
+                  class="btn btn-sm btn-verify"
+                  :disabled="verifyStatus[entry.id] === 'verifying'"
+                  @click="handleVerify(entry)"
+                >
+                  {{ verifyStatus[entry.id] === 'verifying' ? '验证中...' : verifyStatus[entry.id] === 'ok' ? '✅ 已验证' : verifyStatus[entry.id] === 'fail' ? '❌ 重试' : '验证' }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

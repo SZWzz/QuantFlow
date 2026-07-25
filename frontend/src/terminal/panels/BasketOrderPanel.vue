@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useWailsApp } from '@/lib/composables/useWailsApp'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
+
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -146,82 +149,86 @@ function statusDotClass(s: string): string {
 </script>
 
 <template>
-  <div class="basket-panel">
-    <!-- Three-column grid -->
-    <div class="basket-grid">
-      <!-- Left: 篮子 Rows -->
-      <div class="col col-left">
-        <h3 class="col-title">{{ $t('trade.basket') }}</h3>
-        <div v-if="resolvingNames" class="resolving-hint">正在解析名称...</div>
-        <div class="row-list">
-          <div v-for="row in rows" :key="row.id" class="basket-row">
-            <input v-model="row.symbol" type="text" :placeholder="$t('quote.symbol')" class="cell-input cell-symbol" />
-            <span v-if="getName(row.symbol)" class="cell-name">{{ getName(row.symbol) }}</span>
-            <input v-model.number="row.weight" type="number" min="0" max="100" placeholder="Wt%" class="cell-input cell-num" />
-            <input v-model.number="row.quantity" type="number" min="0" :placeholder="$t('trade.quantity')" class="cell-input cell-num" />
-            <input v-model.number="row.price" type="number" step="0.01" :placeholder="$t('common.price')" class="cell-input cell-num" />
-            <button class="row-btn row-remove" @click="removeRow(row.id)" :disabled="rows.length <= 1">x</button>
-          </div>
-        </div>
-        <div class="row-actions">
-          <button class="action-btn" @click="addRow">{{ $t('trade.add_row') }}</button>
-          <button class="action-btn" @click="showCsvImport = !showCsvImport">{{ $t('trade.import_csv') }}</button>
-        </div>
-        <div v-if="showCsvImport" class="csv-import">
-          <textarea v-model="csvText" placeholder="Paste CSV: symbol,weight%,qty,price" rows="3" class="csv-textarea"></textarea>
-          <button class="action-btn" @click="importCSV">{{ $t('trade.import_csv') }}</button>
-        </div>
-      </div>
-
-      <!-- Center: 摘要 -->
-      <div class="col col-center">
-        <h3 class="col-title">{{ $t('common.summary') }}</h3>
-        <div class="summary-card">
-          <div class="summary-row">
-            <span class="s-label">{{ $t('trade.symbol_count') }}</span>
-            <span class="s-value">{{ symbolCount }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="s-label">{{ $t('trade.est_total_cost') }}</span>
-            <span class="s-value">{{ fmtMoney(estimatedCost) }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="s-label">{{ $t('trade.exec_mode') }}</span>
-            <select v-model="execMode" class="exec-select">
-              <option value="market">{{ $t('trade.all_market') }}</option>
-              <option value="limit">{{ $t('trade.all_limit') }}</option>
-              <option value="weighted">{{ $t('trade.by_weight') }}</option>
-            </select>
-          </div>
-        </div>
-        <button
-          class="execute-btn"
-          :disabled="isExecuting || symbolCount === 0"
-          @click="execute篮子"
-        >
-          {{ isExecuting ? '执行中...' : 'Execute 篮子' }}
-        </button>
-      </div>
-
-      <!-- Right: 执行日志 -->
-      <div class="col col-right">
-        <h3 class="col-title">{{ $t('trade.execution_log') }}</h3>
-        <div class="log-list">
-          <div v-for="(entry, i) in logs" :key="i" class="log-entry">
-            <span :class="statusDotClass(entry.status)"></span>
-            <div class="log-body">
-              <span class="log-symbol">{{ entry.symbol }}</span>
-              <span class="log-msg">{{ entry.message }}</span>
-              <span class="log-time">{{ entry.time }}</span>
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="basket-panel">
+        <!-- Three-column grid -->
+        <div class="basket-grid">
+          <!-- Left: 篮子 Rows -->
+          <div class="col col-left">
+            <h3 class="col-title">{{ $t('trade.basket') }}</h3>
+            <div v-if="resolvingNames" class="resolving-hint">正在解析名称...</div>
+            <div class="row-list">
+              <div v-for="row in rows" :key="row.id" class="basket-row">
+                <input v-model="row.symbol" type="text" :placeholder="$t('quote.symbol')" class="cell-input cell-symbol" />
+                <span v-if="getName(row.symbol)" class="cell-name">{{ getName(row.symbol) }}</span>
+                <input v-model.number="row.weight" type="number" min="0" max="100" placeholder="Wt%" class="cell-input cell-num" />
+                <input v-model.number="row.quantity" type="number" min="0" :placeholder="$t('trade.quantity')" class="cell-input cell-num" />
+                <input v-model.number="row.price" type="number" step="0.01" :placeholder="$t('common.price')" class="cell-input cell-num" />
+                <button class="row-btn row-remove" @click="removeRow(row.id)" :disabled="rows.length <= 1">x</button>
+              </div>
+            </div>
+            <div class="row-actions">
+              <button class="action-btn" @click="addRow">{{ $t('trade.add_row') }}</button>
+              <button class="action-btn" @click="showCsvImport = !showCsvImport">{{ $t('trade.import_csv') }}</button>
+            </div>
+            <div v-if="showCsvImport" class="csv-import">
+              <textarea v-model="csvText" placeholder="Paste CSV: symbol,weight%,qty,price" rows="3" class="csv-textarea"></textarea>
+              <button class="action-btn" @click="importCSV">{{ $t('trade.import_csv') }}</button>
             </div>
           </div>
-          <div v-if="logs.length === 0" class="log-empty">
-            {{ $t('workflow.no_executions') }}
+
+          <!-- Center: 摘要 -->
+          <div class="col col-center">
+            <h3 class="col-title">{{ $t('common.summary') }}</h3>
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="s-label">{{ $t('trade.symbol_count') }}</span>
+                <span class="s-value">{{ symbolCount }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">{{ $t('trade.est_total_cost') }}</span>
+                <span class="s-value">{{ fmtMoney(estimatedCost) }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="s-label">{{ $t('trade.exec_mode') }}</span>
+                <select v-model="execMode" class="exec-select">
+                  <option value="market">{{ $t('trade.all_market') }}</option>
+                  <option value="limit">{{ $t('trade.all_limit') }}</option>
+                  <option value="weighted">{{ $t('trade.by_weight') }}</option>
+                </select>
+              </div>
+            </div>
+            <button
+              class="execute-btn"
+              :disabled="isExecuting || symbolCount === 0"
+              @click="execute篮子"
+            >
+              {{ isExecuting ? '执行中...' : 'Execute 篮子' }}
+            </button>
+          </div>
+
+          <!-- Right: 执行日志 -->
+          <div class="col col-right">
+            <h3 class="col-title">{{ $t('trade.execution_log') }}</h3>
+            <div class="log-list">
+              <div v-for="(entry, i) in logs" :key="i" class="log-entry">
+                <span :class="statusDotClass(entry.status)"></span>
+                <div class="log-body">
+                  <span class="log-symbol">{{ entry.symbol }}</span>
+                  <span class="log-msg">{{ entry.message }}</span>
+                  <span class="log-time">{{ entry.time }}</span>
+                </div>
+              </div>
+              <div v-if="logs.length === 0" class="log-empty">
+                {{ $t('workflow.no_executions') }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

@@ -20,6 +20,10 @@
 - [MarketData] GDELT 适配器增加 Content-Type 校验，非 JSON 响应返回明确错误而非 parse error
 - [Python] 修复 health check 测试中 `aio` 未定义问题 — 将 `aio.insecure_channel` 替换为 `grpc.aio.insecure_channel`
 
+### Changed
+
+- [Frontend] 迁移 Batch A 面板（AIChatPanel, AlphaMiningWorkspacePanel, ApiKeyManager, AuditPanel, BacktestPanel, BasketOrderPanel, BondsPanel, BrokerConfig, BrokerStatusPanel, CBArbitragePanel, ChanlunPanel, CongressTradingPanel, CorrelationPanel, CryptoOverviewPanel, DailyReportPanel）至 PanelShell 统一状态组件，消除各面板独立的 loading/error/empty 渲染样板代码
+
 ## [2026.7.19] - 2026-07-19
 
 ### 新增

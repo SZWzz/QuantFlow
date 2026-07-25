@@ -7,8 +7,10 @@ import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import VChart from 'vue-echarts'
 import { PanelHeader, PanelTabs, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import 'echarts'
 
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
@@ -185,136 +187,140 @@ onMounted(() => { loadData(); loadDelistingRisk() })
 </script>
 
 <template>
-  <div class="audit-panel">
-    <PanelHeader title="财务审计">
-      <template #controls>
-        <button class="btn btn-sm" @click="loadData" :disabled="loading">⟳</button>
-      </template>
-    </PanelHeader>
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="audit-panel">
+        <PanelHeader title="财务审计">
+          <template #controls>
+            <button class="btn btn-sm" @click="loadData" :disabled="loading">⟳</button>
+          </template>
+        </PanelHeader>
 
-    <PanelTabs
-      variant="pill"
-      :tabs="[{ key: 'audit', label: '审计异常' }, { key: 'delist', label: '退市风险' }]"
-      :active="activeTab"
-      @change="(k: string) => activeTab = k as 'audit' | 'delist'"
-    />
+        <PanelTabs
+          variant="pill"
+          :tabs="[{ key: 'audit', label: '审计异常' }, { key: 'delist', label: '退市风险' }]"
+          :active="activeTab"
+          @change="(k: string) => activeTab = k as 'audit' | 'delist'"
+        />
 
-    <!-- Audit tab -->
-    <div v-if="activeTab === 'audit'" class="audit-content">
-      <LoadingState v-if="loading && !audit" type="card" :rows="3" />
-      <ErrorState v-else-if="error && !audit" :description="error" @retry="loadData" />
-      <template v-else>
-        <!-- Risk Gauges -->
-        <div class="gauges">
-          <div class="gauge-card">
-            <div class="gauge-label">风险等级</div>
-            <div class="gauge-row">
-              <div class="gauge-bar"><div class="gauge-fill" :style="{ width: Math.min(riskScore * 8, 100) + '%', background: riskColor(riskGrade) }" /></div>
-              <span class="gauge-val" :style="{ color: riskColor(riskGrade) }">{{ riskGrade }}</span>
+        <!-- Audit tab -->
+        <div v-if="activeTab === 'audit'" class="audit-content">
+          <LoadingState v-if="loading && !audit" type="card" :rows="3" />
+          <ErrorState v-else-if="error && !audit" :description="error" @retry="loadData" />
+          <template v-else>
+            <!-- Risk Gauges -->
+            <div class="gauges">
+              <div class="gauge-card">
+                <div class="gauge-label">风险等级</div>
+                <div class="gauge-row">
+                  <div class="gauge-bar"><div class="gauge-fill" :style="{ width: Math.min(riskScore * 8, 100) + '%', background: riskColor(riskGrade) }" /></div>
+                  <span class="gauge-val" :style="{ color: riskColor(riskGrade) }">{{ riskGrade }}</span>
+                </div>
+                <div class="gauge-meta"><span>评分 {{ riskScore }}</span><span v-if="highCount">高危 {{ highCount }} 项</span><span v-if="mediumCount">中危 {{ mediumCount }} 项</span></div>
+              </div>
+              <div v-if="healthScore !== null" class="gauge-card">
+                <div class="gauge-label">财务健康</div>
+                <div class="gauge-row">
+                  <div class="gauge-bar"><div class="gauge-fill" :style="{ width: healthScore + '%', background: healthColor(healthScore) }" /></div>
+                  <span class="gauge-val" :style="{ color: healthColor(healthScore) }">{{ healthGrade }}</span>
+                </div>
+                <div class="gauge-meta"><span>评分 {{ healthScore }}/100</span><span v-if="breakdown.length">明细 {{ breakdown.length }} 项</span></div>
+              </div>
             </div>
-            <div class="gauge-meta"><span>评分 {{ riskScore }}</span><span v-if="highCount">高危 {{ highCount }} 项</span><span v-if="mediumCount">中危 {{ mediumCount }} 项</span></div>
-          </div>
-          <div v-if="healthScore !== null" class="gauge-card">
-            <div class="gauge-label">财务健康</div>
-            <div class="gauge-row">
-              <div class="gauge-bar"><div class="gauge-fill" :style="{ width: healthScore + '%', background: healthColor(healthScore) }" /></div>
-              <span class="gauge-val" :style="{ color: healthColor(healthScore) }">{{ healthGrade }}</span>
+
+            <!-- KPI -->
+            <div class="kpis">
+              <div class="kpi"><span class="kpi-label">ROE</span><span class="kpi-val" :style="{ color: (latestPeriod.roe ?? 0) > 8 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.roe) }}</span></div>
+              <div class="kpi"><span class="kpi-label">负债率</span><span class="kpi-val" :style="{ color: (latestPeriod.debt_ratio ?? 100) < 60 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.debt_ratio) }}</span></div>
+              <div class="kpi"><span class="kpi-label">净利率</span><span class="kpi-val" :style="{ color: (latestPeriod.profit_margin ?? 0) > 10 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.profit_margin) }}</span></div>
+              <div class="kpi"><span class="kpi-label">毛利率</span><span class="kpi-val" :style="{ color: 'var(--color-accent)' }">{{ formatPct(latestPeriod.gross_margin) }}</span></div>
+              <div class="kpi"><span class="kpi-label">营收增长</span><span class="kpi-val" :style="{ color: (growthRate() ?? 0) > 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatChange(growthRate()) }}</span></div>
+              <div class="kpi"><span class="kpi-label">商誉/净资产</span><span class="kpi-val" :style="{ color: chartTheme.palette[2] }">{{ findings.find((f: any) => f.metric.includes('商誉'))?.value || '--' }}</span></div>
             </div>
-            <div class="gauge-meta"><span>评分 {{ healthScore }}/100</span><span v-if="breakdown.length">明细 {{ breakdown.length }} 项</span></div>
-          </div>
-        </div>
 
-        <!-- KPI -->
-        <div class="kpis">
-          <div class="kpi"><span class="kpi-label">ROE</span><span class="kpi-val" :style="{ color: (latestPeriod.roe ?? 0) > 8 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.roe) }}</span></div>
-          <div class="kpi"><span class="kpi-label">负债率</span><span class="kpi-val" :style="{ color: (latestPeriod.debt_ratio ?? 100) < 60 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.debt_ratio) }}</span></div>
-          <div class="kpi"><span class="kpi-label">净利率</span><span class="kpi-val" :style="{ color: (latestPeriod.profit_margin ?? 0) > 10 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(latestPeriod.profit_margin) }}</span></div>
-          <div class="kpi"><span class="kpi-label">毛利率</span><span class="kpi-val" :style="{ color: 'var(--color-accent)' }">{{ formatPct(latestPeriod.gross_margin) }}</span></div>
-          <div class="kpi"><span class="kpi-label">营收增长</span><span class="kpi-val" :style="{ color: (growthRate() ?? 0) > 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatChange(growthRate()) }}</span></div>
-          <div class="kpi"><span class="kpi-label">商誉/净资产</span><span class="kpi-val" :style="{ color: chartTheme.palette[2] }">{{ findings.find((f: any) => f.metric.includes('商誉'))?.value || '--' }}</span></div>
-        </div>
-
-        <!-- Report toggle -->
-        <div v-if="periods.length >= 2" class="report-toggle">
-          <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
-          <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
-        </div>
-
-        <!-- Chart -->
-        <div v-if="filteredPeriods.length >= 2" class="chart-section">
-          <VChart :option="chartOption" autoresize style="height: 200px" />
-        </div>
-        <div v-else-if="periods.length >= 2 && filteredPeriods.length < 2" class="section-empty">
-          暂无足够{{ reportType === 'annual' ? '年报' : '季报' }}数据
-        </div>
-
-        <!-- Breakdown -->
-        <div class="section"><div class="section-h" @click="showBreakdown = !showBreakdown"><span class="section-title">评分明细</span><span class="section-toggle">{{ showBreakdown ? '收起' : '展开' }}</span></div>
-          <div v-if="showBreakdown && breakdown.length" class="breakdown-list">
-            <div v-for="(b, i) in breakdown" :key="i" class="br-item"><span class="br-name">{{ b.item }}</span><span class="br-effect" :style="{ color: (b.effect || 0) >= 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ (b.effect || 0) >= 0 ? '+' : '' }}{{ b.effect }}</span><span class="br-detail">{{ b.detail }}</span></div>
-            <div class="br-total"><span class="br-name">总分</span><span class="br-effect" :style="{ color: healthColor(healthScore) }">{{ healthScore }}/100</span><span class="br-detail">{{ healthGrade }}</span></div>
-          </div>
-          <div v-else-if="!breakdown.length && !loading" class="section-empty">暂无评分明细</div>
-        </div>
-
-        <!-- Findings -->
-        <div class="section"><div class="section-h"><span class="section-title">异常发现</span><span class="section-count">{{ latestFindings.length + trendFindings.length }}</span></div>
-          <EmptyState v-if="!latestFindings.length && !trendFindings.length && !loading" title="暂无异常发现" />
-          <div v-for="(f, i) in latestFindings" :key="'l'+i" class="finding" :class="f.level">
-            <span class="finding-icon">{{ levelIcon(f.level) }}</span>
-            <div class="finding-body">
-              <div class="finding-head"><span class="finding-metric">{{ f.metric }}</span><span v-if="f.value" class="finding-value" :class="f.level">{{ f.value }}</span></div>
-              <div class="finding-detail">{{ f.detail }}</div>
-              <div v-if="f.threshold" class="finding-threshold">{{ f.threshold }}</div>
+            <!-- Report toggle -->
+            <div v-if="periods.length >= 2" class="report-toggle">
+              <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
+              <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
             </div>
-          </div>
-          <div v-if="trendFindings.length" class="trend-section"><div class="section-h trend-h" @click="showTrend = !showTrend"><span class="section-title">趋势发现 ({{ trendFindings.length }})</span><span class="section-toggle">{{ showTrend ? '收起' : '展开' }}</span></div>
-            <div v-if="showTrend"><div v-for="(f, i) in trendFindings" :key="'t'+i" class="finding" :class="f.level">
-              <span class="finding-icon">{{ levelIcon(f.level) }}</span>
-              <div class="finding-body"><div class="finding-head"><span class="finding-metric">{{ f.metric }}</span><span v-if="f.value" class="finding-value" :class="f.level">{{ f.value }}</span></div><div class="finding-detail">{{ f.detail }}</div></div>
-            </div></div>
-          </div>
-        </div>
 
-        <!-- History table -->
-        <div class="section"><div class="section-h" @click="showHistory = !showHistory"><span class="section-title">财务历史 ({{ filteredPeriods.length }} 期 {{ reportType === 'annual' ? '年报' : '季报' }})</span><span class="section-toggle">{{ showHistory ? '收起' : '展开' }}</span></div>
-          <div v-if="showHistory && filteredPeriods.length" class="hist-table-wrap">
-            <table class="hist-table">
-              <thead><tr><th>报告期</th><th class="num">营收</th><th class="num">净利润</th><th class="num">ROE</th><th class="num">负债率</th><th class="num">毛利率</th></tr></thead>
-              <tbody><tr v-for="(p, i) in filteredPeriods" :key="i"><td class="period">{{ p.period }}</td><td class="num">{{ formatNum(p.revenue) }}</td><td class="num">{{ formatNum(p.net_profit) }}</td><td class="num" :style="{ color: (p.roe ?? 0) > 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(p.roe) }}</td><td class="num" :style="{ color: (p.debt_ratio ?? 0) < 60 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(p.debt_ratio) }}</td><td class="num">{{ formatPct(p.gross_margin) }}</td></tr></tbody>
-            </table>
-          </div>
-          <EmptyState v-else-if="!periods.length && !loading" title="暂无财务数据" />
-        </div>
-      </template>
-    </div>
-
-    <!-- Delist tab -->
-    <div v-if="activeTab === 'delist'" class="audit-content">
-      <LoadingState v-if="delistingLoading && !delisting" type="card" :rows="4" />
-      <ErrorState v-else-if="delistingError && !delisting" :description="delistingError" @retry="loadDelistingRisk" />
-      <template v-else-if="delisting">
-        <div class="dr-overall">
-          <div class="dr-badge" :class="'dr-' + delisting.overall_risk">
-            <span class="dr-badge-label">{{ delisting.overall_risk === 'high' ? '高风险' : delisting.overall_risk === 'medium' ? '中风险' : '低风险' }}</span>
-            <span class="dr-board">{{ delisting.market }} · {{ delisting.board }}</span>
-            <span v-if="delisting.is_st" class="st-tag">ST</span>
-          </div>
-          <p class="dr-summary">{{ delisting.summary }}</p>
-        </div>
-        <div v-for="cat in delisting.categories" :key="cat.name" class="dr-category">
-          <div class="dr-cat-h"><span class="dr-cat-dot" :class="'dot-' + cat.level"></span><span class="dr-cat-name">{{ cat.name }}</span></div>
-          <div class="dr-items">
-            <div v-for="item in cat.items" :key="item.indicator" class="dr-item" :class="'dr-item-' + item.status">
-              <div class="dr-item-left"><span class="dr-dot" :class="'dot-' + (item.status === 'danger' ? 'red' : item.status === 'warn' ? 'yellow' : 'green')"></span><span class="dr-indicator">{{ item.indicator }}</span></div>
-              <div class="dr-item-right"><span class="dr-current">{{ item.current }}</span><span class="dr-threshold">阈值: {{ item.threshold }}</span></div>
-              <div v-if="item.detail" class="dr-detail">{{ item.detail }}</div>
+            <!-- Chart -->
+            <div v-if="filteredPeriods.length >= 2" class="chart-section">
+              <VChart :option="chartOption" autoresize style="height: 200px" />
             </div>
-          </div>
+            <div v-else-if="periods.length >= 2 && filteredPeriods.length < 2" class="section-empty">
+              暂无足够{{ reportType === 'annual' ? '年报' : '季报' }}数据
+            </div>
+
+            <!-- Breakdown -->
+            <div class="section"><div class="section-h" @click="showBreakdown = !showBreakdown"><span class="section-title">评分明细</span><span class="section-toggle">{{ showBreakdown ? '收起' : '展开' }}</span></div>
+              <div v-if="showBreakdown && breakdown.length" class="breakdown-list">
+                <div v-for="(b, i) in breakdown" :key="i" class="br-item"><span class="br-name">{{ b.item }}</span><span class="br-effect" :style="{ color: (b.effect || 0) >= 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ (b.effect || 0) >= 0 ? '+' : '' }}{{ b.effect }}</span><span class="br-detail">{{ b.detail }}</span></div>
+                <div class="br-total"><span class="br-name">总分</span><span class="br-effect" :style="{ color: healthColor(healthScore) }">{{ healthScore }}/100</span><span class="br-detail">{{ healthGrade }}</span></div>
+              </div>
+              <div v-else-if="!breakdown.length && !loading" class="section-empty">暂无评分明细</div>
+            </div>
+
+            <!-- Findings -->
+            <div class="section"><div class="section-h"><span class="section-title">异常发现</span><span class="section-count">{{ latestFindings.length + trendFindings.length }}</span></div>
+              <EmptyState v-if="!latestFindings.length && !trendFindings.length && !loading" title="暂无异常发现" />
+              <div v-for="(f, i) in latestFindings" :key="'l'+i" class="finding" :class="f.level">
+                <span class="finding-icon">{{ levelIcon(f.level) }}</span>
+                <div class="finding-body">
+                  <div class="finding-head"><span class="finding-metric">{{ f.metric }}</span><span v-if="f.value" class="finding-value" :class="f.level">{{ f.value }}</span></div>
+                  <div class="finding-detail">{{ f.detail }}</div>
+                  <div v-if="f.threshold" class="finding-threshold">{{ f.threshold }}</div>
+                </div>
+              </div>
+              <div v-if="trendFindings.length" class="trend-section"><div class="section-h trend-h" @click="showTrend = !showTrend"><span class="section-title">趋势发现 ({{ trendFindings.length }})</span><span class="section-toggle">{{ showTrend ? '收起' : '展开' }}</span></div>
+                <div v-if="showTrend"><div v-for="(f, i) in trendFindings" :key="'t'+i" class="finding" :class="f.level">
+                  <span class="finding-icon">{{ levelIcon(f.level) }}</span>
+                  <div class="finding-body"><div class="finding-head"><span class="finding-metric">{{ f.metric }}</span><span v-if="f.value" class="finding-value" :class="f.level">{{ f.value }}</span></div><div class="finding-detail">{{ f.detail }}</div></div>
+                </div></div>
+              </div>
+            </div>
+
+            <!-- History table -->
+            <div class="section"><div class="section-h" @click="showHistory = !showHistory"><span class="section-title">财务历史 ({{ filteredPeriods.length }} 期 {{ reportType === 'annual' ? '年报' : '季报' }})</span><span class="section-toggle">{{ showHistory ? '收起' : '展开' }}</span></div>
+              <div v-if="showHistory && filteredPeriods.length" class="hist-table-wrap">
+                <table class="hist-table">
+                  <thead><tr><th>报告期</th><th class="num">营收</th><th class="num">净利润</th><th class="num">ROE</th><th class="num">负债率</th><th class="num">毛利率</th></tr></thead>
+                  <tbody><tr v-for="(p, i) in filteredPeriods" :key="i"><td class="period">{{ p.period }}</td><td class="num">{{ formatNum(p.revenue) }}</td><td class="num">{{ formatNum(p.net_profit) }}</td><td class="num" :style="{ color: (p.roe ?? 0) > 0 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(p.roe) }}</td><td class="num" :style="{ color: (p.debt_ratio ?? 0) < 60 ? 'var(--color-down)' : 'var(--color-up)' }">{{ formatPct(p.debt_ratio) }}</td><td class="num">{{ formatPct(p.gross_margin) }}</td></tr></tbody>
+                </table>
+              </div>
+              <EmptyState v-else-if="!periods.length && !loading" title="暂无财务数据" />
+            </div>
+          </template>
         </div>
-      </template>
-    </div>
-  </div>
+
+        <!-- Delist tab -->
+        <div v-if="activeTab === 'delist'" class="audit-content">
+          <LoadingState v-if="delistingLoading && !delisting" type="card" :rows="4" />
+          <ErrorState v-else-if="delistingError && !delisting" :description="delistingError" @retry="loadDelistingRisk" />
+          <template v-else-if="delisting">
+            <div class="dr-overall">
+              <div class="dr-badge" :class="'dr-' + delisting.overall_risk">
+                <span class="dr-badge-label">{{ delisting.overall_risk === 'high' ? '高风险' : delisting.overall_risk === 'medium' ? '中风险' : '低风险' }}</span>
+                <span class="dr-board">{{ delisting.market }} · {{ delisting.board }}</span>
+                <span v-if="delisting.is_st" class="st-tag">ST</span>
+              </div>
+              <p class="dr-summary">{{ delisting.summary }}</p>
+            </div>
+            <div v-for="cat in delisting.categories" :key="cat.name" class="dr-category">
+              <div class="dr-cat-h"><span class="dr-cat-dot" :class="'dot-' + cat.level"></span><span class="dr-cat-name">{{ cat.name }}</span></div>
+              <div class="dr-items">
+                <div v-for="item in cat.items" :key="item.indicator" class="dr-item" :class="'dr-item-' + item.status">
+                  <div class="dr-item-left"><span class="dr-dot" :class="'dot-' + (item.status === 'danger' ? 'red' : item.status === 'warn' ? 'yellow' : 'green')"></span><span class="dr-indicator">{{ item.indicator }}</span></div>
+                  <div class="dr-item-right"><span class="dr-current">{{ item.current }}</span><span class="dr-threshold">阈值: {{ item.threshold }}</span></div>
+                  <div v-if="item.detail" class="dr-detail">{{ item.detail }}</div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>
