@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { GetTop10Holders, type ShareholderRecord } from '@/lib/wails'
 import { useSymbolContext } from '@/stores/symbolContext'
@@ -36,9 +35,7 @@ const cols: Column[] = [
 </script>
 
 <template>
-  <PanelShell state="loaded">
-    <template #loaded>
-        <div class="shareholder-panel">
+  <div class="shareholder-panel">
     <PanelHeader title="十大流通股东">
       <template #controls>
         <input v-model="symbol" placeholder="股票代码" class="sym-input" @keyup.enter="fetchData" />

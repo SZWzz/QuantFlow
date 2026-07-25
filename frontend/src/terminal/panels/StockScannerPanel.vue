@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, computed } from 'vue'
 import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
@@ -183,9 +182,7 @@ function tableData() {
 </script>
 
 <template>
-  <PanelShell state="loaded">
-    <template #loaded>
-        <div class="scanner-panel">
+  <div class="scanner-panel">
     <div v-if="loadError" class="panel-error">{{ loadError }}</div>
     <PanelHeader
       :title="selectedStrategy ? selectedStrategy.name : 'Stock Scanner'"
