@@ -3,6 +3,12 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.25] - 2026-07-25
+
+### 新增
+
+- [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
+
 ## [2026.7.19] - 2026-07-19
 
 ### 新增
