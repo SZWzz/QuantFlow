@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { PanelHeader, EmptyState } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 </script>
 
 <template>
+  <PanelShell state="loaded">
+    <template #loaded>
   <div class="rl-monitor-panel">
     <PanelHeader :title="$t('ml.rl_monitor')" />
     <EmptyState
@@ -13,6 +16,8 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
       description="强化学习训练监控需要启动 Python 训练服务，当前 Go 后端不支持直接 RL 训练。请通过 Python sidecar 连接训练实验。"
     />
   </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { PanelHeader } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
@@ -81,6 +82,8 @@ function highlightSearch(text: string): string {
 </script>
 
 <template>
+  <PanelShell state="loaded">
+    <template #loaded>
   <div class="log-panel">
     <PanelHeader
       title="日志面板"
@@ -135,6 +138,8 @@ function highlightSearch(text: string): string {
       </div>
     </div>
   </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>
