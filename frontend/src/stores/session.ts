@@ -56,5 +56,16 @@ export const useSessionStore = defineStore('session', () => {
     ui.value.activeMarket = m
   }
 
-  return { ui, toggleMode, setTheme, setDensity, setLanguage, setActiveMarket }
+  const onboardingDone = ref(false)
+
+  function completeOnboarding() {
+    onboardingDone.value = true
+    localStorage.setItem('quantflow_onboarding_done', 'true')
+  }
+
+  function initOnboarding() {
+    onboardingDone.value = localStorage.getItem('quantflow_onboarding_done') === 'true'
+  }
+
+  return { ui, onboardingDone, completeOnboarding, initOnboarding, toggleMode, setTheme, setDensity, setLanguage, setActiveMarket }
 })

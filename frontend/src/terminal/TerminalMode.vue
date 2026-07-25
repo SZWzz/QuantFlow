@@ -13,6 +13,7 @@ import { getIcon } from '@/lib/icons'
 import { SwitchToLive, SwitchToPaper, EmergencyClose } from '@/lib/wails'
 import { confirmDialog, alertDialog } from '@/lib/wails'
 import { useToast } from '@/lib/composables/useToast'
+import OnboardingOverlay from './components/OnboardingOverlay.vue'
 
 const session = useSessionStore()
 const terminal = useTerminalStore()
@@ -34,6 +35,7 @@ onMounted(async () => {
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => import('echarts'), { timeout: 5000 })
   }
+  session.initOnboarding()
   // Check trading mode
   try {
     const mode = await (window as any).go?.main?.App?.GetTradingMode()
@@ -120,6 +122,10 @@ function onOpenPanel(panelId: string, params?: Record<string, any>) {
   terminal.openPanel(panelId, params)
 }
 
+function handleOnboardingAction(step: number) {
+  if (step === 0) terminal.openPanel('watchlist')
+}
+
 function onNavigate(path: string) { router.push(path) }
 function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
 </script>
@@ -176,6 +182,12 @@ function onSwitchToWorkflow() { session.ui.mode = 'workflow' }
     </main>
 
     <StatusBar />
+
+    <OnboardingOverlay
+      v-if="!session.onboardingDone"
+      @action="handleOnboardingAction"
+      @done="session.completeOnboarding()"
+    />
 
     <CommandBar
       v-model="showCommandBar"
