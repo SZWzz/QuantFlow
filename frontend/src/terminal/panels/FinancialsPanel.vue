@@ -619,7 +619,8 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 .kpi-section { flex-shrink: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 .kpi-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
 .kpi-card {
-  flex: 0 0 170px;
+  flex: 0 0 auto;
+  min-width: 140px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
@@ -632,7 +633,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
   border-color: var(--color-accent-soft);
   background: linear-gradient(135deg, var(--color-accent-soft), transparent);
 }
-.kpi-label { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.kpi-label { font-size: var(--font-xs); color: var(--color-text-tertiary); white-space: nowrap; }
 .kpi-value {
   font-size: var(--font-xl);
   font-weight: 700;
@@ -641,6 +642,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
   display: flex;
   align-items: baseline;
   gap: var(--space-sm);
+  white-space: nowrap;
 }
 .kpi-yoy-inline { font-size: var(--font-xs); font-weight: 500; }
 .kpi-yoy-inline.up { color: var(--color-down); }
