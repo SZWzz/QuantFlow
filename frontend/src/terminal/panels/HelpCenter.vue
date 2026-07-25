@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref } from 'vue'
 import { PanelHeader } from '@/terminal/components/panel'
 
@@ -36,8 +35,6 @@ function toggle(sectionId: string, idx: number) {
 </script>
 
 <template>
-  <PanelShell state="loaded">
-    <template #loaded>
   <div class="help-panel">
     <PanelHeader title="帮助中心" />
     <div class="help-content">
@@ -67,8 +64,6 @@ function toggle(sectionId: string, idx: number) {
       </div>
     </div>
   </div>
-    </template>
-  </PanelShell>
 </template>
 
 <style scoped>

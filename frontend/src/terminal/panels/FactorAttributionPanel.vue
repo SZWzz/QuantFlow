@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, computed } from 'vue'
 import VChart from 'vue-echarts'
 import 'echarts'
@@ -59,8 +58,6 @@ const chartOption = computed(() => {
 </script>
 
 <template>
-  <PanelShell state="loaded">
-    <template #loaded>
   <div class="attribution-panel">
     <PanelHeader title="因子归因">
       <template #controls>
@@ -70,9 +67,7 @@ const chartOption = computed(() => {
           <span>%</span>
           <button class="btn btn-sm btn-primary" @click="fetchData">计算</button>
         </div>
-          </template>
-  </PanelShell>
-</template>
+      </template>
     </PanelHeader>
 
     <div v-if="attr" class="result">
@@ -86,8 +81,6 @@ const chartOption = computed(() => {
     </div>
     <EmptyState v-else title="输入组合收益，点击计算" />
   </div>
-    </template>
-  </PanelShell>
 </template>
 
 <style scoped>

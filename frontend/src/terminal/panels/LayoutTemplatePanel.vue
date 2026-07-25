@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, onMounted } from 'vue'
 import { confirmDialog } from '@/lib/wails'
 import { useTerminalStore } from '@/stores/terminal'
@@ -51,8 +50,6 @@ onMounted(loadList)
 </script>
 
 <template>
-  <PanelShell state="loaded">
-    <template #loaded>
   <div class="layout-template-panel">
     <PanelHeader
       :title="t('layout.title')"
@@ -100,8 +97,6 @@ onMounted(loadList)
       {{ t('layout.hint') }}
     </div>
   </div>
-    </template>
-  </PanelShell>
 </template>
 
 <style scoped>

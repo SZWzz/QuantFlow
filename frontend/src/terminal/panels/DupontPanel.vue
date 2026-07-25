@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import VChart from 'vue-echarts'
 import 'echarts'
@@ -69,16 +68,12 @@ function pct(v: number | undefined) { return v != null ? v.toFixed(1) + '%' : '-
 </script>
 
 <template>
-  <PanelShell state="loaded">
-    <template #loaded>
   <div class="dupont-panel">
     <PanelHeader title="杜邦分析">
       <template #controls>
         <input v-model="symbol" placeholder="股票代码" @keyup.enter="fetchData" class="sym-input" />
         <button class="btn btn-sm btn-primary" @click="fetchData">分析</button>
-          </template>
-  </PanelShell>
-</template>
+      </template>
     </PanelHeader>
 
     <div class="dupont-body">
@@ -116,8 +111,6 @@ function pct(v: number | undefined) { return v != null ? v.toFixed(1) + '%' : '-
       </div>
     </div>
   </div>
-    </template>
-  </PanelShell>
 </template>
 
 <style scoped>
