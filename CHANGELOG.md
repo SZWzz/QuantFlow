@@ -9,6 +9,10 @@
 
 - [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
 
+### Fixed
+
+- [MCP] 将 MustJSON 的 panic 替换为 TryJSON 错误返回变体，防止生产代码路径中的进程崩溃
+
 ## [2026.7.19] - 2026-07-19
 
 ### 新增
