@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import OrderEntryPanel from '../OrderEntryPanel.vue'
 import { clearAllToasts, useToast } from '@/lib/composables/useToast'
+import { resetWailsApp } from '@/lib/composables/useWailsApp'
 
 function mockApp(overrides: Record<string, any> = {}) {
   const app = {
@@ -26,6 +27,7 @@ describe('OrderEntryPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     clearAllToasts()
+    resetWailsApp()
     mockApp()
   })
 
@@ -49,6 +51,7 @@ describe('OrderEntryPanel', () => {
   })
 
   it('shows inline confirmation, then submits with await and toast', async () => {
+    resetWailsApp()
     const app = mockApp()
     const wrapper = mountPanel()
     await wrapper.find('[data-testid="order-symbol-input"]').setValue('600519')
@@ -70,6 +73,7 @@ describe('OrderEntryPanel', () => {
   })
 
   it('forwards stopPrice for stop orders', async () => {
+    resetWailsApp()
     const app = mockApp()
     const wrapper = mountPanel()
     await wrapper.find('[data-testid="order-symbol-input"]').setValue('600519')
@@ -84,6 +88,7 @@ describe('OrderEntryPanel', () => {
   })
 
   it('keeps confirm state and shows error toast on failure', async () => {
+    resetWailsApp()
     mockApp({ PlaceOrderWithStop: vi.fn().mockRejectedValue(new Error('撮合引擎不可用')) })
     const wrapper = mountPanel()
     await wrapper.find('[data-testid="order-symbol-input"]').setValue('600519')
@@ -97,6 +102,7 @@ describe('OrderEntryPanel', () => {
   })
 
   it('cancel returns to the form without calling the backend', async () => {
+    resetWailsApp()
     const app = mockApp()
     const wrapper = mountPanel()
     await wrapper.find('[data-testid="order-symbol-input"]').setValue('600519')

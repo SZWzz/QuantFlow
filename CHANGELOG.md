@@ -5,22 +5,18 @@
 
 ## [2026.7.25] - 2026-07-25
 
-### 新增
-
-- [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
-
 ### Added
 
 - [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
-
-### Changed
-
+- [Frontend] 迁移 10 个高频面板到 PanelShell（WelcomePanel, MarketOverviewPanel, WatchlistPanel, PortfolioSummary, TradeHistory, FinancialsPanel, GovDataPanel, MarketScannerPanel, CandlestickPanel, IndicatorPanel）
 - [Frontend] 扩展 WailsApp 接口覆盖所有面板调用的 Go App 方法 — 新增 26 个方法签名（行情/交易/港股通/Cache IPC），消除 `window.go.main.App` 的隐式 any 类型
 - [Frontend] 迁移剩余 22 个面板及 DockTab 从 `(window as any).go?.main?.App` 至 `useWailsApp()` 组合式函数 — 消除 `window.go.main.App` 直接引用，统一通过类型安全的 `WailsApp` 接口调用 Go 方法
 
 ### Fixed
 
 - [MCP] 将 MustJSON 的 panic 替换为 TryJSON 错误返回变体，防止生产代码路径中的进程崩溃
+- [MarketData] GDELT 适配器增加 Content-Type 校验，非 JSON 响应返回明确错误而非 parse error
+- [Python] 修复 health check 测试中 `aio` 未定义问题 — 将 `aio.insecure_channel` 替换为 `grpc.aio.insecure_channel`
 
 ## [2026.7.19] - 2026-07-19
 

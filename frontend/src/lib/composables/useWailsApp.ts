@@ -89,6 +89,11 @@ export interface WailsApp {
 
 let cachedApp: WailsApp | null = null
 
+/** Reset the cached reference — used in tests to provide a fresh mock between runs. */
+export function resetWailsApp(): void {
+  cachedApp = null
+}
+
 export function useWailsApp(): WailsApp | null {
   if (cachedApp) return cachedApp
   const app = (window as any)?.go?.main?.App
