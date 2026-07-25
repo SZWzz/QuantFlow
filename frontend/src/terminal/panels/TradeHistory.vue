@@ -4,6 +4,7 @@ import { exportCSV } from '@/lib/export'
 import { confirmDialog } from '@/lib/wails'
 import { usePortfolioStore } from '@/stores/portfolio'
 import type { Trade, Order } from '@/stores/portfolio'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -18,14 +19,18 @@ let tradesTimer: ReturnType<typeof setInterval> | null = null
 let ordersTimer: ReturnType<typeof setInterval> | null = null
 
 const loadError = ref('')
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
 
 onMounted(async () => {
   loadError.value = ''
+  state.value = 'loading'
   try {
     await store.fetchOrders()
     await store.fetchTrades()
+    state.value = 'loaded'
   } catch (e: any) {
     loadError.value = e?.message || String(e)
+    state.value = 'error'
   }
   tradesTimer = setInterval(async () => {
     try { await store.fetchTrades() } catch (e: any) { loadError.value = e?.message || String(e) }
@@ -138,13 +143,26 @@ function exportData() {
     exportCSV('orders.csv', headers, rows)
   }
 }
+
+async function retryLoad() {
+  state.value = 'loading'
+  loadError.value = ''
+  try {
+    await store.fetchOrders()
+    await store.fetchTrades()
+    state.value = 'loaded'
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+    state.value = 'error'
+  }
+}
 </script>
 
 <template>
-  <div class="trade-history">
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-
-    <!-- Filters -->
+  <PanelShell :state="state" :error="loadError" @retry="retryLoad">
+    <template #loaded>
+      <div class="trade-history">
+        <!-- Filters -->
     <div class="filter-bar">
       <input
         v-model="symbolFilter"
@@ -281,7 +299,9 @@ function exportData() {
         <span class="stat-value">{{ fmtMoney(orderStats.totalValue) }}</span>
       </div>
     </div>
-  </div>
+    </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>
