@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, computed, watch } from 'vue'
 import VChart from 'vue-echarts'
 import 'echarts'
@@ -58,6 +59,8 @@ const chartOption = computed(() => {
 </script>
 
 <template>
+  <PanelShell state="loaded">
+    <template #loaded>
   <div class="event-study-panel">
     <PanelHeader title="事件研究">
       <template #controls>
@@ -68,7 +71,9 @@ const chartOption = computed(() => {
           <option :value="20">±20</option><option :value="30">±30</option>
         </select>
         <button class="btn btn-sm btn-primary" :disabled="loading" @click="runStudy">{{ loading ? '计算中...' : '计算' }}</button>
-      </template>
+          </template>
+  </PanelShell>
+</template>
     </PanelHeader>
 
     <div v-if="result" class="result">
@@ -79,6 +84,8 @@ const chartOption = computed(() => {
     </div>
     <EmptyState v-else title="输入股票代码和事件日期，点击计算" />
   </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>
