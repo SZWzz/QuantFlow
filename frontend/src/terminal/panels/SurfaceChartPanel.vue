@@ -8,6 +8,7 @@ import { TitleComponent, TooltipComponent, GridComponent, LegendComponent } from
 import { CanvasRenderer } from 'echarts/renderers'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { logger } from '@/lib/logger'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
 
@@ -22,8 +23,9 @@ const surfaceData = ref<number[][]>([])
 const loading = ref(false); const loadError = ref('')
 const { fetchWithCache } = usePanelCache()
 const hasEcharts = computed(() => { try { return typeof VChart !== 'undefined' } catch { return false } })
+const app = useWailsApp()
 
-async function loadSurface() { const app = (window as any).go?.main?.App; if (!app) return; loading.value = true; loadError.value = ''; try { const { data } = await fetchWithCache<any>(`vol_surface:${symbol.value}`, () => app.GetVolatilitySurface(symbol.value), 15 * 60 * 1000); surfaceData.value = data || [] } catch(e: any) { loadError.value = e?.message || String(e); logger.error('[SurfaceChart] fetch:', e); surfaceData.value = [] } finally { loading.value = false } }
+async function loadSurface() { if (!app) return; loading.value = true; loadError.value = ''; try { const { data } = await fetchWithCache<any>(`vol_surface:${symbol.value}`, () => app.GetVolatilitySurface(symbol.value), 15 * 60 * 1000); surfaceData.value = data || [] } catch(e: any) { loadError.value = e?.message || String(e); logger.error('[SurfaceChart] fetch:', e); surfaceData.value = [] } finally { loading.value = false } }
 
 onMounted(loadSurface)
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => { if (pg.linked && newSym && newSym !== symbol.value) { symbol.value = newSym; loadSurface() } })

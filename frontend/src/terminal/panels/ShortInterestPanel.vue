@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, StatItem, EmptyState, LoadingState, type Column } from '@/terminal/components/panel'
 import { logger } from '@/lib/logger'
 
@@ -11,6 +12,7 @@ const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { t } = useI18n()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const app = useWailsApp()
 
 interface ShortInterestRow {
   date: string
@@ -52,7 +54,6 @@ const cols = computed<Column[]>(() => [
 ])
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetShortInterest) return
   loading.value = true
   try {

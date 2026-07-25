@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
 
@@ -20,6 +21,7 @@ const { name } = useStockName(symbol)
 const activeView = ref<'dcf' | 'forecast'>('dcf')
 const { fetchWithCache } = usePanelCache()
 const chartTheme = useChartTheme()
+const app = useWailsApp()
 const loading = computed(() => activeView.value === 'dcf' ? dcfLoading.value : fcLoading.value)
 
 // DCF
@@ -30,7 +32,7 @@ const fcf = computed(() => result.value?.free_cash_flow || 0)
 const buySell = computed(() => result.value?.buy_sell_suggestion || {})
 const bsColor = computed(() => { if (!buySell.value.suggestion) return ''; return buySell.value.suggestion.includes('持有') ? 'var(--color-accent)' : buySell.value.suggestion.includes('买入') ? 'var(--color-down)' : 'var(--color-up)' })
 
-async function loadDCFData() { dcfLoading.value = true; dcfError.value = ''; try { const app = (window as any).go?.main?.App; if (!app?.GetValuationDCF) return; const { data } = await fetchWithCache<any>(`valuation_dcf:${symbol.value}`, () => app.GetValuationDCF(symbol.value), 3600000); result.value = data || null } catch (e: any) { dcfError.value = e?.message || String(e) } finally { dcfLoading.value = false } }
+async function loadDCFData() { dcfLoading.value = true; dcfError.value = ''; try { if (!app?.GetValuationDCF) return; const { data } = await fetchWithCache<any>(`valuation_dcf:${symbol.value}`, () => app.GetValuationDCF(symbol.value), 3600000); result.value = data || null } catch (e: any) { dcfError.value = e?.message || String(e) } finally { dcfLoading.value = false } }
 
 // Forecast
 const fcResult = ref<any>(null); const fcLoading = ref(false); const fcError = ref('')
@@ -51,7 +53,7 @@ function calcMargin(profit: number, rev: number): string { return rev ? (profit 
 
 const chartOption = computed(() => { const r = fcResult.value; if (!r) return {}; const pal = chartTheme.palette; return { tooltip: { trigger: 'axis' }, grid: { left: 50, right: 20, top: 10, bottom: 30 }, xAxis: { type: 'category', data: ['营收(亿)', '净利润(亿)'] }, yAxis: { type: 'value' }, series: [{ name: '保守', type: 'bar', data: [r.rev_low / 1e8, r.profit_low / 1e8], itemStyle: { color: pal[2] } }, { name: '基准', type: 'bar', data: [r.rev_base / 1e8, r.profit_base / 1e8], itemStyle: { color: pal[0] } }, { name: '乐观', type: 'bar', data: [r.rev_high / 1e8, r.profit_high / 1e8], itemStyle: { color: pal[1] } }] } })
 
-async function loadForecastData() { fcLoading.value = true; fcError.value = ''; try { const app = (window as any).go?.main?.App; if (!app?.GetFinancialForecast) return; const { data } = await fetchWithCache<any>(`forecast:${symbol.value}`, () => app.GetFinancialForecast(symbol.value), 3600000); fcResult.value = data || null } catch (e: any) { fcError.value = e?.message || String(e) } finally { fcLoading.value = false } }
+async function loadForecastData() { fcLoading.value = true; fcError.value = ''; try { if (!app?.GetFinancialForecast) return; const { data } = await fetchWithCache<any>(`forecast:${symbol.value}`, () => app.GetFinancialForecast(symbol.value), 3600000); fcResult.value = data || null } catch (e: any) { fcError.value = e?.message || String(e) } finally { fcLoading.value = false } }
 
 async function loadData() { if (activeView.value === 'dcf') loadDCFData(); else loadForecastData() }
 watch(symbol, loadData)

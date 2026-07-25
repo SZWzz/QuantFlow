@@ -14,6 +14,7 @@ import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
 import { isTradingHours } from '@/lib/wails'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -22,6 +23,7 @@ const ws = useWebSocket()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 const theme = useChartTheme()
 const indicatorCache = createIndicatorCache()
+const app = useWailsApp()
 
 const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
@@ -220,7 +222,6 @@ async function loadKlineChart() {
   if (!idx) { chartOHLCV.value = []; return }
   indexChartLoading.value = true
   try {
-    const app = (window as any).go?.main?.App
     if (!app) return
     const mkt = activeMarket.value
     const end = Math.floor(Date.now() / 1000)

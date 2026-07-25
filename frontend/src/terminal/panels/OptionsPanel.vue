@@ -6,11 +6,13 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { PanelHeader, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
 import { logger } from '@/lib/logger'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const { t } = useI18n()
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const app = useWailsApp()
 
 // ── Market selector ──
 type Market = 'CN' | 'US'
@@ -27,7 +29,6 @@ const DATA_TYPE = 'options'
 async function loadCNData() {
   cnLoading.value = true; cnError.value = ''
   try {
-    const app = (window as any).go?.main?.App
     if (app?.FetchData) {
       const { data: result } = await (usePanelCache()).fetchWithCache<any>('options_data', () => app.FetchData(SOURCE, DATA_TYPE, [], '', '', {}), 5 * 60 * 1000)
       if (result?.data) {
@@ -88,7 +89,6 @@ const calls = computed(() => filtered.value.filter(r => r.type === 'call').sort(
 const puts = computed(() => filtered.value.filter(r => r.type === 'put').sort((a, b) => a.strike - b.strike))
 
 async function fetchUSData() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetUSOptionChain) return
   usLoading.value = true
   usError.value = null

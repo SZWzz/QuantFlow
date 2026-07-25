@@ -3,6 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, StatItem, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -11,6 +12,7 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '000001')
 const { name } = useStockName(symbol)
 const { fetchWithCache } = usePanelCache()
+const app = useWailsApp()
 const loading = ref(false)
 const error = ref('')
 const rawData = ref<any>(null)
@@ -83,10 +85,9 @@ const cols: Column[] = [
 async function loadData() {
   loading.value = true; error.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
+    if (app?.FetchData) {
       const { data: result } = await fetchWithCache('margin:' + symbol.value, async () => {
-        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+        return await app.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
       })
       if (result?.data) rawData.value = JSON.parse(result.data)
       else if (result?.error) error.value = result.error

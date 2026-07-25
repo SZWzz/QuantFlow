@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useSessionStore } from '@/stores/session'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
 
@@ -9,6 +10,7 @@ const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const session = useSessionStore()
 const chartTheme = useChartTheme()
 const { fetchWithCache } = usePanelCache()
+const app = useWailsApp()
 const market = ref<'CN' | 'HK' | 'US'>(props.params?.market || session.ui.activeMarket || 'CN')
 const lookback = ref(20)
 const loading = ref(false); const loadError = ref('')
@@ -23,7 +25,7 @@ function calculateRRG(changePct: number, allPcts: number[]): { rs_ratio: number;
   return { rs_ratio: Math.round((std > 0 ? ((changePct - mean) / std) * 10 + 100 : 100) * 10) / 10, rs_momentum: Math.round((std > 0 ? ((changePct - mean) / std) * 10 + 100 : 100) - 100 + (changePct > 0 ? 2 : -2) * 10) / 10 }
 }
 
-async function fetchData() { loading.value = true; loadError.value = ''; try { const app = (window as any).go?.main?.App; if (!app?.GetIndustryRanks) return; const { data: ranks } = await fetchWithCache<any>(`industry_ranks:${market.value}:${lookback.value}`, () => app.GetIndustryRanks(market.value, lookback.value)); if (ranks && ranks.length > 0) { const pcts = ranks.map((r: any) => r.changePct || 0); sectors.value = ranks.map((r: any) => { const rrg = calculateRRG(r.changePct || 0, pcts); return { name: r.name, change_pct: r.changePct || 0, rs_ratio: rrg.rs_ratio, rs_momentum: rrg.rs_momentum } }) } } catch (e: any) { loadError.value = e?.message || String(e) } finally { loading.value = false }; setTimeout(renderChart, 300) }
+async function fetchData() { loading.value = true; loadError.value = ''; try { if (!app?.GetIndustryRanks) return; const { data: ranks } = await fetchWithCache<any>(`industry_ranks:${market.value}:${lookback.value}`, () => app.GetIndustryRanks(market.value, lookback.value)); if (ranks && ranks.length > 0) { const pcts = ranks.map((r: any) => r.changePct || 0); sectors.value = ranks.map((r: any) => { const rrg = calculateRRG(r.changePct || 0, pcts); return { name: r.name, change_pct: r.changePct || 0, rs_ratio: rrg.rs_ratio, rs_momentum: rrg.rs_momentum } }) } } catch (e: any) { loadError.value = e?.message || String(e) } finally { loading.value = false }; setTimeout(renderChart, 300) }
 
 function renderChart() { if (typeof window === 'undefined' || !(window as any).echarts) return; const echarts = (window as any).echarts; const el = document.getElementById('rrg-chart'); if (!el) return; if (!chartInstance) chartInstance = echarts.init(el); const pal = chartTheme.palette; const option = { tooltip: { trigger: 'item', formatter: (params: any) => { const s = sectors.value[params.dataIndex]; if (!s) return ''; return `<b>${s.name}</b><br/>涨幅: ${s.change_pct >= 0 ? '+' : ''}${s.change_pct.toFixed(2)}%<br/>RS-Ratio: ${s.rs_ratio}<br/>RS-Momentum: ${s.rs_momentum}` } }, grid: { left: 50, right: 50, top: 40, bottom: 40 }, xAxis: { min: 85, max: 115, splitLine: { show: true, lineStyle: { color: chartTheme.gridColor, type: 'dashed' } }, axisLabel: { color: chartTheme.axisColor, fontSize: 10 } }, yAxis: { min: 85, max: 115, splitLine: { show: true, lineStyle: { color: chartTheme.gridColor, type: 'dashed' } }, axisLabel: { color: chartTheme.axisColor, fontSize: 10 } }, series: [{ type: 'scatter', data: sectors.value.map(s => [s.rs_ratio, s.rs_momentum, s.name]), symbolSize: 14, itemStyle: { color: (params: any) => { const x = params.data[0]; const y = params.data[1]; if (x >= 100 && y >= 100) return pal[1]; if (x < 100 && y >= 100) return pal[2]; if (x < 100 && y < 100) return pal[3]; return pal[0] } }, label: { show: true, formatter: (params: any) => params.data[2], fontSize: 9, color: chartTheme.axisColor, position: 'right' } }] }; chartInstance.setOption(option, true) }
 function switchMarket(mkt: 'CN' | 'HK' | 'US') { market.value = mkt; fetchData() }

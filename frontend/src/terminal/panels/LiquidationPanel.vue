@@ -2,11 +2,13 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { t } = useI18n()
+const app = useWailsApp()
 
 interface Liquidation {
   symbol: string
@@ -41,7 +43,6 @@ const stats = computed(() => {
 })
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetCryptoLiquidations) return
   loading.value = true
   loadError.value = ''

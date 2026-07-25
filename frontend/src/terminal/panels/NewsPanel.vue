@@ -4,12 +4,14 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { PanelHeader, EmptyState, LoadingState } from '@/terminal/components/panel'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const { fetchWithCache } = usePanelCache()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const app = useWailsApp()
 
 interface NewsItem { title: string; source: string; time: string; url?: string; symbol?: string }
 
@@ -20,7 +22,6 @@ const nameCache = ref<Record<string, string>>({})
 async function resolveName(sym: string) {
   if (!sym || nameCache.value[sym] !== undefined) return
   try {
-    const app = (window as any).go?.main?.App
     if (!app) return
     const result = await app.GetQuote('CN', sym)
     const quote = Array.isArray(result) ? result[0] : result
@@ -39,7 +40,7 @@ async function loadNews() {
     const { data } = await fetchWithCache(
       `news:${sym}`,
       async () => {
-        const result = await (window as any).go?.main?.App?.GetNews(sym, 20)
+        const result = await app?.GetNews(sym, 20)
         return Array.isArray(result) ? result : []
       },
       60 * 1000,
@@ -51,7 +52,6 @@ async function loadNews() {
 
 function openUrl(url?: string) {
   if (!url) return
-  const app = (window as any).go?.main?.App
   if (app?.OpenURL) app.OpenURL(url)
 }
 

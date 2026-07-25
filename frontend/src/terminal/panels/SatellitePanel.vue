@@ -6,6 +6,7 @@ import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { logger } from '@/lib/logger'
@@ -13,6 +14,7 @@ import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/pan
 
 const { t } = useI18n()
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const app = useWailsApp()
 
 interface RegionSnapshot { id: string; name: string; name_cn: string; lat: number; lon: number; solar_ghi: number; wind_speed: number; trend: string; wildfires: number; asset_link: string }
 interface EnergyPoint { date: string; value: number }
@@ -25,8 +27,8 @@ const chartLoading = ref(false)
 const { fetchWithCache } = usePanelCache()
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
-async function loadRegions() { const seq = ++loadSeq; loading.value = true; loadError.value = ''; try { const app = (window as any).go?.main?.App; if (app?.GetSatelliteSnapshots) { const { data: result } = await fetchWithCache<any>('satellite_snapshots', () => app.GetSatelliteSnapshots(), 30 * 60 * 1000); if (seq !== loadSeq) return; regions.value = result?.regions || [] } } catch(e: any) { logger.error('[Satellite] loadRegions:', e); loadError.value = e?.message || String(e) } if (seq === loadSeq) loading.value = false }
-async function loadRegionDetail(region: RegionSnapshot) { selectedRegion.value = region; chartLoading.value = true; try { const app = (window as any).go?.main?.App; if (app?.GetSatelliteDetail) { const { data: result } = await fetchWithCache<any>(`satellite_detail:${region.id}`, () => app.GetSatelliteDetail(region.id), 30 * 60 * 1000); solarData.value = result.solar_chart || result.solar_data || []; windData.value = result.wind_chart || result.wind_data || [] } } catch(e) { logger.error('[Satellite] loadDetail:', e) } }
+async function loadRegions() { const seq = ++loadSeq; loading.value = true; loadError.value = ''; try { if (app?.GetSatelliteSnapshots) { const { data: result } = await fetchWithCache<any>('satellite_snapshots', () => app.GetSatelliteSnapshots(), 30 * 60 * 1000); if (seq !== loadSeq) return; regions.value = result?.regions || [] } } catch(e: any) { logger.error('[Satellite] loadRegions:', e); loadError.value = e?.message || String(e) } if (seq === loadSeq) loading.value = false }
+async function loadRegionDetail(region: RegionSnapshot) { selectedRegion.value = region; chartLoading.value = true; try { if (app?.GetSatelliteDetail) { const { data: result } = await fetchWithCache<any>(`satellite_detail:${region.id}`, () => app.GetSatelliteDetail(region.id), 30 * 60 * 1000); solarData.value = result.solar_chart || result.solar_data || []; windData.value = result.wind_chart || result.wind_data || [] } } catch(e) { logger.error('[Satellite] loadDetail:', e) } }
 onMounted(() => loadRegions())
 
 const signalCounts = computed(() => { let up = 0, down = 0, stable = 0; for (const r of regions.value) { if (r.trend === 'up') up++; else if (r.trend === 'down') down++; else stable++ } return { up, down, stable } })

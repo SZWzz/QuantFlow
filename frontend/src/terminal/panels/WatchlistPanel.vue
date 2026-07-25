@@ -7,6 +7,7 @@ import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '
 import type { FlashClass } from '@/lib/composables/useFlashOnUpdate'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useI18n } from 'vue-i18n'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import PanelShell from '@/terminal/components/panel/PanelShell.vue'
@@ -20,6 +21,7 @@ const ws = useWebSocket()
 const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 const { t } = useI18n()
+const app = useWailsApp()
 
 const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
 const loadError = ref('')
@@ -171,7 +173,7 @@ function rowClass(row: WatchRow): string {
 
 async function refreshQuote(sym: string) {
   try {
-    const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => (window as any).go?.main?.App?.GetQuote(detectMarket(sym), sym), 10 * 1000)
+    const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => app?.GetQuote(detectMarket(sym), sym), 10 * 1000)
     const snap = Array.isArray(result) ? result[0] : result
     if (!snap) return
     const prev = quotes[sym]
@@ -360,7 +362,6 @@ onMounted(async () => {
   localStorage.removeItem('quantflow-watchlist-config')
 
   try {
-    const app = (window as any).go?.main?.App
     if (app?.SearchSymbols) {
       await Promise.all(symbols.value.map(async (sym) => {
         const { data: results } = await fetchWithCache(`search:${sym}`, () => app.SearchSymbols(sym, 1), 5 * 60 * 1000)

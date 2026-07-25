@@ -6,12 +6,14 @@ import { useToast } from '@/lib/composables/useToast'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useTerminalStore } from '@/stores/terminal'
 import { detectMarket } from '@/lib/wails'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
 const toast = useToast()
 const terminal = useTerminalStore()
 const isLive = computed(() => terminal.tradingMode === 'live')
+const app = useWailsApp()
 
 // ── Symbol linkage ─────────────────────────────────────────────────────
 const ctx = useSymbolContext()
@@ -74,7 +76,6 @@ function fmtMoney(v: number): string {
 async function fetchQuote() {
   const sym = symbol.value.trim()
   if (!sym) return
-  const app = (window as any).go?.main?.App
   if (!app?.GetQuote) return
   quoteLoading.value = true
   loadError.value = ''
@@ -117,7 +118,6 @@ function cancelConfirm() {
 // Step 2: actually submit
 async function confirmOrder() {
   if (submitting.value || !canSubmit.value) return
-  const app = (window as any).go?.main?.App
   const sideLabel = side.value === 'buy' ? '买入' : '卖出'
   const sym = symbol.value.trim().toUpperCase()
   const effStop = stopPrice.value > 0 ? stopPrice.value : 0

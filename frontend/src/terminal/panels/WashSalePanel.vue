@@ -4,9 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { PanelHeader, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const { t } = useI18n()
-const app = (window as any).go?.main?.App
+const app = useWailsApp()
 const symbol = ref('AAPL')
 const { name } = useStockName(symbol)
 const loading = ref(false)

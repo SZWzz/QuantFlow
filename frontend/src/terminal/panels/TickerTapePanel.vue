@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { detectMarket } from '@/lib/wails'
 import { PanelHeader, LoadingState } from '@/terminal/components/panel'
 
-// 涨跌色走 CSS class + token，避免高频渲染下每项一次 getComputedStyle
 const changeClass = (pct: number) => (pct > 0 ? 'is-up' : pct < 0 ? 'is-down' : 'is-flat')
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const app = useWailsApp()
 
 interface TickerItem {
   symbol: string
@@ -30,7 +31,7 @@ const { data: items, loading, execute } = useDataFetch<TickerItem[]>(async () =>
   const results: TickerItem[] = []
   for (const sym of SYMBOLS.value) {
     try {
-      const result = await (window as any).go?.main?.App?.GetQuote(detectMarket(sym), sym)
+      const result = await app?.GetQuote(detectMarket(sym), sym)
       const snapshot = Array.isArray(result) ? result[0] : result
       results.push({
         symbol: snapshot.symbol ?? sym,

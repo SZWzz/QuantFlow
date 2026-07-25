@@ -4,12 +4,14 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, type Column } from '@/terminal/components/panel'
 import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const app = useWailsApp()
 
 // ── Top-level tab ──
 const activeTab = ref<'limit' | 'abnormal' | 'dragon'>(
@@ -92,7 +94,6 @@ const limitFilteredStocks = computed(() => {
 })
 
 async function refreshLimit() {
-  const app = (window as any).go?.main?.App
   if (!app) return
   limitLoading.value = true
   limitError.value = ''
@@ -151,7 +152,6 @@ const abAutoRefresh = ref(true)
 let abTimer: ReturnType<typeof setInterval> | null = null
 
 async function refreshAbnormal() {
-  const app = (window as any).go?.main?.App
   if (!app) return
   abLoading.value = true
   try {
@@ -224,7 +224,6 @@ watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (sym) => {
 })
 
 async function fetchDtDaily() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetDailyDragonTiger) return
   dtError.value = ''
   dtLoading.value = true
@@ -252,7 +251,6 @@ async function fetchDtDaily() {
 }
 
 async function fetchDtHistory() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetDragonTiger || !dtHistorySymbol.value) return
   dtError.value = ''
   dtHistoryLoading.value = true

@@ -16,6 +16,7 @@
 ### Changed
 
 - [Frontend] 扩展 WailsApp 接口覆盖所有面板调用的 Go App 方法 — 新增 26 个方法签名（行情/交易/港股通/Cache IPC），消除 `window.go.main.App` 的隐式 any 类型
+- [Frontend] 迁移剩余 22 个面板及 DockTab 从 `(window as any).go?.main?.App` 至 `useWailsApp()` 组合式函数 — 消除 `window.go.main.App` 直接引用，统一通过类型安全的 `WailsApp` 接口调用 Go 方法
 
 ### Fixed
 
