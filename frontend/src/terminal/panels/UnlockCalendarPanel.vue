@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, onMounted } from 'vue'
 import { GetUnlockCalendar, type UnlockEvent } from '@/lib/wails'
 import { PanelHeader, EmptyState } from '@/terminal/components/panel'
@@ -17,7 +18,9 @@ function isWarning(e: UnlockEvent) { return e.unlock_pct > 5 }
 </script>
 
 <template>
-  <div class="unlock-panel">
+  <PanelShell state="loaded">
+    <template #loaded>
+        <div class="unlock-panel">
     <PanelHeader title="限售解禁日历">
       <template #controls>
         <select v-model.number="days" class="day-select" @change="fetchData">

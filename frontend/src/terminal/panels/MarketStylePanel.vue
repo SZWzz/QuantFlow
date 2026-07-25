@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import { ref, computed, onMounted } from 'vue'
 import VChart from 'vue-echarts'
 import 'echarts'
@@ -54,7 +55,9 @@ const quadrantOption = computed(() => ({
 </script>
 
 <template>
-  <div class="market-style-panel">
+  <PanelShell state="loaded">
+    <template #loaded>
+        <div class="market-style-panel">
     <PanelHeader title="市场风格" />
 
     <div class="style-grid">
