@@ -13,6 +13,8 @@
 - [Frontend] 迁移剩余 22 个面板及 DockTab 从 `(window as any).go?.main?.App` 至 `useWailsApp()` 组合式函数 — 消除 `window.go.main.App` 直接引用，统一通过类型安全的 `WailsApp` 接口调用 Go 方法
 - [Frontend] 新增 `resetWailsApp()` 测试辅助函数，解决测试间 useWailsApp 缓存污染导致 mock 失效的问题
 - [i18n] 补充 5 个缺失的英文翻译 key（common.yes, misc.asset_market, misc.benchmark, misc.pinned, ml.sharpe）
+- [Frontend] 新增 OnboardingOverlay 首次使用引导覆盖层 — 5 步导览（欢迎→行情→搜索→组合→完成）、跳过/完成操作、步骤点指示器、localStorage 持久化
+- [Workflow] 新增 6 个 data 类别工作流节点（market_scanner, watchlist, trade_history, orderbook_depth, funding_rate, liquidations）— 补齐行情扫描/自选股/交易历史/订单深度/资金费率/强平数据节点
 
 ### Fixed
 
