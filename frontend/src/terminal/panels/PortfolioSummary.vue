@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger'
 import { computeDrawdowns, sharpeRatio } from '@/lib/stats'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{
   panelId: string
@@ -19,6 +20,9 @@ const props = defineProps<{
 
 const store = usePortfolioStore()
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
+
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
+const loadError = ref('')
 
 // --- Tab state ---
 const activeTab = ref<'overview' | 'risk' | 'chart'>('overview')
@@ -271,7 +275,13 @@ async function refreshChart() {
 // --- Lifecycle ---
 onMounted(async () => {
   store.startAutoRefresh()
-  store.fetchEquityCurve()
+  try {
+    await store.fetchEquityCurve()
+    state.value = 'loaded'
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+    state.value = 'error'
+  }
 })
 
 onUnmounted(() => {
@@ -400,8 +410,10 @@ const pieChartOption = computed(() => {
 </script>
 
 <template>
-  <div class="portfolio-panel">
-    <!-- Tab bar -->
+  <PanelShell :state="state" :error="loadError" @retry="store.fetchEquityCurve">
+    <template #loaded>
+      <div class="portfolio-panel">
+        <!-- Tab bar -->
     <div class="tab-bar">
       <button :class="['tab-btn', { active: activeTab === 'overview' }]" @click="activeTab = 'overview'">
         {{ t('research.overview') }}
@@ -563,7 +575,9 @@ const pieChartOption = computed(() => {
         <p>{{ t('common.loading') }}</p>
       </div>
     </div>
-  </div>
+    </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

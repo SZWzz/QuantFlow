@@ -7,6 +7,7 @@ import { useDataStore } from '@/stores/data'
 import { getPanelsByCategory, getPanelMeta, type PanelMeta } from './registry'
 import { PANEL_ICONS, getIcon } from '@/lib/icons'
 import { PanelHeader } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const { t } = useI18n()
 const terminal = useTerminalStore()
@@ -26,6 +27,8 @@ const CATEGORY_KEYS: Record<string, string> = {
   '系统': 'misc.cat_system',
 }
 function catLabel(cn: string): string { return CATEGORY_KEYS[cn] ? t(CATEGORY_KEYS[cn]) : cn }
+
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -116,8 +119,10 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
 </script>
 
 <template>
-  <div class="welcome-panel">
-    <div class="welcome-header">
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="welcome-panel">
+        <div class="welcome-header">
       <div class="logo-area">
         <div class="logo-badge">
           <span class="logo-icon" v-html="getIcon('welcome')" />
@@ -256,6 +261,8 @@ onUnmounted(() => { if (marketTimer) clearInterval(marketTimer) })
       </section>
     </div>
   </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

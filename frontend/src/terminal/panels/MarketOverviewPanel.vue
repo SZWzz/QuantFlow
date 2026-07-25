@@ -14,6 +14,7 @@ import { createIndicatorCache } from '@/lib/composables/useIndicators'
 import { marketUpColor, marketDownColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
 import { isTradingHours } from '@/lib/wails'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const dataStore = useDataStore()
@@ -26,6 +27,7 @@ const activeMarket = ref<'CN' | 'HK' | 'US'>(
   (props.params?.market as 'CN' | 'HK' | 'US') || 'CN'
 )
 const loadError = ref('')
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
 
 // Chart mode: 分时 | K线
 const chartMode = ref<'minute' | 'kline'>('minute')
@@ -260,12 +262,21 @@ function onIntervalChange(iv: string) {
 
 async function refresh() {
   loadError.value = ''
+  state.value = 'loading'
   try {
     await dataStore.fetchMarketOverview(activeMarket.value)
-    if (dataStore.error) loadError.value = dataStore.error
-    else if (!dataStore.marketOverview) loadError.value = '加载失败'
+    if (dataStore.error) {
+      loadError.value = dataStore.error
+      state.value = 'error'
+    } else if (!dataStore.marketOverview) {
+      loadError.value = '加载失败'
+      state.value = 'error'
+    } else {
+      state.value = 'loaded'
+    }
   } catch (e: any) {
     loadError.value = e?.message || '加载失败'
+    state.value = 'error'
   }
   loadChart()
 }
@@ -357,23 +368,19 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="market-overview-panel">
-    <PanelHeader
-      :title="$t('misc.market_overview')"
-      :subtitle="formatTime(updatedAt)"
-      :tabs="marketTabs"
-      :active-tab="activeMarket"
-      :controls="headerControls"
-      @tab-change="switchMarket"
-    />
+  <PanelShell :state="state" :error="loadError" @retry="refresh">
+    <template #loaded>
+      <div class="market-overview-panel">
+        <PanelHeader
+          :title="$t('misc.market_overview')"
+          :subtitle="formatTime(updatedAt)"
+          :tabs="marketTabs"
+          :active-tab="activeMarket"
+          :controls="headerControls"
+          @tab-change="switchMarket"
+        />
 
-    <ErrorState
-      v-if="loadError"
-      :description="loadError"
-      @retry="refresh"
-    />
-
-    <!-- Index selector (stat blocks) -->
+        <!-- Index selector (stat blocks) -->
     <div v-if="indices.length" class="index-cards">
       <div
         v-for="idx in indices"
@@ -465,7 +472,9 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-  </div>
+      </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>
