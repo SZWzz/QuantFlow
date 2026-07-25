@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { PanelHeader, PanelTable, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
@@ -21,7 +22,8 @@ const sortKey = ref<string>('changePct24h')
 const sortDir = ref<'asc' | 'desc' | null>('desc')
 
 const { data: cryptos, loading, error, execute: refreshExec } = useDataFetch<CryptoRow[]>(async () => {
-  const { data: result } = await fetchWithCache<any>('crypto_overview', () => (window as any).go?.main?.App?.GetCryptoOverview([]), 3 * 60 * 1000)
+  const app = useWailsApp()
+  const { data: result } = await fetchWithCache<any>('crypto_overview', () => app?.GetCryptoOverview([]), 3 * 60 * 1000)
   if (result?.cryptos) {
     return result.cryptos.map((c: any) => ({
       symbol: c.symbol?.replace('USDT', '') || c.symbol,

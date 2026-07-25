@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
@@ -10,7 +11,7 @@ const { t } = useI18n()
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
-const app = (window as any).go?.main?.App
+const app = useWailsApp()
 const { fetchWithCache } = usePanelCache()
 
 type TabKey = 'arbitrage' | 'redeem' | 'put'

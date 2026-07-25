@@ -146,7 +146,7 @@ function barWidth(size: number): string {
 }
 
 async function loadDepth() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app) return
   depthLoading.value = true
   try {
