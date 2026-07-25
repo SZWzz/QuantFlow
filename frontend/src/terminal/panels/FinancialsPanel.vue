@@ -7,6 +7,7 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { PanelHeader } from '@/terminal/components/panel'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -63,6 +64,7 @@ const tabs = [
 ]
 
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
+const app = useWailsApp()
 
 const marketBadge = computed(() => market.value === 'CN' ? 'A股' : market.value === 'HK' ? '港股' : '美股')
 const headerSubtitle = computed(() => `${symbol.value} ${name.value || ''}`.trim())
@@ -130,7 +132,7 @@ async function loadCNData() {
   cnLoading.value = true
   cnError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => app?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
     if (seq !== loadSeq) return
     statements.value = {
       income: res.income || [],
@@ -335,10 +337,9 @@ function fmtVal(v: number | string): string {
 async function loadUSData() {
   usLoading.value = true; usError.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
+    if (app?.FetchData) {
       const { data: result } = await fetchWithCache('sec_financials:' + symbol.value, async () => {
-        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+        return await app.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
       })
       if (result?.data) rawData.value = JSON.parse(result.data)
       else if (result?.error) usError.value = result.error
@@ -356,7 +357,7 @@ async function loadHKData() {
   hkLoading.value = true
   hkError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => app?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
     statements.value = {
       income: res.income || [],
       balance: res.balance || [],

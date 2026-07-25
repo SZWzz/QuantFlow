@@ -7,6 +7,7 @@ import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -31,9 +32,9 @@ const { fetchWithCache } = usePanelCache()
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 const chartTheme = useChartTheme()
 
-async function loadRisks() { loading.value = true; try { const app = (window as any).go?.main?.App; if (app?.GetGeopoliticsRisks) { const { data: result } = await fetchWithCache<any>('geopolitics_risks', () => app.GetGeopoliticsRisks(), 30 * 60 * 1000); risks.value = result?.risks || [] } } catch(e) { console.error('[Geopolitics] loadRisks:', e) } loading.value = false }
+async function loadRisks() { loading.value = true; try { const app = useWailsApp(); if (app?.GetGeopoliticsRisks) { const { data: result } = await fetchWithCache<any>('geopolitics_risks', () => app.GetGeopoliticsRisks(), 30 * 60 * 1000); risks.value = result?.risks || [] } } catch(e) { console.error('[Geopolitics] loadRisks:', e) } loading.value = false }
 
-async function loadDetail(topic: TopicRisk) { selectedTopic.value = topic; detailLoading.value = true; try { const app = (window as any).go?.main?.App; if (app?.GetGeopoliticsDetail) { const { data: result } = await fetchWithCache<any>(`geopolitics_detail:${topic.id}`, () => app.GetGeopoliticsDetail(topic.id, '7d'), 30 * 60 * 1000); if (result.volumes?.length > 0) detailVolumes.value = result.volumes; if (result.tones?.length > 0) detailTones.value = result.tones } } catch(e) { console.error('[Geopolitics] loadDetail:', e) } }
+async function loadDetail(topic: TopicRisk) { selectedTopic.value = topic; detailLoading.value = true; try { const app = useWailsApp(); if (app?.GetGeopoliticsDetail) { const { data: result } = await fetchWithCache<any>(`geopolitics_detail:${topic.id}`, () => app.GetGeopoliticsDetail(topic.id, '7d'), 30 * 60 * 1000); if (result.volumes?.length > 0) detailVolumes.value = result.volumes; if (result.tones?.length > 0) detailTones.value = result.tones } } catch(e) { console.error('[Geopolitics] loadDetail:', e) } }
 
 onMounted(() => loadRisks())
 

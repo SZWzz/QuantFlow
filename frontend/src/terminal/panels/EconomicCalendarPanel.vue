@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, EmptyState, LoadingState } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -82,7 +83,7 @@ async function fetchData() {
   loading.value = true
   loadError.value = ''
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
     if (app?.GetEconomicIndicators) {
       const { data: result } = await fetchWithCache('economic_indicators', () => app.GetEconomicIndicators())
       if (result && typeof result === 'object') {

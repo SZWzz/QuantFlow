@@ -20,6 +20,7 @@ import {
   TrendIndicator,
 } from '@/terminal/components/panel'
 import PanelShell from '@/terminal/components/panel/PanelShell.vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const { t } = useI18n()
 const dataStore = useDataStore()
@@ -160,7 +161,7 @@ async function loadSignals() {
   selectedSignal.value = null
   indicatorData.value = []
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
 
     // ── FRED source: economic indicators + real-time commodity quotes ──
     if (activeSource.value === 'fred') {
@@ -287,7 +288,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
   }
   chartLoading.value = true
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
 
     // ── FRED: commodity OHLCV or FRED indicator history ──
     if (activeSource.value === 'fred') {

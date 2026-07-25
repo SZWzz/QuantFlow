@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const { t } = useI18n()
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -25,7 +26,7 @@ interface ExDividendStock {
 type Tab = 'today' | 'week' | 'month'
 
 const { fetchWithCache } = usePanelCache()
-const app = (window as any).go?.main?.App
+const app = useWailsApp()
 const activeTab = ref<Tab>('today')
 const data = ref<ExDividendStock[]>([])
 const loading = ref(false)

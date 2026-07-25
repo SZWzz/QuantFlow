@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -44,7 +45,7 @@ function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
 }
 
 async function fetchRates() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetCryptoFundingRates) return
   loading.value = true
   try {

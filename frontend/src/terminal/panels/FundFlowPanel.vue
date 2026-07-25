@@ -5,6 +5,7 @@ import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -24,7 +25,7 @@ function isPositive(v: any): boolean { const n = Number(v); return !isNaN(n) && 
 function formatAmount(v: number): string { if (v == null || isNaN(v)) return '--'; const abs = Math.abs(v); return (v < 0 ? '-' : '') + (abs >= 1e8 ? (abs / 1e8).toFixed(2) + '亿' : abs >= 1e4 ? (abs / 1e4).toFixed(1) + '万' : abs.toFixed(0)); }
 function formatRatio(v: number): string { if (v == null || isNaN(v)) return '--'; return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%' }
 
-async function loadData() { loading.value = true; error.value = ''; try { const app = (window as any).go?.main?.App; if (!app?.GetFundFlow) return; const { data: result } = await fetchWithCache<any>('fundflow:' + symbol.value, () => app.GetFundFlow(symbol.value)); data.value = result && Array.isArray(result) ? result : Array.from(result || []) } catch (e: any) { error.value = e?.message || String(e) } finally { loading.value = false } }
+async function loadData() { loading.value = true; error.value = ''; try { const app = useWailsApp(); if (!app?.GetFundFlow) return; const { data: result } = await fetchWithCache<any>('fundflow:' + symbol.value, () => app.GetFundFlow(symbol.value)); data.value = result && Array.isArray(result) ? result : Array.from(result || []) } catch (e: any) { error.value = e?.message || String(e) } finally { loading.value = false } }
 
 watch(symbol, loadData)
 watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (newSym) => { if (newSym && newSym !== symbol.value) { symbol.value = newSym; loadData() } })

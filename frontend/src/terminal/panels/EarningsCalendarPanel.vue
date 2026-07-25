@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -54,7 +55,7 @@ const groupedEvents = computed(() => {
 const dateKeys = computed(() => Object.keys(groupedEvents.value).sort())
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetEarningsCalendar) return
   loading.value = true
   loadError.value = ''
