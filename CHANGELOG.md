@@ -9,6 +9,14 @@
 
 - [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
 
+### Added
+
+- [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
+
+### Changed
+
+- [Frontend] 扩展 WailsApp 接口覆盖所有面板调用的 Go App 方法 — 新增 26 个方法签名（行情/交易/港股通/Cache IPC），消除 `window.go.main.App` 的隐式 any 类型
+
 ### Fixed
 
 - [MCP] 将 MustJSON 的 panic 替换为 TryJSON 错误返回变体，防止生产代码路径中的进程崩溃
