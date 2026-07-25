@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBrokerStatus } from '@/lib/composables/useBrokerStatus'
 import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
+
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -17,30 +20,34 @@ onMounted(fetchBrokerStatuses)
 </script>
 
 <template>
-  <div class="broker-status">
-    <PanelHeader
-      :title="t('broker.title')"
-      :controls="[{ icon: 'refresh', title: t('broker.refresh'), action: fetchBrokerStatuses, loading }]"
-    />
-    <LoadingState v-if="loading && !brokers.length" type="card" :rows="2" />
-    <ErrorState v-else-if="loadError && !brokers.length" :description="loadError" @retry="fetchBrokerStatuses" />
-    <div v-else class="card-grid">
-      <div v-for="b in brokers" :key="b.name" :class="['broker-card', { dimmed: !b.connected }]">
-        <div class="card-header">
-          <div class="card-name-row">
-            <span :class="statusDot(b.connected)"></span>
-            <span class="card-name">{{ b.label }}</span>
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="broker-status">
+        <PanelHeader
+          :title="t('broker.title')"
+          :controls="[{ icon: 'refresh', title: t('broker.refresh'), action: fetchBrokerStatuses, loading }]"
+        />
+        <LoadingState v-if="loading && !brokers.length" type="card" :rows="2" />
+        <ErrorState v-else-if="loadError && !brokers.length" :description="loadError" @retry="fetchBrokerStatuses" />
+        <div v-else class="card-grid">
+          <div v-for="b in brokers" :key="b.name" :class="['broker-card', { dimmed: !b.connected }]">
+            <div class="card-header">
+              <div class="card-name-row">
+                <span :class="statusDot(b.connected)"></span>
+                <span class="card-name">{{ b.label }}</span>
+              </div>
+              <span :class="badgeClass(b.connected)">{{ statusText(b.connected) }}</span>
+            </div>
+            <div class="card-body">
+              <div class="info-row"><span class="info-label">{{ $t('broker.market_label') }}</span><span class="info-value">{{ b.market }}</span></div>
+              <div class="info-row"><span class="info-value muted">{{ b.detail }}</span></div>
+            </div>
           </div>
-          <span :class="badgeClass(b.connected)">{{ statusText(b.connected) }}</span>
-        </div>
-        <div class="card-body">
-          <div class="info-row"><span class="info-label">{{ $t('broker.market_label') }}</span><span class="info-value">{{ b.market }}</span></div>
-          <div class="info-row"><span class="info-value muted">{{ b.detail }}</span></div>
+          <EmptyState v-if="!loading && !brokers.length" :title="t('broker.no_brokers')" class="grid-empty" />
         </div>
       </div>
-      <EmptyState v-if="!loading && !brokers.length" :title="t('broker.no_brokers')" class="grid-empty" />
-    </div>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

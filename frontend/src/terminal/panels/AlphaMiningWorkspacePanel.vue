@@ -2,7 +2,9 @@
 import { ref } from 'vue'
 import { useMLStore } from '@/stores/ml'
 import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 const mlStore = useMLStore()
 const 已选Factors = ref<string[]>([])
 const popSize = ref(200)
@@ -57,75 +59,79 @@ const tableColumns = [
 </script>
 
 <template>
-  <div class="alpha-mining-panel">
-    <PanelHeader
-      :title="$t('ml.alpha_mining')"
-      :subtitle="已选Factors.length + ' ' + $t('common.selected')"
-    />
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="alpha-mining-panel">
+        <PanelHeader
+          :title="$t('ml.alpha_mining')"
+          :subtitle="已选Factors.length + ' ' + $t('common.selected')"
+        />
 
-    <div class="panel-content">
-      <div class="factor-pool">
-        <h4>基础因子池 ({{ 已选Factors.length }} 已选)</h4>
-        <div class="factor-chips">
-          <span
-            v-for="f in availableFactors"
-            :key="f"
-            :class="['chip', { active: 已选Factors.includes(f) }]"
-            @click="toggleFactor(f)"
-          >{{ f }}</span>
+        <div class="panel-content">
+          <div class="factor-pool">
+            <h4>基础因子池 ({{ 已选Factors.length }} 已选)</h4>
+            <div class="factor-chips">
+              <span
+                v-for="f in availableFactors"
+                :key="f"
+                :class="['chip', { active: 已选Factors.includes(f) }]"
+                @click="toggleFactor(f)"
+              >{{ f }}</span>
+            </div>
+          </div>
+
+          <div class="gp-config">
+            <h4>{{ $t('ml.genetic_config') }}</h4>
+            <div class="config-grid">
+              <label>{{ $t('ml.population') }}: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
+              <label>{{ $t('ml.generations') }}: <input v-model.number="generations" type="number" min="5" max="200" /></label>
+              <label>{{ $t('ml.crossover') }}: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
+              <label>{{ $t('ml.mutation') }}: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
+              <label>{{ $t('ml.top_k') }}: <input v-model.number="topK" type="number" min="1" max="50" /></label>
+              <label>适应度:
+                <select v-model="fitnessMetric">
+                  <option value="ic">{{ $t('ml.ic') }}</option><option value="ir">{{ $t('ml.ir') }}</option>
+                  <option value="sharpe">Sharpe</option><option value="composite">综合</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <button
+            @click="runMining"
+            :disabled="miningLoading || mlStore.miningRunning || 已选Factors.length < 2"
+            class="btn btn-primary btn-run"
+          >
+            {{ miningLoading ? '挖掘中...' : '开始挖掘' }}
+          </button>
+
+          <div v-if="miningError" class="panel-error">{{ miningError }}</div>
+
+          <div v-if="mlStore.discoveredFactors.length" class="results">
+            <h4>{{ $t('ml.discovered_factors') }}</h4>
+            <PanelTable
+              :columns="tableColumns"
+              :data="mlStore.discoveredFactors"
+              :striped="true"
+            >
+              <template #action="{ row }">
+                <button @click="registerFactor(row)" class="btn btn-ghost btn-sm">
+                  {{ $t('ml.register') }}
+                </button>
+              </template>
+            </PanelTable>
+          </div>
+
+          <EmptyState
+            v-else-if="!mlStore.miningRunning"
+            icon="search"
+            :title="$t('ml.no_discovered') || '暂无挖掘结果'"
+            :description="$t('ml.select_factors_hint') || '选择至少2个因子并点击开始挖掘'"
+          />
         </div>
       </div>
-
-      <div class="gp-config">
-        <h4>{{ $t('ml.genetic_config') }}</h4>
-        <div class="config-grid">
-          <label>{{ $t('ml.population') }}: <input v-model.number="popSize" type="number" min="10" max="1000" /></label>
-          <label>{{ $t('ml.generations') }}: <input v-model.number="generations" type="number" min="5" max="200" /></label>
-          <label>{{ $t('ml.crossover') }}: <input v-model.number="crossoverRate" type="number" min="0" max="1" step="0.05" /></label>
-          <label>{{ $t('ml.mutation') }}: <input v-model.number="mutationRate" type="number" min="0" max="1" step="0.05" /></label>
-          <label>{{ $t('ml.top_k') }}: <input v-model.number="topK" type="number" min="1" max="50" /></label>
-          <label>适应度:
-            <select v-model="fitnessMetric">
-              <option value="ic">{{ $t('ml.ic') }}</option><option value="ir">{{ $t('ml.ir') }}</option>
-              <option value="sharpe">Sharpe</option><option value="composite">综合</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <button
-        @click="runMining"
-        :disabled="miningLoading || mlStore.miningRunning || 已选Factors.length < 2"
-        class="btn btn-primary btn-run"
-      >
-        {{ miningLoading ? '挖掘中...' : '开始挖掘' }}
-      </button>
-
-      <div v-if="miningError" class="panel-error">{{ miningError }}</div>
-
-      <div v-if="mlStore.discoveredFactors.length" class="results">
-        <h4>{{ $t('ml.discovered_factors') }}</h4>
-        <PanelTable
-          :columns="tableColumns"
-          :data="mlStore.discoveredFactors"
-          :striped="true"
-        >
-          <template #action="{ row }">
-            <button @click="registerFactor(row)" class="btn btn-ghost btn-sm">
-              {{ $t('ml.register') }}
-            </button>
-          </template>
-        </PanelTable>
-      </div>
-
-      <EmptyState
-        v-else-if="!mlStore.miningRunning"
-        icon="search"
-        :title="$t('ml.no_discovered') || '暂无挖掘结果'"
-        :description="$t('ml.select_factors_hint') || '选择至少2个因子并点击开始挖掘'"
-      />
-    </div>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

@@ -5,6 +5,9 @@ import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { PanelHeader, PanelTable, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
+
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 const { fetchWithCache } = usePanelCache()
 
@@ -78,25 +81,29 @@ onMounted(refresh)
 </script>
 
 <template>
-  <div class="crypto-overview-panel">
-    <PanelHeader
-      :title="$t('misc.crypto_overview')"
-      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: refresh, loading }]"
-    />
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="crypto-overview-panel">
+        <PanelHeader
+          :title="$t('misc.crypto_overview')"
+          :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: refresh, loading }]"
+        />
 
-    <LoadingState v-if="loading && !cryptos" type="table" :rows="6" :cols="cols.length" />
-    <ErrorState v-else-if="error" :description="error" @retry="refresh" />
-    <PanelTable
-      v-else
-      :columns="cols"
-      :data="rows"
-      :loading="loading"
-      :sort-key="sortKey"
-      :sort-dir="sortDir"
-      sticky-header
-      @sort-change="onSortChange"
-    />
-  </div>
+        <LoadingState v-if="loading && !cryptos" type="table" :rows="6" :cols="cols.length" />
+        <ErrorState v-else-if="error" :description="error" @retry="refresh" />
+        <PanelTable
+          v-else
+          :columns="cols"
+          :data="rows"
+          :loading="loading"
+          :sort-key="sortKey"
+          :sort-dir="sortDir"
+          sticky-header
+          @sort-change="onSortChange"
+        />
+      </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>
