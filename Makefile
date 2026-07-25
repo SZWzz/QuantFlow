@@ -17,7 +17,7 @@ build-full: build-frontend
 		--exclude='tests/' \
 		--exclude='.DS_Store' \
 		python/ build/python/
-	ln -sfn "$(PWD)/python/.venv" build/python/.venv
+	ln -sfn "$(CURDIR)/python/.venv" build/python/.venv
 	@echo "→ Build OK: build/quantflow"
 
 test:
