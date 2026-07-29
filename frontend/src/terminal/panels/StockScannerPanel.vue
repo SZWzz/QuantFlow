@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{
@@ -10,6 +11,7 @@ const props = defineProps<{
 }>()
 
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const app = useWailsApp()
 
 interface StrategyDef {
   id: string
@@ -105,7 +107,6 @@ async function startScan() {
   results.value = []
 
   try {
-    const app = (window as any).go?.main?.App
     if (!app) return
     const result = await app.ScanStocks(selectedStrategy.value?.id || 'momentum')
     if (result?.results) {

@@ -8,6 +8,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { pearsonMatrix } from '@/lib/stats'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { getIcon } from '@/lib/icons'
@@ -45,7 +46,7 @@ const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelI
 async function compute() {
   const syms = parseSymbols(); symbols.value = syms
   if (syms.length < 2) { matrix.value = null; return }
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app) { matrix.value = null; return }
   customLoading.value = true; customError.value = ''
   try {
@@ -112,7 +113,7 @@ let chartInstance: any = null
 let renderTimer: ReturnType<typeof setTimeout> | null = null
 
 async function fetchPresetData() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetCorrelationMatrix || presetSymbols.value.length < 2) return
   presetLoading.value = true; presetError.value = ''
   try {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 
@@ -79,7 +80,7 @@ async function processQuery() {
   selectedSymbol.value = searchSymbol.value
 
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
     if (!app) return
     const { data: result } = await fetchWithCache<any>('chanlun:' + selectedSymbol.value, () => app.GetChanlun(selectedSymbol.value))
     if (result) {

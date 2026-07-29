@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
@@ -77,7 +78,7 @@ function formatNum(v: any, unit: string = ''): string {
 
 async function loadData() {
   loading.value = true; error.value = ''
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetAuditFindings) { loading.value = false; return }
   try {
     const { data: auditData } = await fetchWithCache(`audit:${symbol.value}`, async () => {
@@ -99,7 +100,7 @@ async function loadData() {
 }
 
 async function loadDelistingRisk() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetDelistingRisk) return
   delisting.value = null; delistingError.value = ''; delistingLoading.value = true
   try {

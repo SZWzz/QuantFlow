@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import VChart from 'vue-echarts'
@@ -71,7 +72,7 @@ function normalPDF(x: number, mean: number, std: number): number {
 }
 
 async function compute() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app) { dataReady.value = false; return }
   loading.value = true
   loadError.value = ''

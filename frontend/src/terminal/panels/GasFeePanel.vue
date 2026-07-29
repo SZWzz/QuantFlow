@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 import { logger } from '@/lib/logger'
 
@@ -21,7 +22,7 @@ const loadError = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetGasFees) return
   loading.value = true
   loadError.value = ''

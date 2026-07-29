@@ -4,9 +4,11 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
-import { PanelHeader, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
+import { PanelHeader } from '@/terminal/components/panel'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
@@ -62,6 +64,7 @@ const tabs = [
 ]
 
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
+const app = useWailsApp()
 
 const marketBadge = computed(() => market.value === 'CN' ? 'A股' : market.value === 'HK' ? '港股' : '美股')
 const headerSubtitle = computed(() => `${symbol.value} ${name.value || ''}`.trim())
@@ -129,7 +132,7 @@ async function loadCNData() {
   cnLoading.value = true
   cnError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => app?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
     if (seq !== loadSeq) return
     statements.value = {
       income: res.income || [],
@@ -334,10 +337,9 @@ function fmtVal(v: number | string): string {
 async function loadUSData() {
   usLoading.value = true; usError.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
+    if (app?.FetchData) {
       const { data: result } = await fetchWithCache('sec_financials:' + symbol.value, async () => {
-        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+        return await app.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
       })
       if (result?.data) rawData.value = JSON.parse(result.data)
       else if (result?.error) usError.value = result.error
@@ -355,7 +357,7 @@ async function loadHKData() {
   hkLoading.value = true
   hkError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => app?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
     statements.value = {
       income: res.income || [],
       balance: res.balance || [],
@@ -380,6 +382,17 @@ const activeError = computed(() => {
   return usError.value
 })
 
+const state = computed<'loading' | 'loaded' | 'error' | 'empty'>(() => {
+  if (activeError.value) return 'error'
+  if (loading.value) return 'loading'
+  if (market.value === 'US') {
+    if (!usLoading.value && sections.value.length === 0) return 'empty'
+  } else {
+    if (!loading.value && !statements.value?.income?.length && !statements.value?.balance?.length) return 'empty'
+  }
+  return 'loaded'
+})
+
 function onTabChange(key: string) {
   activeTab.value = key as typeof activeTab.value
 }
@@ -399,134 +412,128 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 </script>
 
 <template>
-  <div class="fin-panel">
-    <!-- ═══ Header (P1) ═══ -->
-    <PanelHeader
-      title="财务报表"
-      :subtitle="headerSubtitle"
-      :tabs="tabs"
-      :active-tab="activeTab"
-      :controls="headerControls"
-      @tab-change="onTabChange"
-    >
-      <template #controls>
-        <span class="market-badge">{{ marketBadge }}</span>
-      </template>
-    </PanelHeader>
+  <PanelShell :state="state" :error="activeError" @retry="loadData">
+    <template #empty>
+      <div class="empty-state-custom">
+        <span class="empty-icon" v-html="getIcon('search')" />
+        <p class="empty-title">暂无财务数据</p>
+        <p class="empty-desc">输入股票代码查看</p>
+      </div>
+    </template>
+    <template #loaded>
+      <div class="fin-panel">
+        <!-- ═══ Header (P1) ═══ -->
+        <PanelHeader
+          title="财务报表"
+          :subtitle="headerSubtitle"
+          :tabs="tabs"
+          :active-tab="activeTab"
+          :controls="headerControls"
+          @tab-change="onTabChange"
+        >
+          <template #controls>
+            <span class="market-badge">{{ marketBadge }}</span>
+          </template>
+        </PanelHeader>
 
-    <!-- ═══ CN/HK: A-Share + HK Content ═══ -->
-    <template v-if="market !== 'US'">
-      <LoadingState v-if="loading && !statements" type="table" :rows="8" />
-      <ErrorState v-else-if="cnError || hkError" :description="cnError || hkError" @retry="loadData" />
-      <EmptyState
-        v-else-if="!loading && !statements?.income.length && !statements?.balance.length"
-        icon="search"
-        title="暂无财务数据"
-        description="输入股票代码查看"
-      />
+        <!-- ═══ CN/HK: A-Share + HK Content ═══ -->
+        <template v-if="market !== 'US'">
+          <template v-if="statements?.income?.length || statements?.balance?.length">
+            <!-- Secondary period bar -->
+            <div class="period-bar">
+              <div class="report-toggle">
+                <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
+                <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
+              </div>
+              <label class="growth-toggle" title="显示同比变化">
+                <input type="checkbox" v-model="showGrowth" />
+                <span class="toggle-label">同比</span>
+              </label>
+            </div>
 
-      <template v-else>
-        <!-- Secondary period bar (P1 tokenized): report-type toggle + 同比 checkbox -->
-        <div class="period-bar">
-          <div class="report-toggle">
-            <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
-            <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
-          </div>
-          <label class="growth-toggle" title="显示同比变化">
-            <input type="checkbox" v-model="showGrowth" />
-            <span class="toggle-label">同比</span>
-          </label>
-        </div>
+            <div class="body-scroll">
+              <!-- Trend chart -->
+              <div v-if="trendMetrics.series.length" class="trend-section">
+                <div ref="chartContainer" class="trend-chart" />
+              </div>
 
-        <div class="body-scroll">
-          <!-- Trend chart -->
-          <div v-if="trendMetrics.series.length" class="trend-section">
-            <div ref="chartContainer" class="trend-chart" />
-          </div>
-
-          <!-- KPI cards + ratios -->
-          <div class="kpi-section">
-            <div v-if="kpiSummary.length" class="kpi-row">
-              <div v-for="kpi in kpiSummary" :key="kpi.item" class="kpi-card" :class="{ highlight: isHighlightRow(kpi.item) }">
-                <div class="kpi-label">{{ kpi.item }}</div>
-                <div class="kpi-value">
-                  {{ smartFormat(kpi.value) }}
-                  <span v-if="showGrowth && kpi.yoy.pct !== null" class="kpi-yoy-inline" :class="kpi.yoy.trend">
-                    {{ kpi.yoy.trend === 'up' ? '↑' : kpi.yoy.trend === 'down' ? '↓' : '' }}{{ Math.abs(kpi.yoy.pct).toFixed(1) }}%
-                  </span>
+              <!-- KPI cards + ratios -->
+              <div class="kpi-section">
+                <div v-if="kpiSummary.length" class="kpi-row">
+                  <div v-for="kpi in kpiSummary" :key="kpi.item" class="kpi-card" :class="{ highlight: isHighlightRow(kpi.item) }">
+                    <div class="kpi-label">{{ kpi.item }}</div>
+                    <div class="kpi-value">
+                      {{ smartFormat(kpi.value) }}
+                      <span v-if="showGrowth && kpi.yoy.pct !== null" class="kpi-yoy-inline" :class="kpi.yoy.trend">
+                        {{ kpi.yoy.trend === 'up' ? '↑' : kpi.yoy.trend === 'down' ? '↓' : '' }}{{ Math.abs(kpi.yoy.pct).toFixed(1) }}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- Ratios -->
-            <div v-if="ratios.length" class="ratio-row">
-              <div v-for="r in ratios" :key="r.label" class="ratio-card" :title="r.desc">
-                <div class="ratio-label">{{ r.label }}</div>
-                <div class="ratio-value">{{ r.value }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Statement table — 自绘保留：动态列(每期一列) + subtotal/highlight 行级着色 + 单元格内嵌 YoY 副值，PanelTable 表达不了 -->
-          <div class="table-container">
-            <div class="table-inner">
-              <div class="t-head">
-                <div class="t-row">
-                  <div class="t-cell t-h t-label">科目</div>
-                  <div v-for="p in activeData.periods" :key="p" class="t-cell t-h t-period">
-                    <div class="period-label">{{ p.slice(0, 7) }}</div>
+                <!-- Ratios -->
+                <div v-if="ratios.length" class="ratio-row">
+                  <div v-for="r in ratios" :key="r.label" class="ratio-card" :title="r.desc">
+                    <div class="ratio-label">{{ r.label }}</div>
+                    <div class="ratio-value">{{ r.value }}</div>
                   </div>
                 </div>
               </div>
-              <div class="t-body">
-                <div
-                  v-for="item in activeData.items"
-                  :key="item"
-                  class="t-row"
-                  :class="{ 't-subtotal': isSubtotalRow(item), 't-highlight': isHighlightRow(item) }"
-                >
-                  <div class="t-cell t-label">{{ item }}</div>
-                  <div v-for="p in activeData.periods" :key="p" class="t-cell t-val">
-                    <div class="val-row">
-                      <span class="val-main">{{ smartFormat(getItemValue(activeData.data, p, item)) }}</span>
-                      <span v-if="showGrowth" class="val-yoy" :class="getYoY(activeData.data, p, item).trend">
-                        <template v-if="getYoY(activeData.data, p, item).pct !== null">
-                          {{ getYoY(activeData.data, p, item).trend === 'up' ? '+' : '' }}{{ (getYoY(activeData.data, p, item).pct!).toFixed(1) }}%
-                        </template>
-                      </span>
+
+              <!-- Statement table -->
+              <div class="table-container">
+                <div class="table-inner">
+                  <div class="t-head">
+                    <div class="t-row">
+                      <div class="t-cell t-h t-label">科目</div>
+                      <div v-for="p in activeData.periods" :key="p" class="t-cell t-h t-period">
+                        <div class="period-label">{{ p.slice(0, 7) }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="t-body">
+                    <div
+                      v-for="item in activeData.items"
+                      :key="item"
+                      class="t-row"
+                      :class="{ 't-subtotal': isSubtotalRow(item), 't-highlight': isHighlightRow(item) }"
+                    >
+                      <div class="t-cell t-label">{{ item }}</div>
+                      <div v-for="p in activeData.periods" :key="p" class="t-cell t-val">
+                        <div class="val-row">
+                          <span class="val-main">{{ smartFormat(getItemValue(activeData.data, p, item)) }}</span>
+                          <span v-if="showGrowth" class="val-yoy" :class="getYoY(activeData.data, p, item).trend">
+                            <template v-if="getYoY(activeData.data, p, item).pct !== null">
+                              {{ getYoY(activeData.data, p, item).trend === 'up' ? '+' : '' }}{{ (getYoY(activeData.data, p, item).pct!).toFixed(1) }}%
+                            </template>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </template>
-    </template>
+          </template>
+        </template>
 
-    <!-- ═══ US: SEC Content ═══ -->
-    <template v-if="market === 'US'">
-      <LoadingState v-if="usLoading && sections.length === 0" type="table" :rows="6" />
-      <ErrorState v-else-if="usError" :description="usError" @retry="loadData" />
-      <EmptyState
-        v-else-if="!usLoading && sections.length === 0"
-        icon="search"
-        title="暂无财务数据"
-        description="输入美股代码查看 SEC XBRL 财务报表"
-      />
-      <div v-else class="sections-scroll">
-        <div v-for="section in sections" :key="section.title" class="fin-section">
-          <h4 class="section-title">{{ section.title }}</h4>
-          <div class="fin-table">
-            <div v-for="row in section.rows" :key="row.label" class="fin-row">
-              <span class="fin-label">{{ row.label }}</span>
-              <span class="fin-value" :class="{ negative: typeof row.value === 'number' && row.value < 0 }">{{ fmtVal(row.value) }}</span>
+        <!-- ═══ US: SEC Content ═══ -->
+        <template v-if="market === 'US'">
+          <div v-if="sections.length" class="sections-scroll">
+            <div v-for="section in sections" :key="section.title" class="fin-section">
+              <h4 class="section-title">{{ section.title }}</h4>
+              <div class="fin-table">
+                <div v-for="row in section.rows" :key="row.label" class="fin-row">
+                  <span class="fin-label">{{ row.label }}</span>
+                  <span class="fin-value" :class="{ negative: typeof row.value === 'number' && row.value < 0 }">{{ fmtVal(row.value) }}</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
       </div>
     </template>
-  </div>
+  </PanelShell>
 </template>
 
 <style scoped>
@@ -612,7 +619,8 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 .kpi-section { flex-shrink: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 .kpi-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
 .kpi-card {
-  flex: 0 0 170px;
+  flex: 0 0 auto;
+  min-width: 140px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
@@ -625,7 +633,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
   border-color: var(--color-accent-soft);
   background: linear-gradient(135deg, var(--color-accent-soft), transparent);
 }
-.kpi-label { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.kpi-label { font-size: var(--font-xs); color: var(--color-text-tertiary); white-space: nowrap; }
 .kpi-value {
   font-size: var(--font-xl);
   font-weight: 700;
@@ -634,6 +642,7 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
   display: flex;
   align-items: baseline;
   gap: var(--space-sm);
+  white-space: nowrap;
 }
 .kpi-yoy-inline { font-size: var(--font-xs); font-weight: 500; }
 .kpi-yoy-inline.up { color: var(--color-down); }
@@ -769,4 +778,18 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
   font-variant-numeric: tabular-nums;
 }
 .fin-value.negative { color: var(--color-up); }
+
+/* Empty state custom content for PanelShell */
+.empty-state-custom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-2xl);
+  color: var(--color-text-tertiary);
+}
+.empty-icon { font-size: 24px; opacity: 0.5; }
+.empty-title { font-size: var(--font-sm); font-weight: 600; margin: 0; }
+.empty-desc { font-size: var(--font-xs); margin: 0; }
 </style>

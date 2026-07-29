@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
+const app = useWailsApp()
 const loading = ref(false)
 const error = ref('')
 const rawData = ref<any>(null)
@@ -86,7 +88,6 @@ const cols = computed<Column[]>(() => {
 async function loadData() {
   loading.value = true; error.value = ''
   try {
-    const app = (window as any).go?.main?.App
     if (app?.FetchData) {
       const { data: result } = await fetchWithCache<any>('sec_13f', () => app.FetchData(SOURCE, DATA_TYPE, [], '', '', {}), 5 * 60 * 1000)
       if (result?.data) rawData.value = JSON.parse(result.data)

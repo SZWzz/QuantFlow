@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { PanelHeader, EmptyState, LoadingState } from '@/terminal/components/panel'
@@ -30,7 +31,7 @@ const error = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
 async function fetchAll() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetCryptoDepth) return
   loading.value = true
   error.value = ''

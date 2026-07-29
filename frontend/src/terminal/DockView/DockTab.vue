@@ -8,6 +8,7 @@ import { useTerminalStore } from '@/stores/terminal'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { getIcon } from '@/lib/icons'
 import { logger } from '@/lib/logger'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const props = defineProps<{
   tabs: DockTabState[]
@@ -105,7 +106,7 @@ function closeTab(tabId: string) {
 
 function tearOff(tab: DockTabState) {
   const instanceId = `${tab.panelId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-  const go = (window as any).go?.main?.App
+  const go = useWailsApp()
   if (!go) return
   go.TearOffPanel(tab.panelId, instanceId, tab.label, JSON.stringify(tab.params || {}))
     .then(() => closeTab(tab.id))

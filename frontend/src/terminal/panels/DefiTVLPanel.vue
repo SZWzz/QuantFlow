@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
@@ -53,7 +54,7 @@ function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
 }
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetDeFiTVL) return
   loadError.value = ''
   loading.value = true

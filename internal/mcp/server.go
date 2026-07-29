@@ -65,7 +65,16 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 }
 
-// MustJSON is a helper for embedding JSON literals in tests.
+// TryJSON marshals v to JSON, returning a raw message or error.
+func TryJSON(v any) (json.RawMessage, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("json marshal: %w", err)
+	}
+	return data, nil
+}
+
+// MustJSON marshals v to JSON, panicking on error. Test use only.
 func MustJSON(v any) json.RawMessage {
 	data, err := json.Marshal(v)
 	if err != nil {

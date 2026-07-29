@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
@@ -21,7 +22,7 @@ function formBadgeClass(form: string): string { if (!form) return 'badge-gray'; 
 function openUrl(url: string) { if (url) window.open(url, '_blank') }
 function setFormType(ft: string) { selectedFormType.value = ft }
 
-async function loadFilings() { loading.value = true; error.value = ''; try { const app = (window as any).go?.main?.App; if (!app?.GetSECFilings) { error.value = 'SEC 数据源未连接'; return }; const { data } = await fetchWithCache<any>(`sec:${symbol.value}`, () => app.GetSECFilings(symbol.value), 300000); filings.value = data && Array.isArray(data) ? data : Array.from(data || []) } catch (e: any) { console.error('[DarkPool]', e); error.value = e?.message || String(e) } finally { loading.value = false } }
+async function loadFilings() { loading.value = true; error.value = ''; try { const app = useWailsApp(); if (!app?.GetSECFilings) { error.value = 'SEC 数据源未连接'; return }; const { data } = await fetchWithCache<any>(`sec:${symbol.value}`, () => app.GetSECFilings(symbol.value), 300000); filings.value = data && Array.isArray(data) ? data : Array.from(data || []) } catch (e: any) { console.error('[DarkPool]', e); error.value = e?.message || String(e) } finally { loading.value = false } }
 
 function handleSymbolSubmit(e: Event) { const target = e.target as HTMLInputElement; if (target?.value) { symbol.value = target.value.trim(); loadFilings() } }
 watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => { if (newSym && newSym !== symbol.value) { symbol.value = newSym; loadFilings() } })

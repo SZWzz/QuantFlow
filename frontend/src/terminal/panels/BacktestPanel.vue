@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { buildKlineOption } from '@/lib/buildChartOption'
 import type { TradeSignal, KlineDataItem } from '@/lib/buildChartOption'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { createIndicatorCache } from '@/lib/composables/useIndicators'
 
@@ -41,6 +42,7 @@ interface BacktestSummary {
 }
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const app = useWailsApp()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 const { t } = useI18n()
 const chartTheme = useChartTheme()
@@ -90,7 +92,7 @@ const columns = computed(() => [
 async function loadList() {
   loading.value = true
   try {
-    const res = await (window as any).go.main.App.ListBacktestHistory(100, 0)
+    const res = await app?.ListBacktestHistory(100, 0)
     items.value = res || []
   } catch (e) { console.error('ListBacktestHistory failed:', e) }
   finally { loading.value = false }
@@ -107,7 +109,7 @@ async function deleteAllRecords() {
   if (!items.value.length) return
   if (!(await confirmDialog(`确定删除全部 ${items.value.length} 条回测记录？此操作不可撤销。`))) return
   try {
-    await (window as any).go.main.App.ClearBacktestResults()
+    await app?.ClearBacktestResults()
     await loadList()
   } catch (e: any) { await alertDialog(`删除失败: ${e.message || e}`) }
 }
@@ -115,7 +117,7 @@ async function deleteAllRecords() {
 async function deleteSingleList(id: number) {
   if (!(await confirmDialog('确定删除此回测记录？'))) return
   try {
-    await (window as any).go.main.App.DeleteBacktestResult(id)
+    await app?.DeleteBacktestResult(id)
     await loadList()
   } catch (e: any) { await alertDialog(`删除失败: ${e.message || e}`) }
 }
@@ -126,7 +128,7 @@ const storedData = ref<any>(null)
 async function loadStoredResult(id: number) {
   storedLoading.value = true; storedData.value = null; deleted.value = false
   try {
-    const res = await (window as any).go.main.App.GetStoredBacktestResult(id)
+    const res = await app?.GetStoredBacktestResult(id)
     if (!res) return
     storedData.value = {
       equity_curve: safeParseJSON(res.equity_curve, []).map((p: any) => p.equity ?? p),
@@ -149,7 +151,7 @@ async function deleteDetail() {
   if (!detailId.value) return
   if (!(await confirmDialog('确定删除此回测记录？'))) return
   try {
-    await (window as any).go.main.App.DeleteBacktestResult(detailId.value)
+    await app?.DeleteBacktestResult(detailId.value)
     goBack()
   } catch (e) { await alertDialog('删除失败，请重试') }
 }
@@ -219,7 +221,7 @@ async function onKeyDown(e: KeyboardEvent) {
     e.preventDefault()
     if (await confirmDialog('确定删除此回测记录？')) {
       try {
-        await (window as any).go.main.App.DeleteBacktestResult(selectedRow.id)
+        await app?.DeleteBacktestResult(selectedRow.id)
         await loadList()
       } catch (err: any) {
         await alertDialog('删除失败: ' + (err?.message || err))

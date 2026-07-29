@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { PanelHeader } from '@/terminal/components/panel'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const props = defineProps<{
   panelId: string
@@ -49,7 +50,7 @@ const factors = ref<any[]>([...DEFAULT_FACTORS])
 async function loadFactors() {
   factorsLoading.value = true
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
     if (app?.ListFactors) {
       const result = await app.ListFactors()
       if (Array.isArray(result) && result.length > 0) {

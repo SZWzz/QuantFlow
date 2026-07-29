@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -13,7 +14,7 @@ const futu端口 = ref(11111)
 
 async function testConnection() {
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
     if (!app?.TestBrokerConnection) return
     const result = await app.TestBrokerConnection(broker.value, getCurrentConfig())
   } catch (e) { console.warn('TestConnection:', e) }
@@ -21,7 +22,7 @@ async function testConnection() {
 
 async function saveConfig() {
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
     if (!app?.SaveCredential) return
     await app.SaveCredential(`broker_${broker.value}`, broker.value, getCurrentConfig())
   } catch (e) { console.warn('SaveConfig:', e) }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -23,7 +24,7 @@ async function resolveName(sym: string) {
   _resolveCount++
   resolvingNames.value = true
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
     if (!app) return
     const result = await app.GetQuote('CN', sym)
     const quote = Array.isArray(result) ? result[0] : result
@@ -96,7 +97,7 @@ const isExecuting = ref(false)
 async function execute篮子() {
   isExecuting.value = true
   logs.value = []
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.PlaceOrder) { isExecuting.value = false; return }
 
   for (const row of rows.value) {

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -65,7 +66,7 @@ const currentList = computed(() => {
 })
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetHKDerivatives) return
   loading.value = true
   error.value = null

@@ -3,6 +3,25 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.25] - 2026-07-25
+
+### Added
+
+- [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
+- [Frontend] 迁移 10 个高频面板到 PanelShell（WelcomePanel, MarketOverviewPanel, WatchlistPanel, PortfolioSummary, TradeHistory, FinancialsPanel, GovDataPanel, MarketScannerPanel, CandlestickPanel, IndicatorPanel）
+- [Frontend] 扩展 WailsApp 接口覆盖所有面板调用的 Go App 方法 — 新增 26 个方法签名（行情/交易/港股通/Cache IPC），消除 `window.go.main.App` 的隐式 any 类型
+- [Frontend] 迁移剩余 22 个面板及 DockTab 从 `(window as any).go?.main?.App` 至 `useWailsApp()` 组合式函数 — 消除 `window.go.main.App` 直接引用，统一通过类型安全的 `WailsApp` 接口调用 Go 方法
+- [Frontend] 新增 `resetWailsApp()` 测试辅助函数，解决测试间 useWailsApp 缓存污染导致 mock 失效的问题
+- [i18n] 补充 5 个缺失的英文翻译 key（common.yes, misc.asset_market, misc.benchmark, misc.pinned, ml.sharpe）
+- [Frontend] 新增 OnboardingOverlay 首次使用引导覆盖层 — 5 步导览（欢迎→行情→搜索→组合→完成）、跳过/完成操作、步骤点指示器、localStorage 持久化
+- [Workflow] 新增 6 个 data 类别工作流节点（market_scanner, watchlist, trade_history, orderbook_depth, funding_rate, liquidations）— 补齐行情扫描/自选股/交易历史/订单深度/资金费率/强平数据节点
+
+### Fixed
+
+- [MCP] 将 MustJSON 的 panic 替换为 TryJSON 错误返回变体，防止生产代码路径中的进程崩溃
+- [MarketData] GDELT 适配器增加 Content-Type 校验，非 JSON 响应返回明确错误而非 parse error
+- [Python] 修复 health check 测试中 `aio` 未定义问题 — 将 `aio.insecure_channel` 替换为 `grpc.aio.insecure_channel`
+
 ## [2026.7.19] - 2026-07-19
 
 ### 新增

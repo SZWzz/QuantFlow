@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, EmptyState, ErrorState, LoadingState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -23,10 +24,10 @@ const headerTitle = computed(() => [symbol.value, name.value].filter(Boolean).jo
 async function loadData() {
   loading.value = true; error.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
+    const app = useWailsApp()
+    if (app?.FetchData) {
       const { data: result } = await fetchWithCache('funds:' + symbol.value, async () => {
-        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+        return await app.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
       })
       if (result?.data) data.value = JSON.parse(result.data)
       else if (result?.error) error.value = result.error

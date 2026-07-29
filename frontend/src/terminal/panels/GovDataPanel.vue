@@ -14,11 +14,13 @@ import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import {
   PanelHeader,
   PanelTabs,
-  EmptyState,
   LoadingState,
+  EmptyState,
   SignalBadge,
   TrendIndicator,
 } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const { t } = useI18n()
 const dataStore = useDataStore()
@@ -63,6 +65,7 @@ interface CommodityQuote {
 const signals = ref<MacroSignal[]>([])
 const loading = ref(true)
 const loadError = ref('')
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
 const selectedSignal = ref<MacroSignal | null>(null)
 const indicatorData = ref<IndicatorPoint[]>([])
 const chartLoading = ref(false)
@@ -153,11 +156,12 @@ async function loadSignals() {
   }
   loading.value = true
   loadError.value = ''
+  state.value = 'loading'
   signals.value = []
   selectedSignal.value = null
   indicatorData.value = []
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
 
     // ── FRED source: economic indicators + real-time commodity quotes ──
     if (activeSource.value === 'fred') {
@@ -265,6 +269,9 @@ async function loadSignals() {
     dataStore.setCached(signalsCacheKey.value, signals.value, 300_000)
   }
   loading.value = false
+  if (loadError.value) state.value = 'error'
+  else if (signals.value.length === 0) state.value = 'empty'
+  else state.value = 'loaded'
 }
 
 let detailSeq = 0
@@ -281,7 +288,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
   }
   chartLoading.value = true
   try {
-    const app = (window as any).go?.main?.App
+    const app = useWailsApp()
 
     // ── FRED: commodity OHLCV or FRED indicator history ──
     if (activeSource.value === 'fred') {
@@ -524,98 +531,90 @@ function changeClass(c: number): string {
     />
 
     <!-- Main content: indicator grid + detail -->
-    <div class="content-area">
-      <!-- Indicator cards grid -->
-      <div class="indicator-grid" :class="{ 'with-detail': selectedSignal }">
-        <LoadingState v-if="loading" type="card" />
-        <EmptyState
-          v-else-if="loadError"
-          icon="alert-circle"
-          :title="$t('common.error')"
-          :description="loadError"
-        />
-        <EmptyState
-          v-else-if="filteredSignals.length === 0"
-          icon="inbox"
-          :title="$t('macro.no_data')"
-        />
-        <div
-          v-for="signal in filteredSignals"
-          :key="signal.indicator_id"
-          :class="['indicator-card', { selected: selectedSignal?.indicator_id === signal.indicator_id }]"
-          @click="loadIndicatorDetail(signal)"
-        >
-          <div class="card-header">
-            <span class="card-name">{{ signal.name_cn }}</span>
-            <SignalBadge :signal="(signal.signal as 'bullish'|'bearish'|'neutral')" />
+    <PanelShell :state="state" :error="loadError" @retry="loadSignals">
+      <template #loaded>
+        <div class="content-area">
+          <!-- Indicator cards grid -->
+          <div class="indicator-grid" :class="{ 'with-detail': selectedSignal }">
+            <div
+              v-for="signal in filteredSignals"
+              :key="signal.indicator_id"
+              :class="['indicator-card', { selected: selectedSignal?.indicator_id === signal.indicator_id }]"
+              @click="loadIndicatorDetail(signal)"
+            >
+              <div class="card-header">
+                <span class="card-name">{{ signal.name_cn }}</span>
+                <SignalBadge :signal="(signal.signal as 'bullish'|'bearish'|'neutral')" />
+              </div>
+              <div class="card-value">
+                <template v-if="signal.latest_value != null && signal.latest_value !== 0 || signal.latest_date">
+                  <span class="value">{{ formatValue(signal.latest_value, signal.unit) }}</span>
+                </template>
+                <span v-else class="card-tap">点击查看数据</span>
+              </div>
+              <div class="card-change">
+                <TrendIndicator :direction="(signal.direction as 'up'|'down'|'flat')" />
+                <span :class="['change-text', changeClass(signal.change)]">
+                  {{ formatChange(signal.change) }}
+                </span>
+                <span class="card-unit">{{ signal.unit }}</span>
+              </div>
+            </div>
           </div>
-          <div class="card-value">
-            <template v-if="signal.latest_value != null && signal.latest_value !== 0 || signal.latest_date">
-              <span class="value">{{ formatValue(signal.latest_value, signal.unit) }}</span>
-            </template>
-            <span v-else class="card-tap">点击查看数据</span>
-          </div>
-          <div class="card-change">
-            <TrendIndicator :direction="(signal.direction as 'up'|'down'|'flat')" />
-            <span :class="['change-text', changeClass(signal.change)]">
-              {{ formatChange(signal.change) }}
-            </span>
-            <span class="card-unit">{{ signal.unit }}</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- Detail panel -->
-      <div v-if="selectedSignal" class="detail-panel">
-        <div class="detail-header">
-          <div>
-            <h4>{{ selectedSignal.name_cn }}</h4>
-            <p class="detail-subtitle" v-if="selectedSignal.latest_date">{{ selectedSignal.latest_date }}</p>
-          </div>
-          <button class="btn-close" @click="selectedSignal = null">&times;</button>
-        </div>
+          <!-- Detail panel -->
+          <div v-if="selectedSignal" class="detail-panel">
+            <div class="detail-header">
+              <div>
+                <h4>{{ selectedSignal.name_cn }}</h4>
+                <p class="detail-subtitle" v-if="selectedSignal.latest_date">{{ selectedSignal.latest_date }}</p>
+              </div>
+              <button class="btn-close" @click="selectedSignal = null">&times;</button>
+            </div>
 
-        <!-- Signal info -->
-        <div class="detail-info">
-          <div class="info-row">
-            <span class="info-label">{{ $t('macro.latest_value') }}</span>
-            <span class="info-value">{{ formatValue(selectedSignal.latest_value, selectedSignal.unit) }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">{{ $t('common.change') }}</span>
-            <span :class="['info-value', changeClass(selectedSignal.change)]">
-              <TrendIndicator :direction="(selectedSignal.direction as 'up'|'down'|'flat')" /> {{ formatChange(selectedSignal.change) }}
-            </span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">{{ $t('macro.signal') }}</span>
-            <span class="info-value">
-              <SignalBadge :signal="(selectedSignal.signal as 'bullish'|'bearish'|'neutral')" /> {{ selectedSignal.signal === 'bullish' ? '看涨' : selectedSignal.signal === 'bearish' ? '看跌' : '中性' }}
-            </span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">{{ $t('macro.unit') }}</span>
-            <span class="info-value">{{ selectedSignal.unit }}</span>
-          </div>
-        </div>
+            <!-- Signal info -->
+            <div class="detail-info">
+              <div class="info-row">
+                <span class="info-label">{{ $t('macro.latest_value') }}</span>
+                <span class="info-value">{{ formatValue(selectedSignal.latest_value, selectedSignal.unit) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">{{ $t('common.change') }}</span>
+                <span :class="['info-value', changeClass(selectedSignal.change)]">
+                  <TrendIndicator :direction="(selectedSignal.direction as 'up'|'down'|'flat')" /> {{ formatChange(selectedSignal.change) }}
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">{{ $t('macro.signal') }}</span>
+                <span class="info-value">
+                  <SignalBadge :signal="(selectedSignal.signal as 'bullish'|'bearish'|'neutral')" /> {{ selectedSignal.signal === 'bullish' ? '看涨' : selectedSignal.signal === 'bearish' ? '看跌' : '中性' }}
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">{{ $t('macro.unit') }}</span>
+                <span class="info-value">{{ selectedSignal.unit }}</span>
+              </div>
+            </div>
 
-        <!-- Time series chart -->
-        <div class="chart-container" v-if="indicatorData.length > 0 && !chartLoading">
-          <VChart :option="chartOption" style="height: 250px" autoresize />
-        </div>
-        <LoadingState v-else-if="chartLoading" type="inline" />
-        <EmptyState v-else icon="inbox" :title="$t('macro.no_history')" />
+            <!-- Time series chart -->
+            <div class="chart-container" v-if="indicatorData.length > 0 && !chartLoading">
+              <VChart :option="chartOption" style="height: 250px" autoresize />
+            </div>
+            <LoadingState v-else-if="chartLoading" type="inline" />
+            <EmptyState v-else icon="inbox" :title="$t('macro.no_history')" />
 
-        <!-- Trend summary -->
-        <div class="trend-summary" v-if="selectedSignal.direction !== 'flat'">
-          <span :class="['trend-text', changeClass(selectedSignal.change)]">
-            <TrendIndicator :direction="(selectedSignal.direction as 'up'|'down'|'flat')" /> {{ selectedSignal.direction === 'up' ? '上升趋势' : '下降趋势' }}
-          </span>
-          <span v-if="selectedSignal.signal === 'bullish'">{{ $t('macro.positive_signal') }}</span>
-          <span v-else-if="selectedSignal.signal === 'bearish'">{{ $t('macro.negative_signal') }}</span>
+            <!-- Trend summary -->
+            <div class="trend-summary" v-if="selectedSignal.direction !== 'flat'">
+              <span :class="['trend-text', changeClass(selectedSignal.change)]">
+                <TrendIndicator :direction="(selectedSignal.direction as 'up'|'down'|'flat')" /> {{ selectedSignal.direction === 'up' ? '上升趋势' : '下降趋势' }}
+              </span>
+              <span v-if="selectedSignal.signal === 'bullish'">{{ $t('macro.positive_signal') }}</span>
+              <span v-else-if="selectedSignal.signal === 'bearish'">{{ $t('macro.negative_signal') }}</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </PanelShell>
   </div>
 </template>
 

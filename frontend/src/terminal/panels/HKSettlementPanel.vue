@@ -2,12 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const { t } = useI18n()
 const { fetchWithCache } = usePanelCache()
+const app = useWailsApp()
 
 interface HKSettlementInfo {
   settlement_days: number; stamp_duty: number; exchange_fee: number; sfc_levy: number
@@ -46,7 +48,7 @@ function formatDate(d: string): string { if (!d) return '--'; const parts = d.sp
 async function fetchSettlementInfo() {
   loading.value = true
   try {
-    const { data } = await fetchWithCache<HKSettlementInfo>('hk_settlement_info', () => (window as any).go.main.App.GetHKSettlementInfo(), 3600000)
+    const { data } = await fetchWithCache<HKSettlementInfo>('hk_settlement_info', () => app!.GetHKSettlementInfo(), 3600000)
     settlementInfo.value = data || null
   } catch { settlementInfo.value = null }
   finally { loading.value = false }
@@ -55,7 +57,7 @@ async function fetchSettlementInfo() {
 async function fetchCalendar() {
   calendarLoading.value = true
   try {
-    const { data } = await fetchWithCache<CalendarResult>('hk_calendar:' + calendarYear.value, () => (window as any).go.main.App.GetHKTradeCalendar(calendarYear.value), 3600000)
+    const { data } = await fetchWithCache<CalendarResult>('hk_calendar:' + calendarYear.value, () => app!.GetHKTradeCalendar(calendarYear.value), 3600000)
     calendarEntries.value = [...(data?.trading_days || []), ...(data?.holidays || [])]
   } catch { calendarEntries.value = [] }
   finally { calendarLoading.value = false }

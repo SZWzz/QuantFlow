@@ -7,12 +7,14 @@ import VChart from 'vue-echarts'
 import 'echarts'
 import { useChartTheme } from '@/lib/composables/useChartTheme'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { PanelHeader, LoadingState, EmptyState } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const chartTheme = useChartTheme()
+const app = useWailsApp()
 
 interface Outcome { id: string; label: string; price: number; change_24h: number }
 interface Event { id: string; title: string; category: string; volume: number; liquidity: number; end_date: string; status: string; outcomes: Outcome[]; description: string }
@@ -29,9 +31,9 @@ const { fetchWithCache } = usePanelCache()
 const categoryLabels: Record<string, string> = { all: t('common.all'), economics: '经济', crypto: '加密', politics: '政治', sports: '体育', tech: '科技', entertainment: '娱乐' }
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
 
-async function loadEvents() { loading.value = true; const cat = activeCategory.value === 'all' ? '' : activeCategory.value; try { const app = (window as any).go?.main?.App; if (app?.GetPredictionMarkets) { const { data: result } = await fetchWithCache<any>(`prediction_markets:${activeCategory.value}`, () => app.GetPredictionMarkets(cat, 30), 15 * 60 * 1000); events.value = result?.events || [] } } catch(e) { console.error('[PredictionMarket] loadEvents:', e) } loading.value = false }
-async function loadDetail(event: Event) { selectedEvent.value = event; try { const app = (window as any).go?.main?.App; if (app?.GetPredictionEventDetail) { const { data: result } = await fetchWithCache<any>(`prediction_detail:${event.id}`, () => app.GetPredictionEventDetail(event.id), 15 * 60 * 1000); if (result?.prices?.length > 0) { priceHistory.value = result.prices; return } } } catch(e) { console.error('[PredictionMarket] loadDetail:', e) } }
-async function loadSignals() { try { const app = (window as any).go?.main?.App; if (app?.GetPredictionSignals) { const { data: result } = await fetchWithCache<any>('prediction_signals', () => app.GetPredictionSignals('', 0.05), 15 * 60 * 1000); signalInfo.value = result?.signal || null } } catch(e) { console.error('[PredictionMarket] loadSignals:', e) } }
+async function loadEvents() { loading.value = true; const cat = activeCategory.value === 'all' ? '' : activeCategory.value; try { if (app?.GetPredictionMarkets) { const { data: result } = await fetchWithCache<any>(`prediction_markets:${activeCategory.value}`, () => app.GetPredictionMarkets(cat, 30), 15 * 60 * 1000); events.value = result?.events || [] } } catch(e) { console.error('[PredictionMarket] loadEvents:', e) } loading.value = false }
+async function loadDetail(event: Event) { selectedEvent.value = event; try { if (app?.GetPredictionEventDetail) { const { data: result } = await fetchWithCache<any>(`prediction_detail:${event.id}`, () => app.GetPredictionEventDetail(event.id), 15 * 60 * 1000); if (result?.prices?.length > 0) { priceHistory.value = result.prices; return } } } catch(e) { console.error('[PredictionMarket] loadDetail:', e) } }
+async function loadSignals() { try { if (app?.GetPredictionSignals) { const { data: result } = await fetchWithCache<any>('prediction_signals', () => app.GetPredictionSignals('', 0.05), 15 * 60 * 1000); signalInfo.value = result?.signal || null } } catch(e) { console.error('[PredictionMarket] loadSignals:', e) } }
 onMounted(() => { loadEvents(); loadSignals() })
 
 const chartOption = computed(() => { if (!selectedEvent.value || priceHistory.value.length === 0) return {}; const dates = priceHistory.value.map(p => new Date(p.timestamp).toLocaleDateString('zh-CN')); const prices = priceHistory.value.map(p => +(p.price * 100).toFixed(1)); const pal = chartTheme.palette; return { tooltip: { trigger: 'axis' as const, formatter: (params: any) => `${params[0].axisValue}<br/>概率: ${params[0].value}%` }, grid: { left: 20, right: 20, top: 10, bottom: 20 }, xAxis: { type: 'category' as const, data: dates, show: false }, yAxis: { type: 'value' as const, min: 0, max: 100, axisLabel: { formatter: '{value}%', fontSize: 10 } }, series: [{ type: 'line', data: prices, smooth: true, areaStyle: { color: pal[0] + '1A' }, lineStyle: { color: pal[0], width: 2 }, itemStyle: { color: pal[0] }, showSymbol: false }] } })

@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="#-项目状态"><img src="https://img.shields.io/badge/动态-2026.7.19-3b82f6?style=flat-square&label=版本" alt="Version"></a>
+  <a href="#-项目状态"><img src="https://img.shields.io/badge/动态-2026.7.25-3b82f6?style=flat-square&label=版本" alt="Version"></a>
   <a href="#-项目状态"><img src="https://img.shields.io/badge/77-3b82f6?style=flat-square&label=工作流节点" alt="Nodes"></a>
   <a href="#-项目状态"><img src="https://img.shields.io/badge/93-8b5cf6?style=flat-square&label=面板" alt="Panels"></a>
   <a href="#-项目状态"><img src="https://img.shields.io/badge/40+-f59e0b?style=flat-square&label=数据适配器" alt="Adapters"></a>

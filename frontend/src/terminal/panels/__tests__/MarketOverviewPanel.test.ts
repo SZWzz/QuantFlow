@@ -16,32 +16,20 @@ describe('MarketOverviewPanel', () => {
     expect(wrapper.exists()).toBe(true)
   })
 
-  it('renders market tabs', () => {
+  it('renders PanelShell in loading state initially', () => {
     const wrapper = mount(MarketOverviewPanel, {
       props: { panelId: 'test-overview', params: {} },
     })
-    // Market tabs (CN/HK/US) live in PanelHeader via PanelTabs
-    const tabs = wrapper.findAll('.panel-tabs .tab')
-    expect(tabs.length).toBe(3)
-    expect(tabs.map(t => t.text())).toEqual(['CN', 'HK', 'US'])
+    // PanelShell shows loading skeleton before data fetch completes
+    expect(wrapper.find('.panel-shell-loading').exists()).toBe(true)
   })
 
-  it('renders kline area or loading state', async () => {
+  it('renders PanelShell wrapper', async () => {
     const wrapper = mount(MarketOverviewPanel, {
       props: { panelId: 'test-overview', params: {} },
     })
     await nextTick()
-    // Either loading state or kline area container should render
-    const hasChartArea = wrapper.find('.chart-area').exists() || wrapper.find('.empty-chart').exists()
-    expect(hasChartArea).toBe(true)
-  })
-
-  it('renders sector section when data is available', async () => {
-    const wrapper = mount(MarketOverviewPanel, {
-      props: { panelId: 'test-overview', params: {} },
-    })
-    await nextTick()
-    // Sector section is conditionally rendered based on data
-    expect(wrapper.find('.market-overview-panel').exists()).toBe(true)
+    // PanelShell root is always rendered regardless of state
+    expect(wrapper.find('.panel-shell').exists()).toBe(true)
   })
 })

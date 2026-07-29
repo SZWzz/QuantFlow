@@ -1,6 +1,9 @@
 import pytest
 pytest.importorskip("grpc_health", reason="grpcio-health-checking not installed")
 
+import grpc
+from grpc_health.v1 import health_pb2, health_pb2_grpc
+
 
 @pytest.mark.asyncio
 async def test_health_server_constructs():
@@ -30,7 +33,7 @@ async def test_health_check_responds_serving():
     server = HealthServer(port=50553)
     try:
         await server.start()
-        channel = aio.insecure_channel("localhost:50553")
+        channel = grpc.aio.insecure_channel("localhost:50553")
         stub = health_pb2_grpc.HealthStub(channel)
 
         resp = await stub.Check(health_pb2.HealthCheckRequest(service=""))
@@ -53,7 +56,7 @@ async def test_health_check_unknown_service():
     server = HealthServer(port=50554)
     try:
         await server.start()
-        channel = aio.insecure_channel("localhost:50554")
+        channel = grpc.aio.insecure_channel("localhost:50554")
         stub = health_pb2_grpc.HealthStub(channel)
 
         resp = await stub.Check(
@@ -73,7 +76,7 @@ async def test_set_status():
     server = HealthServer(port=50555)
     try:
         await server.start()
-        channel = aio.insecure_channel("localhost:50555")
+        channel = grpc.aio.insecure_channel("localhost:50555")
         stub = health_pb2_grpc.HealthStub(channel)
 
         server._servicer.set_status(

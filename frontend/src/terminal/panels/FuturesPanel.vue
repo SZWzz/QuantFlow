@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 const { fetchWithCache } = usePanelCache()
@@ -59,9 +60,9 @@ const hasRows = computed(() => (data.value?.data?.length ?? 0) > 0)
 async function loadData() {
   loading.value = true; error.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
-      const { data: result } = await fetchWithCache<any>('futures_data', () => w.go.main.App.FetchData(SOURCE, DATA_TYPE, [], '', '', {}), 15 * 60 * 1000)
+    const app = useWailsApp()
+    if (app?.FetchData) {
+      const { data: result } = await fetchWithCache<any>('futures_data', () => app.FetchData(SOURCE, DATA_TYPE, [], '', '', {}), 15 * 60 * 1000)
       if (result?.data) data.value = JSON.parse(result.data)
       else if (result?.error) error.value = result.error
     }

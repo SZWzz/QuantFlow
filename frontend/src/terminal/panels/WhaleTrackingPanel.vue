@@ -2,11 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
 const { t } = useI18n()
+const app = useWailsApp()
 
 interface WhaleTx {
   hash: string
@@ -57,7 +59,6 @@ function shorten(addr: string): string {
 }
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetWhaleTransactions) return
   const seq = ++loadSeq
   loadError.value = ''

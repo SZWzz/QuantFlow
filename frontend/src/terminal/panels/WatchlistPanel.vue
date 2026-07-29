@@ -7,8 +7,10 @@ import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '
 import type { FlashClass } from '@/lib/composables/useFlashOnUpdate'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { useWebSocket } from '@/lib/composables/useWebSocket'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { useI18n } from 'vue-i18n'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const terminal = useTerminalStore()
@@ -19,6 +21,10 @@ const ws = useWebSocket()
 const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/market`
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 const { t } = useI18n()
+const app = useWailsApp()
+
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
+const loadError = ref('')
 
 const controls = computed(() => {
   const list: any[] = []
@@ -167,7 +173,7 @@ function rowClass(row: WatchRow): string {
 
 async function refreshQuote(sym: string) {
   try {
-    const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => (window as any).go?.main?.App?.GetQuote(detectMarket(sym), sym), 10 * 1000)
+    const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => app?.GetQuote(detectMarket(sym), sym), 10 * 1000)
     const snap = Array.isArray(result) ? result[0] : result
     if (!snap) return
     const prev = quotes[sym]
@@ -356,7 +362,6 @@ onMounted(async () => {
   localStorage.removeItem('quantflow-watchlist-config')
 
   try {
-    const app = (window as any).go?.main?.App
     if (app?.SearchSymbols) {
       await Promise.all(symbols.value.map(async (sym) => {
         const { data: results } = await fetchWithCache(`search:${sym}`, () => app.SearchSymbols(sym, 1), 5 * 60 * 1000)
@@ -372,7 +377,13 @@ onMounted(async () => {
   } catch { /* best-effort */ }
 
   // Initial data fetch via Wails IPC (instant, not waiting for WS)
-  await refreshAll()
+  try {
+    await refreshAll()
+    state.value = symbols.value.length > 0 ? 'loaded' : 'empty'
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+    state.value = 'error'
+  }
   initialLoadDone.value = true
 
   // Subscribe to real-time updates via WebSocket
@@ -396,81 +407,79 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="watchlist-panel" data-testid="watchlist-panel" ref="rootEl">
-    <PanelHeader
-      :title="t('watchlist.title')"
-      :controls="controls"
-    />
+  <PanelShell :state="state" :error="loadError" data-testid="watchlist-panel" @retry="refreshAll">
+    <template #empty>
+      <div data-testid="watchlist-empty">{{ t('watchlist.empty') }}</div>
+    </template>
+    <template #loaded>
+      <div class="watchlist-panel" ref="rootEl">
+        <PanelHeader
+          :title="t('watchlist.title')"
+          :controls="controls"
+        />
 
-    <EmptyState
-      v-if="symbols.length === 0"
-      :title="t('watchlist.empty')"
-      data-testid="watchlist-empty"
-    />
+        <div class="watchlist-groups">
+          <template v-for="(g, gi) in groupList" :key="g.mkt">
+            <button
+              type="button"
+              class="group-header"
+              :aria-expanded="expandedGroups[g.mkt]"
+              @click="toggleGroup(g.mkt)"
+            >
+              <span class="group-arrow" aria-hidden="true">{{ expandedGroups[g.mkt] ? '▼' : '▶' }}</span>
+              <span class="group-label">{{ t('watchlist.group_' + g.mkt.toLowerCase()) }}</span>
+              <span class="group-count">{{ g.rows.length }}</span>
+            </button>
+            <PanelTable
+              v-if="expandedGroups[g.mkt]"
+              :columns="tableColumns"
+              :data="g.rows"
+              :striped="false"
+              clickable
+              row-test-id="watchlist-row"
+              :row-class="rowClass"
+              :sort-key="sort.key"
+              :sort-dir="sort.dir"
+              :hide-header="gi !== firstExpandedIndex"
+              @row-click="onRowClick"
+              @row-contextmenu="onRowContextMenu"
+              @sort-change="onSortChange"
+            >
+              <template #action="{ row }">
+                <button class="remove-btn" :title="t('common.delete')" @click.stop="removeSymbol(row.symbol)">✕</button>
+              </template>
+            </PanelTable>
+          </template>
+        </div>
 
-    <div v-else class="watchlist-groups">
-      <LoadingState v-if="!initialLoadDone" type="table" :rows="5" :cols="tableColumns.length" />
-      <template v-else>
-        <template v-for="(g, gi) in groupList" :key="g.mkt">
-          <button
-            type="button"
-            class="group-header"
-            :aria-expanded="expandedGroups[g.mkt]"
-            @click="toggleGroup(g.mkt)"
+        <!-- Polling indicator -->
+        <div v-if="!pollingActive && symbols.length" class="polling-badge">{{ t('watchlist.polling_paused') }}</div>
+
+        <!-- Context menu -->
+        <Teleport to="body">
+          <div
+            v-if="ctxMenu"
+            ref="menuRef"
+            class="context-menu"
+            role="menu"
+            :aria-label="ctxMenu.symbol"
+            :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+            @keydown="onMenuKeydown"
           >
-            <span class="group-arrow" aria-hidden="true">{{ expandedGroups[g.mkt] ? '▼' : '▶' }}</span>
-            <span class="group-label">{{ t('watchlist.group_' + g.mkt.toLowerCase()) }}</span>
-            <span class="group-count">{{ g.rows.length }}</span>
-          </button>
-          <PanelTable
-            v-if="expandedGroups[g.mkt]"
-            :columns="tableColumns"
-            :data="g.rows"
-            :striped="false"
-            clickable
-            row-test-id="watchlist-row"
-            :row-class="rowClass"
-            :sort-key="sort.key"
-            :sort-dir="sort.dir"
-            :hide-header="gi !== firstExpandedIndex"
-            @row-click="onRowClick"
-            @row-contextmenu="onRowContextMenu"
-            @sort-change="onSortChange"
-          >
-            <template #action="{ row }">
-              <button class="remove-btn" :title="t('common.delete')" @click.stop="removeSymbol(row.symbol)">✕</button>
-            </template>
-          </PanelTable>
-        </template>
-      </template>
-    </div>
-
-    <!-- Polling indicator -->
-    <div v-if="!pollingActive && symbols.length" class="polling-badge">{{ t('watchlist.polling_paused') }}</div>
-
-    <!-- Context menu -->
-    <Teleport to="body">
-      <div
-        v-if="ctxMenu"
-        ref="menuRef"
-        class="context-menu"
-        role="menu"
-        :aria-label="ctxMenu.symbol"
-        :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
-        @keydown="onMenuKeydown"
-      >
-        <button type="button" class="menu-item" role="menuitem" @click="contextOpenKline">{{ t('watchlist.context_open_kline') }}</button>
-        <div class="menu-sep" role="separator"></div>
-        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('dupont-analysis')">杜邦分析</button>
-        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('shareholder-analysis')">股东分析</button>
-        <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('event-study')">事件分析</button>
-        <div class="menu-sep" role="separator"></div>
-        <button type="button" class="menu-item" role="menuitem" @click="contextCopyCode">{{ t('watchlist.context_copy') }}</button>
-        <div class="menu-sep" role="separator"></div>
-        <button type="button" class="menu-item danger" role="menuitem" @click="contextDelete">{{ t('watchlist.context_delete') }}</button>
+            <button type="button" class="menu-item" role="menuitem" @click="contextOpenKline">{{ t('watchlist.context_open_kline') }}</button>
+            <div class="menu-sep" role="separator"></div>
+            <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('dupont-analysis')">杜邦分析</button>
+            <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('shareholder-analysis')">股东分析</button>
+            <button type="button" class="menu-item" role="menuitem" @click="contextOpenAnalysis('event-study')">事件分析</button>
+            <div class="menu-sep" role="separator"></div>
+            <button type="button" class="menu-item" role="menuitem" @click="contextCopyCode">{{ t('watchlist.context_copy') }}</button>
+            <div class="menu-sep" role="separator"></div>
+            <button type="button" class="menu-item danger" role="menuitem" @click="contextDelete">{{ t('watchlist.context_delete') }}</button>
+          </div>
+        </Teleport>
       </div>
-    </Teleport>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

@@ -7,6 +7,7 @@ import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '
 import KlineChart from '@/terminal/components/panel/KlineChart.vue'
 import type { ECBasicOption } from 'echarts/types/dist/shared'
 import { logger } from '@/lib/logger'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -112,7 +113,7 @@ const flowOption = computed<ECBasicOption>(() => ({
 }))
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetNorthboundFlow) return
   loading.value = true
   try {

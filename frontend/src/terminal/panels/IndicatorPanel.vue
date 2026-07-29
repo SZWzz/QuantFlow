@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useStockName } from '@/lib/composables/useStockName'
 import { PanelHeader, PanelTable, EmptyState, type Column } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{
   panelId: string
@@ -77,6 +78,7 @@ const { name } = useStockName(symbol)
 const loading = ref(false)
 const results = ref<ResultRow[]>([])
 const paramValues = ref<Record<string, string>>({})
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loaded')
 
 const filteredIndicators = computed(() => {
   if (!selectedCategory.value) return indicators
@@ -156,93 +158,97 @@ const headerControls = computed(() => {
 </script>
 
 <template>
-  <div class="indicator-panel">
-    <PanelHeader
-      :title="selectedIndicator ? selectedIndicator.name : 'Indicator Panel'"
-      :subtitle="selectedIndicator ? selectedIndicator.category : '技术指标'"
-      :controls="headerControls"
-    />
-
-    <div class="panel-body">
-      <!-- Symbol input (when indicator selected) -->
-      <div v-if="selectedIndicator" class="symbol-bar">
-        <span v-if="symbol" class="symbol-tag">{{ symbol }} {{ name }}</span>
-        <div class="symbol-input">
-          <input
-            v-model="symbol"
-            type="text"
-            placeholder="股票代码"
-            @keyup.enter="runComputation"
-            class="symbol-field"
-          />
-          <button
-            @click="runComputation"
-            :disabled="loading || !symbol"
-            class="btn btn-primary"
-          >
-            {{ loading ? '计算中...' : '计算' }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Category / Indicator Grid -->
-      <div v-if="!selectedIndicator" class="indicator-grid">
-        <div v-for="[cat, items] in categories" :key="cat" class="category-group">
-          <h4 class="cat-title">{{ cat }}</h4>
-          <div class="indicator-list">
-            <button
-              v-for="ind in items"
-              :key="ind.id"
-              @click="selectIndicator(ind)"
-              class="indicator-chip"
-              :title="ind.outputs.join(', ')"
-            >
-              <span class="chip-name">{{ ind.name }}</span>
-              <span class="chip-outputs">→ {{ ind.outputs.join(', ') }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Indicator Detail -->
-      <div v-else class="indicator-detail">
-        <div class="detail-header">
-          <span class="ind-name">{{ selectedIndicator.name }}</span>
-          <span class="ind-category">{{ selectedIndicator.category }}</span>
-          <span class="ind-outputs">输出: {{ selectedIndicator.outputs.join(', ') }}</span>
-        </div>
-
-        <!-- Params editor -->
-        <div v-if="selectedIndicator.params.length" class="params-section">
-          <div v-for="p in selectedIndicator.params" :key="p.name" class="param-row">
-            <label :title="p.description">{{ p.name }}</label>
-            <input
-              v-model="paramValues[p.name]"
-              type="text"
-              class="param-field"
-            />
-            <span class="param-desc">{{ p.description }}</span>
-          </div>
-        </div>
-
-        <!-- Results Table -->
-        <div v-if="results.length" class="results-table">
-          <PanelTable
-            :columns="tableColumns"
-            :data="results"
-            :striped="true"
-            :loading="loading"
-          />
-        </div>
-        <EmptyState
-          v-else-if="!loading"
-          icon="chart"
-          title="暂无计算结果"
-          description="输入股票代码并点击计算查看结果"
+  <PanelShell :state="state">
+    <template #loaded>
+      <div class="indicator-panel">
+        <PanelHeader
+          :title="selectedIndicator ? selectedIndicator.name : 'Indicator Panel'"
+          :subtitle="selectedIndicator ? selectedIndicator.category : '技术指标'"
+          :controls="headerControls"
         />
+
+        <div class="panel-body">
+          <!-- Symbol input (when indicator selected) -->
+          <div v-if="selectedIndicator" class="symbol-bar">
+            <span v-if="symbol" class="symbol-tag">{{ symbol }} {{ name }}</span>
+            <div class="symbol-input">
+              <input
+                v-model="symbol"
+                type="text"
+                placeholder="股票代码"
+                @keyup.enter="runComputation"
+                class="symbol-field"
+              />
+              <button
+                @click="runComputation"
+                :disabled="loading || !symbol"
+                class="btn btn-primary"
+              >
+                {{ loading ? '计算中...' : '计算' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Category / Indicator Grid -->
+          <div v-if="!selectedIndicator" class="indicator-grid">
+            <div v-for="[cat, items] in categories" :key="cat" class="category-group">
+              <h4 class="cat-title">{{ cat }}</h4>
+              <div class="indicator-list">
+                <button
+                  v-for="ind in items"
+                  :key="ind.id"
+                  @click="selectIndicator(ind)"
+                  class="indicator-chip"
+                  :title="ind.outputs.join(', ')"
+                >
+                  <span class="chip-name">{{ ind.name }}</span>
+                  <span class="chip-outputs">→ {{ ind.outputs.join(', ') }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Indicator Detail -->
+          <div v-else class="indicator-detail">
+            <div class="detail-header">
+              <span class="ind-name">{{ selectedIndicator.name }}</span>
+              <span class="ind-category">{{ selectedIndicator.category }}</span>
+              <span class="ind-outputs">输出: {{ selectedIndicator.outputs.join(', ') }}</span>
+            </div>
+
+            <!-- Params editor -->
+            <div v-if="selectedIndicator.params.length" class="params-section">
+              <div v-for="p in selectedIndicator.params" :key="p.name" class="param-row">
+                <label :title="p.description">{{ p.name }}</label>
+                <input
+                  v-model="paramValues[p.name]"
+                  type="text"
+                  class="param-field"
+                />
+                <span class="param-desc">{{ p.description }}</span>
+              </div>
+            </div>
+
+            <!-- Results Table -->
+            <div v-if="results.length" class="results-table">
+              <PanelTable
+                :columns="tableColumns"
+                :data="results"
+                :striped="true"
+                :loading="loading"
+              />
+            </div>
+            <EmptyState
+              v-else-if="!loading"
+              icon="chart"
+              title="暂无计算结果"
+              description="输入股票代码并点击计算查看结果"
+            />
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>

@@ -22,6 +22,7 @@ import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
 import { logger } from '@/lib/logger'
 import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
 import ChartToolbar from './candlestick/ChartToolbar.vue'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -78,6 +79,8 @@ const ohlcvData = ref<KlineDataItem[]>([])
 const loading = ref(false)
 const indicatorCache = createIndicatorCache()
 const errorMsg = ref('')
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
+const loadError = ref('')
 let loadSeq = 0
 
 // OHLCV progressive loading state
@@ -143,7 +146,7 @@ function barWidth(size: number): string {
 }
 
 async function loadDepth() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app) return
   depthLoading.value = true
   try {
@@ -213,6 +216,7 @@ function getTodayDateString(): string {
 
 async function loadOHLCV(sym: string, incremental = false) {
   const seq = ++loadSeq
+  state.value = 'loading'
   loading.value = true
   try {
     const end = Math.floor(Date.now() / 1000)
@@ -258,10 +262,17 @@ async function loadOHLCV(sym: string, incremental = false) {
     if (seq !== loadSeq) return
     console.error('[Candlestick]', e)
     errorMsg.value = 'K线数据加载失败: ' + (e.message || '未知错误')
+    loadError.value = errorMsg.value
+    state.value = 'error'
     setTimeout(() => { errorMsg.value = '' }, 8000)
     if (!ohlcvData.value.length) ohlcvData.value = []
   }
-  if (seq === loadSeq) loading.value = false
+  if (seq === loadSeq) {
+    loading.value = false
+    if (state.value !== 'error') {
+      state.value = ohlcvData.value.length > 0 ? 'loaded' : 'empty'
+    }
+  }
 }
 
 function startKlineRefresh() {
@@ -756,72 +767,75 @@ onUnmounted(() => {
       :symbol="symbol"
       :name="name ?? ''"
     />
-    <div class="chart-body">
-      <!-- Only show loading overlay on initial load (no data yet); skip during polling to avoid flashing the chart -->
-      <div v-if="(activeTab === 'kline' && loading && !ohlcvData.length) || (activeTab === 'minute' && minuteLoading && !minuteTicks.length)" class="chart-fallback">{{ $t('common.loading') }}</div>
-      <div v-else-if="activeTab === 'kline' && ohlcvData.length > 0" class="chart-area" @contextmenu="onContextMenu">
-        <KlineChart
-          ref="klineChartRef"
-          :option="option"
-          :symbol="symbol"
-          :loading="loading && !ohlcvData.length"
-          @dataZoom="onDataZoom"
-        />
-        <canvas
-          ref="drawingCanvasRef"
-          class="canvas-overlay"
-          :class="{ 'drawing-mode': drawingMode }"
-          @mousedown="onDrawingMouseDown"
-          @mousemove="onDrawingMouseMove"
-          @mouseup="onDrawingMouseUp"
-        />
-        <canvas
-          ref="crosshairCanvasRef"
-          class="crosshair-overlay"
-        />
-        <div class="drawing-toolbar" v-if="drawingMode">
-          <button @click="dc?.setMode('cursor')" :class="{ active: dc?.mode === 'cursor' }" title="光标">↖</button>
-          <button @click="dc?.setMode('trendline')" :class="{ active: dc?.mode === 'trendline' }" title="趋势线">╱</button>
-          <button @click="dc?.setMode('horizontal')" :class="{ active: dc?.mode === 'horizontal' }" title="水平线">━</button>
-          <button @click="dc?.setMode('fibonacci')" :class="{ active: dc?.mode === 'fibonacci' }" title="斐波那契">F</button>
-          <button @click="dc?.setMode('text')" :class="{ active: dc?.mode === 'text' }" title="文字">T</button>
-          <input type="color" v-model="drawingColor" @input="dc?.setColor(drawingColor)" />
-          <button @click="dc?.clearAll()" title="全部清除">✕</button>
-        </div>
-      </div>
-      <template v-else-if="activeTab === 'minute'">
-        <div class="minute-layout">
-          <div class="minute-chart-area">
-            <template v-if="minuteTicks.length">
-              <KlineChart :symbol="`${symbol}-minute`" :option="minuteChartOption" :loading="minuteLoading && !minuteTicks.length" />
-            </template>
-            <SkeletonPanel v-else-if="minuteLoading" type="chart" />
-            <div v-else class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
+    <div v-if="errorMsg" class="err-toast">{{ errorMsg }}</div>
+    <PanelShell :state="state" :error="loadError" @retry="() => loadOHLCV(symbol.value)">
+      <template #loaded>
+        <div class="chart-body">
+          <div v-if="activeTab === 'kline' && ohlcvData.length > 0" class="chart-area" @contextmenu="onContextMenu">
+            <KlineChart
+              ref="klineChartRef"
+              :option="option"
+              :symbol="symbol"
+              :loading="loading && !ohlcvData.length"
+              @dataZoom="onDataZoom"
+            />
+            <canvas
+              ref="drawingCanvasRef"
+              class="canvas-overlay"
+              :class="{ 'drawing-mode': drawingMode }"
+              @mousedown="onDrawingMouseDown"
+              @mousemove="onDrawingMouseMove"
+              @mouseup="onDrawingMouseUp"
+            />
+            <canvas
+              ref="crosshairCanvasRef"
+              class="crosshair-overlay"
+            />
+            <div class="drawing-toolbar" v-if="drawingMode">
+              <button @click="dc?.setMode('cursor')" :class="{ active: dc?.mode === 'cursor' }" title="光标">↖</button>
+              <button @click="dc?.setMode('trendline')" :class="{ active: dc?.mode === 'trendline' }" title="趋势线">╱</button>
+              <button @click="dc?.setMode('horizontal')" :class="{ active: dc?.mode === 'horizontal' }" title="水平线">━</button>
+              <button @click="dc?.setMode('fibonacci')" :class="{ active: dc?.mode === 'fibonacci' }" title="斐波那契">F</button>
+              <button @click="dc?.setMode('text')" :class="{ active: dc?.mode === 'text' }" title="文字">T</button>
+              <input type="color" v-model="drawingColor" @input="dc?.setColor(drawingColor)" />
+              <button @click="dc?.clearAll()" title="全部清除">✕</button>
+            </div>
           </div>
-          <div v-if="showDepth" class="depth-sidebar">
-            <div class="dp-last-price" :style="{ color: marketChangeColor(symbol, depthChangePct) }">
-              <span class="dp-name">{{ name || symbol }}</span>
-              <span class="dp-val">{{ depthPrice.toFixed(2) }}</span>
-              <span class="dp-chg">{{ depthChange >= 0 ? '+' : '' }}{{ depthChange.toFixed(2) }} ({{ depthChangePct >= 0 ? '+' : '' }}{{ depthChangePct.toFixed(2) }}%)</span>
+          <template v-else-if="activeTab === 'minute'">
+            <div class="minute-layout">
+              <div class="minute-chart-area">
+                <template v-if="minuteTicks.length">
+                  <KlineChart :symbol="`${symbol}-minute`" :option="minuteChartOption" :loading="minuteLoading && !minuteTicks.length" />
+                </template>
+                <SkeletonPanel v-else-if="minuteLoading" type="chart" />
+                <div v-else class="chart-fallback no-data">{{ $t('kline.no_minute_data') }}</div>
+              </div>
+              <div v-if="showDepth" class="depth-sidebar">
+                <div class="dp-last-price" :style="{ color: marketChangeColor(symbol, depthChangePct) }">
+                  <span class="dp-name">{{ name || symbol }}</span>
+                  <span class="dp-val">{{ depthPrice.toFixed(2) }}</span>
+                  <span class="dp-chg">{{ depthChange >= 0 ? '+' : '' }}{{ depthChange.toFixed(2) }} ({{ depthChangePct >= 0 ? '+' : '' }}{{ depthChangePct.toFixed(2) }}%)</span>
+                </div>
+                <div class="dp-ob-header">
+                  <span class="h-bid">{{ $t('quote.bid') }}</span><span class="h-bs">{{ $t('common.size') }}</span><span class="h-bar"></span>
+                  <span class="h-ask">{{ $t('quote.ask') }}</span><span class="h-as">{{ $t('common.size') }}</span><span class="h-bar"></span>
+                </div>
+                <div v-for="i in 5" :key="i" class="dp-ob-row">
+                  <span class="dp-bid-p">{{ depthData?.bids[5-i]?.price.toFixed(2) ?? '' }}</span>
+                  <span class="dp-bid-s">{{ depthData?.bids[5-i] ? formatSize(depthData.bids[5-i].size) : '' }}</span>
+                  <span class="dp-bar-w"><span class="dp-bar bid" :style="{width: depthData?.bids[5-i] ? barWidth(depthData.bids[5-i].size) : '0%'}"></span></span>
+                  <span class="dp-ask-p">{{ depthData?.asks[i-1]?.price.toFixed(2) ?? '' }}</span>
+                  <span class="dp-ask-s">{{ depthData?.asks[i-1] ? formatSize(depthData.asks[i-1].size) : '' }}</span>
+                  <span class="dp-bar-w"><span class="dp-bar ask" :style="{width: depthData?.asks[i-1] ? barWidth(depthData.asks[i-1].size) : '0%'}"></span></span>
+                </div>
+                <div v-if="depthSimulated" class="dp-sim">模拟</div>
+              </div>
             </div>
-            <div class="dp-ob-header">
-              <span class="h-bid">{{ $t('quote.bid') }}</span><span class="h-bs">{{ $t('common.size') }}</span><span class="h-bar"></span>
-              <span class="h-ask">{{ $t('quote.ask') }}</span><span class="h-as">{{ $t('common.size') }}</span><span class="h-bar"></span>
-            </div>
-            <div v-for="i in 5" :key="i" class="dp-ob-row">
-              <span class="dp-bid-p">{{ depthData?.bids[5-i]?.price.toFixed(2) ?? '' }}</span>
-              <span class="dp-bid-s">{{ depthData?.bids[5-i] ? formatSize(depthData.bids[5-i].size) : '' }}</span>
-              <span class="dp-bar-w"><span class="dp-bar bid" :style="{width: depthData?.bids[5-i] ? barWidth(depthData.bids[5-i].size) : '0%'}"></span></span>
-              <span class="dp-ask-p">{{ depthData?.asks[i-1]?.price.toFixed(2) ?? '' }}</span>
-              <span class="dp-ask-s">{{ depthData?.asks[i-1] ? formatSize(depthData.asks[i-1].size) : '' }}</span>
-              <span class="dp-bar-w"><span class="dp-bar ask" :style="{width: depthData?.asks[i-1] ? barWidth(depthData.asks[i-1].size) : '0%'}"></span></span>
-            </div>
-            <div v-if="depthSimulated" class="dp-sim">模拟</div>
-          </div>
+          </template>
+          <div v-else class="chart-fallback">--</div>
         </div>
       </template>
-      <div v-else class="chart-fallback">--</div>
-    </div>
+    </PanelShell>
     <div
       v-if="contextMenu.visible"
       class="context-menu"

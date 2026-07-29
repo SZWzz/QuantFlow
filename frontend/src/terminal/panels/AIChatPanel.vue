@@ -3,6 +3,7 @@ import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { PanelHeader } from '@/terminal/components/panel'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
@@ -115,8 +116,8 @@ async function send() {
   scrollToBottom()
 
   try {
-    if ((window as any).go?.main?.App) {
-      const app = (window as any).go.main.App
+    const app = useWailsApp()
+    if (app) {
       const result = await app.Chat(selectedProfile.value, selectedModel.value, text)
       assistantMsg.content = result || 'No response.'
     } else {
