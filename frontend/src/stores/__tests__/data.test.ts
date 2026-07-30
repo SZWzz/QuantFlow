@@ -1,6 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useDataStore } from '../data'
+
+// Mock the wails wrappers used by the data store
+vi.mock('@/lib/wails', () => ({
+  fetchMarketOverview: vi.fn().mockResolvedValue({
+    indices: [
+      { code: '000001', name: '上证指数', price: 3200, change_pct: 0.5, prev_close: 3184 },
+      { code: '399001', name: '深证成指', price: 11000, change_pct: -0.2, prev_close: 11022 },
+    ],
+    breadth: { advancers: 1500, decliners: 800, unchanged: 200 },
+    sentiment: { limit_up: 30, limit_down: 5, northbound_flow: 2.5, total_volume: 1200 },
+  }),
+  fetchMinuteLine: vi.fn(),
+  GetIndustryRanks: vi.fn().mockResolvedValue([
+    { name: '银行', change_pct: 1.2 },
+    { name: '科技', change_pct: -0.5 },
+    { name: '消费', change_pct: 0.8 },
+  ]),
+}))
 
 describe('useDataStore', () => {
   beforeEach(() => {

@@ -1,3 +1,6 @@
+run:
+  timeout: 5m
+
 linters:
   enable:
     - govet
@@ -13,6 +16,7 @@ linters:
     - revive
     - goconst
     - gocritic
+    - gosec
 linters-settings:
   errcheck:
     exclude-functions:

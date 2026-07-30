@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { fetchMarketOverview as wailsFetchMarketOverview, fetchMinuteLine as wailsFetchMinuteLine, GetIndustryRanks as wailsGetIndustryRanks } from '@/lib/wails'
 
 export interface QuoteSnapshot {
   symbol: string
@@ -124,9 +125,6 @@ export const useDataStore = defineStore('data', () => {
   }
 
   async function fetchMarketOverview(market = 'CN') {
-    const app = (window as any).go?.main?.App
-    if (!app) return
-
     const sectorsCacheKey = `industryRanks:${market}`
     const cachedSectors = getCached<SectorRanking[]>(sectorsCacheKey)
 
@@ -137,7 +135,7 @@ export const useDataStore = defineStore('data', () => {
       const [overviewResult, industryResult] = await Promise.all([
         (async () => {
           try {
-            return await app.GetMarketOverview(market)
+            return await wailsFetchMarketOverview(market)
           } catch (e) {
             error.value = e instanceof Error ? e.message : String(e)
             return null
@@ -146,9 +144,8 @@ export const useDataStore = defineStore('data', () => {
         (async () => {
           // Use cache if available, skip the Go call entirely
           if (cachedSectors) return null
-          if (!app.GetIndustryRanks) return null
           try {
-            return await app.GetIndustryRanks(market, 30)
+            return await wailsGetIndustryRanks(market, 30)
           } catch {
             return null
           }
@@ -209,9 +206,7 @@ export const useDataStore = defineStore('data', () => {
   }
 
   async function fetchMinuteLine(symbol: string, sinceTimestamp: number) {
-    const app = (window as any).go?.main?.App
-    if (!app) throw new Error('Wails bridge not available')
-    return app.GetMinuteLine(symbol, sinceTimestamp)
+    return wailsFetchMinuteLine(symbol, sinceTimestamp)
   }
 
   return {

@@ -136,28 +136,7 @@ export const useTerminalStore = defineStore('terminal', () => {
   }
 
   function closeTab(leafId: string, tabId: string) {
-    const leaf = findLeaf(layout, leafId)
-    function removeFrom(n: DockLayoutTree): boolean {
-      if (n.id === leafId && n.type === 'tab' && n.tabs) {
-        const idx = n.tabs.findIndex(t => t.id === tabId)
-        if (idx !== -1) {
-          n.tabs.splice(idx, 1)
-          if (n.activeTab === tabId) n.activeTab = n.tabs[0]?.id ?? ''
-          if (n.tabs.length === 0) {
-            n.tabs = [{ id: 'welcome', panelId: 'welcome', label: 'Welcome', icon: '🏠' }]
-            n.activeTab = 'welcome'
-          }
-          return true
-        }
-        return false
-      }
-      if (n.children) {
-        for (const c of n.children) { if (removeFrom(c)) return true }
-      }
-      return false
-    }
-    const target = leaf || layout
-    function searchFromRoot(n: DockLayoutTree): boolean {
+    function removeTabFromTree(n: DockLayoutTree): boolean {
       if (n.type === 'tab' && n.tabs) {
         const idx = n.tabs.findIndex(t => t.id === tabId)
         if (idx !== -1) {
@@ -171,16 +150,12 @@ export const useTerminalStore = defineStore('terminal', () => {
         }
       }
       if (n.children) {
-        for (const c of n.children) { if (searchFromRoot(c)) return true }
+        for (const c of n.children) { if (removeTabFromTree(c)) return true }
       }
       return false
     }
-    if (leaf?.type === 'tab' && leaf.tabs?.some(t => t.id === tabId)) {
-      removeFrom(layout)
-    } else {
-      searchFromRoot(layout)
-    }
-    persistLayout()
+    removeTabFromTree(layout)
+    persistLayout()  // ensure persistence is always called
     activePanels.value = activePanels.value.filter(p => p.instanceId !== tabId)
   }
 

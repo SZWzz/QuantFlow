@@ -6,7 +6,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { setLocale } from '@/lib/i18n'
 import { getIcon } from '@/lib/icons'
 import { APP_VERSION } from '@/version'
-import { saveCredential, getCredential, GetVersion, GetUpdateInterval, SetUpdateInterval, alertDialog } from '@/lib/wails'
+import { SaveCredential, GetCredential, GetVersion, GetUpdateInterval, SetUpdateInterval, alertDialog } from '@/lib/wails'
 import { logger } from '@/lib/logger'
 import { useUpdateStore } from '@/stores/update'
 import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
@@ -105,9 +105,9 @@ const apiKeys = ref({
 
 async function loadApiKeys() {
   for (const name of ['fred', 'finnhub', 'iwencai', 'qos']) {
-    const cred = await getCredential(`${name}_api_key`)
-    if (cred?.api_key) {
-      apiKeys.value[name as keyof typeof apiKeys.value] = cred.api_key
+    const cred = await GetCredential(`${name}_api_key`)
+    if (cred?.keys?.api_key) {
+      apiKeys.value[name as keyof typeof apiKeys.value] = cred.keys.api_key
     }
   }
 }
@@ -116,7 +116,7 @@ async function onSaveApiKeys() {
   try {
     for (const [name, key] of Object.entries(apiKeys.value)) {
       if (key) {
-        await saveCredential(`${name}_api_key`, { api_key: key })
+        await SaveCredential(`${name}_api_key`, 'api_key', { api_key: key })
         logger.info(`[Settings] saved credential: ${name}`)
       }
     }

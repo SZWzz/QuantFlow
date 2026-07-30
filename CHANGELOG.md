@@ -3,6 +3,40 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.30] - 2026-07-30
+
+### Fixed
+
+- [Python] RLPredict proto 类型修复 — `observation` 从 `bytes` 改为 `repeated double`，消除 Python 端 `np.array()` 数据损坏风险
+- [Python] 删除 `HealthServer.__del__` — Python 3.12+ 中从 `__del__` 访问 asyncio 事件循环不可靠，替换为显式 `close()` 方法
+- [Python] gRPC server 添加 SIGTERM/SIGINT 信号处理 — 支持优雅关闭，`health_server.close()` 替代 `__del__`
+- [Python] AKShare HK 分钟数据缓存从无界 dict 迁移到 `@lru_cache(maxsize=128)` — 修复长期运行内存泄漏
+- [Python] `CountTokens` 使用 tiktoken 模型分词器 — 替代字符数/4 粗估算，对 CJK 文本更准确
+- [Python] `pyproject.toml` 修复 — `grpcio-tools` 从运行时依赖移入 build-system requires，build-backend 从废弃的 `_legacy:_Backend` 改为 `build_meta`
+- [Frontend] `AppMethods` 接口全面类型化 — 80+ 方法从 `Promise<any>` 改为具体返回类型，删除通配 `[key: string]` 索引签名
+- [Frontend] 删除 `lib/wails.ts` 底部 4 个小写重复函数 — `saveCredential`/`getCredential`/`deleteCredential`/`listCredentialNames`
+- [Frontend] `closeTab()` 重构 — 双路径递归（`removeFrom` + `searchFromRoot`）统一为单一 `removeTabFromTree` 函数，保证 `persistLayout()` 始终调用
+- [Frontend] `data.ts` 迁移 — `(window as any).go?.main?.App` 替换为 `@/lib/wails` 类型化包装函数
+- [Frontend] `SettingsPanel.vue` 凭证管理迁移 — 从旧版小写函数迁移到 `SaveCredential`/`GetCredential` 类型化包装
+- [Go] 添加 `gosec` linter 到 `.golangci.yml` — 启用安全审计检查
+- [Go] Poller context 修复 — QuotePoller/MinutePoller 从不可取消的 context 改为通过 `pollerCtx`/`pollerCancel` 管理，关闭顺序正确（poller → wsHub → sidecar → DB）
+- [Python] 新增缠论测试 27 条 — 覆盖碎形识别、K 线合并、笔连接、中枢识别
+- [Python] 新增策略测试 9 条 — 覆盖 MA 交叉、RSI 反转信号生成
+
+### Added
+
+- [Docs] 新增 `CONTRIBUTING.md` — PR 工作流、编码标准、commit 规范、本地开发设置
+- [Docs] 新增 `SECURITY.md` — 漏洞报告流程、支持的版本、AES-256-GCM 加密说明
+- [CI] 新增 `dependabot.yml` — Go/npm/pip 三生态周更依赖检查
+- [CI] 所有 workflow 添加 `workflow_dispatch` 手动触发支持
+
+### Changed
+
+- [CI] Go 版本引用从硬编码 `'1.25'` 统一为 `go-version-file: go.mod`
+- [CI] Vitest coverage 阈值从 CLI flags 移入 `vite.config.ts`
+- [Build] 修复 `Taskfile.yml` 重复 YAML key `build:frontend:`
+- [Config] `.env.example` 补充 `QOS_API_KEY`、`GDELT_API_KEY` 及说明注释
+
 ## [2026.7.25] - 2026-07-25
 
 ### Added

@@ -2,46 +2,46 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 describe('credential wrappers', () => {
   beforeEach(() => {
-    ;(window as any).go = {
-      main: {
-        App: {
-          SaveCredential: vi.fn().mockResolvedValue(undefined),
-          GetCredential: vi.fn().mockResolvedValue({ Name: 'openai', Keys: { api_key: 'sk-test' } }),
-          DeleteCredential: vi.fn().mockResolvedValue(undefined),
-          ListCredentialNames: vi.fn().mockResolvedValue(['openai', 'anthropic']),
-        }
-      }
-    }
+    // Mock @wailsio/runtime Call.ByName since the typed wrappers use it
+    vi.mock('@wailsio/runtime', () => ({
+      Call: {
+        ByName: vi.fn().mockImplementation((method: string, ...args: any[]) => {
+          if (method === 'main.App.SaveCredential') return Promise.resolve(undefined)
+          if (method === 'main.App.GetCredential') return Promise.resolve({ name: 'openai', type: 'api_key', keys: { api_key: 'sk-test' } })
+          if (method === 'main.App.ListCredentialNames') return Promise.resolve(['openai', 'anthropic'])
+          if (method === 'main.App.DeleteCredential') return Promise.resolve(undefined)
+          return Promise.resolve(undefined)
+        }),
+      },
+      default: {},
+      Events: { On: vi.fn(), Emit: vi.fn() },
+    }))
   })
 
-  it('saveCredential calls Go IPC', async () => {
-    const { saveCredential } = await import('@/lib/wails')
-    await saveCredential('openai', { api_key: 'sk-test' })
-    expect((window as any).go.main.App.SaveCredential).toHaveBeenCalledWith('openai', 'api_key', { api_key: 'sk-test' })
+  it('SaveCredential calls Go IPC', async () => {
+    const { SaveCredential } = await import('@/lib/wails')
+    await SaveCredential('openai', 'api_key', { api_key: 'sk-test' })
+    const { Call } = await import('@wailsio/runtime')
+    expect(Call.ByName).toHaveBeenCalledWith('main.App.SaveCredential', 'openai', 'api_key', { api_key: 'sk-test' })
   })
 
-  it('getCredential returns credential', async () => {
-    const { getCredential } = await import('@/lib/wails')
-    const cred = await getCredential('openai')
+  it('GetCredential returns credential', async () => {
+    const { GetCredential } = await import('@/lib/wails')
+    const cred = await GetCredential('openai')
     expect(cred).toBeDefined()
+    expect(cred.keys.api_key).toBe('sk-test')
   })
 
   it('listCredentialNames returns names', async () => {
-    const { listCredentialNames } = await import('@/lib/wails')
-    const names = await listCredentialNames()
+    const { ListCredentialNames } = await import('@/lib/wails')
+    const names = await ListCredentialNames()
     expect(names).toEqual(['openai', 'anthropic'])
   })
 
-  it('deleteCredential calls Go IPC', async () => {
-    const { deleteCredential } = await import('@/lib/wails')
-    await deleteCredential('openai')
-    expect((window as any).go.main.App.DeleteCredential).toHaveBeenCalledWith('openai')
-  })
-
-  it('getCredential returns null when unavailable', async () => {
-    delete (window as any).go
-    const { getCredential } = await import('@/lib/wails')
-    const cred = await getCredential('openai')
-    expect(cred).toBeNull()
+  it('DeleteCredential calls Go IPC', async () => {
+    const { DeleteCredential } = await import('@/lib/wails')
+    await DeleteCredential('openai')
+    const { Call } = await import('@wailsio/runtime')
+    expect(Call.ByName).toHaveBeenCalledWith('main.App.DeleteCredential', 'openai')
   })
 })

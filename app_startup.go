@@ -240,8 +240,9 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 
 	// Start the QuotePoller: subscribes/unsubscribes based on frontend WS topics,
 	// periodically fetches quotes and broadcasts via wsHub.
+	a.pollerCtx, a.pollerCancel = context.WithCancel(context.Background())
 	a.quotePoller = market.NewQuotePoller(a.marketReg, a.marketHub, a.wsHub)
-	go a.quotePoller.Run(ctx)
+	go a.quotePoller.Run(a.pollerCtx)
 	slog.Info("quote poller started on ws hub")
 
 	// Start the MinutePoller: fetches minute ticks for subscribed symbols
@@ -252,7 +253,7 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 		ticks, _, err := a.GetMinuteLine(reqCtx, symbol, since)
 		return ticks, err
 	})
-	go a.minutePoller.Run(ctx)
+	go a.minutePoller.Run(a.pollerCtx)
 	slog.Info("minute poller started on ws hub")
 
 	// Initialize CapabilityRegistry

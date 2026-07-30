@@ -23,7 +23,6 @@ tasks:
       - echo "Proto generated"
 
   build:frontend:
-  build:frontend:
     summary: Build the frontend
     dir: frontend
     sources:

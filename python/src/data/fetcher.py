@@ -19,6 +19,7 @@ import time
 import urllib.request
 import urllib.error
 from datetime import datetime
+from functools import lru_cache
 
 from src.proto import data_pb2, data_pb2_grpc
 
@@ -1243,20 +1244,13 @@ class DataService(data_pb2_grpc.DataServiceServicer):
 # AKShare HK minute data — direct akshare call (not via fincept module)
 # ---------------------------------------------------------------------------
 
-_FETCH_AKSHARE_HK_MINUTE_CACHE: dict[str, list[dict]] = {}
-_FETCH_AKSHARE_HK_MINUTE_CACHE_TS: dict[str, float] = {}
-
+@lru_cache(maxsize=128)
 def _fetch_akshare_hk_minute(symbol: str) -> list[dict]:
     """Fetch HK stock minute data via akshare.stock_hk_hist_min_em.
 
     Returns [{time, price, volume}, ...] for today, ordered by time ascending.
-    Cached for 60s per symbol to avoid redundant API calls.
+    LRU-cached (maxsize=128) to bound memory usage.
     """
-    now = time.time()
-    cached_ts = _FETCH_AKSHARE_HK_MINUTE_CACHE_TS.get(symbol, 0)
-    if now - cached_ts < 60 and symbol in _FETCH_AKSHARE_HK_MINUTE_CACHE:
-        return _FETCH_AKSHARE_HK_MINUTE_CACHE[symbol]
-
     today = datetime.now().strftime("%Y%m%d")
     try:
         ak = importlib.import_module("akshare")
@@ -1314,6 +1308,4 @@ def _fetch_akshare_hk_minute(symbol: str) -> list[dict]:
         bars.append(bar)
 
     bars.sort(key=lambda b: b.get("date", ""))
-    _FETCH_AKSHARE_HK_MINUTE_CACHE[symbol] = bars
-    _FETCH_AKSHARE_HK_MINUTE_CACHE_TS[symbol] = now
     return bars

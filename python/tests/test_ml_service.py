@@ -123,7 +123,8 @@ async def test_unsupported_model_type(ml_service, arrow_features, arrow_targets)
         target_type="regression",
     )
     with pytest.raises(ValueError, match="unsupported model_type"):
-        await ml_service.Train(train_req, None)
+        mock_ctx = type('MockContext', (), {'set_code': lambda s, c: None, 'set_details': lambda s, d: None})()
+        await ml_service.Train(train_req, mock_ctx)
 
 
 @pytest.mark.asyncio
@@ -134,8 +135,9 @@ async def test_predict_missing_model(ml_service, arrow_features):
         model_id="nonexistent",
         features=arrow_features,
     )
-    with pytest.raises(ValueError, match="model not found"):
-        await ml_service.Predict(pred_req, None)
+    mock_ctx = type('MockContext', (), {'set_code': lambda s, c: None, 'set_details': lambda s, d: None})()
+    with pytest.raises(KeyError, match="model not found"):
+        await ml_service.Predict(pred_req, mock_ctx)
 
 
 @pytest.mark.skipif(not HAS_GPLEARN, reason="gplearn not installed")
