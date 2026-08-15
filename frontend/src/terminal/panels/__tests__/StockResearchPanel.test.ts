@@ -26,7 +26,7 @@ describe('StockResearchPanel', () => {
     const wrapper = mount(StockResearchPanel, {
       props: { panelId: 'test-research', params: {} },
     })
-    const tabs = wrapper.findAll('.tab-btn')
+    const tabs = wrapper.findAll('.tab-bar .btn-sm')
     expect(tabs.length).toBeGreaterThanOrEqual(6)
   })
 

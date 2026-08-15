@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useDataFetch } from '@/lib/composables/useDataFetch'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { detectMarket } from '@/lib/wails'
-import { marketChangeColor } from '@/lib/composables/useMarketColors'
+import { PanelHeader, LoadingState } from '@/terminal/components/panel'
+
+const changeClass = (pct: number) => (pct > 0 ? 'is-up' : pct < 0 ? 'is-down' : 'is-flat')
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const app = useWailsApp()
 
 interface TickerItem {
   symbol: string
@@ -27,7 +31,7 @@ const { data: items, loading, execute } = useDataFetch<TickerItem[]>(async () =>
   const results: TickerItem[] = []
   for (const sym of SYMBOLS.value) {
     try {
-      const result = await (window as any).go?.main?.App?.GetQuote(detectMarket(sym), sym)
+      const result = await app?.GetQuote(detectMarket(sym), sym)
       const snapshot = Array.isArray(result) ? result[0] : result
       results.push({
         symbol: snapshot.symbol ?? sym,
@@ -42,37 +46,46 @@ const { data: items, loading, execute } = useDataFetch<TickerItem[]>(async () =>
   return results
 })
 
+function switchMarket(mkt: 'CN' | 'HK' | 'US') {
+  activeMarket.value = mkt
+  execute()
+}
+
 onMounted(() => execute())
 </script>
 
 <template>
   <div class="ticker-tape-panel">
-    <span class="tape-title">{{ $t('watchlist.ticker_tape') }}</span>
-    <div class="market-tabs">
-      <button v-for="mkt in (['CN', 'HK', 'US'] as const)" :key="mkt"
-        :class="['mkt-tab', { active: activeMarket === mkt }]"
-        @click="activeMarket = mkt; execute()"
-      >{{ mkt }}</button>
-    </div>
-    <div v-if="loading && !items" class="tape-loading">{{ $t('common.loading') }}</div>
-    <div v-else-if="!items" class="tape-loading">{{ $t('common.no_data') }}</div>
+    <PanelHeader title="快讯">
+      <template #controls>
+        <button v-for="mkt in (['CN', 'HK', 'US'] as const)" :key="mkt"
+          :class="['btn btn-sm', { 'btn-primary': activeMarket === mkt }]"
+          @click="switchMarket(mkt)"
+        >{{ mkt }}</button>
+      </template>
+    </PanelHeader>
+
+    <LoadingState v-if="loading && !items" type="inline" />
+    <div v-else-if="!items" class="tape-empty">{{ $t('common.no_data') }}</div>
     <div v-else class="tape-track-container">
       <div class="tape-track">
         <span v-for="(item, idx) in items" :key="idx" class="tape-item">
           <span class="tape-symbol">{{ item.symbol }}</span>
           <span class="tape-name">{{ item.name }}</span>
           <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-          <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
+          <span class="tape-change" :class="changeClass(item.changePct)">
             {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
           </span>
         </span>
         <!-- Duplicate for seamless loop -->
-        <span v-for="(item, idx) in items" :key="'dup-' + idx" class="tape-item">
-          <span class="tape-symbol">{{ item.symbol }}</span>
-          <span class="tape-name">{{ item.name }}</span>
-          <span class="tape-price">{{ item.price.toFixed(2) }}</span>
-          <span class="tape-change" :style="{ color: marketChangeColor(item.symbol, item.changePct) }">
-            {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
+        <span class="tape-clone" aria-hidden="true">
+          <span v-for="(item, idx) in items" :key="'dup-' + idx" class="tape-item">
+            <span class="tape-symbol">{{ item.symbol }}</span>
+            <span class="tape-name">{{ item.name }}</span>
+            <span class="tape-price">{{ item.price.toFixed(2) }}</span>
+            <span class="tape-change" :class="changeClass(item.changePct)">
+              {{ item.changePct >= 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
+            </span>
           </span>
         </span>
       </div>
@@ -81,76 +94,29 @@ onMounted(() => execute())
 </template>
 
 <style scoped>
-.ticker-tape-panel {
-  height: 36px;
-  display: flex;
-  align-items: center;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg-base);
-  border-bottom: 1px solid var(--color-border, var(--color-border-strong));
-  overflow: hidden;
-  padding: 0 8px;
-  gap: 12px;
-}
-.tape-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-tertiary);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.market-tabs { display: flex; gap: 2px; flex-shrink: 0; }
-.mkt-tab {
-  padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: transparent; color: var(--color-text-tertiary); cursor: pointer; font-size: 10px; line-height: 1.2;
-}
-.mkt-tab.active { color: var(--color-accent); border-color: var(--color-accent); background: rgba(59,130,246,0.15); }
-.tape-loading {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-.tape-track-container {
-  flex: 1;
-  overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%);
-}
-.tape-track {
-  display: inline-flex;
-  gap: 24px;
-  white-space: nowrap;
-  animation: scroll 40s linear infinite;
-}
-.tape-track:hover {
-  animation-play-state: paused;
-}
-.tape-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.tape-symbol {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-.tape-name {
-  color: var(--color-text-secondary);
-  font-size: 11px;
-}
-.tape-price {
-  color: var(--color-text-primary);
-}
-.tape-change {
-  font-weight: 500;
-}
+.ticker-tape-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.tape-empty { flex: 1; display: flex; align-items: center; justify-content: center; font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.tape-track-container { flex: 1; overflow: hidden; mask-image: linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%); }
+.tape-track { display: inline-flex; gap: var(--space-xl); white-space: nowrap; animation: scroll 40s linear infinite; }
+.tape-track:hover { animation-play-state: paused; }
+.tape-item { display: inline-flex; align-items: center; gap: var(--space-sm); font-size: var(--font-xs); font-variant-numeric: tabular-nums; }
+.tape-symbol { font-weight: 600; color: var(--color-text-primary); }
+.tape-name { color: var(--color-text-secondary); font-size: var(--font-xs); }
+.tape-price { color: var(--color-text-primary); }
+.tape-change { font-weight: 500; }
+.tape-change.is-up { color: var(--color-up); }
+.tape-change.is-down { color: var(--color-down); }
+.tape-change.is-flat { color: var(--color-text-secondary); }
+
+.tape-clone { display: contents; }
 
 @keyframes scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-track { animation: none; }
+  .tape-clone { display: none; }
 }
 </style>

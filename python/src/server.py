@@ -23,6 +23,7 @@ except Exception:
 
 import asyncio
 import logging
+import signal
 import time
 import argparse
 from concurrent import futures
@@ -88,6 +89,12 @@ class HealthService(health_pb2_grpc.HealthServiceServicer):
         )
 
 
+async def shutdown_coro(server, stop_event):
+    """Handle shutdown signal — stop the server gracefully."""
+    logger.info("Shutdown signal received, stopping gracefully...")
+    stop_event.set()
+
+
 async def serve(port: int = DEFAULT_PORT, health_port: int = DEFAULT_HEALTH_PORT, max_workers: int = 10):
     """Start the gRPC server and block until termination."""
     server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=max_workers))
@@ -111,10 +118,25 @@ async def serve(port: int = DEFAULT_PORT, health_port: int = DEFAULT_HEALTH_PORT
     await health_server.start()
     logger.info(f"Health check server (GRPC-101) listening on 0.0.0.0:{health_port}")
 
+    # Set up signal handling for graceful shutdown
+    loop = asyncio.get_event_loop()
+    stop_event = asyncio.Event()
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(
+                sig,
+                lambda: asyncio.create_task(shutdown_coro(server, stop_event))
+            )
+        except NotImplementedError:
+            # Windows or restricted platforms
+            pass
+
     try:
-        await server.wait_for_termination()
+        await stop_event.wait()
     finally:
-        await health_server.stop()
+        await health_server.close()
+        await server.stop(5)
 
 
 def main():

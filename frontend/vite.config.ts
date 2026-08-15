@@ -54,5 +54,13 @@ export default defineConfig({
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
     },
+    coverage: {
+      thresholds: {
+        lines: 40,
+        branches: 30,
+        functions: 40,
+        statements: 40,
+      },
+    },
   },
 })

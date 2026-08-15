@@ -6,7 +6,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { setLocale } from '@/lib/i18n'
 import { getIcon } from '@/lib/icons'
 import { APP_VERSION } from '@/version'
-import { saveCredential, getCredential, GetVersion, GetUpdateInterval, SetUpdateInterval, alertDialog } from '@/lib/wails'
+import { SaveCredential, GetCredential, GetVersion, GetUpdateInterval, SetUpdateInterval, alertDialog } from '@/lib/wails'
 import { logger } from '@/lib/logger'
 import { useUpdateStore } from '@/stores/update'
 import UpdatePrompt from '@/terminal/components/UpdatePrompt.vue'
@@ -105,9 +105,9 @@ const apiKeys = ref({
 
 async function loadApiKeys() {
   for (const name of ['fred', 'finnhub', 'iwencai', 'qos']) {
-    const cred = await getCredential(`${name}_api_key`)
-    if (cred?.api_key) {
-      apiKeys.value[name as keyof typeof apiKeys.value] = cred.api_key
+    const cred = await GetCredential(`${name}_api_key`)
+    if (cred?.keys?.api_key) {
+      apiKeys.value[name as keyof typeof apiKeys.value] = cred.keys.api_key
     }
   }
 }
@@ -116,7 +116,7 @@ async function onSaveApiKeys() {
   try {
     for (const [name, key] of Object.entries(apiKeys.value)) {
       if (key) {
-        await saveCredential(`${name}_api_key`, { api_key: key })
+        await SaveCredential(`${name}_api_key`, 'api_key', { api_key: key })
         logger.info(`[Settings] saved credential: ${name}`)
       }
     }
@@ -514,7 +514,7 @@ function onExportData() {
   border: none;
   border-left: 3px solid transparent;
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--font-sm);
   text-align: left;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -585,7 +585,7 @@ function onExportData() {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 18px 0;
@@ -614,7 +614,7 @@ function onExportData() {
 
 .form-label {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--color-text-tertiary);
   margin-bottom: 8px;
   font-weight: 500;
@@ -627,7 +627,7 @@ function onExportData() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-sm);
   outline: none;
   transition: all var(--transition-fast);
   box-sizing: border-box;
@@ -659,7 +659,7 @@ function onExportData() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-sm);
   outline: none;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -679,13 +679,13 @@ function onExportData() {
 }
 
 .form-value {
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .form-hint {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   margin-top: 6px;
   line-height: 1.5;
@@ -706,7 +706,7 @@ function onExportData() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-tertiary);
-  font-size: 12px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
   font-family: inherit;
@@ -747,7 +747,7 @@ function onExportData() {
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
   color: var(--color-accent);
-  font-size: 12px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
   font-family: inherit;
@@ -774,7 +774,7 @@ function onExportData() {
 
 /* Shortcut key */
 .shortcut-key {
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-text-primary);
 }
 
@@ -787,7 +787,7 @@ function onExportData() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--color-text-secondary);
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
@@ -803,7 +803,7 @@ function onExportData() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--color-accent);
   text-decoration: none;
   transition: all var(--transition-fast);
@@ -833,6 +833,6 @@ function onExportData() {
   align-items: center;
   gap: 10px;
 }
-.api-source { color: var(--color-text-tertiary); font-size: 10px; font-weight: normal; }
-.save-msg { color: var(--color-success); font-size: 12px; margin-left: 10px; font-weight: 500; }
+.api-source { color: var(--color-text-tertiary); font-size: var(--font-xs); font-weight: normal; }
+.save-msg { color: var(--color-success); font-size: var(--font-sm); margin-left: 10px; font-weight: 500; }
 </style>

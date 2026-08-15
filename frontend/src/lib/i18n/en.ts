@@ -1,12 +1,12 @@
 export default {
   common: {
-    search: 'Search', export: 'Export', filter: 'Filter', all: 'All',
+    search: 'Search', export: 'Export', filter: 'Filter', all: 'All', more: 'More',
     on: 'ON', off: 'OFF', save: 'Save', cancel: 'Cancel', delete: 'Delete',
     test: 'Test', connect: 'Connect', connected: 'Connected', disconnected: 'Disconnected',
     loading: 'Loading...', no_data: 'No Data', refresh: 'Refresh', close: 'Close', select: 'Select',
     confirm: 'Confirm', back: 'Back', submit: 'Submit', retry: 'Retry', panel_error: 'Panel Error', symbol: 'Symbol', name: 'Name', type: 'Type',
     status: 'Status', date: 'Date', time: 'Time', price: 'Price', volume: 'Volume',
-    change: 'Change', ratio: 'Ratio',     value: 'Value', amount: 'Amount', total: 'Total', count: 'Count', size: 'Size',
+    change: 'Change', ratio: 'Ratio',     value: 'Value', yes: 'Yes', amount: 'Amount', total: 'Total', count: 'Count', size: 'Size',
     stamp_duty: 'Stamp Duty', exchange_fee: 'Exchange Fee', sfc_levy: 'SFC Levy',
     trading_fee: 'Trading Fee', frc_levy: 'FRC Levy',
     trade_date: 'Trade Date', settlement_date: 'Settlement Date',
@@ -173,7 +173,7 @@ export default {
     prediction_dashboard: 'Prediction Dashboard',
     discovered_factors: 'Discovered Factors', register: 'Register', formula: 'Formula',
     genetic_config: 'Genetic Config', population: 'Population', generations: 'Generations',
-    crossover: 'Crossover', mutation: 'Mutation', top_k: 'Top K', ic: 'IC', ir: 'IR',
+    crossover: 'Crossover', mutation: 'Mutation', top_k: 'Top K', ic: 'IC', ir: 'IR', sharpe: 'Sharpe Ratio',
     all_categories: 'All Categories', all_types: 'All Types', all_status: 'All Status',
     category: 'Category', hyperparams: 'Hyperparams', created: 'Created',
     archive: 'Archive', archived: 'Archived', failed: 'Failed',
@@ -314,8 +314,12 @@ export default {
     cat_altdata: 'Alt Data', cat_hk: 'HK Stocks', cat_us: 'US Stocks', cat_crypto: 'Crypto', cat_system: 'System',
     echarts_missing: 'ECharts required for drawdown chart',
     recent_panels: 'Recent', market_snapshot: 'Market Snapshot',
+    asset_market: 'Asset / Market', benchmark: 'Benchmark', pinned: 'Pinned',
     cmdbar_history: 'Recent Commands', cmdbar_commands: 'Commands', cmdbar_navigation: 'Navigation',
     cmdbar_quick: 'Quick', cmdbar_empty_hint: 'Type to search panels, or enter a symbol to view quotes',
+    cmdbar_toggle_mode: 'Toggle Workflow/Terminal', cmdbar_toggle_mode_desc: 'Switch between terminal and workflow mode',
+    cmdbar_toggle_focus: 'Focus Mode', cmdbar_toggle_focus_desc: 'Toggle focus mode',
+    cmdbar_clear_history: 'Clear Command History', cmdbar_clear_history_desc: 'Clear recent command history',
     // Batch P1 panels
     dragon_tiger: 'Dragon & Tiger', daily_board: 'Daily Board', stock_history: 'History',
     net_buy: 'Net Buy', buy_top5: 'Buy TOP5', sell_top5: 'Sell TOP5',
@@ -433,5 +437,11 @@ export default {
     empty: 'No saved layouts yet',
     confirmDelete: 'Delete layout "{name}"?',
     hint: 'Ctrl+Shift+1..9 to switch saved layouts',
+  },
+  panels: {
+    cb_arbitrage: 'CB Arbitrage', arbitrage_opp: 'Arbitrage Opps', redeem_warn: 'Redeem Warnings', put_opp: 'Put Opps',
+    python_required: 'Python environment required', no_data: 'No data',
+    ex_dividend: 'Ex-Dividend', today_ex: 'Today Ex', this_week_ex: 'This Week', this_month_ex: 'This Month',
+    dividend_yield_col: 'Div Yield',
   },
 }

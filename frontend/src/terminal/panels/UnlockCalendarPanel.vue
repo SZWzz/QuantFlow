@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { GetUnlockCalendar, type UnlockEvent } from '@/lib/wails'
+import { PanelHeader, EmptyState } from '@/terminal/components/panel'
 
 const days = ref(30)
 const events = ref<UnlockEvent[]>([])
@@ -17,12 +18,14 @@ function isWarning(e: UnlockEvent) { return e.unlock_pct > 5 }
 
 <template>
   <div class="unlock-panel">
-    <div class="toolbar">
-      <h4>限售解禁日历</h4>
-      <select v-model.number="days" @change="fetchData" class="day-select">
-        <option :value="7">7天</option><option :value="30">30天</option><option :value="90">90天</option>
-      </select>
-    </div>
+    <PanelHeader title="限售解禁日历">
+      <template #controls>
+        <select v-model.number="days" class="day-select" @change="fetchData">
+          <option :value="7">7天</option><option :value="30">30天</option><option :value="90">90天</option>
+        </select>
+      </template>
+    </PanelHeader>
+
     <div v-if="events.length" class="event-list">
       <div v-for="e in events" :key="e.symbol+e.unlock_date" class="event-item" :class="{warn:isWarning(e)}">
         <div class="event-header">
@@ -38,23 +41,31 @@ function isWarning(e: UnlockEvent) { return e.unlock_pct > 5 }
         </div>
       </div>
     </div>
-    <div v-else class="empty">未来 {{ days }} 天暂无解禁</div>
+    <EmptyState v-else :title="`未来 ${days} 天暂无解禁`" />
   </div>
 </template>
 
 <style scoped>
-.unlock-panel { padding: 16px; height: 100%; overflow-y: auto; }
-.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.toolbar h4 { font-size: 13px; margin: 0; }
-.day-select { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-panel); color: var(--color-text-primary); font-size: 11px; }
-.event-list { display: flex; flex-direction: column; gap: 8px; }
-.event-item { padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-subtle); }
+.unlock-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.day-select {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-xs);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+.event-list {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  padding: var(--panel-padding);
+}
+.event-item { padding: var(--space-sm) var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-subtle); }
 .event-item.warn { border-color: var(--color-danger); background: var(--color-danger-soft); }
-.event-header { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
-.event-symbol { font-weight: 700; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
-.event-name { font-size: 12px; }
-.event-date { font-size: 11px; color: var(--color-text-tertiary); margin-left: auto; }
-.event-detail { display: flex; gap: 12px; font-size: 11px; color: var(--color-text-secondary); }
+.event-header { display: flex; gap: var(--space-sm); align-items: center; margin-bottom: var(--space-xs); }
+.event-symbol { font-weight: 700; font-size: var(--font-xs); font-family: var(--font-mono); }
+.event-name { font-size: var(--font-xs); }
+.event-date { font-size: var(--font-xs); color: var(--color-text-tertiary); margin-left: auto; }
+.event-detail { display: flex; gap: var(--space-md); font-size: var(--font-xs); color: var(--color-text-secondary); }
 .warn-tag { color: var(--color-danger); font-weight: 700; }
-.empty { text-align: center; padding: 48px; color: var(--color-text-tertiary); }
 </style>

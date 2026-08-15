@@ -4,12 +4,14 @@ import { useSymbolContext } from '@/stores/symbolContext'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
 import { marketChangeColor } from '@/lib/composables/useMarketColors'
 import { logger } from '@/lib/logger'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
-import { PanelHeader, PanelTable, EmptyState, LoadingState } from '@/terminal/components/panel'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
+import { PanelHeader, PanelTable, type Column } from '@/terminal/components/panel'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
 const pg = ctx.getOrCreatePanelGroup(props.panelId)
+const app = useWailsApp()
 
 // ── Top-level tab ──
 const activeTab = ref<'limit' | 'abnormal' | 'dragon'>(
@@ -92,7 +94,6 @@ const limitFilteredStocks = computed(() => {
 })
 
 async function refreshLimit() {
-  const app = (window as any).go?.main?.App
   if (!app) return
   limitLoading.value = true
   limitError.value = ''
@@ -151,7 +152,6 @@ const abAutoRefresh = ref(true)
 let abTimer: ReturnType<typeof setInterval> | null = null
 
 async function refreshAbnormal() {
-  const app = (window as any).go?.main?.App
   if (!app) return
   abLoading.value = true
   try {
@@ -224,7 +224,6 @@ watch(() => ctx.linkGroups[pg.groupId]?.activeSymbol, (sym) => {
 })
 
 async function fetchDtDaily() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetDailyDragonTiger) return
   dtError.value = ''
   dtLoading.value = true
@@ -252,7 +251,6 @@ async function fetchDtDaily() {
 }
 
 async function fetchDtHistory() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetDragonTiger || !dtHistorySymbol.value) return
   dtError.value = ''
   dtHistoryLoading.value = true
@@ -324,6 +322,45 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   else if (tab === 'abnormal' && abStocks.value.length === 0) refreshAbnormal()
   else if (tab === 'dragon' && dtStocks.value.length === 0) fetchDtDaily()
 }
+
+// Unified PanelShell state
+const state = computed<'loading' | 'loaded' | 'error' | 'empty'>(() => {
+  if (activeTab.value === 'limit') {
+    if (limitError.value) return 'error'
+    if (limitLoading.value && limitStocks.value.length === 0) return 'loading'
+    if (limitFilteredStocks.value.length === 0) return 'empty'
+    return 'loaded'
+  }
+  if (activeTab.value === 'abnormal') {
+    if (abLoading.value && abStocks.value.length === 0) return 'loading'
+    if (abStocks.value.length === 0) return 'empty'
+    return 'loaded'
+  }
+  if (activeTab.value === 'dragon') {
+    if (dtError.value) return 'error'
+    if (dtActiveTab.value === 'daily') {
+      if (dtLoading.value && dtStocks.value.length === 0) return 'loading'
+      if (dtStocks.value.length === 0) return 'empty'
+    } else {
+      if (dtHistoryLoading.value && dtHistoryData.value.length === 0) return 'loading'
+      if (dtHistoryData.value.length === 0) return 'empty'
+    }
+    return 'loaded'
+  }
+  return 'loading'
+})
+
+const loadError = computed(() => {
+  if (activeTab.value === 'limit') return limitError.value
+  if (activeTab.value === 'dragon') return dtError.value
+  return ''
+})
+
+function retryCurrentTab() {
+  if (activeTab.value === 'limit') refreshLimit()
+  else if (activeTab.value === 'abnormal') refreshAbnormal()
+  else if (activeTab.value === 'dragon') dtActiveTab.value === 'daily' ? fetchDtDaily() : fetchDtHistory()
+}
 </script>
 
 <template>
@@ -338,215 +375,193 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
       >{{ $t(tab.key) }}</button>
     </div>
 
-    <div class="tab-content">
-      <!-- ═══════════════ Tab 1: 涨跌停 ═══════════════ -->
-      <div v-if="activeTab === 'limit'" class="tab-pane limit-pane">
-        <PanelHeader
-          :title="$t('misc.limit_up_down')"
-          :tabs="[
-            { key: 'SH', label: 'SH' },
-            { key: 'SZ', label: 'SZ' },
-          ]"
-          :active-tab="limitMarket"
-          :controls="[
-            { label: `${$t('misc.limit_up')}: ${limitUpStocks.length}`, action: () => {}, title: '涨停数' },
-            { label: `${$t('misc.limit_down')}: ${limitDownStocks.length}`, action: () => {}, title: '跌停数' },
-            { label: limitAutoRefresh ? '自动(30s)' : '手动', action: () => limitAutoRefresh = !limitAutoRefresh, title: '切换自动刷新' },
-            { icon: 'refresh', action: refreshLimit, loading: limitLoading.valueOf(), title: '刷新' },
-          ]"
-          @tab-change="switchLimitMarket"
-        />
-
-        <div v-if="limitError" class="panel-error">{{ limitError }}</div>
-        <div class="filter-bar">
-          <button
-            v-for="f in [
-              { key: 'all', label: $t('common.all') },
-              { key: 'limit-up', label: '涨停' },
-              { key: 'limit-down', label: '跌停' },
+    <PanelShell :state="state" :error="loadError" @retry="retryCurrentTab">
+      <template #loaded>
+        <!-- ═══════════════ Tab 1: 涨跌停 ═══════════════ -->
+        <div v-if="activeTab === 'limit'" class="tab-pane limit-pane">
+          <PanelHeader
+            :title="$t('misc.limit_up_down')"
+            :tabs="[
+              { key: 'SH', label: 'SH' },
+              { key: 'SZ', label: 'SZ' },
             ]"
-            :key="f.key"
-            :class="['filter-btn', { active: limitFilter === f.key }]"
-            @click="limitFilter = f.key as typeof limitFilter"
-          >
-            {{ f.label }}
-          </button>
-        </div>
+            :active-tab="limitMarket"
+            :controls="[
+              { label: `${$t('misc.limit_up')}: ${limitUpStocks.length}`, action: () => {}, title: '涨停数' },
+              { label: `${$t('misc.limit_down')}: ${limitDownStocks.length}`, action: () => {}, title: '跌停数' },
+              { label: limitAutoRefresh ? '自动(30s)' : '手动', action: () => limitAutoRefresh = !limitAutoRefresh, title: '切换自动刷新' },
+              { icon: 'refresh', action: refreshLimit, loading: limitLoading.valueOf(), title: '刷新' },
+            ]"
+            @tab-change="switchLimitMarket"
+          />
 
-        <LoadingState
-          v-if="limitLoading && limitStocks.length === 0"
-          type="table"
-          :rows="6"
-          :cols="5"
-        />
-
-        <EmptyState
-          v-else-if="limitFilteredStocks.length === 0"
-          icon="search"
-          :title="$t('misc.no_limit_stocks') || '暂无涨跌停股票'"
-        />
-
-        <PanelTable
-          v-else
-          :columns="limitTableColumns"
-          :data="limitFilteredStocks"
-          :striped="true"
-          :loading="limitLoading"
-        />
-      </div>
-
-      <!-- ═══════════════ Tab 2: 异动监控 ═══════════════ -->
-      <div v-if="activeTab === 'abnormal'" class="tab-pane abnormal-pane">
-        <div class="pane-header">
-          <h3>{{ $t('misc.abnormal_stocks') }}</h3>
-          <div class="market-tabs">
-            <button :class="['mkt-tab', { active: abMarket === 'SH' }]" @click="switchAbMarket('SH')">SH</button>
-            <button :class="['mkt-tab', { active: abMarket === 'SZ' }]" @click="switchAbMarket('SZ')">SZ</button>
-          </div>
-          <div class="header-controls">
-            <button class="auto-btn" :class="{ active: abAutoRefresh }" @click="toggleAbAutoRefresh">
-              自动 {{ abAutoRefresh ? '(30s)' : '' }}
-            </button>
-            <button class="refresh-btn" @click="refreshAbnormal" :disabled="abLoading">
-              {{ abLoading ? '...' : '⟳' }}
+          <div class="filter-bar">
+            <button
+              v-for="f in [
+                { key: 'all', label: $t('common.all') },
+                { key: 'limit-up', label: '涨停' },
+                { key: 'limit-down', label: '跌停' },
+              ]"
+              :key="f.key"
+              :class="['filter-btn', { active: limitFilter === f.key }]"
+              @click="limitFilter = f.key as typeof limitFilter"
+            >
+              {{ f.label }}
             </button>
           </div>
+
+          <PanelTable
+            :columns="limitTableColumns"
+            :data="limitFilteredStocks"
+            :striped="true"
+            :loading="limitLoading"
+          />
         </div>
 
-        <div v-if="abLoading && abStocks.length === 0" class="status-msg">{{ $t('common.loading') }}</div>
-        <div v-else-if="abStocks.length === 0" class="status-msg">{{ $t('misc.no_abnormal_stocks') }}</div>
-        <div v-else class="stocks-table-wrapper">
-          <div class="table-header-row">
-            <span class="col symbol-col">{{ $t('common.symbol') }}</span>
-            <span class="col name-col">{{ $t('common.name') }}</span>
-            <span class="col price-col">{{ $t('common.price') }}</span>
-            <span class="col change-col">{{ $t('quote.change_pct') }}</span>
-            <span class="col reason-col">{{ $t('misc.abnormal_reason') }}</span>
-            <span class="col vol-col">{{ $t('common.volume') }}</span>
-            <span class="col turnover-col">{{ $t('misc.turnover') }}</span>
-          </div>
-          <div class="table-body">
-            <div v-for="(s, idx) in abStocks" :key="s.symbol + idx" class="table-row">
-              <span class="col symbol-col">{{ s.symbol }}</span>
-              <span class="col name-col">{{ s.name }}</span>
-              <span class="col price-col">{{ s.price.toFixed(2) }}</span>
-              <span class="col change-col" :style="{ color: marketChangeColor('600519', s.change_pct) }">{{ formatPct(s.change_pct) }}</span>
-              <span class="col reason-col" :title="s.reason">{{ s.reason }}</span>
-              <span class="col vol-col">{{ formatVolume(s.volume) }}</span>
-              <span class="col turnover-col">{{ formatTurnover(s.turnover) }}</span>
+        <!-- ═══════════════ Tab 2: 异动监控 ═══════════════ -->
+        <div v-if="activeTab === 'abnormal'" class="tab-pane abnormal-pane">
+          <div class="pane-header">
+            <h3>{{ $t('misc.abnormal_stocks') }}</h3>
+            <div class="market-tabs">
+              <button :class="['mkt-tab', { active: abMarket === 'SH' }]" @click="switchAbMarket('SH')">SH</button>
+              <button :class="['mkt-tab', { active: abMarket === 'SZ' }]" @click="switchAbMarket('SZ')">SZ</button>
+            </div>
+            <div class="header-controls">
+              <button class="auto-btn" :class="{ active: abAutoRefresh }" @click="toggleAbAutoRefresh">
+                自动 {{ abAutoRefresh ? '(30s)' : '' }}
+              </button>
+              <button class="refresh-btn" @click="refreshAbnormal" :disabled="abLoading">
+                {{ abLoading ? '...' : '⟳' }}
+              </button>
             </div>
           </div>
-        </div>
 
-        <div v-if="abLoading && abStocks.length > 0" class="refreshing-indicator">{{ $t('common.loading') }}</div>
-      </div>
-
-      <!-- ═══════════════ Tab 3: 龙虎榜 ═══════════════ -->
-      <div v-if="activeTab === 'dragon'" class="tab-pane dragon-pane">
-        <div class="pane-header">
-          <h3>{{ $t('misc.dragon_tiger') }}</h3>
-          <div class="header-tabs">
-            <button :class="['sub-tab', { active: dtActiveTab === 'daily' }]" @click="switchDtSubTab('daily')">{{ $t('misc.daily_board') }}</button>
-            <button :class="['sub-tab', { active: dtActiveTab === 'history' }]" @click="switchDtSubTab('history')">{{ $t('misc.stock_history') }}</button>
-          </div>
-          <div class="header-controls">
-            <template v-if="dtActiveTab === 'daily'">
-              <input v-model="dtDate" type="date" class="date-input" @change="fetchDtDaily" />
-              <input v-model.number="dtMinNetBuy" type="number" class="min-input" placeholder="min(亿)" @change="fetchDtDaily" />
-            </template>
-            <template v-else>
-              <input v-model="dtHistorySymbol" class="symbol-input" placeholder="代码" @change="fetchDtHistory" />
-            </template>
-            <button class="refresh-btn" @click="dtActiveTab === 'daily' ? fetchDtDaily() : fetchDtHistory()" :disabled="dtLoading || dtHistoryLoading">⟳</button>
-          </div>
-        </div>
-
-        <div v-if="dtError" class="error-state" @click="dtActiveTab === 'daily' ? fetchDtDaily() : fetchDtHistory()">{{ dtError }} ⟳</div>
-
-        <SkeletonPanel v-else-if="dtLoading && dtActiveTab === 'daily'" type="table" :rows="8" />
-        <SkeletonPanel v-else-if="dtHistoryLoading && dtActiveTab === 'history'" type="table" :rows="8" />
-
-        <template v-else-if="dtActiveTab === 'daily'">
-          <div v-if="dtStocks.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
-          <div v-else class="table-wrapper">
-            <div class="table-header">
-              <span class="col-code">{{ $t('common.symbol') }}</span>
-              <span class="col-name">{{ $t('common.name') }}</span>
-              <span class="col-price">{{ $t('common.price') }}</span>
-              <span class="col-pct">{{ $t('quote.change_pct') }}</span>
-              <span class="col-netbuy">{{ $t('misc.net_buy') }}</span>
-              <span class="col-reason">{{ $t('misc.reason') }}</span>
+          <div v-if="abStocks.length" class="stocks-table-wrapper">
+            <div class="table-header-row">
+              <span class="col symbol-col">{{ $t('common.symbol') }}</span>
+              <span class="col name-col">{{ $t('common.name') }}</span>
+              <span class="col price-col">{{ $t('common.price') }}</span>
+              <span class="col change-col">{{ $t('quote.change_pct') }}</span>
+              <span class="col reason-col">{{ $t('misc.abnormal_reason') }}</span>
+              <span class="col vol-col">{{ $t('common.volume') }}</span>
+              <span class="col turnover-col">{{ $t('misc.turnover') }}</span>
             </div>
             <div class="table-body">
-              <template v-for="s in dtStocks" :key="s.code">
-                <div class="table-row" :class="{ expanded: dtExpandedRow === s.code }" @click="toggleDtRow(s.code)">
-                  <span class="col-code clickable" @click.stop="onDtSymbolClick(s.code)">{{ s.code }}</span>
-                  <span class="col-name">{{ s.name }}</span>
-                  <span class="col-price">{{ s.close.toFixed(2) }}</span>
-                  <span class="col-pct" :style="{ color: marketChangeColor(s.code, s.change_pct) }">{{ formatPct(s.change_pct) }}</span>
-                  <span class="col-netbuy" :class="s.net_buy >= 0 ? 'up' : 'down'">{{ formatAmount(s.net_buy) }}</span>
-                  <span class="col-reason" :title="s.reason">{{ s.reason }}</span>
-                </div>
-                <div v-if="dtExpandedRow === s.code" class="expand-detail">
-                  <div class="detail-section">
-                    <div class="detail-title">{{ $t('misc.buy_top5') }}</div>
-                    <div class="detail-list">
-                      <div v-for="d in s.dept_buy_top5" :key="d.name" class="detail-item">
-                        <span class="dept-name">{{ d.name }}</span>
-                        <span class="dept-amount up">{{ formatAmount(d.net_amount) }}</span>
-                      </div>
-                      <div v-if="s.dept_buy_top5.length === 0" class="detail-empty">--</div>
-                    </div>
-                  </div>
-                  <div class="detail-section">
-                    <div class="detail-title">{{ $t('misc.sell_top5') }}</div>
-                    <div class="detail-list">
-                      <div v-for="d in s.dept_sell_top5" :key="d.name" class="detail-item">
-                        <span class="dept-name">{{ d.name }}</span>
-                        <span class="dept-amount down">{{ formatAmount(d.net_amount) }}</span>
-                      </div>
-                      <div v-if="s.dept_sell_top5.length === 0" class="detail-empty">--</div>
-                    </div>
-                  </div>
-                  <div class="detail-section">
-                    <div class="detail-title">{{ $t('misc.dept_total_top5') }}</div>
-                    <div class="detail-list">
-                      <div v-for="d in s.dept_total_top5" :key="d.name" class="detail-item">
-                        <span class="dept-name">{{ d.name }}</span>
-                        <span class="dept-amount">{{ formatAmount(d.net_amount) }}</span>
-                      </div>
-                      <div v-if="s.dept_total_top5.length === 0" class="detail-empty">--</div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </template>
-
-        <template v-else>
-          <div v-if="dtHistoryData.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
-          <div v-else class="table-wrapper">
-            <div class="table-header">
-              <span class="col-date">{{ $t('common.date') }}</span>
-              <span class="col-price">{{ $t('common.price') }}</span>
-              <span class="col-pct">{{ $t('quote.change_pct') }}</span>
-              <span class="col-netbuy">{{ $t('misc.net_buy') }}</span>
-              <span class="col-reason">{{ $t('misc.reason') }}</span>
-            </div>
-            <div class="table-body">
-              <div v-for="s in dtHistoryData" :key="s.code + s.close" class="table-row">
-                <span class="col-date">{{ s.reason?.slice(0, 10) || '--' }}</span>
-                <span class="col-price">{{ s.close.toFixed(2) }}</span>
-                <span class="col-pct" :style="{ color: marketChangeColor(s.code, s.change_pct) }">{{ formatPct(s.change_pct) }}</span>
-                <span class="col-netbuy" :class="s.net_buy >= 0 ? 'up' : 'down'">{{ formatAmount(s.net_buy) }}</span>
-                <span class="col-reason">{{ s.reason }}</span>
+              <div v-for="(s, idx) in abStocks" :key="s.symbol + idx" class="table-row">
+                <span class="col symbol-col">{{ s.symbol }}</span>
+                <span class="col name-col">{{ s.name }}</span>
+                <span class="col price-col">{{ s.price.toFixed(2) }}</span>
+                <span class="col change-col" :style="{ color: marketChangeColor('600519', s.change_pct) }">{{ formatPct(s.change_pct) }}</span>
+                <span class="col reason-col" :title="s.reason">{{ s.reason }}</span>
+                <span class="col vol-col">{{ formatVolume(s.volume) }}</span>
+                <span class="col turnover-col">{{ formatTurnover(s.turnover) }}</span>
               </div>
             </div>
           </div>
-        </template>
-      </div>
-    </div>
+
+          <div v-if="abLoading && abStocks.length > 0" class="refreshing-indicator">{{ $t('common.loading') }}</div>
+        </div>
+
+        <!-- ═══════════════ Tab 3: 龙虎榜 ═══════════════ -->
+        <div v-if="activeTab === 'dragon'" class="tab-pane dragon-pane">
+          <div class="pane-header">
+            <h3>{{ $t('misc.dragon_tiger') }}</h3>
+            <div class="header-tabs">
+              <button :class="['sub-tab', { active: dtActiveTab === 'daily' }]" @click="switchDtSubTab('daily')">{{ $t('misc.daily_board') }}</button>
+              <button :class="['sub-tab', { active: dtActiveTab === 'history' }]" @click="switchDtSubTab('history')">{{ $t('misc.stock_history') }}</button>
+            </div>
+            <div class="header-controls">
+              <template v-if="dtActiveTab === 'daily'">
+                <input v-model="dtDate" type="date" class="date-input" @change="fetchDtDaily" />
+                <input v-model.number="dtMinNetBuy" type="number" class="min-input" placeholder="min(亿)" @change="fetchDtDaily" />
+              </template>
+              <template v-else>
+                <input v-model="dtHistorySymbol" class="symbol-input" placeholder="代码" @change="fetchDtHistory" />
+              </template>
+              <button class="refresh-btn" @click="dtActiveTab === 'daily' ? fetchDtDaily() : fetchDtHistory()" :disabled="dtLoading || dtHistoryLoading">⟳</button>
+            </div>
+          </div>
+
+          <template v-if="dtActiveTab === 'daily'">
+            <div v-if="dtStocks.length" class="table-wrapper">
+              <div class="table-header">
+                <span class="col-code">{{ $t('common.symbol') }}</span>
+                <span class="col-name">{{ $t('common.name') }}</span>
+                <span class="col-price">{{ $t('common.price') }}</span>
+                <span class="col-pct">{{ $t('quote.change_pct') }}</span>
+                <span class="col-netbuy">{{ $t('misc.net_buy') }}</span>
+                <span class="col-reason">{{ $t('misc.reason') }}</span>
+              </div>
+              <div class="table-body">
+                <template v-for="s in dtStocks" :key="s.code">
+                  <div class="table-row" :class="{ expanded: dtExpandedRow === s.code }" @click="toggleDtRow(s.code)">
+                    <span class="col-code clickable" @click.stop="onDtSymbolClick(s.code)">{{ s.code }}</span>
+                    <span class="col-name">{{ s.name }}</span>
+                    <span class="col-price">{{ s.close.toFixed(2) }}</span>
+                    <span class="col-pct" :style="{ color: marketChangeColor(s.code, s.change_pct) }">{{ formatPct(s.change_pct) }}</span>
+                    <span class="col-netbuy" :class="s.net_buy >= 0 ? 'up' : 'down'">{{ formatAmount(s.net_buy) }}</span>
+                    <span class="col-reason" :title="s.reason">{{ s.reason }}</span>
+                  </div>
+                  <div v-if="dtExpandedRow === s.code" class="expand-detail">
+                    <div class="detail-section">
+                      <div class="detail-title">{{ $t('misc.buy_top5') }}</div>
+                      <div class="detail-list">
+                        <div v-for="d in s.dept_buy_top5" :key="d.name" class="detail-item">
+                          <span class="dept-name">{{ d.name }}</span>
+                          <span class="dept-amount up">{{ formatAmount(d.net_amount) }}</span>
+                        </div>
+                        <div v-if="s.dept_buy_top5.length === 0" class="detail-empty">--</div>
+                      </div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="detail-title">{{ $t('misc.sell_top5') }}</div>
+                      <div class="detail-list">
+                        <div v-for="d in s.dept_sell_top5" :key="d.name" class="detail-item">
+                          <span class="dept-name">{{ d.name }}</span>
+                          <span class="dept-amount down">{{ formatAmount(d.net_amount) }}</span>
+                        </div>
+                        <div v-if="s.dept_sell_top5.length === 0" class="detail-empty">--</div>
+                      </div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="detail-title">{{ $t('misc.dept_total_top5') }}</div>
+                      <div class="detail-list">
+                        <div v-for="d in s.dept_total_top5" :key="d.name" class="detail-item">
+                          <span class="dept-name">{{ d.name }}</span>
+                          <span class="dept-amount">{{ formatAmount(d.net_amount) }}</span>
+                        </div>
+                        <div v-if="s.dept_total_top5.length === 0" class="detail-empty">--</div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <div v-if="dtHistoryData.length" class="table-wrapper">
+              <div class="table-header">
+                <span class="col-date">{{ $t('common.date') }}</span>
+                <span class="col-price">{{ $t('common.price') }}</span>
+                <span class="col-pct">{{ $t('quote.change_pct') }}</span>
+                <span class="col-netbuy">{{ $t('misc.net_buy') }}</span>
+                <span class="col-reason">{{ $t('misc.reason') }}</span>
+              </div>
+              <div class="table-body">
+                <div v-for="s in dtHistoryData" :key="s.code + s.close" class="table-row">
+                  <span class="col-date">{{ s.reason?.slice(0, 10) || '--' }}</span>
+                  <span class="col-price">{{ s.close.toFixed(2) }}</span>
+                  <span class="col-pct" :style="{ color: marketChangeColor(s.code, s.change_pct) }">{{ formatPct(s.change_pct) }}</span>
+                  <span class="col-netbuy" :class="s.net_buy >= 0 ? 'up' : 'down'">{{ formatAmount(s.net_buy) }}</span>
+                  <span class="col-reason">{{ s.reason }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </PanelShell>
   </div>
 </template>
 
@@ -576,7 +591,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: none;
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-sm);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
 }
@@ -648,15 +663,6 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   overflow: hidden;
 }
 
-.panel-error {
-  padding: 8px 12px;
-  margin: 0 var(--panel-padding);
-  border-radius: var(--radius-sm);
-  background: var(--color-up-soft);
-  color: var(--color-up);
-  font-size: 12px;
-}
-
 .limit-pane :deep(.clickable) {
   cursor: pointer;
 }
@@ -682,7 +688,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
 .pane-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-sm);
   font-weight: 600;
 }
 
@@ -698,7 +704,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .mkt-tab.active {
@@ -721,7 +727,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: var(--color-bg-elevated);
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .auto-btn.active {
@@ -736,7 +742,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 
 .refresh-btn:disabled {
@@ -750,7 +756,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   justify-content: center;
   flex: 1;
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 
 .stocks-table-wrapper {
@@ -764,7 +770,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   display: flex;
   padding: 4px 0;
   border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   flex-shrink: 0;
@@ -773,7 +779,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .table-body {
   flex: 1;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: var(--font-sm);
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-strong) transparent;
 }
@@ -805,7 +811,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
 .refreshing-indicator {
   padding: 4px 0;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-align: center;
   flex-shrink: 0;
@@ -829,7 +835,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .header-tabs .sub-tab.active {
@@ -842,7 +848,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .min-input,
 .symbol-input {
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
@@ -853,22 +859,13 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .min-input { width: 70px; }
 .symbol-input { width: 70px; }
 
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
-}
-
 .error-state {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 12px;
-  color: var(--color-error);
-  font-size: 13px;
+  color: var(--color-danger);
+  font-size: var(--font-sm);
   cursor: pointer;
 }
 
@@ -883,7 +880,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
   display: flex;
   padding: 4px 0;
   border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   flex-shrink: 0;
@@ -892,7 +889,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .dragon-pane .table-body {
   flex: 1;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: var(--font-sm);
 }
 
 .dragon-pane .table-row {
@@ -923,7 +920,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 
 .detail-section { flex: 1; min-width: 0; }
 .detail-title {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   margin-bottom: 4px;
   text-transform: uppercase;
@@ -938,7 +935,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 .detail-item {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--font-xs);
   padding: 2px 0;
 }
 
@@ -955,7 +952,7 @@ function switchTopTab(tab: 'limit' | 'abnormal' | 'dragon') {
 }
 
 .detail-empty {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 

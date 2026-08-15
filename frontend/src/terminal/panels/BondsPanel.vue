@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
+import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
 const ctx = useSymbolContext()
@@ -18,12 +20,18 @@ const searchQuery = ref('')
 const SOURCE = 'akshare'
 const DATA_TYPE = 'bonds'
 
-const columns = ['symbol', 'name', 'trade', 'changepercent', 'volume', 'amount', 'code', 'ticktime']
-const colLabels: Record<string, string> = {
-  symbol: '代码', name: '名称', trade: '最新价', changepercent: '涨跌幅',
-  volume: '成交量', amount: '成交额', code: '正股代码', ticktime: '时间'
-}
-const numericCols = new Set(['trade', 'changepercent', 'volume', 'amount'])
+const cols: Column[] = [
+  { key: 'symbol', label: '代码', mono: true },
+  { key: 'name', label: '名称' },
+  { key: 'trade', label: '最新价', align: 'right', mono: true },
+  { key: 'changepercent', label: '涨跌幅', align: 'right', format: 'percent', colorize: true },
+  { key: 'volume', label: '成交量', align: 'right', format: 'volume' },
+  { key: 'amount', label: '成交额', align: 'right', format: 'volume' },
+  { key: 'code', label: '正股代码', mono: true },
+  { key: 'ticktime', label: '时间' },
+]
+
+const subtitle = computed(() => [symbol.value, name.value].filter(Boolean).join(' '))
 
 const filteredData = computed(() => {
   const rows = data.value?.data ?? []
@@ -36,46 +44,37 @@ const filteredData = computed(() => {
   )
 })
 
+/** 源数据数值可能是字符串，转成 number 供 PanelTable 的 format/colorize 使用 */
+function toNum(v: any): any {
+  if (v == null || v === '') return v
+  const n = typeof v === 'number' ? v : parseFloat(v)
+  return Number.isFinite(n) ? n : v
+}
+
+const tableRows = computed(() =>
+  filteredData.value.map((r: any) => ({
+    ...r,
+    changepercent: toNum(r.changepercent),
+    volume: toNum(r.volume),
+    amount: toNum(r.amount),
+  })),
+)
+
+const hasRows = computed(() => (data.value?.data?.length ?? 0) > 0)
+
 async function loadData() {
   loading.value = true; loadError.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
+    const app = useWailsApp()
+    if (app?.FetchData) {
       const { data: result } = await fetchWithCache('bonds:' + symbol.value, async () => {
-        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+        return await app.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
       })
       if (result?.data) data.value = JSON.parse(result.data)
       else if (result?.error) loadError.value = result.error
     }
   } catch (e: any) { loadError.value = e.message || '加载失败' }
   finally { loading.value = false }
-}
-
-function fmt(v: any, col: string): string {
-  if (v == null || v === '') return '-'
-  if (col === 'changepercent') {
-    const n = parseFloat(v)
-    return (n >= 0 ? '+' : '') + n.toFixed(2) + '%'
-  }
-  if (col === 'volume') {
-    const n = typeof v === 'number' ? v : parseFloat(v)
-    if (n >= 1e8) return (n / 1e8).toFixed(2) + '亿'
-    if (n >= 1e4) return (n / 1e4).toFixed(1) + '万'
-    return n.toLocaleString()
-  }
-  if (col === 'amount') {
-    const n = typeof v === 'number' ? v : parseFloat(v)
-    if (n >= 1e8) return (n / 1e8).toFixed(2) + '亿'
-    if (n >= 1e4) return (n / 1e4).toFixed(1) + '万'
-    return n.toLocaleString()
-  }
-  return String(v)
-}
-function pctColor(v: any): string {
-  const n = parseFloat(v)
-  if (n > 0) return '#ef4444'
-  if (n < 0) return '#22c55e'
-  return 'inherit'
 }
 
 watch(symbol, loadData)
@@ -86,62 +85,43 @@ onMounted(loadData)
 </script>
 
 <template>
-  <div class="panel-container">
-    <div class="panel-header">
-      <span class="title">可转债实时行情</span>
-      <span class="symbol-badge">{{ symbol }} {{ name }}</span>
-      <div class="header-actions">
+  <div class="bonds-panel">
+    <PanelHeader
+      title="可转债实时行情"
+      :subtitle="subtitle"
+      :controls="[{ icon: 'refresh', title: '刷新', action: loadData, loading }]"
+    >
+      <template #controls>
         <input class="search-input" v-model="searchQuery" placeholder="搜索代码/名称" />
-        <button class="btn-sm" @click="loadData">⟳ 刷新</button>
-      </div>
-    </div>
-    <div class="panel-body">
-      <div v-if="loading" class="status">加载中...</div>
-      <div v-else-if="loadError" class="status error">{{ loadError }}</div>
-      <div v-else-if="!data || !data.success" class="status">{{ data?.error || '暂无数据' }}</div>
-
-      <template v-else>
-        <div class="info-row">共 {{ filteredData.length }} 只可转债</div>
-        <div class="table-wrap">
-          <table class="bond-table">
-            <thead>
-              <tr>
-                <th v-for="col in columns" :key="col" class="th-{{ col }}">{{ colLabels[col] }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in filteredData" :key="row.symbol || row.code">
-                <td v-for="col in columns" :key="col"
-                  :class="['td', { 'td-code': col === 'symbol' || col === 'code', 'td-right': numericCols.has(col) }]"
-                  :style="col === 'changepercent' ? { color: pctColor(row[col]) } : {}"
-                >{{ fmt(row[col], col) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </template>
-    </div>
+    </PanelHeader>
+
+    <LoadingState v-if="loading && !hasRows" type="table" :rows="6" :cols="cols.length" />
+    <ErrorState v-else-if="loadError" :description="loadError" @retry="loadData" />
+    <EmptyState v-else-if="!data || !data.success" :title="data?.error || '暂无数据'" />
+    <template v-else>
+      <div class="info-row">共 {{ filteredData.length }} 只可转债</div>
+      <PanelTable :columns="cols" :data="tableRows" :loading="loading" sticky-header />
+    </template>
   </div>
 </template>
 
 <style scoped>
-.panel-container{display:flex;flex-direction:column;height:100%;background:var(--color-bg-panel);color:var(--color-text-primary);font-size:13px}
-.panel-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--color-border)}
-.title{font-weight:500}
-.header-actions{display:flex;gap:8px;align-items:center}
-.search-input{width:130px;padding:2px 6px;border:1px solid var(--color-border-subtle);border-radius: var(--radius-sm);background:var(--color-bg-elevated);color:var(--color-text-primary);font-size:12px}
-.btn-sm{padding:2px 8px;font-size:11px;border:1px solid var(--color-border);border-radius: var(--radius-sm);background:transparent;color:var(--color-text-secondary);cursor:pointer}
-.btn-sm:hover{background:var(--color-bg-hover)}
-.panel-body{flex:1;overflow:auto;padding:0 12px 12px}
-.status{display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-tertiary);font-size:13px}
-.status.error{color:var(--color-error)}
-.info-row{font-size:12px;color:var(--color-text-tertiary);padding:8px 0 4px}
-.table-wrap{overflow-x:auto}
-.bond-table{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
-.bond-table th{text-align:right;padding:4px 6px;color:var(--color-text-tertiary);font-weight:500;border-bottom:1px solid var(--color-border-subtle);white-space:nowrap;position:sticky;top:0;background:var(--color-bg-panel)}
-.bond-table th:first-child{text-align:left}
-.bond-table td{text-align:right;padding:3px 6px;border-bottom:1px solid var(--color-border-subtle)}
-.bond-table tr:hover td{background:var(--color-bg-hover)}
-.td-code{text-align:left!important;color:var(--color-text-secondary);font-family:monospace}
-.td-right{text-align:right}
+.bonds-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+.search-input {
+  width: 130px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font-size: var(--font-xs);
+}
+.info-row {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  padding: var(--space-sm) var(--panel-padding) var(--space-xs);
+  flex-shrink: 0;
+}
 </style>

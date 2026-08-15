@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
+import { PanelHeader, PanelTable, EmptyState, LoadingState, type Column } from '@/terminal/components/panel'
 
-const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+const { t } = useI18n()
 
 interface FundingRate {
   symbol: string
@@ -14,7 +18,7 @@ interface FundingRate {
 }
 
 const sortKey = ref<string>('funding_rate')
-const sortDir = ref<number>(-1)
+const sortDir = ref<'asc' | 'desc' | null>('desc')
 const rates = ref<FundingRate[]>([])
 const loading = ref(false)
 const autoRefresh = ref(true)
@@ -23,29 +27,25 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 const sortedRates = computed(() => {
   const arr = [...rates.value]
+  if (!sortKey.value || !sortDir.value) return arr
   arr.sort((a, b) => {
     const aVal = a[sortKey.value as keyof FundingRate]
     const bVal = b[sortKey.value as keyof FundingRate]
-    if (typeof aVal === 'number' && typeof bVal === 'number') {
-      return (aVal - bVal) * sortDir.value
-    }
-    return 0
+    const cmp = typeof aVal === 'number' && typeof bVal === 'number'
+      ? aVal - bVal
+      : String(aVal).localeCompare(String(bVal))
+    return sortDir.value === 'asc' ? cmp : -cmp
   })
   return arr
 })
 
-function toggleSort(key: string) {
-  if (sortKey.value === key) sortDir.value *= -1
-  else { sortKey.value = key; sortDir.value = -1 }
-}
-
-function sortArrow(key: string): string {
-  if (sortKey.value !== key) return ''
-  return sortDir.value === -1 ? ' ▼' : ' ▲'
+function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
+  sortKey.value = dir ? key : ''
+  sortDir.value = dir
 }
 
 async function fetchRates() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetCryptoFundingRates) return
   loading.value = true
   try {
@@ -75,10 +75,11 @@ function formatPrice(p: number): string {
   return p.toFixed(4)
 }
 
-function rateColor(rate: number): string {
-  if (rate > 0.0001) return '#dc2626'
-  if (rate < -0.0001) return '#16a34a'
-  return 'var(--color-text-primary)'
+/** 费率阈值上色：正费率偏多付费、负费率空方付费，±0.01% 内视为中性 */
+function rateClass(rate: number): string {
+  if (rate > 0.0001) return 'rate-up'
+  if (rate < -0.0001) return 'rate-down'
+  return ''
 }
 
 function nextFundingTime(ts: number): string {
@@ -90,6 +91,20 @@ function nextFundingTime(ts: number): string {
 function isExtreme(rate: number): boolean {
   return Math.abs(rate) > 0.001
 }
+
+function rowClass(r: FundingRate): string {
+  return isExtreme(r.funding_rate) ? 'extreme-row' : ''
+}
+
+const hasExtreme = computed(() => rates.value.some(r => isExtreme(r.funding_rate)))
+
+const cols = computed<Column[]>(() => [
+  { key: 'symbol', label: t('quote.symbol'), mono: true, sortable: true },
+  { key: 'mark_price', label: t('misc.mark_price'), align: 'right', sortable: true, formatter: formatPrice },
+  { key: 'index_price', label: t('misc.index_price'), align: 'right', sortable: true, formatter: formatPrice },
+  { key: 'funding_rate', label: t('misc.funding_rate_short'), align: 'right', sortable: true, formatter: formatRate, cellClass: (r: any) => rateClass(r.funding_rate) },
+  { key: 'next_funding_time', label: t('misc.next_settle'), align: 'right', formatter: nextFundingTime, cellClass: () => 'muted-cell' },
+])
 
 onMounted(() => {
   fetchRates()
@@ -103,98 +118,65 @@ onUnmounted(() => {
 
 <template>
   <div class="funding-rate-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.funding_rate') }}</h3>
-      <button class="auto-btn" :class="{ active: autoRefresh }" @click="autoRefresh = !autoRefresh">
-        {{ autoRefresh ? '自动(30s)' : '手动' }}
-      </button>
-      <button class="refresh-btn" @click="fetchRates" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.funding_rate')"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchRates, loading }]"
+    >
+      <template #controls>
+        <button class="btn btn-sm btn-ghost auto-toggle" :class="{ active: autoRefresh }" @click="autoRefresh = !autoRefresh">
+          {{ autoRefresh ? '自动(30s)' : '手动' }}
+        </button>
+      </template>
+    </PanelHeader>
 
-    <SkeletonPanel v-if="loading && rates.length === 0" type="table" :rows="6" />
+    <LoadingState v-if="loading && rates.length === 0" type="table" :rows="6" :cols="cols.length" />
 
-    <div v-else-if="rates.length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
+    <EmptyState v-else-if="rates.length === 0" :title="$t('common.no_data')" />
 
     <template v-else>
-      <div v-if="sortedRates.some(r => isExtreme(r.funding_rate))" class="alert-bar">
+      <div v-if="hasExtreme" class="alert-bar">
         ⚠ {{ $t('misc.funding_extreme') }}
       </div>
-      <div class="table-wrapper">
-        <div class="table-header">
-          <span class="col-sym sortable" @click="toggleSort('symbol')">{{ $t('quote.symbol') }}{{ sortArrow('symbol') }}</span>
-          <span class="col-mp sortable" @click="toggleSort('mark_price')">{{ $t('misc.mark_price') }}{{ sortArrow('mark_price') }}</span>
-          <span class="col-ip sortable" @click="toggleSort('index_price')">{{ $t('misc.index_price') }}{{ sortArrow('index_price') }}</span>
-          <span class="col-fr sortable" @click="toggleSort('funding_rate')">{{ $t('misc.funding_rate_short') }}{{ sortArrow('funding_rate') }}</span>
-          <span class="col-next">{{ $t('misc.next_settle') }}</span>
-        </div>
-        <div class="table-body">
-          <div v-for="r in sortedRates" :key="r.symbol" class="table-row" :class="{ extreme: isExtreme(r.funding_rate) }">
-            <span class="col-sym">{{ r.symbol }}</span>
-            <span class="col-mp">{{ formatPrice(r.mark_price) }}</span>
-            <span class="col-ip">{{ formatPrice(r.index_price) }}</span>
-            <span class="col-fr" :style="{ color: rateColor(r.funding_rate) }">{{ formatRate(r.funding_rate) }}</span>
-            <span class="col-next">{{ nextFundingTime(r.next_funding_time) }}</span>
-          </div>
-        </div>
-      </div>
+      <PanelTable
+        :columns="cols"
+        :data="sortedRates"
+        :loading="loading"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        :row-class="rowClass"
+        sticky-header
+        @sort-change="onSortChange"
+      />
     </template>
   </div>
 </template>
 
 <style scoped>
 .funding-rate-panel {
-  padding: 12px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--color-text, var(--color-border));
-  background: var(--color-bg-panel, var(--color-bg-panel));
   overflow: hidden;
 }
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+
+.auto-toggle.active {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.alert-bar {
+  padding: var(--space-xs) var(--panel-padding);
+  border-bottom: 1px solid var(--color-warn);
+  background: var(--color-warning-soft);
+  color: var(--color-warn);
+  font-size: var(--font-xs);
+  font-weight: 500;
   flex-shrink: 0;
 }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.auto-btn {
-  padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-tertiary); cursor: pointer; font-size: 11px;
-}
-.auto-btn.active { color: var(--color-accent); border-color: var(--color-accent); }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-  margin-left: auto;
-}
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
-.alert-bar {
-  padding: 6px 10px; margin-bottom: 8px; border-radius: var(--radius-sm);
-  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
-  color: var(--color-accent); font-size: 11px; font-weight: 500;
-}
-.table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.table-header {
-  display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0;
-}
-.sortable { cursor: pointer; user-select: none; }
-.sortable:hover { color: var(--color-text-primary); }
-.table-body { flex: 1; overflow-y: auto; font-size: 12px; }
-.table-row {
-  display: flex; padding: 3px 0; align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.table-row:hover { background: var(--color-bg-elevated); }
-.table-row.extreme { background: rgba(245,158,11,0.05); }
-.col-sym { width: 56px; font-weight: 600; }
-.col-mp, .col-ip { width: 72px; text-align: right; font-variant-numeric: tabular-nums; }
-.col-fr { width: 76px; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
-.col-next { flex: 1; min-width: 0; text-align: right; color: var(--color-text-tertiary); font-size: 11px; }
+
+:deep(.td.rate-up) { color: var(--color-up); font-weight: 500; }
+:deep(.td.rate-down) { color: var(--color-down); font-weight: 500; }
+:deep(.td.muted-cell) { color: var(--color-text-tertiary); }
+:deep(.table-row.extreme-row) { background: var(--color-warning-soft); }
 </style>

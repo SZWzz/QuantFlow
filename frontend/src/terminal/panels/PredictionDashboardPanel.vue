@@ -111,16 +111,14 @@ watch(() => ctx.linkGroups[pg.groupId].activeSymbol, (newSym) => {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
-.loading-state { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-tertiary); font-size: 13px; }
+.loading-state { display: flex; align-items: center; justify-content: center; padding: var(--space-xl); color: var(--color-text-tertiary); font-size: var(--font-sm); }
 .prediction-dashboard { padding: var(--panel-padding); height: 100%; display: flex; flex-direction: column; }
-.controls { display: flex; gap: 8px; margin-bottom: 8px; }
-.search-input { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-panel); color: var(--color-text-primary); }
-.filter-select { padding: 4px 8px; background: var(--color-bg-panel); border: 1px solid var(--color-border); color: var(--color-text-primary); }
-.btn { padding: 4px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; background: var(--color-bg-panel); color: var(--color-text-primary); }
-.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; }
-.chart-box { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px; }
-.chart-box h4 { margin: 0 0 8px 0; font-size: 0.9em; color: var(--color-text-primary); }
+.controls { display: flex; gap: var(--space-sm); margin-bottom: var(--space-sm); }
+.search-input { padding: var(--space-xs) var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-panel); color: var(--color-text-primary); }
+.filter-select { padding: var(--space-xs) var(--space-sm); background: var(--color-bg-panel); border: 1px solid var(--color-border); color: var(--color-text-primary); }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); flex: 1; }
+.chart-box { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-sm); }
+.chart-box h4 { margin: 0 0 var(--space-sm) 0; font-size: var(--font-sm); color: var(--color-text-primary); }
 .histogram { display: flex; align-items: flex-end; height: 150px; gap: 1px; }
 .bar { flex: 1; background: var(--color-accent); min-height: 1px; border-radius: 1px 1px 0 0; }
 .line-chart-placeholder { height: 150px; display: flex; align-items: center; justify-content: center; color: var(--color-text-tertiary); }

@@ -264,12 +264,12 @@ export function mockWailsIPC() {
     }),
     FetchOHLCV: vi.fn().mockResolvedValue([]),
     GetMinuteLine: vi.fn().mockResolvedValue([]),
-    GetMarketOverview: vi.fn<[string?], any>().mockResolvedValue({
+    GetMarketOverview: vi.fn<(market?: string) => any>().mockResolvedValue({
       indices: [{ code: '000001.SH', name: '上证指数', price: 3000, change_pct: 0.5 }],
       breadth: { advancers: 1500, decliners: 500 },
       sectors: [{ name: '科技', changePct: 1.2 }],
     }),
-    GetIndustryRanks: vi.fn<[string, number?], any>().mockResolvedValue([
+    GetIndustryRanks: vi.fn<(market: string, limit?: number) => any>().mockResolvedValue([
       { name: '科技', changePct: 2.5 },
       { name: '金融', changePct: 1.0 },
     ]),
@@ -280,20 +280,20 @@ export function mockWailsIPC() {
     GetFundingRate: vi.fn().mockResolvedValue([]),
     FetchBacktest: vi.fn().mockResolvedValue(null),
     GetPortfolioSummary: vi.fn().mockResolvedValue(null),
-    GetOrders: vi.fn<[], any>().mockResolvedValue([
+    GetOrders: vi.fn<() => any>().mockResolvedValue([
       { order_id: 'ord_001', symbol: '600519', name: '贵州茅台', side: 'buy', type: 'limit', quantity: 100, price: 1800, filled_qty: 100, status: 'filled', created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T10:30:00Z' },
       { order_id: 'ord_002', symbol: '000001', name: '平安银行', side: 'buy', type: 'market', quantity: 200, price: 12.5, filled_qty: 200, status: 'filled', created_at: '2024-01-15T09:30:00Z', updated_at: '2024-01-15T09:31:00Z' },
       { order_id: 'ord_003', symbol: 'AAPL', side: 'sell', type: 'limit', quantity: 50, price: 200, filled_qty: 50, status: 'filled', created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T11:00:00Z' },
       { order_id: 'ord_004', symbol: '300750', side: 'buy', type: 'limit', quantity: 100, price: 220, filled_qty: 0, status: 'pending', created_at: '2024-01-15T11:00:00Z', updated_at: '2024-01-15T11:00:00Z' },
       { order_id: 'ord_005', symbol: '00700.HK', side: 'buy', type: 'market', quantity: 200, price: 380, filled_qty: 200, status: 'filled', created_at: '2024-01-14T09:00:00Z', updated_at: '2024-01-14T09:15:00Z' },
     ]),
-    GetTrades: vi.fn<[], any>().mockResolvedValue([
+    GetTrades: vi.fn<() => any>().mockResolvedValue([
       { trade_id: 'trd_001', order_id: 'ord_001', symbol: '600519', name: '贵州茅台', side: 'buy', quantity: 100, price: 1800, value: 180000, fee: 18, executed_at: '2024-01-15T10:30:00Z' },
       { trade_id: 'trd_002', order_id: 'ord_003', symbol: 'AAPL', name: 'Apple Inc.', side: 'sell', quantity: 50, price: 195, value: 9750, fee: 0, executed_at: '2024-01-15T11:00:00Z' },
       { trade_id: 'trd_003', order_id: 'ord_005', symbol: '00700.HK', name: 'Tencent', side: 'buy', quantity: 200, price: 380, value: 76000, fee: 38, executed_at: '2024-01-14T09:15:00Z' },
       { trade_id: 'trd_004', order_id: 'ord_007', symbol: '600519', name: '贵州茅台', side: 'sell', quantity: 50, price: 1820, value: 91000, fee: 9.1, executed_at: '2024-01-14T14:20:00Z' },
     ]),
-    GetEquityCurve: vi.fn<[], any>().mockResolvedValue(
+    GetEquityCurve: vi.fn<() => any>().mockResolvedValue(
       Array.from({ length: 252 }, (_, i) => ({
         date: `2024-${String(Math.floor(i / 30) + 1).padStart(2, '0')}-${String((i % 30) + 1).padStart(2, '0')}`,
         nav: 1 + i * 0.001 + Math.random() * 0.02,

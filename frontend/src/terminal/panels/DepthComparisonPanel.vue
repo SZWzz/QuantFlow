@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { PanelHeader, EmptyState, LoadingState } from '@/terminal/components/panel'
 
-const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
+const chartTheme = useChartTheme()
 
 interface DepthLevel {
   price: number
@@ -27,14 +30,8 @@ const loading = ref(false)
 const error = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
-const exchangeColors: Record<string, string> = {
-  binance: '#f0b90b',
-  okx: '#1a8cff',
-  gateio: '#21a179',
-}
-
 async function fetchAll() {
-  const app = (window as any).go?.main?.App
+  const app = useWailsApp()
   if (!app?.GetCryptoDepth) return
   loading.value = true
   error.value = ''
@@ -75,8 +72,9 @@ async function fetchAll() {
   loading.value = false
 }
 
-const allDepths = computed(() => exchanges.map(ex => ({
-  ex, color: exchangeColors[ex],
+/** 交易所品牌色取图表主题分类色板（--chart-1..3），随主题切换 */
+const allDepths = computed(() => exchanges.map((ex, i) => ({
+  ex, color: chartTheme.palette[i],
   bids: depths.value[ex]?.bids || [],
   asks: depths.value[ex]?.asks || [],
   spread: depths.value[ex]?.spread || 0,
@@ -94,10 +92,11 @@ function formatQty(q: number): string {
   return q.toFixed(4)
 }
 
+/** 价差阈值着色：小=好（success），中=警示（chart-3 琥珀），大=差（danger） */
 function spreadColor(pct: number): string {
-  if (pct < 0.0005) return '#16a34a'
-  if (pct < 0.002) return '#eab308'
-  return '#dc2626'
+  if (pct < 0.0005) return 'var(--color-success)'
+  if (pct < 0.002) return 'var(--chart-3)'
+  return 'var(--color-danger)'
 }
 
 onMounted(() => {
@@ -112,18 +111,20 @@ onUnmounted(() => {
 
 <template>
   <div class="depth-comparison-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.depth_comparison') }}</h3>
-      <select v-model="symbol" @change="fetchAll" class="sym-select">
-        <option>BTC/USDT</option><option>ETH/USDT</option><option>SOL/USDT</option>
-        <option>BNB/USDT</option><option>DOGE/USDT</option><option>XRP/USDT</option>
-      </select>
-      <button class="refresh-btn" @click="fetchAll" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.depth_comparison')"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchAll, loading }]"
+    >
+      <template #controls>
+        <select v-model="symbol" @change="fetchAll" class="sym-select">
+          <option>BTC/USDT</option><option>ETH/USDT</option><option>SOL/USDT</option>
+          <option>BNB/USDT</option><option>DOGE/USDT</option><option>XRP/USDT</option>
+        </select>
+      </template>
+    </PanelHeader>
 
-    <SkeletonPanel v-if="loading && Object.keys(depths).length === 0" type="table" :rows="6" />
-
-    <div v-else-if="Object.keys(depths).length === 0" class="empty-state">{{ $t('common.no_data') }}</div>
+    <LoadingState v-if="loading && Object.keys(depths).length === 0" type="table" :rows="6" />
+    <EmptyState v-else-if="Object.keys(depths).length === 0" :title="$t('common.no_data')" />
 
     <template v-else>
       <div class="exchanges-grid">
@@ -162,44 +163,65 @@ onUnmounted(() => {
 
 <style scoped>
 .depth-comparison-panel {
-  padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .sym-select {
-  padding: 2px 6px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 12px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font-size: var(--font-xs);
 }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer;
-  font-size: 13px; margin-left: auto;
+
+.exchanges-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--panel-padding);
 }
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px;
-}
-.exchanges-grid { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .ex-card {
-  border: 1px solid var(--color-border-strong); border-radius: var(--radius-md);
-  background: var(--color-bg-elevated); overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 .ex-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 10px; border-bottom: 2px solid; font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 2px solid;
+  font-size: var(--font-xs);
 }
-.ex-name { font-weight: 700; font-size: 12px; }
+.ex-name { font-weight: 700; font-size: var(--font-xs); }
 .ex-spread { font-variant-numeric: tabular-nums; }
-.depth-cols { display: flex; gap: 0; }
-.bid-col, .ask-col { flex: 1; padding: 4px 8px; }
-.col-label { font-size: 9px; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 2px; }
-.depth-row { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 0; font-variant-numeric: tabular-nums; }
+.depth-cols { display: flex; }
+.bid-col, .ask-col { flex: 1; padding: var(--space-xs) var(--space-sm); }
+.col-label {
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-xs);
+}
+.depth-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-xs);
+  padding: var(--space-xs) 0;
+  font-variant-numeric: tabular-nums;
+}
 .depth-row.bid .dp { color: var(--color-down); }
 .depth-row.ask .dp { color: var(--color-up); }
 .depth-row .dq { color: var(--color-text-tertiary); }
 .cum-bar { height: 3px; display: flex; }
-.cum-bid { height: 100%; border-radius: 0 0 0 6px; opacity: 0.6; }
-.cum-ask { height: 100%; border-radius: 0 0 6px 0; opacity: 0.6; }
+.cum-bid { height: 100%; border-radius: 0 0 0 var(--radius-md); opacity: 0.6; }
+.cum-ask { height: 100%; border-radius: 0 0 var(--radius-md) 0; opacity: 0.6; }
 </style>

@@ -3,6 +3,97 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.7.30] - 2026-07-30
+
+### Fixed
+
+- [Python] RLPredict proto 类型修复 — `observation` 从 `bytes` 改为 `repeated double`，消除 Python 端 `np.array()` 数据损坏风险
+- [Python] 删除 `HealthServer.__del__` — Python 3.12+ 中从 `__del__` 访问 asyncio 事件循环不可靠，替换为显式 `close()` 方法
+- [Python] gRPC server 添加 SIGTERM/SIGINT 信号处理 — 支持优雅关闭，`health_server.close()` 替代 `__del__`
+- [Python] AKShare HK 分钟数据缓存从无界 dict 迁移到 `@lru_cache(maxsize=128)` — 修复长期运行内存泄漏
+- [Python] `CountTokens` 使用 tiktoken 模型分词器 — 替代字符数/4 粗估算，对 CJK 文本更准确
+- [Python] `pyproject.toml` 修复 — `grpcio-tools` 从运行时依赖移入 build-system requires，build-backend 从废弃的 `_legacy:_Backend` 改为 `build_meta`
+- [Frontend] `AppMethods` 接口全面类型化 — 80+ 方法从 `Promise<any>` 改为具体返回类型，删除通配 `[key: string]` 索引签名
+- [Frontend] 删除 `lib/wails.ts` 底部 4 个小写重复函数 — `saveCredential`/`getCredential`/`deleteCredential`/`listCredentialNames`
+- [Frontend] `closeTab()` 重构 — 双路径递归（`removeFrom` + `searchFromRoot`）统一为单一 `removeTabFromTree` 函数，保证 `persistLayout()` 始终调用
+- [Frontend] `data.ts` 迁移 — `(window as any).go?.main?.App` 替换为 `@/lib/wails` 类型化包装函数
+- [Frontend] `SettingsPanel.vue` 凭证管理迁移 — 从旧版小写函数迁移到 `SaveCredential`/`GetCredential` 类型化包装
+- [Go] 添加 `gosec` linter 到 `.golangci.yml` — 启用安全审计检查
+- [Go] Poller context 修复 — QuotePoller/MinutePoller 从不可取消的 context 改为通过 `pollerCtx`/`pollerCancel` 管理，关闭顺序正确（poller → wsHub → sidecar → DB）
+- [Python] 新增缠论测试 27 条 — 覆盖碎形识别、K 线合并、笔连接、中枢识别
+- [Python] 新增策略测试 9 条 — 覆盖 MA 交叉、RSI 反转信号生成
+
+### Added
+
+- [Docs] 新增 `CONTRIBUTING.md` — PR 工作流、编码标准、commit 规范、本地开发设置
+- [Docs] 新增 `SECURITY.md` — 漏洞报告流程、支持的版本、AES-256-GCM 加密说明
+- [CI] 新增 `dependabot.yml` — Go/npm/pip 三生态周更依赖检查
+- [CI] 所有 workflow 添加 `workflow_dispatch` 手动触发支持
+
+### Changed
+
+- [CI] Go 版本引用从硬编码 `'1.25'` 统一为 `go-version-file: go.mod`
+- [CI] Vitest coverage 阈值从 CLI flags 移入 `vite.config.ts`
+- [Build] 修复 `Taskfile.yml` 重复 YAML key `build:frontend:`
+- [Config] `.env.example` 补充 `QOS_API_KEY`、`GDELT_API_KEY` 及说明注释
+
+## [2026.7.25] - 2026-07-25
+
+### Added
+
+- [Frontend] 新增 PanelShell 统一加载/错误/空状态/就绪四态组件 — 封装 loading spinner、error message + retry 按钮、empty slot、loaded slot，消除各面板重复的状态渲染样板代码
+- [Frontend] 迁移 10 个高频面板到 PanelShell（WelcomePanel, MarketOverviewPanel, WatchlistPanel, PortfolioSummary, TradeHistory, FinancialsPanel, GovDataPanel, MarketScannerPanel, CandlestickPanel, IndicatorPanel）
+- [Frontend] 扩展 WailsApp 接口覆盖所有面板调用的 Go App 方法 — 新增 26 个方法签名（行情/交易/港股通/Cache IPC），消除 `window.go.main.App` 的隐式 any 类型
+- [Frontend] 迁移剩余 22 个面板及 DockTab 从 `(window as any).go?.main?.App` 至 `useWailsApp()` 组合式函数 — 消除 `window.go.main.App` 直接引用，统一通过类型安全的 `WailsApp` 接口调用 Go 方法
+- [Frontend] 新增 `resetWailsApp()` 测试辅助函数，解决测试间 useWailsApp 缓存污染导致 mock 失效的问题
+- [i18n] 补充 5 个缺失的英文翻译 key（common.yes, misc.asset_market, misc.benchmark, misc.pinned, ml.sharpe）
+- [Frontend] 新增 OnboardingOverlay 首次使用引导覆盖层 — 5 步导览（欢迎→行情→搜索→组合→完成）、跳过/完成操作、步骤点指示器、localStorage 持久化
+- [Workflow] 新增 6 个 data 类别工作流节点（market_scanner, watchlist, trade_history, orderbook_depth, funding_rate, liquidations）— 补齐行情扫描/自选股/交易历史/订单深度/资金费率/强平数据节点
+
+### Fixed
+
+- [MCP] 将 MustJSON 的 panic 替换为 TryJSON 错误返回变体，防止生产代码路径中的进程崩溃
+- [MarketData] GDELT 适配器增加 Content-Type 校验，非 JSON 响应返回明确错误而非 parse error
+- [Python] 修复 health check 测试中 `aio` 未定义问题 — 将 `aio.insecure_channel` 替换为 `grpc.aio.insecure_channel`
+
+## [2026.7.19] - 2026-07-19
+
+### 新增
+
+- [Frontend] PanelTable 行间↑↓方向键导航 — `focusSiblingRow` 辅助函数在相邻行间移动焦点，空投资产排序面板等可键盘逐行操作
+- [Frontend] WatchlistPanel 删除后焦点智能归还 — 右键盘删除股票后自动聚焦到补位的行（而非跳转到页面顶部），保证键盘连续操作不掉链
+- [Frontend] OrderEntryPanel 实盘止损提示 — Live 模式下止损价输入框下方显示「实盘模式下止损价仅记录在本地订单，不会转发给券商」警告文字，防止用户误以为券商支持止损单
+- [Frontend] CommandBar 命令项 i18n 化 — 3 个系统命令（切换模式/专注模式/清除历史）从硬编码改为调用 `t()`，新增 6 个 i18n key
+
+### 变更
+
+- [Frontend] TickerBar/TickerTapePanel 涨跌色改用 CSS class — 移除 `marketChangeColor()` 运行时开销（高频滚动场景每次 getComputedStyle），改用 `.is-up`/`.is-down`/`.is-flat` class + `var(--color-up/down)` token，性能与主题一致性双提升
+- [Frontend] CSS 变量收尾 — PushPinBar/StatusBar/SymbolSearch/CommandBar 中残留的硬编码 `font-size: 10/11/15px`、`border: none`、`#fff` 等统一替换为 `var(--font-*)`/`border: 0`/`var(--color-text-inverse)` 等 token
+- [Frontend] Phase 2 骨架屏迁移完成 — 所有面板组（chart-group-a/b、prediction-valuation、research-tools、system-aux、funding/hk、arbitrage/calendar、bonds/funds/futures、toolbar-variant）全面迁移至 `SkeletonPanel` / `LoadingState` / `ErrorState` 共享组件，消除约 8,183 行重复架子代码
+- [Frontend] 剩余面板批量 Token 化 — font-size 全部改用 `--font-*` CSS 变量（最小字号 11px），padding/margin 改用 `--space-*` token，消除面板层级硬编码色值
+- [Frontend] stylelint 规则提升至 error 级别 — Phase 2 所有 CSS 合规检查通过
+- [Frontend] PanelTable 增强 — 粘性表头（sticky header）、`colorize` 守卫、全局 `btn-sm` 类，恢复 Whale Tracking 地址 tooltip 和 CB Arbitrage 阈值高亮
+- [Frontend] 测试覆盖率补充 — WatchlistPanel 新增 49 条测试用例，更新 SurfaceChartPanel/TickerTapePanel 测试适配新组件
+- [Frontend] 无障碍（a11y）全面改造 — 37 个组件添加 ARIA 角色/属性、键盘导航（↑↓ Home/End/Enter/Space/Escape）、焦点管理（焦点环 token、菜单关闭焦点归还）、语义化标签、`<button>` 化、`aria-live` 区域
+- [Frontend] 去装饰化第二阶段 — 删除 StatusBar 辉光渐变分割线、WelcomePanel 圆点装饰/分类色背景、canvas-theme.ts、CommandBar 英文提示改为中文、面板分类色仅用于图标文字（去除彩色背景）
+- [Frontend] Token 化收尾 — 工作流组件（NodePalette/CustomNode/StickyNote/WorkflowCanvas/ContextMenu/WorkflowMode/ExecutionLog/ExecutionHistory/CredentialManager/WorkflowList）硬编码色值全部替换为 CSS 变量，分类色与面板共享 `--cat-*` token，阴影/背景 token 化，StickyNote 双主题色
+- [Frontend] WelcomePanel 增强 — 分类 chips 折叠「更多」、最近使用面板加图标、区块标题对齐终端风格、分类色仅用于 icon 文字
+- [Frontend] OrderEntryPanel 重构 — SymbolContext 联动、确认下单两步流程（confirm → submit）、止损价支持、数量预设 chips、Ctrl+Enter 快捷键、接入 toast 提示、定价预设/空态处理
+- [Frontend] SymbolSearch 重构 — spinner CSS 动画替代 emoji、市场徽标改用中性色文字（去颜色编码）、combobox ARIA、键盘导航 scrollIntoView、Enter 选中第一项
+- [Frontend] PushPinBar 交互增强 — 点击导航到对应面板/自选股/工作流、删除撤销 toast、`focus-within` 键盘可达
+- [Frontend] PanelTable ARIA 改造 — role table/row/cell/columnheader/rowgroup、排序按钮化、行 tabindex + 键盘点击
+- [Frontend] WatchlistPanel 上下文菜单键盘可达 — role menu/menuitem、↑↓ Home/End/Esc/Tab、焦点归还
+- [Frontend] 工作流无障碍 — NodePalette 键盘可达（Enter/双击添加节点到画布）、CustomNode/ContextMenu 焦点环
+- [Frontend] WorkflowCanvas 控件 token 化 — vue-flow 控制按钮/框选/minimap 样式 token 化
+- [Frontend] TickerBar/TickerTapePanel `prefers-reduced-motion` — 减少动画时隐藏无缝滚动克隆
+- [Frontend] TradeHistory/OptionsPanel 色值 token 化 — 硬编码 rgba 色值替换为 `--color-danger-soft` / `--color-accent-soft`
+- [Frontend] PanelHeader/ToastContainer 按钮规范 — 所有按钮加 `type="button"`、Toast 操作使用 `<button>` 替代 `<span>`、ToastContainer 添加 `aria-live="polite"`
+- [Frontend] CommandBar/DockView 无障碍 — CommandBar aria-modal/aria-activedescendant、DockView 布局按钮 aria-label
+- [Frontend] useMarketColors 重构 — 移除 `detectMarket` 依赖、改用 `cssVar()` 读取 `--color-up`/`--color-down` token、支持 `body.color-us` 涨跌色偏好
+- [Frontend] buildChartOption MACD/K 线颜色改用 upCol/downCol 变量 — 消除硬编码 `#ef5350`/`#66bb6a`
+- [Backend] `PlaceOrderWithStop` IPC — 新增带止损价的下单方法、StopPrice 写入 Order 指针（paper matcher 共享，实盘路径仅记录）
+- [E2E] 下单流程测试增强 — 确认/取消/止损价/错误 toast/Ctrl+Enter 快捷键测试；新增 screenshot-walkthrough 截图漫游 E2E
+
 ## [2026.7.17] - 2026-07-17
 
 ### 新增

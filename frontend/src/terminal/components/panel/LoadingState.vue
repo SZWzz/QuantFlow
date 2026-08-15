@@ -105,4 +105,10 @@ withDefaults(defineProps<{
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-sm);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-cell, .skeleton-line, .skeleton-chart, .skeleton-inline {
+    animation: none;
+  }
+}
 </style>

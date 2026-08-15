@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { PanelHeader, LoadingState, EmptyState, ErrorState } from '@/terminal/components/panel'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 
 const { t } = useI18n()
-const app = (window as any).go?.main?.App
+const app = useWailsApp()
 const symbol = ref('AAPL')
 const { name } = useStockName(symbol)
 const loading = ref(false)
@@ -64,7 +65,7 @@ function isNegative(v: any): boolean {
 
     <div v-if="loadError" class="error-state" @click="checkWashSale">{{ loadError }} ⟳</div>
 
-    <SkeletonPanel v-if="loading" type="table" />
+    <LoadingState v-if="loading" type="table" />
 
     <template v-else-if="events.length > 0">
       <div class="table-wrap">
@@ -118,17 +119,7 @@ function isNegative(v: any): boolean {
   color: var(--color-text, var(--color-border));
   background: var(--color-bg, var(--color-bg-panel));
 }
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.panel-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
+
 .header-controls {
   display: flex;
   gap: 8px;
@@ -140,7 +131,7 @@ function isNegative(v: any): boolean {
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
-  font-size: 13px;
+  font-size: var(--font-sm);
   outline: none;
 }
 .check-btn {
@@ -150,7 +141,7 @@ function isNegative(v: any): boolean {
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 .check-btn:disabled {
   opacity: 0.5;
@@ -163,7 +154,7 @@ function isNegative(v: any): boolean {
 .wash-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--font-sm);
 }
 .wash-table th {
   text-align: left;
@@ -192,7 +183,7 @@ function isNegative(v: any): boolean {
   padding: 8px 0;
   margin-top: 8px;
   border-top: 1px solid var(--color-border-strong);
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
 }
 .total-label {
@@ -201,24 +192,17 @@ function isNegative(v: any): boolean {
 .total-value {
   font-variant-numeric: tabular-nums;
 }
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
-}
+
 .error-state {
   display: flex; align-items: center; justify-content: center; padding: 12px;
-  color: var(--color-error); font-size: 13px; cursor: pointer;
+  color: var(--color-danger); font-size: var(--font-sm); cursor: pointer;
 }
 .disclaimer {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-tertiary);
-  font-size: 11px;
+  font-size: var(--font-xs);
   text-align: center;
 }
 </style>

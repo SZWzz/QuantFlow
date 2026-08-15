@@ -4,6 +4,7 @@ import { exportCSV } from '@/lib/export'
 import { confirmDialog } from '@/lib/wails'
 import { usePortfolioStore } from '@/stores/portfolio'
 import type { Trade, Order } from '@/stores/portfolio'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 
 defineProps<{ panelId: string; params?: Record<string, any> }>()
 
@@ -18,14 +19,18 @@ let tradesTimer: ReturnType<typeof setInterval> | null = null
 let ordersTimer: ReturnType<typeof setInterval> | null = null
 
 const loadError = ref('')
+const state = ref<'loading' | 'loaded' | 'error' | 'empty'>('loading')
 
 onMounted(async () => {
   loadError.value = ''
+  state.value = 'loading'
   try {
     await store.fetchOrders()
     await store.fetchTrades()
+    state.value = 'loaded'
   } catch (e: any) {
     loadError.value = e?.message || String(e)
+    state.value = 'error'
   }
   tradesTimer = setInterval(async () => {
     try { await store.fetchTrades() } catch (e: any) { loadError.value = e?.message || String(e) }
@@ -138,13 +143,26 @@ function exportData() {
     exportCSV('orders.csv', headers, rows)
   }
 }
+
+async function retryLoad() {
+  state.value = 'loading'
+  loadError.value = ''
+  try {
+    await store.fetchOrders()
+    await store.fetchTrades()
+    state.value = 'loaded'
+  } catch (e: any) {
+    loadError.value = e?.message || String(e)
+    state.value = 'error'
+  }
+}
 </script>
 
 <template>
-  <div class="trade-history">
-    <div v-if="loadError" class="panel-error">{{ loadError }}</div>
-
-    <!-- Filters -->
+  <PanelShell :state="state" :error="loadError" @retry="retryLoad">
+    <template #loaded>
+      <div class="trade-history">
+        <!-- Filters -->
     <div class="filter-bar">
       <input
         v-model="symbolFilter"
@@ -281,7 +299,9 @@ function exportData() {
         <span class="stat-value">{{ fmtMoney(orderStats.totalValue) }}</span>
       </div>
     </div>
-  </div>
+    </div>
+    </template>
+  </PanelShell>
 </template>
 
 <style scoped>
@@ -294,16 +314,6 @@ function exportData() {
   gap: var(--spacing);
   font-variant-numeric: tabular-nums;
   color: var(--text);
-}
-
-.panel-error {
-  padding: 8px 12px;
-  color: var(--color-up);
-  background: var(--color-up-soft);
-  border: 1px solid var(--color-up-glow);
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  flex-shrink: 0;
 }
 
 /* -- Filter bar -- */
@@ -320,7 +330,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 .filter-input:focus { border-color: var(--accent); }
@@ -332,7 +342,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 
@@ -346,7 +356,7 @@ function exportData() {
   background: var(--input);
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -366,7 +376,7 @@ function exportData() {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -411,7 +421,7 @@ td {
 
 .symbol { font-weight: 600; color: var(--text); }
 
-.muted { color: var(--muted); font-size: 11px; }
+.muted { color: var(--muted); font-size: var(--font-xs); }
 .up   { color: var(--up); font-weight: 600; }
 .down { color: var(--down); font-weight: 600; }
 
@@ -432,7 +442,7 @@ td {
 }
 
 .load-count {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--muted);
 }
 
@@ -442,7 +452,7 @@ td {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
@@ -481,18 +491,18 @@ td {
 }
 
 .badge.rejected {
-  background: var(--color-up-bg, rgba(220,38,38,0.08));
-  color: var(--down);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 /* -- Cancel button -- */
 .cancel-btn {
   padding: 2px 8px;
-  background: var(--color-up-bg, rgba(220,38,38,0.08));
-  border: 1px solid var(--down);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
   border-radius: var(--radius-sm);
-  color: var(--down);
-  font-size: 10px;
+  color: var(--color-danger);
+  font-size: var(--font-xs);
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -522,7 +532,7 @@ td {
 }
 
 .stat-value {
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text);
 }

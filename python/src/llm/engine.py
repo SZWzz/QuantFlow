@@ -257,10 +257,23 @@ class LLMService(llm_pb2_grpc.LLMServiceServicer):
         return llm_pb2.LLMListModelsResponse(models=models)
 
     async def CountTokens(self, request: llm_pb2.CountTokensRequest, context) -> llm_pb2.CountTokensResponse:
-        """Estimate token count for messages using a simple heuristic."""
-        total_chars = len(request.system_prompt or "")
+        """Estimate token count using model-specific tokenizer when available."""
+        total_text = (request.system_prompt or "")
         for msg in request.messages:
-            total_chars += len(msg.content or "")
-        # Rough estimate: 4 chars per token
-        token_count = max(1, total_chars // 4)
+            total_text += (msg.content or "")
+
+        try:
+            import tiktoken
+            model = request.model or "gpt-4"
+            try:
+                encoding = tiktoken.encoding_for_model(model)
+            except KeyError:
+                encoding = tiktoken.get_encoding("cl100k_base")
+            token_count = len(encoding.encode(total_text))
+        except ImportError:
+            # Fallback: approximate (chars / 4 for English, ~1.5 for CJK)
+            ascii_count = sum(1 for c in total_text if ord(c) < 128)
+            unicode_count = len(total_text) - ascii_count
+            token_count = max(1, ascii_count // 4 + unicode_count)
+
         return llm_pb2.CountTokensResponse(token_count=token_count)

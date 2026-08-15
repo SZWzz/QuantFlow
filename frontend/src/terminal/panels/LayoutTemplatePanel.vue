@@ -100,94 +100,20 @@ onMounted(loadList)
 </template>
 
 <style scoped>
-.layout-template-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-.save-input {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
-  border-bottom: 1px solid var(--border-color, #333);
-}
-.save-input input {
-  flex: 1;
-  background: transparent;
-  border: 1px solid var(--border-color, #555);
-  color: var(--text-color, #fff);
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-.save-input input:focus {
-  outline: none;
-  border-color: var(--accent-color, #4a9eff);
-}
-.save-input button {
-  background: var(--accent-color, #4a9eff);
-  color: #fff;
-  border: none;
-  padding: 4px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.save-input button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.layout-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-}
-.layout-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #222);
-}
-.layout-item:hover {
-  background: var(--hover-bg, rgba(255,255,255,0.05));
-}
-.layout-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-.layout-hotkey {
-  font-size: 11px;
-  color: var(--text-secondary, #888);
-}
-.layout-name {
-  font-size: 14px;
-  color: var(--text-color, #eee);
-}
-.delete-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary, #666);
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-.delete-btn:hover {
-  background: rgba(255, 0, 0, 0.1);
-  color: #ff4444;
-}
-.loading,
-.empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-secondary, #888);
-}
-.hint {
-  padding: 8px 12px;
-  font-size: 11px;
-  color: var(--text-secondary, #666);
-  border-top: 1px solid var(--border-color, #222);
-}
+.layout-template-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.save-input { display: flex; gap: var(--space-xs); padding: var(--space-sm) var(--panel-padding); border-bottom: 1px solid var(--color-border); }
+.save-input input { flex: 1; background: transparent; border: 1px solid var(--color-border-strong); color: var(--color-text-primary); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); }
+.save-input input:focus { outline: none; border-color: var(--color-accent); }
+.save-input button { background: var(--color-accent); color: var(--color-text-primary); border: none; padding: var(--space-xs) var(--space-md); border-radius: var(--radius-sm); cursor: pointer; }
+.save-input button:disabled { opacity: 0.5; cursor: not-allowed; }
+.layout-list { flex: 1; overflow-y: auto; padding: var(--space-xs) 0; }
+.layout-item { display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--panel-padding); cursor: pointer; border-bottom: 1px solid var(--color-border-subtle); }
+.layout-item:hover { background: var(--color-bg-subtle); }
+.layout-info { display: flex; flex-direction: column; gap: var(--space-xs); flex: 1; }
+.layout-hotkey { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.layout-name { font-size: var(--font-sm); color: var(--color-text-primary); }
+.delete-btn { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); }
+.delete-btn:hover { background: var(--color-up-soft); color: var(--color-up); }
+.loading, .empty { padding: var(--space-xl); text-align: center; color: var(--color-text-tertiary); }
+.hint { padding: var(--space-sm) var(--panel-padding); font-size: var(--font-xs); color: var(--color-text-secondary); border-top: 1px solid var(--color-border-subtle); }
 </style>

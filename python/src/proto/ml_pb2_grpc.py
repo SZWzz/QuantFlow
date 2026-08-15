@@ -3,9 +3,9 @@
 import grpc
 import warnings
 
-from src.proto import ml_pb2 as ml__pb2
+from proto import ml_pb2 as proto_dot_ml__pb2
 
-GRPC_GENERATED_VERSION = '1.81.1'
+GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in ml_pb2_grpc.py depends on'
+        + ' but the generated code in proto/ml_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,38 +37,38 @@ class MLServiceStub:
         """
         self.Train = channel.unary_unary(
                 '/quantflow.MLService/Train',
-                request_serializer=ml__pb2.TrainRequest.SerializeToString,
-                response_deserializer=ml__pb2.TrainResponse.FromString,
+                request_serializer=proto_dot_ml__pb2.TrainRequest.SerializeToString,
+                response_deserializer=proto_dot_ml__pb2.TrainResponse.FromString,
                 _registered_method=True)
         self.Predict = channel.unary_unary(
                 '/quantflow.MLService/Predict',
-                request_serializer=ml__pb2.PredictRequest.SerializeToString,
-                response_deserializer=ml__pb2.PredictResponse.FromString,
+                request_serializer=proto_dot_ml__pb2.PredictRequest.SerializeToString,
+                response_deserializer=proto_dot_ml__pb2.PredictResponse.FromString,
                 _registered_method=True)
         self.Evaluate = channel.unary_unary(
                 '/quantflow.MLService/Evaluate',
-                request_serializer=ml__pb2.EvaluateRequest.SerializeToString,
-                response_deserializer=ml__pb2.EvaluateResponse.FromString,
+                request_serializer=proto_dot_ml__pb2.EvaluateRequest.SerializeToString,
+                response_deserializer=proto_dot_ml__pb2.EvaluateResponse.FromString,
                 _registered_method=True)
         self.AlphaMining = channel.unary_unary(
                 '/quantflow.MLService/AlphaMining',
-                request_serializer=ml__pb2.AlphaMiningRequest.SerializeToString,
-                response_deserializer=ml__pb2.AlphaMiningResponse.FromString,
+                request_serializer=proto_dot_ml__pb2.AlphaMiningRequest.SerializeToString,
+                response_deserializer=proto_dot_ml__pb2.AlphaMiningResponse.FromString,
                 _registered_method=True)
         self.RLTrain = channel.unary_stream(
                 '/quantflow.MLService/RLTrain',
-                request_serializer=ml__pb2.RLTrainRequest.SerializeToString,
-                response_deserializer=ml__pb2.RLTrainUpdate.FromString,
+                request_serializer=proto_dot_ml__pb2.RLTrainRequest.SerializeToString,
+                response_deserializer=proto_dot_ml__pb2.RLTrainUpdate.FromString,
                 _registered_method=True)
         self.RLPredict = channel.unary_unary(
                 '/quantflow.MLService/RLPredict',
-                request_serializer=ml__pb2.RLPredictRequest.SerializeToString,
-                response_deserializer=ml__pb2.RLPredictResponse.FromString,
+                request_serializer=proto_dot_ml__pb2.RLPredictRequest.SerializeToString,
+                response_deserializer=proto_dot_ml__pb2.RLPredictResponse.FromString,
                 _registered_method=True)
         self.RiskModel = channel.unary_unary(
                 '/quantflow.MLService/RiskModel',
-                request_serializer=ml__pb2.RiskModelRequest.SerializeToString,
-                response_deserializer=ml__pb2.RiskModelResponse.FromString,
+                request_serializer=proto_dot_ml__pb2.RiskModelRequest.SerializeToString,
+                response_deserializer=proto_dot_ml__pb2.RiskModelResponse.FromString,
                 _registered_method=True)
 
 
@@ -123,38 +123,38 @@ def add_MLServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Train': grpc.unary_unary_rpc_method_handler(
                     servicer.Train,
-                    request_deserializer=ml__pb2.TrainRequest.FromString,
-                    response_serializer=ml__pb2.TrainResponse.SerializeToString,
+                    request_deserializer=proto_dot_ml__pb2.TrainRequest.FromString,
+                    response_serializer=proto_dot_ml__pb2.TrainResponse.SerializeToString,
             ),
             'Predict': grpc.unary_unary_rpc_method_handler(
                     servicer.Predict,
-                    request_deserializer=ml__pb2.PredictRequest.FromString,
-                    response_serializer=ml__pb2.PredictResponse.SerializeToString,
+                    request_deserializer=proto_dot_ml__pb2.PredictRequest.FromString,
+                    response_serializer=proto_dot_ml__pb2.PredictResponse.SerializeToString,
             ),
             'Evaluate': grpc.unary_unary_rpc_method_handler(
                     servicer.Evaluate,
-                    request_deserializer=ml__pb2.EvaluateRequest.FromString,
-                    response_serializer=ml__pb2.EvaluateResponse.SerializeToString,
+                    request_deserializer=proto_dot_ml__pb2.EvaluateRequest.FromString,
+                    response_serializer=proto_dot_ml__pb2.EvaluateResponse.SerializeToString,
             ),
             'AlphaMining': grpc.unary_unary_rpc_method_handler(
                     servicer.AlphaMining,
-                    request_deserializer=ml__pb2.AlphaMiningRequest.FromString,
-                    response_serializer=ml__pb2.AlphaMiningResponse.SerializeToString,
+                    request_deserializer=proto_dot_ml__pb2.AlphaMiningRequest.FromString,
+                    response_serializer=proto_dot_ml__pb2.AlphaMiningResponse.SerializeToString,
             ),
             'RLTrain': grpc.unary_stream_rpc_method_handler(
                     servicer.RLTrain,
-                    request_deserializer=ml__pb2.RLTrainRequest.FromString,
-                    response_serializer=ml__pb2.RLTrainUpdate.SerializeToString,
+                    request_deserializer=proto_dot_ml__pb2.RLTrainRequest.FromString,
+                    response_serializer=proto_dot_ml__pb2.RLTrainUpdate.SerializeToString,
             ),
             'RLPredict': grpc.unary_unary_rpc_method_handler(
                     servicer.RLPredict,
-                    request_deserializer=ml__pb2.RLPredictRequest.FromString,
-                    response_serializer=ml__pb2.RLPredictResponse.SerializeToString,
+                    request_deserializer=proto_dot_ml__pb2.RLPredictRequest.FromString,
+                    response_serializer=proto_dot_ml__pb2.RLPredictResponse.SerializeToString,
             ),
             'RiskModel': grpc.unary_unary_rpc_method_handler(
                     servicer.RiskModel,
-                    request_deserializer=ml__pb2.RiskModelRequest.FromString,
-                    response_serializer=ml__pb2.RiskModelResponse.SerializeToString,
+                    request_deserializer=proto_dot_ml__pb2.RiskModelRequest.FromString,
+                    response_serializer=proto_dot_ml__pb2.RiskModelResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -183,8 +183,8 @@ class MLService:
             request,
             target,
             '/quantflow.MLService/Train',
-            ml__pb2.TrainRequest.SerializeToString,
-            ml__pb2.TrainResponse.FromString,
+            proto_dot_ml__pb2.TrainRequest.SerializeToString,
+            proto_dot_ml__pb2.TrainResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -210,8 +210,8 @@ class MLService:
             request,
             target,
             '/quantflow.MLService/Predict',
-            ml__pb2.PredictRequest.SerializeToString,
-            ml__pb2.PredictResponse.FromString,
+            proto_dot_ml__pb2.PredictRequest.SerializeToString,
+            proto_dot_ml__pb2.PredictResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -237,8 +237,8 @@ class MLService:
             request,
             target,
             '/quantflow.MLService/Evaluate',
-            ml__pb2.EvaluateRequest.SerializeToString,
-            ml__pb2.EvaluateResponse.FromString,
+            proto_dot_ml__pb2.EvaluateRequest.SerializeToString,
+            proto_dot_ml__pb2.EvaluateResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -264,8 +264,8 @@ class MLService:
             request,
             target,
             '/quantflow.MLService/AlphaMining',
-            ml__pb2.AlphaMiningRequest.SerializeToString,
-            ml__pb2.AlphaMiningResponse.FromString,
+            proto_dot_ml__pb2.AlphaMiningRequest.SerializeToString,
+            proto_dot_ml__pb2.AlphaMiningResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -291,8 +291,8 @@ class MLService:
             request,
             target,
             '/quantflow.MLService/RLTrain',
-            ml__pb2.RLTrainRequest.SerializeToString,
-            ml__pb2.RLTrainUpdate.FromString,
+            proto_dot_ml__pb2.RLTrainRequest.SerializeToString,
+            proto_dot_ml__pb2.RLTrainUpdate.FromString,
             options,
             channel_credentials,
             insecure,
@@ -318,8 +318,8 @@ class MLService:
             request,
             target,
             '/quantflow.MLService/RLPredict',
-            ml__pb2.RLPredictRequest.SerializeToString,
-            ml__pb2.RLPredictResponse.FromString,
+            proto_dot_ml__pb2.RLPredictRequest.SerializeToString,
+            proto_dot_ml__pb2.RLPredictResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -345,8 +345,8 @@ class MLService:
             request,
             target,
             '/quantflow.MLService/RiskModel',
-            ml__pb2.RiskModelRequest.SerializeToString,
-            ml__pb2.RiskModelResponse.FromString,
+            proto_dot_ml__pb2.RiskModelRequest.SerializeToString,
+            proto_dot_ml__pb2.RiskModelResponse.FromString,
             options,
             channel_credentials,
             insecure,

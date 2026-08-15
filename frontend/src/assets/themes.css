@@ -22,6 +22,7 @@ body {
   --color-bg-selected: rgba(29, 100, 216, 0.10);
   --color-bg-input: #f2f4f7;
   --color-bg-glass: rgba(255, 255, 255, 0.88);
+  --color-overlay: rgba(16, 24, 40, 0.5);
   /* Text — 全部 ≥ 4.5:1 on panel */
   --color-text-primary: #161d27;
   --color-text-secondary: #43505f;
@@ -126,6 +127,7 @@ body.theme-dark {
   --color-bg-selected: rgba(59, 130, 246, 0.15);
   --color-bg-input: #0f1828;
   --color-bg-glass: rgba(22, 31, 46, 0.85);
+  --color-overlay: rgba(0, 0, 0, 0.6);
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #cbd5e1;
   --color-text-tertiary: #94a3b8;
@@ -270,6 +272,15 @@ body {
   --wf-minimap-mask: rgba(255, 255, 255, 0.7);
   --wf-chart-grid: #d6dce3;
   --wf-chart-text: #43505f;
+  /* Node header — 文字压在饱和分类色上，双主题均为白 */
+  --wf-node-header-text: #ffffff;
+  /* Sticky note 便签 */
+  --wf-note-yellow: #fef3c7;
+  --wf-note-blue: #dbeafe;
+  --wf-note-pink: #fce7f3;
+  --wf-note-green: #d1fae5;
+  --wf-note-indigo: #e0e7ff;
+  --wf-note-text: #1e293b;
 }
 
 body.theme-dark {
@@ -298,6 +309,13 @@ body.theme-dark {
   --wf-minimap-mask: rgba(0, 0, 0, 0.5);
   --wf-chart-grid: #2a2a3a;
   --wf-chart-text: #8b8ba0;
+  --wf-node-header-text: #ffffff;
+  --wf-note-yellow: #4a3d10;
+  --wf-note-blue: #16324f;
+  --wf-note-pink: #4a1d33;
+  --wf-note-green: #143e2a;
+  --wf-note-indigo: #2b2b52;
+  --wf-note-text: #e8e6df;
 }
 
 /* ── Density ───────────────────────────────────────────────────── */
@@ -319,9 +337,9 @@ body {
   --font-kpi: 24px;
   --row-height: 36px;
   --padding-panel: 12px;
-  --transition-fast: 0.12s ease;
-  --transition-normal: 0.2s ease;
-  --transition-slow: 0.3s ease;
+  --transition-fast: 0.12s ease-out;
+  --transition-normal: 0.2s ease-out;
+  --transition-slow: 0.3s ease-out;
 }
 
 body.density-compact {
@@ -342,9 +360,10 @@ body.density-compact {
   --font-kpi: 20px;
   --row-height: 30px;
   --padding-panel: 8px;
-  --transition-fast: 80ms ease;
-  --transition-normal: 0.12s ease;
-  --transition-slow: 0.2s ease;
+  --panel-header-height: 36px;
+  --transition-fast: 80ms ease-out;
+  --transition-normal: 0.12s ease-out;
+  --transition-slow: 0.2s ease-out;
 }
 
 body.density-comfortable {
@@ -365,9 +384,10 @@ body.density-comfortable {
   --font-kpi: 30px;
   --row-height: 44px;
   --padding-panel: 16px;
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s ease;
-  --transition-slow: 0.35s ease;
+  --panel-header-height: 44px;
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.25s ease-out;
+  --transition-slow: 0.35s ease-out;
 }
 
 /* ── Reset ─────────────────────────────────────────────────────── */
@@ -460,6 +480,13 @@ body {
   border-color: var(--color-border);
 }
 
+/* ── 小按钮修饰符（与 .btn 组合使用） ─────────────────────────── */
+.btn-sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-xs);
+  border-radius: var(--radius-sm);
+}
+
 /* ── Workflow add-to button ────────────────────────────────────── */
 .wf-btn {
   display: inline-flex;
@@ -483,6 +510,27 @@ body {
   color: var(--color-accent);
   background: var(--color-accent-soft);
 }
+/* ── 按钮 loading 态（PanelHeader controls 等） ────────────────── */
+.btn.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.btn.loading .icon svg {
+  animation: btn-spin 1s linear infinite;
+}
+@keyframes btn-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.loading .icon svg { animation: none; }
+}
+
 .wf-btn svg {
   width: 16px;
   height: 16px;
@@ -599,7 +647,8 @@ body {
   --panel-padding-lg: 16px;
   --panel-padding-sm: 8px;
 
-  --panel-title-size: var(--font-lg);
+  --panel-title-size: var(--font-sm);
+  --panel-header-height: 40px;
   --panel-title-weight: 600;
   --panel-subtitle-size: var(--font-sm);
   --panel-subtitle-color: var(--color-text-tertiary);
@@ -633,4 +682,74 @@ body {
 
 body.theme-dark {
   --table-row-odd: rgba(255, 255, 255, 0.02);
+}
+
+/* ── 全局面板骨架类（手写面板过渡期统一长相；共享组件优先） ─────────── */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  min-height: var(--panel-header-height);
+  padding: var(--space-sm) var(--panel-padding);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+.panel-header h3 {
+  margin: 0;
+  font-size: var(--panel-title-size);
+  font-weight: var(--panel-title-weight);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+.panel-header .header-actions,
+.panel-header .header-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  flex: 1;
+  grid-column: 1 / -1; /* 网格容器内占满整行；flex 容器中被忽略 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-sm);
+}
+
+.panel-error {
+  padding: var(--space-md) var(--panel-padding);
+  color: var(--color-danger);
+  font-size: var(--font-sm);
+}
+
+.section-title {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── 数据刷新涨跌闪烁（信息性动效） ──────────────────────────────── */
+@keyframes flash-up-kf {
+  from { background-color: var(--color-up-soft); }
+  to { background-color: transparent; }
+}
+@keyframes flash-down-kf {
+  from { background-color: var(--color-down-soft); }
+  to { background-color: transparent; }
+}
+.flash-up { animation: flash-up-kf 0.6s ease-out; }
+.flash-down { animation: flash-down-kf 0.6s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-up, .flash-down { animation: none; }
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ListNodes } from '@/lib/wails'
+import { ListNodes, GetNodePorts } from '@/lib/wails'
 import { useWorkflowStore } from '@/stores/workflow'
+import { cssVar } from '@/lib/cssVar'
 import { TEMPLATES } from './templates'
 import { nodeLabel } from './nodeLabels'
 
@@ -75,12 +76,27 @@ const catLabels: Record<string, string> = {
   alternative_data: t('workflow.cat_alternative_data'),
 }
 
+// 分类色 → themes.css 现有 --cat-* token（启动时读一次；fallback 为亮色值）
 const categoryColors: Record<string, string> = {
-  data: '#58a6ff', indicator: '#3fb950', indicators: '#22c55e', signal: '#f0883e', output: '#a371f7', control: '#e94560',
-  alpha: '#f59e0b', strategy: '#06b6d4', backtest: '#8b5cf6', ai: '#ec4899',
-  trading: '#22c55e', notify: '#f97316', schedule: '#6366f1',
-  portfolio: '#14b8a6', risk: '#ef4444', utility: '#64748b',
-  ml: '#a855f7', research: '#0ea5e9', alternative_data: '#84cc16',
+  data: cssVar('--cat-market', '#2563eb'),
+  indicator: cssVar('--cat-chart', '#0891b2'),
+  indicators: cssVar('--cat-chart', '#0891b2'),
+  signal: cssVar('--cat-quant', '#d97706'),
+  output: cssVar('--cat-system', '#475569'),
+  control: cssVar('--cat-altdata', '#db2777'),
+  alpha: cssVar('--cat-quant', '#d97706'),
+  strategy: cssVar('--cat-chart', '#0891b2'),
+  backtest: cssVar('--cat-research', '#7c3aed'),
+  ai: cssVar('--cat-altdata', '#db2777'),
+  trading: cssVar('--cat-trading', '#059669'),
+  notify: cssVar('--cat-crypto', '#d97706'),
+  schedule: cssVar('--cat-portfolio', '#4f46e5'),
+  portfolio: cssVar('--cat-hk', '#0d9488'),
+  risk: cssVar('--color-danger', '#c62828'),
+  utility: cssVar('--cat-system', '#475569'),
+  ml: cssVar('--cat-research', '#7c3aed'),
+  research: cssVar('--cat-market', '#2563eb'),
+  alternative_data: cssVar('--cat-altdata', '#db2777'),
 }
 
 function onDragStart(event: DragEvent, nodeType: string) {
@@ -88,6 +104,24 @@ function onDragStart(event: DragEvent, nodeType: string) {
     event.dataTransfer.setData('application/node-type', nodeType)
     event.dataTransfer.effectAllowed = 'move'
   }
+}
+
+// 键盘可达：Enter / 双击 把节点加到画布中心（与 WorkflowCanvas onDrop 同一条 addNode 路径）
+async function addNodeToCenter(nodeType: string) {
+  let portOverrides: { inputs: string[]; outputs: string[] } | undefined
+  try {
+    const result = await GetNodePorts(nodeType)
+    portOverrides = {
+      inputs: result.inputs.map(p => p.name),
+      outputs: result.outputs.map(p => p.name),
+    }
+  } catch {
+    // 后端端口信息不可用时退回本地端口表
+  }
+  const n = workflow.nodes.length
+  const position = { x: 480 + (n % 5) * 24, y: 280 + (n % 5) * 24 }
+  const nodeId = workflow.addNode(nodeType, position, undefined, portOverrides)
+  workflow.selectNode(nodeId)
 }
 </script>
 
@@ -112,7 +146,10 @@ function onDragStart(event: DragEvent, nodeType: string) {
           :key="'fav-' + node.node_type"
           class="node-item"
           draggable="true"
+          tabindex="0"
           @dragstart="onDragStart($event, node.node_type)"
+          @keydown.enter="addNodeToCenter(node.node_type)"
+          @dblclick="addNodeToCenter(node.node_type)"
         >
           <span class="node-name">{{ nodeLabel(node.node_type) }}</span>
         </div>
@@ -126,7 +163,10 @@ function onDragStart(event: DragEvent, nodeType: string) {
           :key="'rec-' + rtype"
           class="node-item"
           draggable="true"
+          tabindex="0"
           @dragstart="onDragStart($event, rtype)"
+          @keydown.enter="addNodeToCenter(rtype)"
+          @dblclick="addNodeToCenter(rtype)"
         >
           <span class="node-name">{{ nodeLabel(rtype) }}</span>
         </div>
@@ -142,7 +182,10 @@ function onDragStart(event: DragEvent, nodeType: string) {
           :key="node.node_type"
           class="node-item"
           draggable="true"
+          tabindex="0"
           @dragstart="onDragStart($event, node.node_type)"
+          @keydown.enter="addNodeToCenter(node.node_type)"
+          @dblclick="addNodeToCenter(node.node_type)"
         >
           <div class="node-icon" :style="{ borderColor: categoryColors[cat] || 'var(--color-text-tertiary)' }">
             <span :style="{ color: categoryColors[cat] || 'var(--color-text-tertiary)' }">⬡</span>
@@ -211,7 +254,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
 }
 
 .palette-header h3 {
-  font-size: 11px;
+  font-size: var(--font-xs);
   text-transform: uppercase;
   color: var(--color-text-tertiary);
   letter-spacing: 0.5px;
@@ -225,7 +268,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
-  font-size: 11px;
+  font-size: var(--font-xs);
   outline: none;
 }
 .search-input:focus { border-color: var(--color-accent); }
@@ -236,7 +279,7 @@ function onDragStart(event: DragEvent, nodeType: string) {
 
 .category-label {
   display: flex; align-items: center; gap: 6px;
-  padding: 4px 6px; font-size: 10px; color: var(--color-text-tertiary);
+  padding: 4px 6px; font-size: var(--font-xs); color: var(--color-text-tertiary);
   text-transform: uppercase; letter-spacing: 0.5px;
 }
 .cat-dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -246,29 +289,34 @@ function onDragStart(event: DragEvent, nodeType: string) {
   border-radius: var(--radius-sm); cursor: grab; transition: background 0.1s;
 }
 .node-item:hover { background: rgba(var(--wf-accent-rgb), 0.08); }
+.node-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  background: rgba(var(--wf-accent-rgb), 0.08);
+}
 .node-item:active { cursor: grabbing; }
 
 .node-icon { width: 24px; height: 24px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 12px; }
-.node-name { font-size: 11px; color: var(--color-text-primary); }
+.node-name { font-size: var(--font-xs); color: var(--color-text-primary); }
 
 .no-results { padding: 16px; text-align: center; color: var(--color-text-tertiary); font-size: 12px; }
 
 .templates-section { margin-top: 8px; border-top: 1px solid var(--color-border); padding-top: 6px; }
-.templates-toggle { display: flex; justify-content: space-between; align-items: center; padding: 6px; cursor: pointer; font-size: 11px; color: var(--color-text-secondary); }
+.templates-toggle { display: flex; justify-content: space-between; align-items: center; padding: 6px; cursor: pointer; font-size: var(--font-xs); color: var(--color-text-secondary); }
 .templates-toggle:hover { color: var(--color-accent); }
-.toggle-arrow { font-size: 10px; }
+.toggle-arrow { font-size: var(--font-xs); }
 .templates-list { padding: 0 4px; display: flex; flex-direction: column; gap: 8px; }
 
 .template-card {
-  background: var(--color-bg-subtle, #f5f7fa);
+  background: var(--color-bg-subtle);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   padding: 10px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 .template-card:hover {
-  border-color: var(--color-accent, #1d64d8);
+  border-color: var(--color-accent);
   background: rgba(var(--wf-accent-rgb), 0.04);
 }
 
@@ -276,22 +324,22 @@ function onDragStart(event: DragEvent, nodeType: string) {
 .tpl-icon { font-size: 18px; flex-shrink: 0; }
 .tpl-meta { display: flex; flex-direction: column; min-width: 0; }
 .tpl-name { font-size: 12px; font-weight: 600; color: var(--color-text-primary); }
-.tpl-count { font-size: 10px; color: var(--color-text-tertiary); }
+.tpl-count { font-size: var(--font-xs); color: var(--color-text-tertiary); }
 
-.tpl-desc { font-size: 10px; color: var(--color-text-secondary); line-height: 1.4; margin: 0 0 8px; }
+.tpl-desc { font-size: var(--font-xs); color: var(--color-text-secondary); line-height: 1.4; margin: 0 0 8px; }
 
 .tpl-flow {
   display: flex; flex-wrap: wrap; gap: 3px 0;
   padding: 6px 4px;
-  background: var(--color-bg-input, #f2f4f7);
-  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg-input);
+  border-radius: var(--radius-sm);
 }
 .flow-step { display: flex; align-items: center; gap: 4px; font-size: 0; }
 .flow-step.last .flow-arrow { display: none; }
 .flow-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: var(--color-accent, #1d64d8); flex-shrink: 0;
+  background: var(--color-accent); flex-shrink: 0;
 }
-.flow-label { font-size: 9px; color: var(--color-text-tertiary); white-space: nowrap; }
-.flow-arrow { font-size: 8px; color: var(--color-text-tertiary); margin: 0 2px; }
+.flow-label { font-size: var(--font-xs); color: var(--color-text-tertiary); white-space: nowrap; }
+.flow-arrow { font-size: var(--font-xs); color: var(--color-text-tertiary); margin: 0 2px; }
 </style>

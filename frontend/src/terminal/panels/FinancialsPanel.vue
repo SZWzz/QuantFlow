@@ -3,9 +3,12 @@ import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useSymbolContext } from '@/stores/symbolContext'
 import { useStockName } from '@/lib/composables/useStockName'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { PanelHeader } from '@/terminal/components/panel'
 import { getIcon } from '@/lib/icons'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
+import PanelShell from '@/terminal/components/panel/PanelShell.vue'
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
@@ -27,6 +30,7 @@ const pg = ctx.getOrCreatePanelGroup(props.panelId)
 const symbol = ref(props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || '600519')
 const { name } = useStockName(symbol)
 const { fetchWithCache } = usePanelCache()
+const chartTheme = useChartTheme()
 
 const market = computed<Market>(() => detectMarket(symbol.value))
 
@@ -60,6 +64,17 @@ const tabs = [
 ]
 
 const { control: addToWfControl, addToWorkflow } = useAddToWorkflow(props.panelId)
+const app = useWailsApp()
+
+const marketBadge = computed(() => market.value === 'CN' ? 'A股' : market.value === 'HK' ? '港股' : '美股')
+const headerSubtitle = computed(() => `${symbol.value} ${name.value || ''}`.trim())
+
+const headerControls = computed(() => {
+  const list: any[] = []
+  if (addToWfControl.value) list.push(addToWfControl.value)
+  list.push({ icon: 'refresh', title: '刷新', action: loadData, loading: loading.value })
+  return list
+})
 
 function parseNum(v: any): number {
   const n = typeof v === 'string' ? parseFloat(v) : v
@@ -117,7 +132,7 @@ async function loadCNData() {
   cnLoading.value = true
   cnError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => app?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
     if (seq !== loadSeq) return
     statements.value = {
       income: res.income || [],
@@ -239,19 +254,13 @@ const trendMetrics = computed(() => {
   return { series: keys, chartData }
 })
 
-function buildChart() {
-  if (!chartContainer.value) return
-  if (!chartInstance) {
-    chartInstance = echarts.init(chartContainer.value)
-  }
+// ECharts option as computed so it redraws on theme change (P6)
+const chartOption = computed<echarts.EChartsCoreOption | null>(() => {
   const { series, chartData } = trendMetrics.value
-  if (!series.length || !chartData.length) return
-
-  const isDark = document.body.classList.contains('theme-dark')
-  const textColor = isDark ? '#8b949e' : '#666'
-  const borderColor = isDark ? '#30363d' : '#e5e7eb'
-
-  chartInstance.setOption({
+  if (!series.length || !chartData.length) return null
+  const textColor = chartTheme.axisColor
+  const borderColor = chartTheme.splitColor
+  return {
     grid: { left: 10, right: 20, top: 20, bottom: 30 },
     tooltip: { trigger: 'axis' },
     xAxis: {
@@ -261,21 +270,30 @@ function buildChart() {
     yAxis: {
       type: 'value',
       axisLabel: { fontSize: 10, color: textColor, formatter: (v: number) => smartFormat(v) },
-      splitLine: { lineStyle: { color: borderColor, type: 'dashed' } },
+      splitLine: { lineStyle: { color: chartTheme.gridColor, type: 'dashed' } },
     },
     series: series.map((name, i) => ({
       name,
       type: i === 0 ? 'bar' : 'line',
       data: chartData.map(d => d[name] || 0),
-      itemStyle: { color: i === 0 ? '#58a6ff' : '#f0883e' },
+      itemStyle: { color: i === 0 ? chartTheme.palette[0] : chartTheme.palette[1] },
       lineStyle: { width: 2 },
       symbol: 'circle', symbolSize: 4,
       smooth: true,
     })),
-  }, true)
+  }
+})
+
+function buildChart() {
+  if (!chartContainer.value) return
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartContainer.value)
+  }
+  if (!chartOption.value) return
+  chartInstance.setOption(chartOption.value, true)
 }
 
-watch([activeTab, trendMetrics], () => nextTick(buildChart))
+watch([activeTab, trendMetrics, chartOption], () => nextTick(buildChart))
 watch(() => statements.value, () => nextTick(buildChart))
 
 // ══════ US (SEC) financials ══════
@@ -319,10 +337,9 @@ function fmtVal(v: number | string): string {
 async function loadUSData() {
   usLoading.value = true; usError.value = ''
   try {
-    const w = (window as any)
-    if (w?.go?.main?.App?.FetchData) {
+    if (app?.FetchData) {
       const { data: result } = await fetchWithCache('sec_financials:' + symbol.value, async () => {
-        return await w.go.main.App.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
+        return await app.FetchData(SOURCE, DATA_TYPE, [symbol.value], '', '', {})
       })
       if (result?.data) rawData.value = JSON.parse(result.data)
       else if (result?.error) usError.value = result.error
@@ -340,7 +357,7 @@ async function loadHKData() {
   hkLoading.value = true
   hkError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => (window as any).go?.main?.App?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => app?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
     statements.value = {
       income: res.income || [],
       balance: res.balance || [],
@@ -359,6 +376,26 @@ const loading = computed(() => {
   return usLoading.value
 })
 
+const activeError = computed(() => {
+  if (market.value === 'CN') return cnError.value
+  if (market.value === 'HK') return hkError.value
+  return usError.value
+})
+
+const state = computed<'loading' | 'loaded' | 'error' | 'empty'>(() => {
+  if (activeError.value) return 'error'
+  if (loading.value) return 'loading'
+  if (market.value === 'US') {
+    if (!usLoading.value && sections.value.length === 0) return 'empty'
+  } else {
+    if (!loading.value && !statements.value?.income?.length && !statements.value?.balance?.length) return 'empty'
+  }
+  return 'loaded'
+})
+
+function onTabChange(key: string) {
+  activeTab.value = key as typeof activeTab.value
+}
 
 function loadData() {
   if (market.value === 'CN') loadCNData()
@@ -375,250 +412,384 @@ onUnmounted(() => { chartInstance?.dispose(); chartInstance = null })
 </script>
 
 <template>
-  <div class="fin-panel">
-    <!-- ═══ Header ═══ -->
-    <div class="panel-header">
-      <div class="header-left">
-        <h3>财务报表</h3>
-        <span class="market-badge">{{ market === 'CN' ? 'A股' : market === 'HK' ? '港股' : '美股' }}</span>
+  <PanelShell :state="state" :error="activeError" @retry="loadData">
+    <template #empty>
+      <div class="empty-state-custom">
+        <span class="empty-icon" v-html="getIcon('search')" />
+        <p class="empty-title">暂无财务数据</p>
+        <p class="empty-desc">输入股票代码查看</p>
       </div>
-      <div class="header-right">
-        <button v-if="addToWfControl" class="wf-btn" @click="addToWorkflow()" :title="$t('workflow.add_to_workflow')" v-html="getIcon('plus')" />
-        <span class="symbol-badge">{{ symbol }} {{ name }}</span>
-        <button class="refresh-btn" @click="loadData" :disabled="loading">⟳</button>
-      </div>
-    </div>
+    </template>
+    <template #loaded>
+      <div class="fin-panel">
+        <!-- ═══ Header (P1) ═══ -->
+        <PanelHeader
+          title="财务报表"
+          :subtitle="headerSubtitle"
+          :tabs="tabs"
+          :active-tab="activeTab"
+          :controls="headerControls"
+          @tab-change="onTabChange"
+        >
+          <template #controls>
+            <span class="market-badge">{{ marketBadge }}</span>
+          </template>
+        </PanelHeader>
 
-    <!-- ═══ CN/HK: A-Share + HK Content ═══ -->
-    <template v-if="market !== 'US'">
-      <SkeletonPanel v-if="loading && !statements" type="table" :rows="8" />
-      <div v-else-if="cnError || hkError" class="status error">
-        <span v-html="getIcon('warning')" />
-        <span>{{ cnError || hkError }}</span>
-        <button class="retry-btn" @click="loadData">重试</button>
-      </div>
-      <div v-else-if="!loading && !statements?.income.length && !statements?.balance.length" class="status">
-        <span v-html="getIcon('search')" />
-        <span>暂无财务数据 — 输入股票代码查看</span>
-      </div>
+        <!-- ═══ CN/HK: A-Share + HK Content ═══ -->
+        <template v-if="market !== 'US'">
+          <template v-if="statements?.income?.length || statements?.balance?.length">
+            <!-- Secondary period bar -->
+            <div class="period-bar">
+              <div class="report-toggle">
+                <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
+                <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
+              </div>
+              <label class="growth-toggle" title="显示同比变化">
+                <input type="checkbox" v-model="showGrowth" />
+                <span class="toggle-label">同比</span>
+              </label>
+            </div>
 
-      <template v-else>
-        <!-- Tab bar + toggle -->
-        <div class="tab-row">
-          <div class="tab-bar">
-            <button v-for="t in tabs" :key="t.key" class="tab-btn" :class="{ active: activeTab === t.key }" @click="activeTab = t.key">{{ t.label }}</button>
-          </div>
-          <label class="growth-toggle" title="显示同比变化">
-            <input type="checkbox" v-model="showGrowth" />
-            <span class="toggle-label">同比</span>
-          </label>
-          <div class="report-toggle">
-            <button :class="{ active: reportType === 'annual' }" @click="reportType = 'annual'">年报</button>
-            <button :class="{ active: reportType === 'quarterly' }" @click="reportType = 'quarterly'">季报</button>
-          </div>
-        </div>
+            <div class="body-scroll">
+              <!-- Trend chart -->
+              <div v-if="trendMetrics.series.length" class="trend-section">
+                <div ref="chartContainer" class="trend-chart" />
+              </div>
 
-        <div class="body-scroll">
-          <!-- Trend chart -->
-          <div v-if="trendMetrics.series.length" class="trend-section">
-            <div ref="chartContainer" class="trend-chart" />
-          </div>
-
-          <!-- KPI cards + ratios -->
-          <div class="kpi-section">
-            <div v-if="kpiSummary.length" class="kpi-row">
-              <div v-for="kpi in kpiSummary" :key="kpi.item" class="kpi-card" :class="{ highlight: isHighlightRow(kpi.item) }">
-                <div class="kpi-label">{{ kpi.item }}</div>
-                <div class="kpi-value">
-                  {{ smartFormat(kpi.value) }}
-                  <span v-if="showGrowth && kpi.yoy.pct !== null" class="kpi-yoy-inline" :class="kpi.yoy.trend">
-                    {{ kpi.yoy.trend === 'up' ? '↑' : kpi.yoy.trend === 'down' ? '↓' : '' }}{{ Math.abs(kpi.yoy.pct).toFixed(1) }}%
-                  </span>
+              <!-- KPI cards + ratios -->
+              <div class="kpi-section">
+                <div v-if="kpiSummary.length" class="kpi-row">
+                  <div v-for="kpi in kpiSummary" :key="kpi.item" class="kpi-card" :class="{ highlight: isHighlightRow(kpi.item) }">
+                    <div class="kpi-label">{{ kpi.item }}</div>
+                    <div class="kpi-value">
+                      {{ smartFormat(kpi.value) }}
+                      <span v-if="showGrowth && kpi.yoy.pct !== null" class="kpi-yoy-inline" :class="kpi.yoy.trend">
+                        {{ kpi.yoy.trend === 'up' ? '↑' : kpi.yoy.trend === 'down' ? '↓' : '' }}{{ Math.abs(kpi.yoy.pct).toFixed(1) }}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- Ratios -->
-            <div v-if="ratios.length" class="ratio-row">
-              <div v-for="r in ratios" :key="r.label" class="ratio-card" :title="r.desc">
-                <div class="ratio-label">{{ r.label }}</div>
-                <div class="ratio-value">{{ r.value }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Statement table -->
-          <div class="table-container">
-            <div class="table-inner">
-              <div class="t-head">
-                <div class="t-row">
-                  <div class="t-cell t-h t-label">科目</div>
-                  <div v-for="p in activeData.periods" :key="p" class="t-cell t-h t-period">
-                    <div class="period-label">{{ p.slice(0, 7) }}</div>
+                <!-- Ratios -->
+                <div v-if="ratios.length" class="ratio-row">
+                  <div v-for="r in ratios" :key="r.label" class="ratio-card" :title="r.desc">
+                    <div class="ratio-label">{{ r.label }}</div>
+                    <div class="ratio-value">{{ r.value }}</div>
                   </div>
                 </div>
               </div>
-              <div class="t-body">
-                <div
-                  v-for="item in activeData.items"
-                  :key="item"
-                  class="t-row"
-                  :class="{ 't-subtotal': isSubtotalRow(item), 't-highlight': isHighlightRow(item) }"
-                >
-                  <div class="t-cell t-label">{{ item }}</div>
-                  <div v-for="p in activeData.periods" :key="p" class="t-cell t-val">
-                    <div class="val-row">
-                      <span class="val-main">{{ smartFormat(getItemValue(activeData.data, p, item)) }}</span>
-                      <span v-if="showGrowth" class="val-yoy" :class="getYoY(activeData.data, p, item).trend">
-                        <template v-if="getYoY(activeData.data, p, item).pct !== null">
-                          {{ getYoY(activeData.data, p, item).trend === 'up' ? '+' : '' }}{{ (getYoY(activeData.data, p, item).pct!).toFixed(1) }}%
-                        </template>
-                      </span>
+
+              <!-- Statement table -->
+              <div class="table-container">
+                <div class="table-inner">
+                  <div class="t-head">
+                    <div class="t-row">
+                      <div class="t-cell t-h t-label">科目</div>
+                      <div v-for="p in activeData.periods" :key="p" class="t-cell t-h t-period">
+                        <div class="period-label">{{ p.slice(0, 7) }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="t-body">
+                    <div
+                      v-for="item in activeData.items"
+                      :key="item"
+                      class="t-row"
+                      :class="{ 't-subtotal': isSubtotalRow(item), 't-highlight': isHighlightRow(item) }"
+                    >
+                      <div class="t-cell t-label">{{ item }}</div>
+                      <div v-for="p in activeData.periods" :key="p" class="t-cell t-val">
+                        <div class="val-row">
+                          <span class="val-main">{{ smartFormat(getItemValue(activeData.data, p, item)) }}</span>
+                          <span v-if="showGrowth" class="val-yoy" :class="getYoY(activeData.data, p, item).trend">
+                            <template v-if="getYoY(activeData.data, p, item).pct !== null">
+                              {{ getYoY(activeData.data, p, item).trend === 'up' ? '+' : '' }}{{ (getYoY(activeData.data, p, item).pct!).toFixed(1) }}%
+                            </template>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </template>
-    </template>
+          </template>
+        </template>
 
-    <!-- ═══ US: SEC Content ═══ -->
-    <template v-if="market === 'US'">
-      <SkeletonPanel v-if="usLoading && sections.length === 0" type="table" :rows="6" />
-      <div v-else-if="usError" class="status error">{{ usError }}</div>
-      <div v-else-if="!usLoading && sections.length === 0" class="status">暂无财务数据 — 输入美股代码查看 SEC XBRL 财务报表</div>
-      <div v-else class="sections-scroll">
-        <div v-for="section in sections" :key="section.title" class="fin-section">
-          <h4 class="section-title">{{ section.title }}</h4>
-          <div class="fin-table">
-            <div v-for="row in section.rows" :key="row.label" class="fin-row">
-              <span class="fin-label">{{ row.label }}</span>
-              <span class="fin-value" :class="{ negative: typeof row.value === 'number' && row.value < 0 }">{{ fmtVal(row.value) }}</span>
+        <!-- ═══ US: SEC Content ═══ -->
+        <template v-if="market === 'US'">
+          <div v-if="sections.length" class="sections-scroll">
+            <div v-for="section in sections" :key="section.title" class="fin-section">
+              <h4 class="section-title">{{ section.title }}</h4>
+              <div class="fin-table">
+                <div v-for="row in section.rows" :key="row.label" class="fin-row">
+                  <span class="fin-label">{{ row.label }}</span>
+                  <span class="fin-value" :class="{ negative: typeof row.value === 'number' && row.value < 0 }">{{ fmtVal(row.value) }}</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
       </div>
     </template>
-  </div>
+  </PanelShell>
 </template>
 
 <style scoped>
 .fin-panel {
-  padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text-primary); background: var(--color-bg-panel);
-  overflow: hidden; gap: 6px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--color-text-primary);
 }
 .body-scroll {
-  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 0;
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-sm); min-height: 0;
 }
 
-/* Header */
-.panel-header {
-  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 8px;
+/* Header badge (P1) — placed in #controls slot */
+.market-badge {
+  font-size: var(--font-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 500;
 }
-.header-left { display: flex; align-items: center; gap: 10px; }
-.panel-header h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
-.header-right { display: flex; align-items: center; gap: 8px; }
-.market-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(88,166,255,0.12); color: var(--color-accent); font-weight: 500; }
-.symbol-badge { font-size: 11px; padding: 3px 10px; border-radius: 6px; background: rgba(88,166,255,0.1); color: var(--color-accent); font-family: 'SF Mono', monospace; font-weight: 500; }
-.refresh-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 14px; }
-.refresh-btn:disabled { opacity: 0.4; cursor: default; }
-.status { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; color: var(--color-text-tertiary); font-size: 13px; }
-.status.error { color: var(--color-error); }
-.retry-btn { padding: 2px 10px; border: 1px solid var(--color-border-strong); border-radius: 4px; background: transparent; color: var(--color-accent); cursor: pointer; font-size: 11px; }
 
-/* Tab Row */
-.tab-row { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--color-border-strong); flex-shrink: 0; }
-.tab-bar { display: flex; gap: 0; }
-.tab-btn { padding: 7px 18px; border: none; border-bottom: 2px solid transparent; background: none; color: var(--color-text-tertiary); cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
-.tab-btn:hover { color: var(--color-text-primary); }
-.tab-btn.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
-.growth-toggle { display: flex; align-items: center; gap: 4px; padding: 4px 8px; margin-bottom: 4px; cursor: pointer; font-size: 11px; color: var(--color-text-tertiary); border-radius: 4px; }
+/* Secondary period bar (P1 tokenized) */
+.period-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--panel-padding);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+.growth-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
 .growth-toggle:hover { color: var(--color-text-primary); }
 .growth-toggle input { accent-color: var(--color-accent); }
 .toggle-label { user-select: none; }
 
-.report-toggle { display: flex; border: 1px solid var(--color-border-strong); border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
+.report-toggle {
+  display: flex;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
 .report-toggle button {
-  padding: 2px 10px; border: none; background: transparent; color: var(--color-text-tertiary);
-  cursor: pointer; font-size: 11px; font-weight: 500;
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: var(--font-xs);
+  font-weight: 500;
+  transition: all var(--transition-fast);
 }
 .report-toggle button + button { border-left: 1px solid var(--color-border-strong); }
-.report-toggle button.active { color: var(--color-accent); background: rgba(88,166,255,0.1); }
+.report-toggle button.active {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
 
 /* Trend chart */
 .trend-section {
-  flex-shrink: 0; background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle); border-radius: 8px;
-  padding: 8px 4px 0 4px;
+  flex-shrink: 0;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-xs) 0 var(--space-xs);
 }
 .trend-chart { width: 100%; height: 140px; }
 
 /* KPI Section */
-.kpi-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
-.kpi-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.kpi-section { flex-shrink: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
+.kpi-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
 .kpi-card {
-  flex: 0 0 170px;
-  background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle);
-  border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;
+  flex: 0 0 auto;
+  min-width: 140px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .kpi-card.highlight {
   border-color: var(--color-accent-soft);
-  background: linear-gradient(135deg, rgba(88,166,255,0.06), rgba(88,166,255,0.02));
+  background: linear-gradient(135deg, var(--color-accent-soft), transparent);
 }
-.kpi-label { font-size: 11px; color: var(--color-text-tertiary); }
-.kpi-value { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; display: flex; align-items: baseline; gap: 6px; }
-.kpi-yoy-inline { font-size: 12px; font-weight: 500; }
+.kpi-label { font-size: var(--font-xs); color: var(--color-text-tertiary); white-space: nowrap; }
+.kpi-value {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  white-space: nowrap;
+}
+.kpi-yoy-inline { font-size: var(--font-xs); font-weight: 500; }
 .kpi-yoy-inline.up { color: var(--color-down); }
 .kpi-yoy-inline.down { color: var(--color-up); }
 .kpi-yoy-inline.flat { color: var(--color-text-tertiary); }
 
 /* Ratio cards */
-.ratio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ratio-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
 .ratio-card {
-  background: var(--color-bg-subtle); border: 1px solid var(--color-border-subtle);
-  border-radius: 6px; padding: 6px 12px; display: flex; flex-direction: column; gap: 2px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.ratio-label { font-size: 10px; color: var(--color-text-tertiary); }
-.ratio-value { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-accent); }
+.ratio-label { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.ratio-value {
+  font-size: var(--font-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
 
-/* Table */
+/* Table — 自绘保留（动态列 + 行级 subtotal/highlight + 单元格内嵌 YoY），全部 token 化 */
 .table-container { flex-shrink: 0; }
-.table-inner { display: flex; flex-direction: column; min-width: max-content; font-size: 12px; }
-.t-head { flex-shrink: 0; position: sticky; top: 0; z-index: 1; background: var(--color-bg-panel); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-.t-row { display: flex; border-bottom: 1px solid var(--color-border-subtle); transition: background .1s; }
+.table-inner {
+  display: flex;
+  flex-direction: column;
+  min-width: max-content;
+  font-size: var(--font-xs);
+}
+.t-head {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-bg-panel);
+  box-shadow: var(--shadow-sm);
+}
+.t-row {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background var(--transition-fast);
+}
 .t-row:hover { background: var(--color-bg-elevated); }
-.t-cell { padding: 5px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.t-h { font-size: 10px; color: var(--color-text-tertiary); font-weight: 600; padding: 7px 10px; letter-spacing: 0.3px; }
-.t-label { min-width: 155px; max-width: 155px; text-align: left; border-right: 1px solid var(--color-border-subtle); flex-shrink: 0; }
+.t-cell {
+  padding: 5px var(--space-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.t-h {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+  padding: 7px var(--space-sm);
+  letter-spacing: 0.3px;
+}
+.t-label {
+  min-width: 155px;
+  max-width: 155px;
+  text-align: left;
+  border-right: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
 .t-period { min-width: 110px; text-align: right; }
 .t-val { min-width: 135px; text-align: right; }
 .period-label { font-weight: 600; }
-.t-subtotal { background: rgba(96,165,250,0.03); }
+.t-subtotal { background: var(--color-bg-subtle); }
 .t-subtotal .t-label { font-weight: 600; color: var(--color-text-secondary); }
-.t-highlight { background: rgba(88,166,255,0.06); }
-.t-highlight .t-label { font-weight: 700; color: var(--color-accent); font-size: 12.5px; }
+.t-highlight { background: var(--color-accent-soft); }
+.t-highlight .t-label {
+  font-weight: 700;
+  color: var(--color-accent);
+  font-size: var(--font-sm);
+}
 .t-highlight .val-main { font-weight: 700; }
-.val-row { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.val-main { font-size: 12px; }
-.val-yoy { font-size: 10px; font-weight: 500; line-height: 1; }
+.val-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.val-main { font-size: var(--font-xs); }
+.val-yoy { font-size: var(--font-xs); font-weight: 500; line-height: 1; }
 .val-yoy.up { color: var(--color-down); }
 .val-yoy.down { color: var(--color-up); }
 .val-yoy.flat { color: var(--color-text-tertiary); }
 
 /* US Sections */
-.sections-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.fin-section { background: var(--color-bg-elevated); border: 1px solid var(--color-border-subtle); border-radius: 8px; overflow: hidden; }
-.section-title { margin: 0; padding: 8px 14px; font-size: 11px; font-weight: 600; color: var(--color-text-secondary); background: var(--color-bg-subtle); border-bottom: 1px solid var(--color-border-subtle); text-transform: uppercase; letter-spacing: 0.5px; }
+.sections-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.fin-section {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.section-title {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 .fin-table { padding: 2px 0; }
-.fin-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px; border-bottom: 1px solid var(--color-border-subtle); }
+.fin-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px var(--space-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
 .fin-row:last-child { border-bottom: none; }
 .fin-row:hover { background: var(--color-bg-hover); }
-.fin-label { font-size: 11px; color: var(--color-text-secondary); text-transform: capitalize; }
-.fin-value { font-size: 12px; font-weight: 500; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.fin-label { font-size: var(--font-xs); color: var(--color-text-secondary); text-transform: capitalize; }
+.fin-value {
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
 .fin-value.negative { color: var(--color-up); }
-.wf-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 16px; font-weight: 600; cursor: pointer; line-height: 1; transition: all var(--transition-fast); flex-shrink: 0; }
-.wf-btn:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(88,166,255,0.1); }
+
+/* Empty state custom content for PanelShell */
+.empty-state-custom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-2xl);
+  color: var(--color-text-tertiary);
+}
+.empty-icon { font-size: 24px; opacity: 0.5; }
+.empty-title { font-size: var(--font-sm); font-weight: 600; margin: 0; }
+.empty-desc { font-size: var(--font-xs); margin: 0; }
 </style>

@@ -20,18 +20,18 @@ describe('GeopoliticsPanel', () => {
     mockWailsIPC()
   })
 
-  it('renders panel header with 地缘政治风险', () => {
+  it('renders panel header with 地缘风险', () => {
     const wrapper = mount(GeopoliticsPanel, {
       props: { panelId: 'geopolitics-1' },
     })
-    expect(wrapper.find('.panel-header h3').text()).toContain('地缘政治风险')
+    expect(wrapper.find('.panel-title').text()).toContain('地缘风险')
   })
 
   it('renders filter tabs (>=3)', () => {
     const wrapper = mount(GeopoliticsPanel, {
       props: { panelId: 'geopolitics-1' },
     })
-    const tabs = wrapper.findAll('.tab')
+    const tabs = wrapper.findAll('.filter-tabs .btn-sm')
     expect(tabs.length).toBeGreaterThanOrEqual(3)
   })
 
@@ -56,13 +56,12 @@ describe('GeopoliticsPanel', () => {
     await nextTick()
     await nextTick()
 
-    const tabs = wrapper.findAll('.tab')
+    const tabs = wrapper.findAll('.filter-tabs .btn-sm')
     const highTab = tabs.find(t => t.text().includes('高风险'))
     if (highTab) {
       await highTab.trigger('click')
       await nextTick()
-      // After click, high risk tab should be active
-      expect(highTab.classes()).toContain('active')
+      expect(highTab.classes()).toContain('btn-primary')
       // Should show cards
       const cards = wrapper.findAll('.topic-card')
       // High risk filter should show at least 1 card (we have 3 high risk in mock)

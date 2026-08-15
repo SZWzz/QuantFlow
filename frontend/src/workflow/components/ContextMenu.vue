@@ -49,7 +49,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 .ctx-item {
   display: flex;
@@ -84,6 +84,6 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 .ctx-shortcut {
   margin-left: auto;
   color: var(--color-text-tertiary);
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { CandlestickChart, BarChart, LineChart } from 'echarts/charts'
@@ -10,7 +10,11 @@ import { PanelHeader, PanelTable, PanelCard, EmptyState, LoadingState } from '@/
 import { confirmDialog, alertDialog } from '@/lib/wails'
 import { useI18n } from 'vue-i18n'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { buildKlineOption } from '@/lib/buildChartOption'
 import type { TradeSignal, KlineDataItem } from '@/lib/buildChartOption'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
+import { useChartTheme } from '@/lib/composables/useChartTheme'
+import { createIndicatorCache } from '@/lib/composables/useIndicators'
 
 use([CanvasRenderer, CandlestickChart, BarChart, LineChart, TooltipComponent, GridComponent, DataZoomComponent, MarkPointComponent])
 
@@ -38,8 +42,11 @@ interface BacktestSummary {
 }
 
 const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+const app = useWailsApp()
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
 const { t } = useI18n()
+const chartTheme = useChartTheme()
+const indicatorCache = createIndicatorCache()
 
 const listControls = computed(() => {
   const list: any[] = []
@@ -85,7 +92,7 @@ const columns = computed(() => [
 async function loadList() {
   loading.value = true
   try {
-    const res = await (window as any).go.main.App.ListBacktestHistory(100, 0)
+    const res = await app?.ListBacktestHistory(100, 0)
     items.value = res || []
   } catch (e) { console.error('ListBacktestHistory failed:', e) }
   finally { loading.value = false }
@@ -102,7 +109,7 @@ async function deleteAllRecords() {
   if (!items.value.length) return
   if (!(await confirmDialog(`确定删除全部 ${items.value.length} 条回测记录？此操作不可撤销。`))) return
   try {
-    await (window as any).go.main.App.ClearBacktestResults()
+    await app?.ClearBacktestResults()
     await loadList()
   } catch (e: any) { await alertDialog(`删除失败: ${e.message || e}`) }
 }
@@ -110,7 +117,7 @@ async function deleteAllRecords() {
 async function deleteSingleList(id: number) {
   if (!(await confirmDialog('确定删除此回测记录？'))) return
   try {
-    await (window as any).go.main.App.DeleteBacktestResult(id)
+    await app?.DeleteBacktestResult(id)
     await loadList()
   } catch (e: any) { await alertDialog(`删除失败: ${e.message || e}`) }
 }
@@ -121,7 +128,7 @@ const storedData = ref<any>(null)
 async function loadStoredResult(id: number) {
   storedLoading.value = true; storedData.value = null; deleted.value = false
   try {
-    const res = await (window as any).go.main.App.GetStoredBacktestResult(id)
+    const res = await app?.GetStoredBacktestResult(id)
     if (!res) return
     storedData.value = {
       equity_curve: safeParseJSON(res.equity_curve, []).map((p: any) => p.equity ?? p),
@@ -144,7 +151,7 @@ async function deleteDetail() {
   if (!detailId.value) return
   if (!(await confirmDialog('确定删除此回测记录？'))) return
   try {
-    await (window as any).go.main.App.DeleteBacktestResult(detailId.value)
+    await app?.DeleteBacktestResult(detailId.value)
     goBack()
   } catch (e) { await alertDialog('删除失败，请重试') }
 }
@@ -169,32 +176,28 @@ const tradeSignals = computed<TradeSignal[]>(() => {
   return signals
 })
 
-const chartOption = shallowRef<ECBasicOption>({} as ECBasicOption)
-function buildOption(): ECBasicOption {
+const chartOption = computed<ECBasicOption>(() => {
   const kd = klineData.value
   if (kd.length === 0) return {} as ECBasicOption
-  const dates = kd.map(d => d.date), upCol = '#ef5350', downCol = '#26a69a'
-  const close = kd.map(d => d.close)
-  const signals = tradeSignals.value, hasSignals = signals.some(s => s.dataIndex >= 0)
-  const series: any[] = [
-    { type: 'candlestick', data: kd.map(d => [d.open, d.close, d.low, d.high]), itemStyle: { color: upCol, color0: downCol, borderColor: upCol, borderColor0: downCol },
-      markPoint: hasSignals ? { silent: true, symbolSize: 28, data: signals.filter(s => s.dataIndex >= 0).map(s => ({ coord: [s.dataIndex, s.price], itemStyle: { color: s.direction === 'buy' ? '#f85149' : '#3fb950' }, symbol: 'pin', symbolRotate: s.direction === 'buy' ? 180 : 0, label: { formatter: s.direction === 'buy' ? 'B' : 'S', color: '#fff', fontSize: 10, fontWeight: 'bold' as const } })) } : undefined },
-    { type: 'line', name: 'SMA5', data: sma(close, 5), symbol: 'none', lineStyle: { width: 1, color: '#f59e0b' } },
-    { type: 'line', name: 'SMA20', data: sma(close, 20), symbol: 'none', lineStyle: { width: 1, color: '#8b5cf6' } },
-    { type: 'bar', name: '成交量', data: kd.map(d => ({ value: d.volume / 10000, itemStyle: { color: d.close >= d.open ? upCol : downCol } })), xAxisIndex: 1, yAxisIndex: 1 },
-  ]
-  const tp = kd.length, ws = Math.min(tp, 250), sp = tp > ws ? ((tp - ws) / tp * 100) : 0
-  return { backgroundColor: 'transparent', animation: false, grid: [{ left: 54, right: 10, top: 8, height: '52%' }, { left: 54, right: 10, top: '68%', height: '26%' }], xAxis: [{ type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#2a2a3a' } } }, { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#2a2a3a' } } }], yAxis: [{ type: 'value', gridIndex: 0, scale: true, axisLabel: { color: '#8b8ba0', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } }, { type: 'value', gridIndex: 1, scale: true, axisLabel: { color: '#8b8ba0', fontSize: 10, formatter: (v: number) => v.toFixed(0) }, splitLine: { show: false } }], series, tooltip: { trigger: 'axis', formatter: (ps: any[]) => { if (!ps?.length) return ''; const lines = [`<div style="font-size:12px">${ps[0].name || ''}</div>`]; for (const p of ps) { if (p.seriesType === 'candlestick' && Array.isArray(p.data)) { lines.push(`<div>开: ${p.data[0].toFixed(2)}</div>`, `<div>收: ${p.data[1].toFixed(2)}</div>`, `<div>低: ${p.data[2].toFixed(2)}</div>`, `<div>高: ${p.data[3].toFixed(2)}</div>`) } else if (p.seriesType === 'bar') { const raw = kd[p.dataIndex]?.volume ?? 0; lines.push(`<div>成交量: ${(raw / 10000).toFixed(1)}万</div>`) } else { lines.push(`<div>${p.seriesName}: ${p.value?.toFixed(2) ?? ''}</div>`) } } return lines.join('') } }, dataZoom: [{ type: 'inside', xAxisIndex: [0, 1], start: sp, end: 100 }, { type: 'slider', xAxisIndex: [0, 1], start: sp, end: 100, bottom: 0, height: 18 }] } as ECBasicOption
-}
-watch(() => klineData.value.length, () => { chartOption.value = buildOption() }, { immediate: true })
-
-function sma(data: number[], period: number): number[] { const r: number[] = []; for (let i = 0; i < data.length; i++) { let sum = 0; const start = Math.max(0, i - period + 1); for (let j = start; j <= i; j++) sum += data[j]; r.push(sum / (i - start + 1)) } return r }
+  return buildKlineOption(
+    kd,
+    'ma',
+    'volume',
+    chartTheme,
+    indicatorCache,
+    storedData.value?.symbol || '',
+    '1d',
+    undefined,
+    undefined,
+    tradeSignals.value.filter(s => s.dataIndex >= 0),
+  )
+})
 
 const equityOption = computed<ECBasicOption>(() => {
   const eq = storedData.value?.equity_curve
   if (!eq || eq.length < 2) return {} as ECBasicOption
-  const upColor = eq[eq.length - 1] >= eq[0] ? '#ef5350' : '#26a69a'
-  return { backgroundColor: 'transparent', animation: false, grid: { left: 54, right: 16, top: 10, bottom: 20 }, xAxis: { type: 'category', show: false, axisLine: { lineStyle: { color: '#2a2a3a' } } }, yAxis: { type: 'value', scale: true, axisLabel: { color: '#8b8ba0', fontSize: 10, formatter: (v: number) => (v / 10000).toFixed(2) + '万' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }, min: Math.min(...eq), max: Math.max(...eq) }, series: [{ type: 'line', data: eq, smooth: true, symbol: 'none', lineStyle: { color: upColor, width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: upColor + '40' }, { offset: 1, color: 'rgba(0,0,0,0)' }] } } }], tooltip: { trigger: 'axis', formatter: (ps: any[]) => ps?.[0] ? `<div style="font-size:12px">净值: ${Number(ps[0].value).toFixed(2)}</div>` : '' } } as ECBasicOption
+  const upColor = eq[eq.length - 1] >= eq[0] ? chartTheme.upColor : chartTheme.downColor
+  return { backgroundColor: 'transparent', animation: false, grid: { left: 54, right: 16, top: 10, bottom: 20 }, xAxis: { type: 'category', show: false, axisLine: { lineStyle: { color: chartTheme.axisColor } } }, yAxis: { type: 'value', scale: true, axisLabel: { color: chartTheme.axisColor, fontSize: 10, formatter: (v: number) => (v / 10000).toFixed(2) + '万' }, splitLine: { lineStyle: { color: chartTheme.gridColor } }, min: Math.min(...eq), max: Math.max(...eq) }, series: [{ type: 'line', data: eq, smooth: true, symbol: 'none', lineStyle: { color: upColor, width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: upColor + '40' }, { offset: 1, color: 'transparent' }] } } }], tooltip: { trigger: 'axis', formatter: (ps: any[]) => ps?.[0] ? `<div style="font-size:var(--font-xs)">净值: ${Number(ps[0].value).toFixed(2)}</div>` : '' } } as ECBasicOption
 })
 
 const metricCards = computed(() => {
@@ -218,7 +221,7 @@ async function onKeyDown(e: KeyboardEvent) {
     e.preventDefault()
     if (await confirmDialog('确定删除此回测记录？')) {
       try {
-        await (window as any).go.main.App.DeleteBacktestResult(selectedRow.id)
+        await app?.DeleteBacktestResult(selectedRow.id)
         await loadList()
       } catch (err: any) {
         await alertDialog('删除失败: ' + (err?.message || err))

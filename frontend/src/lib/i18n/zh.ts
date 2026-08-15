@@ -341,6 +341,9 @@ export default {
     recent_panels: '最近使用', market_snapshot: '市场快照',
     cmdbar_history: '最近命令', cmdbar_commands: '命令', cmdbar_navigation: '导航',
     cmdbar_quick: '快捷', cmdbar_empty_hint: '输入关键词搜索面板，或直接输入代码查看行情',
+    cmdbar_toggle_mode: '切换工作流/终端', cmdbar_toggle_mode_desc: '在终端与工作流模式间切换',
+    cmdbar_toggle_focus: '专注模式', cmdbar_toggle_focus_desc: '切换专注模式显示',
+    cmdbar_clear_history: '清除命令历史', cmdbar_clear_history_desc: '清空最近命令记录',
     asset_market: '资产/市场',
     // Batch P1 panels
     dragon_tiger: '龙虎榜', daily_board: '日榜单', stock_history: '个股历史',
@@ -459,6 +462,12 @@ export default {
     empty: '暂无已保存的布局',
     confirmDelete: '确认删除布局 "{name}"？',
     hint: 'Ctrl+Shift+1..9 快速切换已保存布局',
+  },
+  panels: {
+    cb_arbitrage: '可转债套利', arbitrage_opp: '套利机会', redeem_warn: '强赎预警', put_opp: '回售机会',
+    python_required: '需要 Python 环境', no_data: '暂无数据',
+    ex_dividend: '分红除权', today_ex: '今日除权', this_week_ex: '本周除权', this_month_ex: '本月除权',
+    dividend_yield_col: '股息率',
   },
 }
 // Append nothing - we'll use sed to add keys

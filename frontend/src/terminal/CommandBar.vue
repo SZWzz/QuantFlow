@@ -37,11 +37,11 @@ interface CommandItem {
 // Dynamic panel list from registry
 const allPanels = getAllPanelMeta().filter(p => p.id !== 'welcome')
 
-const commands: { id: string; label: string; description: string; shortcut?: string; icon: string }[] = [
-  { id: 'toggle-mode', label: 'Toggle Workflow/Terminal', description: '切换工作流/终端模式', shortcut: 'Ctrl+W', icon: getIcon('workflow') },
-  { id: 'toggle-focus', label: 'Toggle Focus Mode', description: '专注模式', shortcut: 'Ctrl+Shift+F', icon: getIcon('terminal') },
-  { id: 'clear-history', label: 'Clear Command History', description: '清除命令历史', icon: getIcon('delete') },
-]
+const commands = computed(() => [
+  { id: 'toggle-mode', label: t('misc.cmdbar_toggle_mode'), description: t('misc.cmdbar_toggle_mode_desc'), icon: getIcon('workflow') },
+  { id: 'toggle-focus', label: t('misc.cmdbar_toggle_focus'), description: t('misc.cmdbar_toggle_focus_desc'), icon: getIcon('terminal') },
+  { id: 'clear-history', label: t('misc.cmdbar_clear_history'), description: t('misc.cmdbar_clear_history_desc'), icon: getIcon('delete') },
+])
 
 const navigations: { id: string; label: string; description: string; path: string; icon: string }[] = [
   { id: 'nav-workflow', label: '/workflow', description: '切换到 Workflow Mode', path: '/workflow', icon: getIcon('workflow') },
@@ -109,12 +109,12 @@ const results = computed<CommandItem[]>(() => {
   }
 
   // Match commands
-  for (const c of commands) {
+  for (const c of commands.value) {
     if (c.label.toLowerCase().includes(q)) {
       items.push({
         id: `cmd-${c.id}`,
         label: c.label,
-        description: c.shortcut ? `${c.description} (${c.shortcut})` : c.description,
+        description: c.description,
         category: t('misc.cmdbar_commands'),
         icon: c.icon,
         action: () => executeCommand(c.id),
@@ -227,51 +227,61 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="command-bar-overlay" @click.self="close">
-      <div class="command-bar" @keydown="onKeydown">
+      <div class="command-bar" role="dialog" aria-modal="true" :aria-label="$t('common.search')" @keydown="onKeydown">
         <div class="search-input-wrapper">
-          <span class="search-icon" v-html="getIcon('search')" />
+          <span class="search-icon" aria-hidden="true" v-html="getIcon('search')" />
           <input
             ref="inputRef"
             v-model="query"
             type="text"
             class="search-input"
+            role="combobox"
+            :aria-expanded="results.length > 0"
+            aria-controls="cmd-results"
+            aria-autocomplete="list"
+            :aria-activedescendant="results[selectedIndex] ? `cmd-opt-${selectedIndex}` : undefined"
             :placeholder="$t('common.search') + '...'"
             autocomplete="off"
           />
           <kbd class="shortcut-hint">Esc</kbd>
         </div>
-        <div v-if="results.length > 0" class="results-list">
+        <div v-if="results.length > 0" id="cmd-results" class="results-list" role="listbox">
           <template v-for="(item, idx) in results" :key="item.id">
             <div
               v-if="idx === 0 || results[idx - 1].category !== item.category"
               class="category-header"
+              role="presentation"
             >
               {{ item.category }}
             </div>
             <div
+              :id="`cmd-opt-${idx}`"
               class="result-item"
               :class="{ selected: idx === selectedIndex }"
+              role="option"
+              :aria-selected="idx === selectedIndex"
               @click="item.action()"
               @mouseenter="selectedIndex = idx"
             >
-              <span class="item-icon" v-html="item.icon" />
+              <span class="item-icon" aria-hidden="true" v-html="item.icon" />
               <span class="item-label">{{ item.label }}</span>
               <span class="item-desc">{{ item.description }}</span>
             </div>
           </template>
         </div>
         <div v-else-if="!query" class="no-results">
-          <span class="no-results-icon" v-html="getIcon('search')" />
+          <span class="no-results-icon" aria-hidden="true" v-html="getIcon('search')" />
           {{ $t('misc.cmdbar_empty_hint') }}
         </div>
         <div v-else class="no-results">
-          <span class="no-results-icon" v-html="getIcon('search')" />
+          <span class="no-results-icon" aria-hidden="true" v-html="getIcon('search')" />
           {{ $t('common.no_data') }}
         </div>
         <div class="command-footer">
           <div class="footer-hints">
-            <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-            <span class="hint"><kbd>Enter</kbd> Select</span>
+            <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> 导航</span>
+            <span class="hint"><kbd>Enter</kbd> 选择</span>
+            <span class="hint"><kbd>Esc</kbd> 关闭</span>
           </div>
         </div>
       </div>
@@ -343,7 +353,7 @@ onUnmounted(() => {
 .search-input {
   flex: 1;
   background: transparent;
-  border: none;
+  border: 0;
   color: var(--color-text-primary);
   font-size: 16px;
   outline: none;
@@ -368,10 +378,9 @@ onUnmounted(() => {
 
 .category-header {
   padding: 8px 12px 4px;
-  font-size: 10px;
-  text-transform: uppercase;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
-  letter-spacing: 1px;
+  letter-spacing: 0.02em;
   font-weight: 600;
 }
 
@@ -460,7 +469,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 
@@ -472,7 +481,7 @@ onUnmounted(() => {
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: inherit;
   min-width: 20px;
   text-align: center;

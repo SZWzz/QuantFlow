@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=64"]
-build-backend = "setuptools.backends._legacy:_Backend"
+requires = ["setuptools>=68", "grpcio-tools>=1.60"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantflow-python"

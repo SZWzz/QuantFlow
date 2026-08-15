@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { PanelHeader, PanelTable, EmptyState } from '@/terminal/components/panel'
 import { useAddToWorkflow } from '@/terminal/composables/useAddToWorkflow'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
 import { logger } from '@/lib/logger'
 
 const props = defineProps<{
@@ -10,6 +11,7 @@ const props = defineProps<{
 }>()
 
 const { control: addToWfControl } = useAddToWorkflow(props.panelId)
+const app = useWailsApp()
 
 interface StrategyDef {
   id: string
@@ -105,7 +107,6 @@ async function startScan() {
   results.value = []
 
   try {
-    const app = (window as any).go?.main?.App
     if (!app) return
     const result = await app.ScanStocks(selectedStrategy.value?.id || 'momentum')
     if (result?.results) {
@@ -263,7 +264,6 @@ function tableData() {
 </template>
 
 <style scoped>
-.panel-error { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--color-up-soft); color: var(--color-up); font-size: 12px; }
 .scanner-panel {
   height: 100%;
   display: flex;
@@ -279,7 +279,7 @@ function tableData() {
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-xs);
 }
 .scan-btn {
   padding: 4px 16px;
@@ -287,7 +287,7 @@ function tableData() {
   color: var(--color-text-primary);
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 600;
   border-radius: var(--radius-md);
 }
@@ -298,7 +298,7 @@ function tableData() {
   color: var(--color-text-tertiary);
   border: 1px solid var(--color-border);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-xs);
   border-radius: var(--radius-md);
 }
 .strategy-grid {
@@ -328,12 +328,12 @@ function tableData() {
   background: var(--color-accent-soft);
 }
 .card-category {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
 }
-.card-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
-.card-desc { font-size: 11px; color: var(--color-text-tertiary); }
+.card-name { font-size: var(--font-sm); font-weight: 600; color: var(--color-text-primary); }
+.card-desc { font-size: var(--font-xs); color: var(--color-text-tertiary); }
 .strategy-detail {
   flex: 1;
   display: flex;
@@ -348,9 +348,9 @@ function tableData() {
   padding-bottom: 6px;
   border-bottom: 1px solid var(--color-border);
 }
-.strat-name { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
-.strat-category { font-size: 11px; color: var(--color-text-tertiary); }
-.strat-desc { font-size: 11px; color: var(--color-accent); }
+.strat-name { font-size: var(--font-lg); font-weight: 700; color: var(--color-text-primary); }
+.strat-category { font-size: var(--font-xs); color: var(--color-text-tertiary); }
+.strat-desc { font-size: var(--font-xs); color: var(--color-accent); }
 .params-bar {
   display: flex;
   gap: 12px;
@@ -364,7 +364,7 @@ function tableData() {
   display: flex;
   gap: 4px;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--font-xs);
 }
 .param-item label {
   font-weight: 600;
@@ -377,13 +377,13 @@ function tableData() {
   border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-xs);
   border-radius: var(--radius-sm);
 }
 .result-summary {
   display: flex;
   gap: 16px;
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--color-text-tertiary);
 }
 .summary-stat.up { color: var(--color-up); }

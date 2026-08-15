@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import SkeletonPanel from '@/terminal/components/SkeletonPanel.vue'
+import { useI18n } from 'vue-i18n'
 import { usePanelCache } from '@/lib/composables/usePanelCache'
+import { useWailsApp } from '@/lib/composables/useWailsApp'
+import { PanelHeader, PanelTable, EmptyState, ErrorState, LoadingState, type Column } from '@/terminal/components/panel'
 
-const props = defineProps<{ panelId: string; params?: Record<string, any> }>()
+defineProps<{ panelId: string; params?: Record<string, any> }>()
+
+const { t } = useI18n()
+const app = useWailsApp()
 
 interface WhaleTx {
   hash: string
@@ -23,30 +28,29 @@ let loadSeq = 0
 const address = ref('')
 const minUsd = ref(1000000)
 const sortKey = ref<string>('usd_value')
-const sortDir = ref<number>(-1)
+const sortDir = ref<'asc' | 'desc' | null>('desc')
 const { fetchWithCache } = usePanelCache()
 
 const sorted = computed(() => {
   const arr = [...txs.value]
-    arr.sort((a, b) => {
-      const aVal = a[sortKey.value as keyof WhaleTx] ?? 0
-      const bVal = b[sortKey.value as keyof WhaleTx] ?? 0
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return (aVal - bVal) * sortDir.value
-      }
-      return String(aVal).localeCompare(String(bVal)) * sortDir.value
-    })
+  if (!sortKey.value || !sortDir.value) return arr
+  arr.sort((a, b) => {
+    const aVal = a[sortKey.value as keyof WhaleTx] ?? 0
+    const bVal = b[sortKey.value as keyof WhaleTx] ?? 0
+    const cmp = typeof aVal === 'number' && typeof bVal === 'number'
+      ? aVal - bVal
+      : String(aVal).localeCompare(String(bVal))
+    return sortDir.value === 'asc' ? cmp : -cmp
+  })
   return arr
 })
 
-function toggleSort(key: string) {
-  if (sortKey.value === key) sortDir.value *= -1
-  else { sortKey.value = key; sortDir.value = -1 }
-}
+/** token 展示回退（token || symbol）预映射进数据行；token 排序不受影响的复制 */
+const rows = computed(() => sorted.value.map(tx => ({ ...tx, token: tx.token || tx.symbol })))
 
-function sortArrow(key: string): string {
-  if (sortKey.value !== key) return ''
-  return sortDir.value === -1 ? ' ▼' : ' ▲'
+function onSortChange(key: string, dir: 'asc' | 'desc' | null) {
+  sortKey.value = dir ? key : ''
+  sortDir.value = dir
 }
 
 function shorten(addr: string): string {
@@ -55,7 +59,6 @@ function shorten(addr: string): string {
 }
 
 async function fetchData() {
-  const app = (window as any).go?.main?.App
   if (!app?.GetWhaleTransactions) return
   const seq = ++loadSeq
   loadError.value = ''
@@ -94,92 +97,75 @@ function formatTime(ts: number): string {
   return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
+/** 大额交易（>$10M）行级高亮 */
+function rowClass(tx: WhaleTx): string {
+  return tx.usd_value > 10e6 ? 'mega-row' : ''
+}
+
+const cols = computed<Column[]>(() => [
+  { key: 'time', label: t('misc.time'), sortable: true, formatter: formatTime, width: 88 },
+  { key: 'token', label: t('misc.token'), sortable: true },
+  { key: 'from', label: t('misc.from'), mono: true, formatter: shorten, title: (row: any) => row.from },
+  { key: 'to', label: t('misc.to'), mono: true, formatter: shorten, title: (row: any) => row.to },
+  { key: 'usd_value', label: t('misc.whale_value'), align: 'right', sortable: true, formatter: fmUSD },
+])
+
 onMounted(fetchData)
 </script>
 
 <template>
   <div class="whale-tracking-panel">
-    <div class="panel-header">
-      <h3>{{ $t('misc.whale_tracking') }}</h3>
-      <input v-model="address" :placeholder="$t('misc.whale_address_hint')" class="addr-input" />
-      <button class="refresh-btn" @click="fetchData" :disabled="loading">⟳</button>
-    </div>
+    <PanelHeader
+      :title="$t('misc.whale_tracking')"
+      :controls="[{ icon: 'refresh', title: $t('common.refresh'), action: fetchData, loading }]"
+    >
+      <template #controls>
+        <input v-model="address" :placeholder="$t('misc.whale_address_hint')" class="addr-input" />
+      </template>
+    </PanelHeader>
 
-    <div v-if="loadError" class="error-state" @click="fetchData">{{ loadError }} ⟳</div>
-
-    <SkeletonPanel v-else-if="loading && txs.length === 0" type="table" :rows="6" />
-
-    <div v-else-if="txs.length === 0 && !loading" class="empty-state">
-      <div>{{ $t('misc.whale_empty') }}</div>
-      <div class="hint">{{ $t('misc.whale_hint') }}</div>
-    </div>
-
-    <template v-else>
-      <div class="table-wrapper">
-        <div class="table-header">
-          <span class="col-time sortable" @click="toggleSort('time')">{{ $t('misc.time') }}{{ sortArrow('time') }}</span>
-          <span class="col-token sortable" @click="toggleSort('token')">{{ $t('misc.token') }}{{ sortArrow('token') }}</span>
-          <span class="col-from">{{ $t('misc.from') }}</span>
-          <span class="col-to">{{ $t('misc.to') }}</span>
-          <span class="col-value sortable" @click="toggleSort('usd_value')">{{ $t('misc.whale_value') }}{{ sortArrow('usd_value') }}</span>
-        </div>
-        <div class="table-body">
-          <div v-for="(tx, i) in sorted" :key="tx.hash || i" class="table-row" :class="{ mega: tx.usd_value > 10e6 }">
-            <span class="col-time">{{ formatTime(tx.time) }}</span>
-            <span class="col-token">{{ tx.token || tx.symbol }}</span>
-            <span class="col-from" :title="tx.from">{{ shorten(tx.from) }}</span>
-            <span class="col-to" :title="tx.to">{{ shorten(tx.to) }}</span>
-            <span class="col-value">{{ fmUSD(tx.usd_value) }}</span>
-          </div>
-        </div>
-      </div>
-    </template>
+    <ErrorState v-if="loadError" :description="loadError" @retry="fetchData" />
+    <LoadingState v-else-if="loading && txs.length === 0" type="table" :rows="6" :cols="cols.length" />
+    <EmptyState
+      v-else-if="txs.length === 0"
+      :title="$t('misc.whale_empty')"
+      :description="$t('misc.whale_hint')"
+    />
+    <PanelTable
+      v-else
+      :columns="cols"
+      :data="rows"
+      :loading="loading"
+      :sort-key="sortKey"
+      :sort-dir="sortDir"
+      :row-class="rowClass"
+      :row-key="(tx: any, i: number) => tx.hash || i"
+      sticky-header
+      @sort-change="onSortChange"
+    />
   </div>
 </template>
 
 <style scoped>
 .whale-tracking-panel {
-  padding: 12px; height: 100%; display: flex; flex-direction: column;
-  color: var(--color-text, var(--color-border)); background: var(--color-bg-panel, var(--color-bg-panel)); overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
-.panel-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+
 .addr-input {
-  padding: 3px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); font-size: 12px; width: 140px;
+  width: 140px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font-size: var(--font-xs);
 }
-.addr-input::placeholder { color: var(--color-text-tertiary); font-size: 10px; }
-.refresh-btn {
-  padding: 4px 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated); color: var(--color-text-primary); cursor: pointer; font-size: 13px;
-  margin-left: auto;
+.addr-input::placeholder { color: var(--color-text-tertiary); }
+
+:deep(.table-row.mega-row) {
+  background: var(--color-warning-soft);
 }
-.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  color: var(--color-text-tertiary); font-size: 13px; gap: 4px;
-}
-.error-state {
-  display: flex; align-items: center; justify-content: center; padding: 12px;
-  color: var(--color-error); font-size: 13px; cursor: pointer;
-}
-.hint { font-size: 11px; opacity: 0.6; }
-.table-wrapper { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.table-header {
-  display: flex; padding: 4px 0; border-bottom: 1px solid var(--color-border-strong);
-  font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; flex-shrink: 0;
-}
-.sortable { cursor: pointer; user-select: none; }
-.sortable:hover { color: var(--color-text-primary); }
-.table-body { flex: 1; overflow-y: auto; font-size: 11px; }
-.table-row {
-  display: flex; padding: 3px 0; align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.table-row:hover { background: var(--color-bg-elevated); }
-.table-row.mega { background: rgba(245,158,11,0.06); }
-.col-time { width: 80px; font-size: 10px; color: var(--color-text-tertiary); }
-.col-token { width: 52px; font-weight: 600; }
-.col-from, .col-to { width: 80px; font-family: monospace; font-size: 10px; color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-value { flex: 1; min-width: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
 </style>

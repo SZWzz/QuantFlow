@@ -153,7 +153,7 @@ function formatOutput(key: any, val: any): string {
         <svg :viewBox="`0 0 ${chartInfo.w} ${chartInfo.h}`" class="equity-svg" preserveAspectRatio="xMidYMid meet">
           <g v-for="(l, i) in chartInfo.labels" :key="'g'+i">
             <line x1="52" :x2="chartInfo.w-8" :y1="l.y" :y2="l.y" style="stroke: var(--wf-chart-grid)" stroke-width="0.5" stroke-dasharray="3,3" />
-            <text x="50" :y="l.y+3" text-anchor="end" style="fill: var(--wf-chart-text)" font-size="9">{{ l.label }}</text>
+            <text x="50" :y="l.y+3" text-anchor="end" style="fill: var(--wf-chart-text); font-size: var(--font-xs)">{{ l.label }}</text>
           </g>
           <polyline :points="chartInfo.polyline" fill="none" style="stroke: var(--wf-success)" stroke-width="1.5" />
         </svg>
@@ -209,12 +209,12 @@ function formatOutput(key: any, val: any): string {
   padding: 6px 10px; background: var(--color-bg-input); border-bottom: 1px solid var(--color-border);
 }
 
-.log-title { font-size: 11px; font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
+.log-title { font-size: var(--font-xs); font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
 .log-actions { display: flex; align-items: center; gap: 8px; }
 
-.running-badge { font-size: 10px; color: var(--wf-warn); animation: pulse 1s ease-in-out infinite; }
-.done-badge { font-size: 10px; color: var(--wf-success); }
-.fail-badge { font-size: 10px; color: var(--wf-danger); }
+.running-badge { font-size: var(--font-xs); color: var(--wf-warn); animation: pulse 1s ease-in-out infinite; }
+.done-badge { font-size: var(--font-xs); color: var(--wf-success); }
+.fail-badge { font-size: var(--font-xs); color: var(--wf-danger); }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -223,7 +223,7 @@ function formatOutput(key: any, val: any): string {
 
 .clear-btn {
   padding: 2px 8px; background: transparent; border: 1px solid var(--color-border);
-  color: var(--color-text-tertiary); border-radius: var(--radius-sm); font-size: 10px; cursor: pointer;
+  color: var(--color-text-tertiary); border-radius: var(--radius-sm); font-size: var(--font-xs); cursor: pointer;
 }
 .clear-btn:hover { color: var(--color-text-primary); border-color: var(--color-border-strong); }
 
@@ -231,17 +231,17 @@ function formatOutput(key: any, val: any): string {
 
 .empty-log { padding: 16px; text-align: center; color: var(--color-text-tertiary); font-size: 12px; font-family: system-ui; }
 
-.log-entry { display: flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: 11px; }
-.entry-icon { font-size: 10px; width: 12px; text-align: center; }
+.log-entry { display: flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: var(--font-xs); }
+.entry-icon { font-size: var(--font-xs); width: 12px; text-align: center; }
 .entry-node { color: var(--color-text-primary); min-width: 80px; }
 .entry-status { font-weight: 500; }
 .entry-time { color: var(--color-text-tertiary); margin-left: auto; }
-.entry-error { color: var(--wf-danger); font-size: 10px; }
+.entry-error { color: var(--wf-danger); font-size: var(--font-xs); }
 
-.chart-output { padding: 4px 8px; margin: 2px 0; background: var(--color-bg-canvas); border-radius: var(--radius-sm); }
-.chart-label { font-size: 10px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 2px; }
+.chart-output { padding: 4px 8px; margin: 2px 0; background: var(--color-bg-panel); border-radius: var(--radius-sm); }
+.chart-label { font-size: var(--font-xs); font-weight: 600; color: var(--color-text-secondary); margin-bottom: 2px; }
 .chart-inline { display: flex; flex-direction: column; gap: 1px; }
-.output-row { font-size: 10px; color: var(--color-text-primary); }
+.output-row { font-size: var(--font-xs); color: var(--color-text-primary); }
 .output-key { color: var(--color-text-tertiary); margin-right: 4px; }
 .output-val { word-break: break-all; }
 

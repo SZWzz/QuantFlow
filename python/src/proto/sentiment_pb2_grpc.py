@@ -3,9 +3,9 @@
 import grpc
 import warnings
 
-from src.proto import sentiment_pb2 as sentiment__pb2
+from proto import sentiment_pb2 as proto_dot_sentiment__pb2
 
-GRPC_GENERATED_VERSION = '1.81.1'
+GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in sentiment_pb2_grpc.py depends on'
+        + ' but the generated code in proto/sentiment_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -39,13 +39,13 @@ class SentimentServiceStub:
         """
         self.AnalyzeSentiment = channel.unary_unary(
                 '/quantflow.SentimentService/AnalyzeSentiment',
-                request_serializer=sentiment__pb2.AnalyzeSentimentRequest.SerializeToString,
-                response_deserializer=sentiment__pb2.AnalyzeSentimentResponse.FromString,
+                request_serializer=proto_dot_sentiment__pb2.AnalyzeSentimentRequest.SerializeToString,
+                response_deserializer=proto_dot_sentiment__pb2.AnalyzeSentimentResponse.FromString,
                 _registered_method=True)
         self.BatchAnalyzeSentiment = channel.unary_unary(
                 '/quantflow.SentimentService/BatchAnalyzeSentiment',
-                request_serializer=sentiment__pb2.BatchAnalyzeRequest.SerializeToString,
-                response_deserializer=sentiment__pb2.BatchAnalyzeResponse.FromString,
+                request_serializer=proto_dot_sentiment__pb2.BatchAnalyzeRequest.SerializeToString,
+                response_deserializer=proto_dot_sentiment__pb2.BatchAnalyzeResponse.FromString,
                 _registered_method=True)
 
 
@@ -74,13 +74,13 @@ def add_SentimentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'AnalyzeSentiment': grpc.unary_unary_rpc_method_handler(
                     servicer.AnalyzeSentiment,
-                    request_deserializer=sentiment__pb2.AnalyzeSentimentRequest.FromString,
-                    response_serializer=sentiment__pb2.AnalyzeSentimentResponse.SerializeToString,
+                    request_deserializer=proto_dot_sentiment__pb2.AnalyzeSentimentRequest.FromString,
+                    response_serializer=proto_dot_sentiment__pb2.AnalyzeSentimentResponse.SerializeToString,
             ),
             'BatchAnalyzeSentiment': grpc.unary_unary_rpc_method_handler(
                     servicer.BatchAnalyzeSentiment,
-                    request_deserializer=sentiment__pb2.BatchAnalyzeRequest.FromString,
-                    response_serializer=sentiment__pb2.BatchAnalyzeResponse.SerializeToString,
+                    request_deserializer=proto_dot_sentiment__pb2.BatchAnalyzeRequest.FromString,
+                    response_serializer=proto_dot_sentiment__pb2.BatchAnalyzeResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -111,8 +111,8 @@ class SentimentService:
             request,
             target,
             '/quantflow.SentimentService/AnalyzeSentiment',
-            sentiment__pb2.AnalyzeSentimentRequest.SerializeToString,
-            sentiment__pb2.AnalyzeSentimentResponse.FromString,
+            proto_dot_sentiment__pb2.AnalyzeSentimentRequest.SerializeToString,
+            proto_dot_sentiment__pb2.AnalyzeSentimentResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -138,8 +138,8 @@ class SentimentService:
             request,
             target,
             '/quantflow.SentimentService/BatchAnalyzeSentiment',
-            sentiment__pb2.BatchAnalyzeRequest.SerializeToString,
-            sentiment__pb2.BatchAnalyzeResponse.FromString,
+            proto_dot_sentiment__pb2.BatchAnalyzeRequest.SerializeToString,
+            proto_dot_sentiment__pb2.BatchAnalyzeResponse.FromString,
             options,
             channel_credentials,
             insecure,

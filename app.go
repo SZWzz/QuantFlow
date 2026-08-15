@@ -160,6 +160,11 @@ type App struct {
 	// Tear-off window tracking.
 	tearOffWindows   map[string]*tearOffEntry // instanceId → entry
 	tearOffWindowsMu sync.RWMutex
+
+	// Cancellable context for poller goroutines. Created in ServiceStartup,
+	// cancelled in ServiceShutdown so pollers are cleanly stopped on app exit.
+	pollerCtx    context.Context
+	pollerCancel context.CancelFunc
 }
 
 // ListNodes returns metadata for all registered workflow node types.
@@ -1074,6 +1079,11 @@ func resolveMarket(mkt string) string {
 // ServiceShutdown performs graceful cleanup: closes the Python sidecar connection,
 // shared DB connection, and releases any resources held by the application.
 func (a *App) ServiceShutdown() error {
+	// Stop pollers first (they depend on the wsHub and marketReg).
+	if a.pollerCancel != nil {
+		a.pollerCancel()
+	}
+
 	// Shut down the workflow execution queue first (no new tasks).
 	if execQueue != nil {
 		execQueue.Shutdown()

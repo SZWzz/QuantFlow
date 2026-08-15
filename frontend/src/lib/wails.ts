@@ -637,6 +637,20 @@ export async function GetReconciliationReports(limit: number): Promise<Reconcili
   return wailsCall<ReconciliationReport[]>('GetReconciliationReports', limit)
 }
 
+// ── Market Data Wrappers (for data store migration) ─────────────────────
+
+export async function fetchMarketOverview(market: string): Promise<Record<string, any>> {
+  return wailsCall('GetMarketOverview', market)
+}
+
+export async function fetchMinuteLine(symbol: string, sinceTimestamp: number): Promise<any> {
+  return wailsCall('GetMinuteLine', symbol, sinceTimestamp)
+}
+
+export async function GetIndustryRanks(mkt: string, topN: number): Promise<Array<{ name: string; change_pct?: number; changePct?: number }>> {
+  return wailsCall('GetIndustryRanks', mkt, topN)
+}
+
 // ── Credential Management ────────────────────────────────────────────────
 
 export async function GetCredential(name: string): Promise<{ name: string; type: string; keys: Record<string, string> }> {
@@ -670,32 +684,3 @@ export function onCrashReport(cb: (report: CrashReport) => void): () => void {
   })
 }
 
-// ── Credential Management ──────────────────────────────────────────────
-
-export async function saveCredential(name: string, keys: Record<string, string>): Promise<void> {
-  const app = (window as any).go?.main?.App
-  if (!app?.SaveCredential) throw new Error('SaveCredential not available')
-  return app.SaveCredential(name, 'api_key', keys)
-}
-
-export async function getCredential(name: string): Promise<Record<string, string> | null> {
-  const app = (window as any).go?.main?.App
-  if (!app?.GetCredential) return null
-  try {
-    return app.GetCredential(name)
-  } catch {
-    return null
-  }
-}
-
-export async function deleteCredential(name: string): Promise<void> {
-  const app = (window as any).go?.main?.App
-  if (!app?.DeleteCredential) throw new Error('DeleteCredential not available')
-  return app.DeleteCredential(name)
-}
-
-export async function listCredentialNames(): Promise<string[]> {
-  const app = (window as any).go?.main?.App
-  if (!app?.ListCredentialNames) return []
-  return app.ListCredentialNames()
-}
