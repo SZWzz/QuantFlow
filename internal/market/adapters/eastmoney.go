@@ -8,11 +8,10 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
-	"time"
-
 	"quantflow/internal/market"
 	"quantflow/internal/normalize"
+	"strings"
+	"time"
 )
 
 const (
@@ -61,7 +60,7 @@ func newEastMoneyHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
-func (a *EastMoneyAdapter) Name() string      { return "eastmoney" }
+func (a *EastMoneyAdapter) Name() string       { return "eastmoney" }
 func (a *EastMoneyAdapter) Markets() []string  { return []string{"CN"} }
 func (a *EastMoneyAdapter) RequiresAuth() bool { return false }
 
@@ -119,17 +118,17 @@ func (a *EastMoneyAdapter) FetchQuote(ctx context.Context, symbol string) (*mark
 	return &market.QuoteSnapshot{
 		Symbol:    symbol,
 		Name:      d.F58,
-		Last:      d.F43 / 100.0,  // f43: 最新价 (分)
-		Open:      d.F46 / 100.0,  // f46: 开盘价
-		High:      d.F44 / 100.0,  // f44: 最高价
-		Low:       d.F45 / 100.0,  // f45: 最低价
+		Last:      d.F43 / 100.0, // f43: 最新价 (分)
+		Open:      d.F46 / 100.0, // f46: 开盘价
+		High:      d.F44 / 100.0, // f44: 最高价
+		Low:       d.F45 / 100.0, // f45: 最低价
 		PrevClose: prevClose,
 		Volume:    normalize.NormalizeVolume(a.Name(), d.F47), // f47: 成交量 (手→股)
-		Turnover:  d.F48,           // f48: 成交额 (元)
-		Change:    d.F169 / 100.0,  // f169: 涨跌额
-		ChangePct: d.F170 / 100.0,  // f170: 涨跌幅
-		MarketCap: d.F116,          // f116: 总市值 (元)
-		Pe:        d.F162,          // f162: 市盈率
+		Turnover:  d.F48,                                      // f48: 成交额 (元)
+		Change:    d.F169 / 100.0,                             // f169: 涨跌额
+		ChangePct: d.F170 / 100.0,                             // f170: 涨跌幅
+		MarketCap: d.F116,                                     // f116: 总市值 (元)
+		Pe:        d.F162,                                     // f162: 市盈率
 		Exchange:  exchange,
 		Timestamp: time.Now().UnixMilli(),
 	}, nil

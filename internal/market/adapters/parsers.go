@@ -2,17 +2,16 @@ package adapters
 
 import (
 	"fmt"
-	"strings"
-	"time"
-
 	"quantflow/internal/market"
 	"quantflow/internal/normalize"
+	"strings"
+	"time"
 )
 
 // parseFloatSafe parses a float64 from a string, returning 0 on failure.
 func parseFloatSafe(s string) float64 {
 	var f float64
-	fmt.Sscanf(strings.TrimSpace(s), "%f", &f)
+	_, _ = fmt.Sscanf(strings.TrimSpace(s), "%f", &f)
 	return f
 }
 

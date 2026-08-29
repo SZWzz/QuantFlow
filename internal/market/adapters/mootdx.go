@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"sync"
-	"time"
-
 	"quantflow/internal/market"
 	"quantflow/internal/normalize"
 	"quantflow/internal/python"
+	"sync"
+	"time"
+
 	pb "quantflow/internal/python/proto"
 )
 
@@ -39,7 +39,7 @@ func NewMootdxAdapter(dataClient *python.DataClient) *MootdxAdapter {
 	}
 }
 
-func (a *MootdxAdapter) Name() string      { return "mootdx" }
+func (a *MootdxAdapter) Name() string       { return "mootdx" }
 func (a *MootdxAdapter) Markets() []string  { return []string{"CN"} }
 func (a *MootdxAdapter) RequiresAuth() bool { return false }
 

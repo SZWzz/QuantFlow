@@ -3,10 +3,9 @@ package nodes
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"quantflow/internal/normalize"
 	"quantflow/internal/workflow"
+	"strings"
 )
 
 // DataNormalizeNode normalizes input data using a configured field mapper.

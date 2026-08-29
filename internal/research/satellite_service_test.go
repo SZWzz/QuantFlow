@@ -2,10 +2,9 @@ package research
 
 import (
 	"context"
+	"quantflow/internal/market/adapters"
 	"testing"
 	"time"
-
-	"quantflow/internal/market/adapters"
 )
 
 func TestSatelliteService_GetRegionSnapshots_MockFallback(t *testing.T) {

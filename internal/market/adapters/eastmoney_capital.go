@@ -10,13 +10,13 @@ import (
 // MarginTrading holds daily margin trading (融资融券) data for a stock.
 type MarginTrading struct {
 	Date   string  `json:"date"`
-	RZYE   float64 `json:"rzye"`    // 融资余额(元)
-	RZMRE  float64 `json:"rzmre"`   // 融资买入额(元)
-	RZCHE  float64 `json:"rzche"`   // 融资偿还额(元)
-	RQYE   float64 `json:"rqye"`    // 融券余额(元)
-	RQMCL  float64 `json:"rqmcl"`   // 融券卖出量(股)
-	RQCHL  float64 `json:"rqchl"`   // 融券偿还量(股)
-	RZRQYE float64 `json:"rzrqye"`  // 融资融券余额合计(元)
+	RZYE   float64 `json:"rzye"`   // 融资余额(元)
+	RZMRE  float64 `json:"rzmre"`  // 融资买入额(元)
+	RZCHE  float64 `json:"rzche"`  // 融资偿还额(元)
+	RQYE   float64 `json:"rqye"`   // 融券余额(元)
+	RQMCL  float64 `json:"rqmcl"`  // 融券卖出量(股)
+	RQCHL  float64 `json:"rqchl"`  // 融券偿还量(股)
+	RZRQYE float64 `json:"rzrqye"` // 融资融券余额合计(元)
 }
 
 // BlockTrade represents a single block trade (大宗交易) record.
@@ -33,20 +33,20 @@ type BlockTrade struct {
 
 // HolderChange holds quarterly shareholder count change (股东户数变化) data.
 type HolderChange struct {
-	Date       string  `json:"date"`
-	HolderNum  float64 `json:"holder_num"`   // 股东户数
-	ChangeNum  float64 `json:"change_num"`   // 变化户数
-	ChangePct  float64 `json:"change_pct"`   // 环比变化%
-	AvgShares  float64 `json:"avg_shares"`   // 户均持股
+	Date      string  `json:"date"`
+	HolderNum float64 `json:"holder_num"` // 股东户数
+	ChangeNum float64 `json:"change_num"` // 变化户数
+	ChangePct float64 `json:"change_pct"` // 环比变化%
+	AvgShares float64 `json:"avg_shares"` // 户均持股
 }
 
 // DividendRecord holds historical dividend (分红送转) data.
 type DividendRecord struct {
-	Date           string  `json:"date"`
-	BonusRMB       float64 `json:"bonus_rmb"`       // 每股派息(税前)
-	TransferRatio  float64 `json:"transfer_ratio"`  // 每10股转增
-	BonusRatio     float64 `json:"bonus_ratio"`     // 每10股送股
-	Plan           string  `json:"plan"`            // 进度
+	Date          string  `json:"date"`
+	BonusRMB      float64 `json:"bonus_rmb"`      // 每股派息(税前)
+	TransferRatio float64 `json:"transfer_ratio"` // 每10股转增
+	BonusRatio    float64 `json:"bonus_ratio"`    // 每10股送股
+	Plan          string  `json:"plan"`           // 进度
 }
 
 // EastMoneyCapitalAdapter fetches capital-side data: margin trading,

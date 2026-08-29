@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -38,10 +37,14 @@ func (n *ChartDataNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *ChartDataNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "chart_type", Type: "string", Default: "line",
-			Description: "Chart type: line, bar, pie, scatter"},
-		{Name: "title", Type: "string", Default: "",
-			Description: "Chart title text"},
+		{
+			Name: "chart_type", Type: "string", Default: "line",
+			Description: "Chart type: line, bar, pie, scatter",
+		},
+		{
+			Name: "title", Type: "string", Default: "",
+			Description: "Chart title text",
+		},
 	}
 }
 

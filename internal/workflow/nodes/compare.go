@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // CompareNode performs element-wise comparison of two series: a[i] op b[i] -> 1 else 0.
-type CompareNode struct{ id string; params map[string]any }
+type CompareNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewCompareNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &CompareNode{id: id, params: params}, nil

@@ -51,7 +51,7 @@ func (mc *MinuteCache) GetIncremental(symbol string, since int64) ([]MinuteTick,
 	} else {
 		loc, err := time.LoadLocation("Asia/Shanghai")
 		if err != nil {
-			loc = time.FixedZone("CST", 8 * 3600)
+			loc = time.FixedZone("CST", 8*3600)
 		}
 		date = time.Unix(since, 0).In(loc).Format("2006-01-02")
 	}
@@ -217,7 +217,8 @@ func (mc *MinuteCache) saveToDB(symbol, date string, ticks []MinuteTick) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	// Rollback after a successful Commit returns sql.ErrTxDone — safe to ignore
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.Prepare(
 		"INSERT OR IGNORE INTO minute_cache (symbol, date, tick_time, price, volume, avg_price, amount) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -245,7 +246,7 @@ func filterSince(ticks []MinuteTick, since int64) []MinuteTick {
 	}
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
-		loc = time.FixedZone("CST", 8 * 3600)
+		loc = time.FixedZone("CST", 8*3600)
 	}
 	ref := time.Unix(since, 0).In(loc).Format("15:04")
 	for i := len(ticks) - 1; i >= 0; i-- {

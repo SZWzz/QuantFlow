@@ -10,11 +10,10 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"syscall"
-
 	"quantflow/internal/ai"
 	"quantflow/internal/mcp"
 	"quantflow/internal/workflow"
+	"syscall"
 )
 
 func main() {
@@ -34,9 +33,11 @@ func main() {
 	server := mcp.NewServer(handler)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
 
+	// 不使用 defer cancel()：os.Exit 会跳过 defer，两条退出路径都显式调用
 	if err := server.Run(ctx); err != nil {
+		cancel()
 		os.Exit(1)
 	}
+	cancel()
 }

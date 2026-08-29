@@ -63,7 +63,7 @@ func TestStoreCleanup(t *testing.T) {
 	report := NewCrashReport("old", "stack", nil, AppState{})
 	report.Timestamp = time.Now().Add(-40 * 24 * time.Hour) // 40 days ago
 	path := filepath.Join(dir, report.FileName())
-	if err := os.WriteFile(path, []byte("{}"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	// Set file modification time to match the old timestamp so Cleanup detects it

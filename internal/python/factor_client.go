@@ -18,8 +18,8 @@ type FactorResult struct {
 // ComputeFactor calls the Python sidecar to compute a single factor.
 // It retries on transient gRPC errors up to MaxRetries times.
 func (b *PythonBridge) ComputeFactor(ctx context.Context, factorName string, symbols []string,
-	startDate, endDate string, params map[string]string, ohlcvData []byte) ([]FactorResult, error) {
-
+	startDate, endDate string, params map[string]string, ohlcvData []byte,
+) ([]FactorResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, b.opts.RequestTimeout)
 	defer cancel()
 
@@ -64,8 +64,8 @@ func (b *PythonBridge) ComputeFactor(ctx context.Context, factorName string, sym
 
 // ComputeFactorBatch computes multiple factors in a single gRPC call.
 func (b *PythonBridge) ComputeFactorBatch(ctx context.Context, factorNames []string, symbols []string,
-	startDate, endDate string, params map[string]string, ohlcvData []byte) ([]FactorResult, error) {
-
+	startDate, endDate string, params map[string]string, ohlcvData []byte,
+) ([]FactorResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, b.opts.RequestTimeout)
 	defer cancel()
 

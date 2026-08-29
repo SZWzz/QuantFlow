@@ -3,11 +3,10 @@ package main
 import (
 	"context"
 	"log/slog"
-	"testing"
-
 	"quantflow/internal/config"
 	"quantflow/internal/logging"
 	"quantflow/internal/market"
+	"testing"
 )
 
 // TestApp_RegisterMarketAdapters_AllWired verifies startup's adapter registration

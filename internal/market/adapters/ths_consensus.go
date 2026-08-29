@@ -18,7 +18,7 @@ import (
 
 // ConsensusEPS holds analyst consensus EPS forecast data.
 type ConsensusEPS struct {
-	Year         string  `json:"year"`         // 预测年度
+	Year         string  `json:"year"`          // 预测年度
 	AnalystCount int     `json:"analyst_count"` // 预测机构数
 	MinEPS       float64 `json:"min_eps"`       // 最小值
 	AvgEPS       float64 `json:"avg_eps"`       // 均值(一致预期)

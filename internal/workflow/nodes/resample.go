@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // ResampleNode resamples a time series to a different frequency using last-price aggregation.
-type ResampleNode struct{ id string; params map[string]any }
+type ResampleNode struct {
+	id     string
+	params map[string]any
+}
 
 // NewResampleNode creates a new ResampleNode.
 func NewResampleNode(id string, params map[string]any) (workflow.BaseNode, error) {
@@ -43,17 +45,23 @@ func (n *ResampleNode) Execute(ctx context.Context, inputs map[string]any, param
 	// Determine bucket size from rule (in number of data points)
 	bucketSize := len(series)
 	switch rule {
-	case "1h":  bucketSize = max(1, len(series)/24)
-	case "1d":  bucketSize = max(1, len(series)/7)
-	case "1w":  bucketSize = max(1, len(series)/4)
-	case "1M":  bucketSize = max(1, len(series)/2)
+	case "1h":
+		bucketSize = max(1, len(series)/24)
+	case "1d":
+		bucketSize = max(1, len(series)/7)
+	case "1w":
+		bucketSize = max(1, len(series)/4)
+	case "1M":
+		bucketSize = max(1, len(series)/2)
 	}
 
 	numBuckets := (len(series) + bucketSize - 1) / bucketSize
 	result := make([]float64, 0, numBuckets)
 	for i := 0; i < len(series); i += bucketSize {
 		end := i + bucketSize
-		if end > len(series) { end = len(series) }
+		if end > len(series) {
+			end = len(series)
+		}
 		// Last price in bucket
 		result = append(result, series[end-1])
 	}

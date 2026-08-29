@@ -3,15 +3,14 @@ package mcp
 import (
 	"context"
 	"encoding/json"
-
 	"quantflow/internal/ai"
 )
 
 // Handler dispatches MCP methods to the CapabilityRegistry.
 type Handler struct {
-	reg      *ai.CapabilityRegistry
-	name     string
-	version  string
+	reg     *ai.CapabilityRegistry
+	name    string
+	version string
 }
 
 // NewHandler creates an MCP handler backed by a capability registry.

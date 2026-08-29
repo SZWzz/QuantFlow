@@ -57,7 +57,9 @@ func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProc
 		if len(lines) > 0 {
 			if oldPid, err := strconv.Atoi(strings.TrimSpace(lines[0])); err == nil {
 				if oldProc, err := os.FindProcess(oldPid); err == nil {
-					oldProc.Signal(syscall.SIGTERM)
+					// Best-effort SIGTERM to the previous sidecar; if it is already
+					// gone or not ours, there is nothing to do
+					_ = oldProc.Signal(syscall.SIGTERM)
 					time.Sleep(300 * time.Millisecond)
 				}
 			}
@@ -83,7 +85,7 @@ func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProc
 
 	// Persist the PID + version so subsequent runs can detect and restart stale processes.
 	pidContent := fmt.Sprintf("%d\n%s", cmd.Process.Pid, ExpectedSidecarVersion)
-	if err := os.WriteFile(pidFile, []byte(pidContent), 0644); err != nil {
+	if err := os.WriteFile(pidFile, []byte(pidContent), 0o600); err != nil {
 		slog.Warn("failed to write sidecar PID file", "path", pidFile, "error", err)
 	}
 
@@ -101,10 +103,14 @@ func StartSidecar(ctx context.Context, pythonDir string, port int) (*SidecarProc
 }
 
 // getSidecarVersion connects to a running sidecar and returns its reported version.
+//
+//nolint:unused // retained for upgrade checks; will be wired to the update flow
 func getSidecarVersion(ctx context.Context, addr string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
+	//nolint:staticcheck // DialContext+WithBlock: 版本探测需要立即连通性结论；
+	// NewClient 是懒连接，迁移需改动就绪探测逻辑，待 gRPC 2.x 再迁
 	conn, err := grpc.DialContext(ctx, addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
@@ -148,11 +154,13 @@ func (sp *SidecarProcess) Wait() {
 // Stop gracefully terminates the sidecar process and cleans up the PID file.
 func (sp *SidecarProcess) Stop() {
 	if sp.cmd != nil && sp.cmd.Process != nil {
-		sp.cmd.Process.Signal(os.Interrupt)
+		// Graceful interrupt first; failure (e.g. process already exited) is fine,
+		// the Kill fallback below still runs after the timeout
+		_ = sp.cmd.Process.Signal(os.Interrupt)
 		select {
 		case <-sp.done:
 		case <-time.After(5 * time.Second):
-			sp.cmd.Process.Kill()
+			_ = sp.cmd.Process.Kill()
 		}
 	}
 	if sp.pidFile != "" {

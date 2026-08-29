@@ -1,9 +1,8 @@
 package nodes
 
 import (
-	"testing"
-
 	"quantflow/internal/workflow"
+	"testing"
 )
 
 func TestAlphaMiningNode_Registration(t *testing.T) {

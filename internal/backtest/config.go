@@ -5,9 +5,8 @@ package backtest
 
 import (
 	"errors"
-	"time"
-
 	"quantflow/internal/trading"
+	"time"
 )
 
 // errNoData is returned when no OHLCV data is provided for backtesting.
@@ -15,21 +14,21 @@ var errNoData = errors.New("no OHLCV data provided")
 
 // Config holds the parameters for a backtest run.
 type Config struct {
-	StartDate   time.Time `json:"start_date"`
-	EndDate     time.Time `json:"end_date"`
-	InitialCash float64   `json:"initial_cash"`
-	Commission   float64   `json:"commission"`    // per-trade commission rate
-	Slippage     float64   `json:"slippage"`      // slippage as fraction of price
-	Benchmark    string    `json:"benchmark"`     // benchmark symbol for comparison
+	StartDate    time.Time `json:"start_date"`
+	EndDate      time.Time `json:"end_date"`
+	InitialCash  float64   `json:"initial_cash"`
+	Commission   float64   `json:"commission"`     // per-trade commission rate
+	Slippage     float64   `json:"slippage"`       // slippage as fraction of price
+	Benchmark    string    `json:"benchmark"`      // benchmark symbol for comparison
 	RiskFreeRate float64   `json:"risk_free_rate"` // annual risk-free rate (default 0.02 = 2%)
 }
 
 // DefaultConfig returns sensible defaults for backtesting.
 func DefaultConfig() Config {
 	return Config{
-		InitialCash: 1_000_000,
-		Commission:  0.0003, // 万三
-		Slippage:    0.001,  // 10 bps
+		InitialCash:  1_000_000,
+		Commission:   0.0003, // 万三
+		Slippage:     0.001,  // 10 bps
 		RiskFreeRate: 0.02,   // 2% annual risk-free rate
 	}
 }
@@ -80,10 +79,10 @@ type TradeRecord struct {
 
 // Result contains the complete output of a backtest run.
 type Result struct {
-	Config      Config         `json:"config"`
-	EquityCurve []EquityPoint  `json:"equity_curve"`
-	Trades      []TradeRecord  `json:"trades"`
-	Metrics     Metrics        `json:"metrics"`
+	Config      Config        `json:"config"`
+	EquityCurve []EquityPoint `json:"equity_curve"`
+	Trades      []TradeRecord `json:"trades"`
+	Metrics     Metrics       `json:"metrics"`
 }
 
 // ToRiskConfig converts backtest Config to trading.RiskConfig.

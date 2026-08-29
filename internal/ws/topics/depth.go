@@ -6,7 +6,7 @@ type DepthLevel struct {
 }
 
 type DepthUpdate struct {
-	Symbol string        `json:"symbol"`
-	Bids   []DepthLevel  `json:"bids"`
-	Asks   []DepthLevel  `json:"asks"`
+	Symbol string       `json:"symbol"`
+	Bids   []DepthLevel `json:"bids"`
+	Asks   []DepthLevel `json:"asks"`
 }

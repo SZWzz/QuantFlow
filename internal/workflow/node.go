@@ -9,8 +9,8 @@ type PortType string
 
 const (
 	PortOHLCV   PortType = "ohlcv"
-	PortSeries  PortType = "series"  // []float64
-	PortSignal  PortType = "signal"  // buy/sell/hold + confidence
+	PortSeries  PortType = "series" // []float64
+	PortSignal  PortType = "signal" // buy/sell/hold + confidence
 	PortString  PortType = "string"
 	PortNumber  PortType = "number"  // float64
 	PortBoolean PortType = "boolean" // bool

@@ -5,14 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"quantflow/internal/market"
+	"quantflow/internal/market/wsconn"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/coder/websocket"
-
-	"quantflow/internal/market"
-	"quantflow/internal/market/wsconn"
 )
 
 const okxWSPublicURL = "wss://ws.okx.com:8443/ws/v5/public"
@@ -21,34 +19,33 @@ var _ wsconn.WSConnector = (*OKXAdapter)(nil)
 
 // okxTickerEvent is the OKX WebSocket tickers channel event.
 type okxTickerEvent struct {
-	Arg  okxChannelArg `json:"arg"`
+	Arg  okxChannelArg   `json:"arg"`
 	Data []okxTickerData `json:"data"`
 }
 
 type okxChannelArg struct {
-	Channel  string `json:"channel"`
-	InstID   string `json:"instId"`
+	Channel string `json:"channel"`
+	InstID  string `json:"instId"`
 }
 
 type okxTickerData struct {
-	InstID    string `json:"instId"`
-	Last      string `json:"last"`
-	Open24h   string `json:"open24h"`
-	High24h   string `json:"high24h"`
-	Low24h    string `json:"low24h"`
-	Vol24h    string `json:"vol24h"`
-	BidPx     string `json:"bidPx"`
-	AskPx     string `json:"askPx"`
-	SodUtc0   string `json:"sodUtc0"`
-	Ts        string `json:"ts"`
+	InstID  string `json:"instId"`
+	Last    string `json:"last"`
+	Open24h string `json:"open24h"`
+	High24h string `json:"high24h"`
+	Low24h  string `json:"low24h"`
+	Vol24h  string `json:"vol24h"`
+	BidPx   string `json:"bidPx"`
+	AskPx   string `json:"askPx"`
+	SodUtc0 string `json:"sodUtc0"`
+	Ts      string `json:"ts"`
 }
 
 type okxWSState struct {
-	conn     *websocket.Conn
-	cancel   context.CancelFunc
-	hub      *market.MarketDataHub
-	mu       sync.Mutex
-	reconn   int
+	conn   *websocket.Conn
+	cancel context.CancelFunc
+	hub    *market.MarketDataHub
+	reconn int
 }
 
 // ConnectWS connects to OKX WebSocket public channel.
@@ -79,10 +76,11 @@ func (a *OKXAdapter) ConnectWS(ctx context.Context, hub *market.MarketDataHub) e
 }
 
 func (a *OKXAdapter) DisconnectWS() error  { return nil }
-func (a *OKXAdapter) SupportsWS() bool      { return true }
-func (a *OKXAdapter) ExchangeName() string  { return "okx" }
+func (a *OKXAdapter) SupportsWS() bool     { return true }
+func (a *OKXAdapter) ExchangeName() string { return "okx" }
 
 func (s *okxWSState) connect(ctx context.Context) error {
+	//nolint:bodyclose // coder/websocket: 成功时 resp.Body 由库接管（置 nil），无需关闭
 	conn, _, err := websocket.Dial(ctx, okxWSPublicURL, nil)
 	if err != nil {
 		return err
@@ -159,9 +157,10 @@ func (s *okxWSState) heartbeatLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if s.conn != nil {
-				// OKX uses "ping" text frame
+				// OKX uses "ping" text frame; a failed ping is harmless —
+				// the read loop will detect a dead connection and reconnect
 				pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-				s.conn.Write(pingCtx, websocket.MessageText, []byte("ping"))
+				_ = s.conn.Write(pingCtx, websocket.MessageText, []byte("ping"))
 				cancel()
 			}
 		}

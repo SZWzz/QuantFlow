@@ -25,13 +25,13 @@ type PriceLimitConfig struct {
 // OMS (Order Management System) manages orders, trades, and positions.
 // It is safe for concurrent use.
 type OMS struct {
-	mu         sync.RWMutex
-	orders     map[string]*Order
-	trades     []*Trade
-	positions  map[string]*Position
-	broker     Broker
-	orderCbs   []func(*Order) // notified on order state changes
-	tradeCbs   []func(*Trade) // notified on new trades
+	mu        sync.RWMutex
+	orders    map[string]*Order
+	trades    []*Trade
+	positions map[string]*Position
+	broker    Broker
+	orderCbs  []func(*Order) // notified on order state changes
+	tradeCbs  []func(*Trade) // notified on new trades
 
 	// P0-10: T+1 lock for A-share (today's buys can't be sold same day)
 	t1Lock *T1Tracker
@@ -364,7 +364,7 @@ func (o *OMS) UpdateMarketPrice(symbol string, marketPrice float64) {
 	}
 	pos.MarketPrice = marketPrice
 	if pos.Quantity != 0 {
-		pos.PnL = pos.RealizedPnl + (marketPrice - pos.AvgPrice)*pos.Quantity
+		pos.PnL = pos.RealizedPnl + (marketPrice-pos.AvgPrice)*pos.Quantity
 		if pos.AvgPrice > 0 {
 			pos.PnLPct = (marketPrice - pos.AvgPrice) / pos.AvgPrice * 100
 		}

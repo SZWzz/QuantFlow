@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"quantflow/internal/market/adapters"
 	"sync"
 	"time"
-
-	"quantflow/internal/market/adapters"
 )
 
 // PredictionMarketService provides prediction market data with TTL caching

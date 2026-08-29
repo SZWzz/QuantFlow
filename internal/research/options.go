@@ -23,6 +23,8 @@ type OptionGreeks struct {
 
 // OptionPrice computes Black-Scholes price and Greeks for European options.
 // S=spot, K=strike, T=years to expiry, r=risk-free rate, sigma=volatility.
+//
+//nolint:gocritic // S,K,T,r,sigma follow Black-Scholes textbook notation
 func OptionPrice(optType OptionType, S, K, T, r, sigma float64) (price float64, greeks OptionGreeks) {
 	if T <= 0 || sigma <= 0 || S <= 0 {
 		if optType == Call {
@@ -64,6 +66,8 @@ func OptionPrice(optType OptionType, S, K, T, r, sigma float64) (price float64, 
 
 // ImpliedVolatility computes implied volatility from option market price.
 // Uses Newton-Raphson iteration.
+//
+//nolint:gocritic // S,K,T,r follow Black-Scholes textbook notation
 func ImpliedVolatility(optType OptionType, marketPrice, S, K, T, r float64) float64 {
 	if marketPrice <= 0 || T <= 0 {
 		return 0
@@ -114,6 +118,8 @@ func ImpliedVolatility(optType OptionType, marketPrice, S, K, T, r float64) floa
 
 // BinomialPrice computes option price using CRR binomial tree.
 // Supports both European and American options.
+//
+//nolint:gocritic // S,K,T,r,sigma follow Black-Scholes textbook notation
 func BinomialPrice(optType OptionType, S, K, T, r, sigma float64, steps int, american bool) float64 {
 	if steps <= 0 {
 		steps = 100
@@ -168,4 +174,3 @@ func BinomialPrice(optType OptionType, S, K, T, r, sigma float64, steps int, ame
 func normalPDF(x float64) float64 {
 	return math.Exp(-x*x/2) / math.Sqrt(2*math.Pi)
 }
-

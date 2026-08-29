@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"quantflow/internal/market"
 	"strings"
 	"time"
-
-	"quantflow/internal/market"
 )
 
 const gateioBaseURL = "https://api.gateio.ws/api/v4/spot"
@@ -28,7 +27,7 @@ func NewGateIOAdapter() *GateIOAdapter {
 	}
 }
 
-func (a *GateIOAdapter) Name() string      { return "gateio" }
+func (a *GateIOAdapter) Name() string       { return "gateio" }
 func (a *GateIOAdapter) Markets() []string  { return []string{"CRYPTO"} }
 func (a *GateIOAdapter) RequiresAuth() bool { return false }
 
@@ -161,15 +160,15 @@ func (a *GateIOAdapter) HealthCheck(ctx context.Context) error {
 // --- helpers ---
 
 type gateioTicker struct {
-	CurrencyPair      string `json:"currency_pair"`
-	Last              string `json:"last"`
-	LowestAsk         string `json:"lowest_ask"`
-	HighestBid        string `json:"highest_bid"`
-	ChangePercentage  string `json:"change_percentage"`
-	BaseVolume        string `json:"base_volume"`
-	QuoteVolume       string `json:"quote_volume"`
-	High24h           string `json:"high_24h"`
-	Low24h            string `json:"low_24h"`
+	CurrencyPair     string `json:"currency_pair"`
+	Last             string `json:"last"`
+	LowestAsk        string `json:"lowest_ask"`
+	HighestBid       string `json:"highest_bid"`
+	ChangePercentage string `json:"change_percentage"`
+	BaseVolume       string `json:"base_volume"`
+	QuoteVolume      string `json:"quote_volume"`
+	High24h          string `json:"high_24h"`
+	Low24h           string `json:"low_24h"`
 }
 
 // toGateIOPair converts QuantFlow symbol to Gate.io format.

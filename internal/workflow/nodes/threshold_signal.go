@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // ThresholdSignalNode generates buy/sell/hold signals when a value crosses upper/lower thresholds.
-type ThresholdSignalNode struct{ id string; params map[string]any }
+type ThresholdSignalNode struct {
+	id     string
+	params map[string]any
+}
 
 // NewThresholdSignalNode creates a new ThresholdSignalNode.
 func NewThresholdSignalNode(id string, params map[string]any) (workflow.BaseNode, error) {
@@ -45,9 +47,12 @@ func (n *ThresholdSignalNode) Execute(ctx context.Context, inputs map[string]any
 	signals := make([]float64, len(values))
 	for i, v := range values {
 		switch {
-		case v > upper: signals[i] = -1 // sell
-		case v < lower: signals[i] = 1  // buy
-		default:        signals[i] = 0  // hold
+		case v > upper:
+			signals[i] = -1 // sell
+		case v < lower:
+			signals[i] = 1 // buy
+		default:
+			signals[i] = 0 // hold
 		}
 	}
 	return map[string]any{"signal": signals}, nil

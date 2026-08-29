@@ -16,10 +16,10 @@ func TestNormalizeVolume_KnownSources(t *testing.T) {
 		{"tushare", 100, 10000},
 		{"mootdx", 100, 10000},
 		{"baidu", 100, 10000},
-		{"yahoo", 100, 100},     // US source, no multiplier
-		{"binance", 1.5, 1.5},   // crypto, no multiplier
-		{"unknown", 100, 100},   // unknown source
-		{"", 100, 100},          // empty source
+		{"yahoo", 100, 100},   // US source, no multiplier
+		{"binance", 1.5, 1.5}, // crypto, no multiplier
+		{"unknown", 100, 100}, // unknown source
+		{"", 100, 100},        // empty source
 	}
 
 	for _, tt := range tests {

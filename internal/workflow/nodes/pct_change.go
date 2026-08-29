@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -18,8 +17,8 @@ func NewPctChangeNode(id string, params map[string]any) (workflow.BaseNode, erro
 }
 
 func (n *PctChangeNode) ID() string       { return n.id }
-func (n *PctChangeNode) NodeType() string  { return "pct_change" }
-func (n *PctChangeNode) Category() string  { return "alpha" }
+func (n *PctChangeNode) NodeType() string { return "pct_change" }
+func (n *PctChangeNode) Category() string { return "alpha" }
 
 func (n *PctChangeNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "values", Type: workflow.PortSeries, Required: true}}

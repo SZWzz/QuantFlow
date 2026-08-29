@@ -6,10 +6,8 @@ package wsconn
 import (
 	"context"
 	"log/slog"
-	"sync"
-	"time"
-
 	"quantflow/internal/market"
+	"sync"
 )
 
 // WSConnector is an optional interface that adapters can implement
@@ -141,14 +139,4 @@ func (m *Manager) ActiveExchanges() []string {
 		names = append(names, name)
 	}
 	return names
-}
-
-// backoff returns the next reconnect delay using exponential backoff.
-// Delays: 1s → 2s → 4s → 8s → 16s → 30s (max).
-func backoff(attempt int) time.Duration {
-	delays := []time.Duration{1, 2, 4, 8, 16, 30}
-	if attempt >= len(delays) {
-		return 30 * time.Second
-	}
-	return delays[attempt] * time.Second
 }

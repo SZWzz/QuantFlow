@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // FilterNode filters a series by a condition on a named column.
-type FilterNode struct{ id string; params map[string]any }
+type FilterNode struct {
+	id     string
+	params map[string]any
+}
 
 // NewFilterNode creates a new FilterNode.
 func NewFilterNode(id string, params map[string]any) (workflow.BaseNode, error) {
@@ -47,12 +49,18 @@ func (n *FilterNode) Execute(ctx context.Context, inputs map[string]any, params 
 	for _, v := range series {
 		keep := false
 		switch cond {
-		case "gt":  keep = v > threshold
-		case "lt":  keep = v < threshold
-		case "gte": keep = v >= threshold
-		case "lte": keep = v <= threshold
-		case "eq":  keep = v == threshold
-		default:    keep = v > threshold
+		case "gt":
+			keep = v > threshold
+		case "lt":
+			keep = v < threshold
+		case "gte":
+			keep = v >= threshold
+		case "lte":
+			keep = v <= threshold
+		case "eq":
+			keep = v == threshold
+		default:
+			keep = v > threshold
 		}
 		if keep {
 			result = append(result, v)

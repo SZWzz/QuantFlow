@@ -6,15 +6,18 @@ import (
 	"quantflow/internal/workflow"
 )
 
-type MACDNode struct{ id string; params map[string]any }
+type MACDNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewMACDNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &MACDNode{id: id, params: params}, nil
 }
 
 func (n *MACDNode) ID() string       { return n.id }
-func (n *MACDNode) NodeType() string  { return "macd" }
-func (n *MACDNode) Category() string  { return "indicator" }
+func (n *MACDNode) NodeType() string { return "macd" }
+func (n *MACDNode) Category() string { return "indicator" }
 
 func (n *MACDNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "prices", Type: workflow.PortSeries, Required: true}}
@@ -38,7 +41,9 @@ func (n *MACDNode) ParamSchema() []workflow.ParamDef {
 
 func (n *MACDNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	prices := extractFloatSlice(inputs["prices"])
-	if prices == nil { return nil, fmt.Errorf("macd: prices input required") }
+	if prices == nil {
+		return nil, fmt.Errorf("macd: prices input required")
+	}
 
 	fast := int(getFloatParam(params, "fast", 12))
 	slow := int(getFloatParam(params, "slow", 26))
@@ -49,12 +54,11 @@ func (n *MACDNode) Execute(ctx context.Context, inputs map[string]any, params ma
 
 	dataLen := len(prices)
 	macdLine := make([]float64, dataLen)
-	signalLine := make([]float64, dataLen)
 	histogram := make([]float64, dataLen)
 	for i := 0; i < dataLen; i++ {
 		macdLine[i] = emaFast[i] - emaSlow[i]
 	}
-	signalLine = ema(macdLine, sig)
+	signalLine := ema(macdLine, sig)
 	for i := 0; i < dataLen; i++ {
 		histogram[i] = macdLine[i] - signalLine[i]
 	}
@@ -68,7 +72,9 @@ func (n *MACDNode) Validate() error { return nil }
 
 func ema(data []float64, period int) []float64 {
 	result := make([]float64, len(data))
-	if len(data) == 0 || period <= 0 { return result }
+	if len(data) == 0 || period <= 0 {
+		return result
+	}
 	k := 2.0 / float64(period+1)
 	result[0] = data[0]
 	for i := 1; i < len(data); i++ {

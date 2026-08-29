@@ -7,12 +7,12 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"quantflow/internal/market"
+	"quantflow/internal/python"
 	"strings"
 	"time"
 
-	"quantflow/internal/market"
 	pb "quantflow/internal/python/proto"
-	"quantflow/internal/python"
 )
 
 // ── ML Model Registry ──────────────────────────────────────────────────

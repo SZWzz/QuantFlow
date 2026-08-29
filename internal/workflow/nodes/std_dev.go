@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-
 	"quantflow/internal/workflow"
 )
 
@@ -19,8 +18,8 @@ func NewStdDevNode(id string, params map[string]any) (workflow.BaseNode, error) 
 }
 
 func (n *StdDevNode) ID() string       { return n.id }
-func (n *StdDevNode) NodeType() string  { return "std_dev" }
-func (n *StdDevNode) Category() string  { return "alpha" }
+func (n *StdDevNode) NodeType() string { return "std_dev" }
+func (n *StdDevNode) Category() string { return "alpha" }
 
 func (n *StdDevNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "values", Type: workflow.PortSeries, Required: true}}

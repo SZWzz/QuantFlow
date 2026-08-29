@@ -2,9 +2,8 @@ package backtest
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/trading"
+	"testing"
 )
 
 // TestCNEngine_RejectsBuyAtLimitUp 验证涨停价买入被拒。

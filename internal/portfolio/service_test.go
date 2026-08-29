@@ -1,9 +1,8 @@
 package portfolio
 
 import (
-	"testing"
-
 	"quantflow/internal/trading"
+	"testing"
 )
 
 func TestService_GetSummary(t *testing.T) {
@@ -12,7 +11,7 @@ func TestService_GetSummary(t *testing.T) {
 	// Deposit initial cash so the ledger has funds to trade with.
 	oms.GetCashLedger().Deposit(50000.0)
 
-	oms.PlaceOrder("AAPL", trading.SideBuy, trading.TypeLimit, "",  100,  150.0)
+	oms.PlaceOrder("AAPL", trading.SideBuy, trading.TypeLimit, "", 100, 150.0)
 
 	var orderID string
 	for _, o := range oms.GetOrders() {

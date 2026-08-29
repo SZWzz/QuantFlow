@@ -21,6 +21,7 @@ func (n *FundingRateNode) Category() string { return "data" }
 func (n *FundingRateNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "symbol", Type: workflow.PortString, Required: true}}
 }
+
 func (n *FundingRateNode) OutputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
 		{Name: "rate", Type: workflow.PortNumber},

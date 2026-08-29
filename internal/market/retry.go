@@ -99,7 +99,7 @@ type transientError struct {
 	msg string
 }
 
-func (e *transientError) Error() string    { return e.msg }
+func (e *transientError) Error() string     { return e.msg }
 func (e *transientError) IsTransient() bool { return true }
 
 // NewTransientError creates a new transient error (will be retried).

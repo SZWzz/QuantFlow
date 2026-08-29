@@ -2,9 +2,8 @@ package backtest
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/trading"
+	"testing"
 )
 
 func TestRunner_StopLossHit(t *testing.T) {

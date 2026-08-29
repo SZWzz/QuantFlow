@@ -40,17 +40,17 @@ type Error struct {
 // StdioTransport reads JSON-RPC requests from stdin and writes responses to stdout.
 // Stderr is reserved for logging (never write JSON to stderr).
 type StdioTransport struct {
-	reader  *bufio.Reader
-	writer  io.Writer
-	errLog  io.Writer
+	reader *bufio.Reader
+	writer io.Writer
+	errLog io.Writer
 }
 
 // NewStdioTransport creates a transport over os.Stdin / os.Stdout.
 func NewStdioTransport() *StdioTransport {
 	return &StdioTransport{
-		reader:  bufio.NewReader(os.Stdin),
-		writer:  os.Stdout,
-		errLog:  os.Stderr,
+		reader: bufio.NewReader(os.Stdin),
+		writer: os.Stdout,
+		errLog: os.Stderr,
 	}
 }
 

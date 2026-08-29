@@ -3,11 +3,10 @@ package nodes
 import (
 	"context"
 	"fmt"
-	"sort"
-
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/research"
 	"quantflow/internal/workflow"
+	"sort"
 )
 
 // CBScannerNode scans convertible bonds using dual-low strategy criteria.
@@ -24,9 +23,9 @@ func NewCBScannerNode(id string, params map[string]any) (workflow.BaseNode, erro
 	}, nil
 }
 
-func (n *CBScannerNode) ID() string           { return n.id }
-func (n *CBScannerNode) NodeType() string      { return "cb_scanner" }
-func (n *CBScannerNode) Category() string      { return "research" }
+func (n *CBScannerNode) ID() string                            { return n.id }
+func (n *CBScannerNode) NodeType() string                      { return "cb_scanner" }
+func (n *CBScannerNode) Category() string                      { return "research" }
 func (n *CBScannerNode) InputPorts() []workflow.PortDefinition { return nil }
 func (n *CBScannerNode) OutputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
@@ -35,6 +34,7 @@ func (n *CBScannerNode) OutputPorts() []workflow.PortDefinition {
 		{Name: "top_scores", Type: workflow.PortNumber},
 	}
 }
+
 func (n *CBScannerNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
 		{Name: "max_price", Type: "float", Default: 150.0, Description: "最高转债价格"},

@@ -2,10 +2,8 @@ package nodes
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/market/adapters"
-	"quantflow/internal/workflow"
+	"testing"
 )
 
 func TestNewsFetcherNode_Interface(t *testing.T) {
@@ -46,7 +44,6 @@ func TestNewsFetcherNode_Ports(t *testing.T) {
 
 func TestNewsFetcherNode_Execute_Mock(t *testing.T) {
 	node, _ := NewNewsFetcherNode("news-1", map[string]any{})
-	_, _ = node.(workflow.BaseNode)
 
 	result, err := node.Execute(context.Background(),
 		map[string]any{"symbol": "600519"},

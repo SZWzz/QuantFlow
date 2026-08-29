@@ -3,9 +3,8 @@ package nodes
 import (
 	"context"
 	"fmt"
-	"sort"
-
 	"quantflow/internal/workflow"
+	"sort"
 )
 
 // RankSelectNode selects the top N (or bottom N) stocks based on factor values,

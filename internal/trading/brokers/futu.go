@@ -8,11 +8,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"quantflow/internal/trading"
 	"strings"
 	"sync"
 	"time"
-
-	"quantflow/internal/trading"
 )
 
 // FutuConfig holds connection parameters for FutuOpenD.
@@ -26,9 +25,9 @@ type FutuConfig struct {
 // Communicates with the locally running FutuOpenD gateway via its HTTP API.
 //
 // Prerequisites:
-//   1. Download and run FutuOpenD (https://www.futunn.com/download/openAPI)
-//   2. Login to your Futu account in FutuOpenD
-//   3. Enable API access in FutuOpenD settings
+//  1. Download and run FutuOpenD (https://www.futunn.com/download/openAPI)
+//  2. Login to your Futu account in FutuOpenD
+//  3. Enable API access in FutuOpenD settings
 type FutuBroker struct {
 	cfg       FutuConfig
 	client    *http.Client
@@ -106,10 +105,10 @@ func (f *FutuBroker) SubmitOrder(ctx context.Context, order *trading.Order) (*tr
 	}
 
 	body := map[string]interface{}{
-		"code":   order.Symbol,
-		"price":  order.Price,
-		"qty":    order.Quantity,
-		"trdSide": mapOrderSide(order.Side),
+		"code":      order.Symbol,
+		"price":     order.Price,
+		"qty":       order.Quantity,
+		"trdSide":   mapOrderSide(order.Side),
 		"orderType": mapOrderType(order.OrderType),
 	}
 	data, _ := json.Marshal(body)
@@ -224,14 +223,14 @@ func (f *FutuBroker) GetPositions(ctx context.Context) ([]*trading.Position, err
 
 	var result struct {
 		Data []struct {
-			Code        string  `json:"code"`
-			Name        string  `json:"stockName"`
-			Qty         float64 `json:"qty"`
-			CostPrice   float64 `json:"costPrice"`
-			MarketVal   float64 `json:"marketVal"`
+			Code         string  `json:"code"`
+			Name         string  `json:"stockName"`
+			Qty          float64 `json:"qty"`
+			CostPrice    float64 `json:"costPrice"`
+			MarketVal    float64 `json:"marketVal"`
 			NominalPrice float64 `json:"nominalPrice"`
-			PlVal       float64 `json:"plVal"`
-			PlRatio     float64 `json:"plRatio"`
+			PlVal        float64 `json:"plVal"`
+			PlRatio      float64 `json:"plRatio"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(resp, &result); err != nil {
@@ -265,11 +264,11 @@ func (f *FutuBroker) GetAccount(ctx context.Context) (*trading.AccountInfo, erro
 
 	var result struct {
 		Data struct {
-			TotalAsset   float64 `json:"totalAssets"`
-			Cash         float64 `json:"cash"`
-			MarketValue  float64 `json:"marketValue"`
-			BuyingPower  float64 `json:"buyingPower"`
-			Currency     string  `json:"currency"`
+			TotalAsset  float64 `json:"totalAssets"`
+			Cash        float64 `json:"cash"`
+			MarketValue float64 `json:"marketValue"`
+			BuyingPower float64 `json:"buyingPower"`
+			Currency    string  `json:"currency"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(resp, &result); err != nil {

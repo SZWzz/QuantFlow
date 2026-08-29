@@ -37,8 +37,8 @@ func TestWorkflow_ParseJSON(t *testing.T) {
 
 func TestWorkflow_RoundTripJSON(t *testing.T) {
 	wf := Workflow{
-		ID:   "wf1",
-		Name: "test",
+		ID:    "wf1",
+		Name:  "test",
 		Nodes: []NodeInstance{{ID: "n1", NodeType: "data_loader", Params: map[string]any{"path": "data.csv"}}},
 		Edges: []Edge{{FromNode: "n1", FromPort: "ohlcv", ToNode: "n2", ToPort: "input"}},
 	}

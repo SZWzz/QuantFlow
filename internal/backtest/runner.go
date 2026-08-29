@@ -6,15 +6,14 @@ package backtest
 import (
 	"context"
 	"fmt"
-	"sort"
-
 	"quantflow/internal/trading"
+	"sort"
 )
 
 // Strategy defines the signal logic for a backtest.
 type Strategy struct {
-	ID         string
-	Name       string
+	ID   string
+	Name string
 	// SignalFunc receives the current open price and the previous completed bar.
 	// It does NOT receive the current bar's Close/High/Low to prevent look-ahead bias.
 	SignalFunc func(openPrice float64, prevBar *trading.OHLCVBar, portfolio *Portfolio) *trading.Signal
@@ -56,10 +55,13 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
 
 	portfolio := NewPortfolio(r.config.InitialCash)
-	r.oms.GetCashLedger().Deposit(r.config.InitialCash)
+	if err := r.oms.GetCashLedger().Deposit(r.config.InitialCash); err != nil {
+		return nil, fmt.Errorf("deposit initial cash: %w", err)
+	}
 	var equityCurve []EquityPoint
 	var tradeRecords []TradeRecord
 	latestPrices := make(map[string]float64)
+	var lastDate string
 
 	var prevBar *trading.OHLCVBar
 	for _, bar := range bars {
@@ -77,35 +79,42 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 		// P0: Fill at bar.Close (stop was triggered at close, so open has already passed).
 		if pos := r.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			avgPrice := pos.AvgPrice // capture before FillOrder clears it
+			posQty := pos.Quantity   // 同理：FillOrder 会原地扣减持仓
 			if r.risk.CheckStopLoss(pos, bar.Close) {
-				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
+				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", posQty, 0)
 				if err == nil {
-					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-					tradeRecords = append(tradeRecords, TradeRecord{
-						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Close,
-						PnL:      (bar.Close - avgPrice) * pos.Quantity,
-					})
+					// Only record the trade when the fill actually succeeds —
+					// recording a rejected fill produces phantom P&L.
+					if _, fillErr := r.oms.FillOrder(order.ID, posQty, bar.Close); fillErr == nil {
+						tradeRecords = append(tradeRecords, TradeRecord{
+							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+							Quantity: posQty, Price: bar.Close,
+							PnL: (bar.Close - avgPrice) * posQty,
+						})
+						portfolio.Cash = r.oms.GetCashBalance()
+						delete(portfolio.Positions, bar.Symbol)
+						delete(portfolio.AvgPrice, bar.Symbol)
+						goto recordEquity
+					}
 				}
-				portfolio.Cash = r.oms.GetCashBalance()
-				delete(portfolio.Positions, bar.Symbol)
-				delete(portfolio.AvgPrice, bar.Symbol)
-				goto recordEquity
 			}
 			if r.risk.CheckTakeProfit(pos, bar.Close) {
-				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
+				order, err := r.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", posQty, 0)
 				if err == nil {
-					r.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-					tradeRecords = append(tradeRecords, TradeRecord{
-						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Close,
-						PnL:      (bar.Close - avgPrice) * pos.Quantity,
-					})
+					// Only record the trade when the fill actually succeeds —
+					// recording a rejected fill produces phantom P&L.
+					if _, fillErr := r.oms.FillOrder(order.ID, posQty, bar.Close); fillErr == nil {
+						tradeRecords = append(tradeRecords, TradeRecord{
+							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+							Quantity: posQty, Price: bar.Close,
+							PnL: (bar.Close - avgPrice) * posQty,
+						})
+						portfolio.Cash = r.oms.GetCashBalance()
+						delete(portfolio.Positions, bar.Symbol)
+						delete(portfolio.AvgPrice, bar.Symbol)
+						goto recordEquity
+					}
 				}
-				portfolio.Cash = r.oms.GetCashBalance()
-				delete(portfolio.Positions, bar.Symbol)
-				delete(portfolio.AvgPrice, bar.Symbol)
-				goto recordEquity
 			}
 		}
 
@@ -128,6 +137,14 @@ func (r *Runner) Run(ctx context.Context, strategy Strategy, bars []trading.OHLC
 			Equity: portfolio.Equity(latestPrices),
 			Cash:   r.oms.GetCashBalance(),
 		})
+
+		// T+1 锁按交易日清理（与 CNEngine 一致）：跨日期时释放前一交易日的买入锁，
+		// 否则任何隔日卖出都会被 OMS 拒绝（此前靠忽略 FillOrder 错误记录幻影成交掩盖）
+		if lastDate != "" && bar.Date != lastDate {
+			r.oms.ClearT1Lock()
+		}
+		lastDate = bar.Date
+
 		prevBar = &bar
 	}
 
@@ -162,11 +179,11 @@ func (r *Runner) processBuySignal(bar trading.OHLCVBar, signal *trading.Signal, 
 		_ = sym
 	}
 	mockOrder := &trading.Order{
-		Symbol:   bar.Symbol,
-		Side:     trading.SideBuy,
+		Symbol:    bar.Symbol,
+		Side:      trading.SideBuy,
 		OrderType: trading.TypeMarket,
-		Quantity: qty,
-		Price:    effectivePrice,
+		Quantity:  qty,
+		Price:     effectivePrice,
 	}
 	if err := r.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
 		return

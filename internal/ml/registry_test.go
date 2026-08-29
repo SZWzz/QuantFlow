@@ -2,9 +2,8 @@ package ml
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/storage"
+	"testing"
 )
 
 func setupTestDB(t *testing.T) (*ModelRegistry, func()) {

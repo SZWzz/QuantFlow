@@ -3,10 +3,9 @@ package backtest
 import (
 	"context"
 	"math"
+	"quantflow/internal/trading"
 	"testing"
 	"time"
-
-	"quantflow/internal/trading"
 )
 
 // TestUSEngine_RoundTrip 验证美股基本买卖闭环与单边佣金模型。
@@ -143,8 +142,11 @@ func TestPDTTracker_IsPDT(t *testing.T) {
 // TestExtractTradingDates 验证交易日提取：去重 + 排序 + 忽略非法日期。
 func TestExtractTradingDates(t *testing.T) {
 	bars := []trading.OHLCVBar{
-		{Date: "2026-06-03"}, {Date: "2026-06-01"}, {Date: "2026-06-03"},
-		{Date: "not-a-date"}, {Date: "2026-06-02"},
+		{Date: "2026-06-03"},
+		{Date: "2026-06-01"},
+		{Date: "2026-06-03"},
+		{Date: "not-a-date"},
+		{Date: "2026-06-02"},
 	}
 	dates := extractTradingDates(bars)
 	if len(dates) != 3 {

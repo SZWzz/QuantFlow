@@ -22,8 +22,10 @@ type EastMoneyGlobalNewsAdapter struct {
 }
 
 // Compile-time interface checks.
-var _ NewsAdapter = (*EastMoneyGlobalNewsAdapter)(nil)
-var _ GlobalNewsAdapter = (*EastMoneyGlobalNewsAdapter)(nil)
+var (
+	_ NewsAdapter       = (*EastMoneyGlobalNewsAdapter)(nil)
+	_ GlobalNewsAdapter = (*EastMoneyGlobalNewsAdapter)(nil)
+)
 
 // NewEastMoneyGlobalNewsAdapter creates a new global news adapter.
 func NewEastMoneyGlobalNewsAdapter() *EastMoneyGlobalNewsAdapter {
@@ -109,8 +111,8 @@ func (a *EastMoneyGlobalNewsAdapter) FetchGlobalNews(ctx context.Context, limit 
 	var result struct {
 		Data struct {
 			FastNewsList []struct {
-				Title   string `json:"title"`
-				Summary string `json:"summary"`
+				Title    string `json:"title"`
+				Summary  string `json:"summary"`
 				ShowTime string `json:"showTime"`
 			} `json:"fastNewsList"`
 		} `json:"data"`

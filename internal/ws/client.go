@@ -90,7 +90,8 @@ func (c *Client) WritePump() {
 			if !ok {
 				ctx, cancel := context.WithTimeout(context.Background(), writeWait)
 				defer cancel()
-				c.conn.Write(ctx, websocket.MessageText, []byte{})
+				// Final close-frame write is best-effort; connection is going away anyway
+				_ = c.conn.Write(ctx, websocket.MessageText, []byte{})
 				return
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), writeWait)

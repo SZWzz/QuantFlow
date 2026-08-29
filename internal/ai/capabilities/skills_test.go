@@ -1,9 +1,8 @@
 package capabilities
 
 import (
-	"testing"
-
 	"quantflow/internal/ai"
+	"testing"
 )
 
 func TestRegisterSkillCapabilities_SearchSkills(t *testing.T) {

@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"quantflow/internal/market"
 	"testing"
 	"time"
-
-	"quantflow/internal/market"
 )
 
 func setupGateIOTestServer() *httptest.Server {
@@ -17,10 +16,12 @@ func setupGateIOTestServer() *httptest.Server {
 		switch {
 		case r.URL.Path == "/tickers":
 			json.NewEncoder(w).Encode([]map[string]interface{}{
-				{"currency_pair": "BTC_USDT", "last": "62797.6", "lowest_ask": "62797.6",
+				{
+					"currency_pair": "BTC_USDT", "last": "62797.6", "lowest_ask": "62797.6",
 					"highest_bid": "62797.5", "change_percentage": "-2.49",
 					"base_volume": "15734.446253", "quote_volume": "990761468.727",
-					"high_24h": "64444.2", "low_24h": "62268.1"},
+					"high_24h": "64444.2", "low_24h": "62268.1",
+				},
 			})
 		case r.URL.Path == "/candlesticks":
 			json.NewEncoder(w).Encode([][]interface{}{

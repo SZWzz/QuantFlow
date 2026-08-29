@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -40,18 +39,30 @@ func (n *StrategyNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *StrategyNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "signal_type", Type: "string", Default: "sma_cross",
-			Description: "Signal type: sma_cross, rsi_threshold, momentum, custom"},
-		{Name: "fast_period", Type: "int", Default: 5,
-			Description: "Fast moving average period (for sma_cross)"},
-		{Name: "slow_period", Type: "int", Default: 20,
-			Description: "Slow moving average period (for sma_cross)"},
-		{Name: "rsi_oversold", Type: "float", Default: 30,
-			Description: "RSI oversold threshold (buy signal)"},
-		{Name: "rsi_overbought", Type: "float", Default: 70,
-			Description: "RSI overbought threshold (sell signal)"},
-		{Name: "position_size", Type: "float", Default: 1000,
-			Description: "Fixed position size in shares or currency units"},
+		{
+			Name: "signal_type", Type: "string", Default: "sma_cross",
+			Description: "Signal type: sma_cross, rsi_threshold, momentum, custom",
+		},
+		{
+			Name: "fast_period", Type: "int", Default: 5,
+			Description: "Fast moving average period (for sma_cross)",
+		},
+		{
+			Name: "slow_period", Type: "int", Default: 20,
+			Description: "Slow moving average period (for sma_cross)",
+		},
+		{
+			Name: "rsi_oversold", Type: "float", Default: 30,
+			Description: "RSI oversold threshold (buy signal)",
+		},
+		{
+			Name: "rsi_overbought", Type: "float", Default: 70,
+			Description: "RSI overbought threshold (sell signal)",
+		},
+		{
+			Name: "position_size", Type: "float", Default: 1000,
+			Description: "Fixed position size in shares or currency units",
+		},
 	}
 }
 

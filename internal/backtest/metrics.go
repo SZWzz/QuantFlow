@@ -82,7 +82,7 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord, riskFreeRat
 	}
 	sortino := 0.0
 	if downCount > 0 {
-		downStd := math.Sqrt(downsideVariance / float64(downCount)) * math.Sqrt(252)
+		downStd := math.Sqrt(downsideVariance/float64(downCount)) * math.Sqrt(252)
 		if downStd > 0 {
 			sortino = (annualReturn - riskFreeRate) / downStd
 		}
@@ -118,15 +118,33 @@ func ComputeMetrics(equityCurve []EquityPoint, trades []TradeRecord, riskFreeRat
 
 // sanitizeMetrics replaces NaN/Inf values with 0 so JSON serialization does not fail.
 func sanitizeMetrics(m *Metrics) {
-	if math.IsNaN(m.TotalReturn) || math.IsInf(m.TotalReturn, 0) { m.TotalReturn = 0 }
-	if math.IsNaN(m.CAGR) || math.IsInf(m.CAGR, 0) { m.CAGR = 0 }
-	if math.IsNaN(m.MaxDrawdown) || math.IsInf(m.MaxDrawdown, 0) { m.MaxDrawdown = 0 }
-	if math.IsNaN(m.SharpeRatio) || math.IsInf(m.SharpeRatio, 0) { m.SharpeRatio = 0 }
-	if math.IsNaN(m.SortinoRatio) || math.IsInf(m.SortinoRatio, 0) { m.SortinoRatio = 0 }
-	if math.IsNaN(m.CalmarRatio) || math.IsInf(m.CalmarRatio, 0) { m.CalmarRatio = 0 }
-	if math.IsNaN(m.WinRate) || math.IsInf(m.WinRate, 0) { m.WinRate = 0 }
-	if math.IsNaN(m.ProfitFactor) || math.IsInf(m.ProfitFactor, 0) { m.ProfitFactor = 0 }
-	if math.IsNaN(m.AnnualVolatility) || math.IsInf(m.AnnualVolatility, 0) { m.AnnualVolatility = 0 }
+	if math.IsNaN(m.TotalReturn) || math.IsInf(m.TotalReturn, 0) {
+		m.TotalReturn = 0
+	}
+	if math.IsNaN(m.CAGR) || math.IsInf(m.CAGR, 0) {
+		m.CAGR = 0
+	}
+	if math.IsNaN(m.MaxDrawdown) || math.IsInf(m.MaxDrawdown, 0) {
+		m.MaxDrawdown = 0
+	}
+	if math.IsNaN(m.SharpeRatio) || math.IsInf(m.SharpeRatio, 0) {
+		m.SharpeRatio = 0
+	}
+	if math.IsNaN(m.SortinoRatio) || math.IsInf(m.SortinoRatio, 0) {
+		m.SortinoRatio = 0
+	}
+	if math.IsNaN(m.CalmarRatio) || math.IsInf(m.CalmarRatio, 0) {
+		m.CalmarRatio = 0
+	}
+	if math.IsNaN(m.WinRate) || math.IsInf(m.WinRate, 0) {
+		m.WinRate = 0
+	}
+	if math.IsNaN(m.ProfitFactor) || math.IsInf(m.ProfitFactor, 0) {
+		m.ProfitFactor = 0
+	}
+	if math.IsNaN(m.AnnualVolatility) || math.IsInf(m.AnnualVolatility, 0) {
+		m.AnnualVolatility = 0
+	}
 }
 
 func mean(values []float64) float64 {

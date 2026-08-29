@@ -3,9 +3,8 @@ package nodes
 import (
 	"context"
 	"fmt"
-	"sort"
-
 	"quantflow/internal/workflow"
+	"sort"
 )
 
 // RankNode computes cross-sectional rank of values within the entire series.
@@ -19,8 +18,8 @@ func NewRankNode(id string, params map[string]any) (workflow.BaseNode, error) {
 }
 
 func (n *RankNode) ID() string       { return n.id }
-func (n *RankNode) NodeType() string  { return "rank" }
-func (n *RankNode) Category() string  { return "alpha" }
+func (n *RankNode) NodeType() string { return "rank" }
+func (n *RankNode) Category() string { return "alpha" }
 
 func (n *RankNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "values", Type: workflow.PortSeries, Required: true}}
@@ -32,8 +31,10 @@ func (n *RankNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *RankNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "method", Type: "string", Default: "percentile",
-			Description: "Rank method: percentile or minmax"},
+		{
+			Name: "method", Type: "string", Default: "percentile",
+			Description: "Rank method: percentile or minmax",
+		},
 	}
 }
 

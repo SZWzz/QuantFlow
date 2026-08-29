@@ -54,13 +54,13 @@ func (a *EastMoneyShareholderAdapter) FetchTop10Holders(ctx context.Context, sym
 		Success bool `json:"success"`
 		Result  struct {
 			Data []struct {
-				HOLDERNAME     string  `json:"HOLDER_NAME"`
-				HOLDERTYPE     string  `json:"HOLDER_TYPE"`
-				HOLDNUM        float64 `json:"HOLD_NUM"`
-				HOLDRATIO      float64 `json:"HOLD_RATIO"`
-				CHANGENUM      float64 `json:"CHANGE_NUM"`
-				MARKETVALUE    float64 `json:"MARKET_VALUE"`
-				ENDDATE        string  `json:"END_DATE"`
+				HOLDERNAME  string  `json:"HOLDER_NAME"`
+				HOLDERTYPE  string  `json:"HOLDER_TYPE"`
+				HOLDNUM     float64 `json:"HOLD_NUM"`
+				HOLDRATIO   float64 `json:"HOLD_RATIO"`
+				CHANGENUM   float64 `json:"CHANGE_NUM"`
+				MARKETVALUE float64 `json:"MARKET_VALUE"`
+				ENDDATE     string  `json:"END_DATE"`
 			} `json:"data"`
 		} `json:"result"`
 	}

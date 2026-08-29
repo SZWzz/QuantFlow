@@ -21,9 +21,11 @@ func (n *LiquidationsNode) Category() string { return "data" }
 func (n *LiquidationsNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "symbol", Type: workflow.PortString, Required: false}}
 }
+
 func (n *LiquidationsNode) OutputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "liquidations", Type: workflow.PortSeries}}
 }
+
 func (n *LiquidationsNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{{Name: "limit", Type: "number", Default: "50", Description: "Max liquidation events"}}
 }

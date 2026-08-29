@@ -39,7 +39,7 @@ func tableStat(db *sql.DB, table, dateCol, sizeExpr string) (TableStat, error) {
 	var st TableStat
 	st.Table = table
 
-	q := fmt.Sprintf("SELECT COUNT(*) FROM \"%s\"", table)
+	q := fmt.Sprintf("SELECT COUNT(*) FROM \"%s\"", table) //nolint:gosec // table 来自固定表名枚举，无用户输入
 	err := db.QueryRow(q).Scan(&st.Rows)
 	if err != nil {
 		return st, err

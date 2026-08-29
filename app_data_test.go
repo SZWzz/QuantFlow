@@ -4,22 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"quantflow/internal/storage"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
-	"quantflow/internal/storage"
 )
-
-const ohlcvCacheDDL = `
-CREATE TABLE IF NOT EXISTS ohlcv_cache (
-    symbol TEXT NOT NULL,
-    interval TEXT NOT NULL,
-    ts INTEGER NOT NULL,
-    open REAL, high REAL, low REAL, close REAL, volume REAL,
-    fetched_at INTEGER NOT NULL,
-    PRIMARY KEY (symbol, interval, ts)
-) WITHOUT ROWID;
-`
 
 func setupTestAppDB(t *testing.T) *App {
 	t.Helper()
@@ -62,7 +51,7 @@ func TestApp_GetStorageStats(t *testing.T) {
 	app := setupTestAppDB(t)
 	seedTestOHLCV(t, app.db, "000001", 5)
 
-	stats, err := app.GetStorageStats(nil)
+	stats, err := app.GetStorageStats(context.TODO())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +65,7 @@ func TestApp_ArchiveAndCleanup(t *testing.T) {
 	seedTestOHLCV(t, app.db, "000001", 10)
 
 	// Archive
-	ar, err := app.ArchiveData(nil, "ohlcv_cache", "000001", "2025-01-01")
+	ar, err := app.ArchiveData(context.TODO(), "ohlcv_cache", "000001", "2025-01-01")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +74,7 @@ func TestApp_ArchiveAndCleanup(t *testing.T) {
 	}
 
 	// Dry-run cleanup
-	cr, err := app.CleanupData(nil, "ohlcv_cache", "000001", "2025-01-01", true)
+	cr, err := app.CleanupData(context.TODO(), "ohlcv_cache", "000001", "2025-01-01", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +83,7 @@ func TestApp_ArchiveAndCleanup(t *testing.T) {
 	}
 
 	// Actual cleanup
-	cr, err = app.CleanupData(nil, "ohlcv_cache", "000001", "2025-01-01", false)
+	cr, err = app.CleanupData(context.TODO(), "ohlcv_cache", "000001", "2025-01-01", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +96,7 @@ func TestApp_ExportData(t *testing.T) {
 	app := setupTestAppDB(t)
 	seedTestOHLCV(t, app.db, "000001", 5)
 
-	path, err := app.ExportData(nil, "ohlcv_cache", "000001", "1D", "csv", "", "")
+	path, err := app.ExportData(context.TODO(), "ohlcv_cache", "000001", "1D", "csv", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,14 +115,14 @@ func TestApp_ImportData(t *testing.T) {
 
 	// First export
 	seedTestOHLCV(t, app.db, "000001", 3)
-	path, err := app.ExportData(nil, "ohlcv_cache", "000001", "1D", "csv", "", "")
+	path, err := app.ExportData(context.TODO(), "ohlcv_cache", "000001", "1D", "csv", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Clear and import back
 	app.db.Exec("DELETE FROM ohlcv_cache")
-	count, err := app.ImportData(nil, path, "ohlcv_cache")
+	count, err := app.ImportData(context.TODO(), path, "ohlcv_cache")
 	if err != nil {
 		t.Fatal(err)
 	}

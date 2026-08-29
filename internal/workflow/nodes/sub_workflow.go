@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
 	"quantflow/internal/workflow"
 
 	"github.com/google/uuid"
@@ -40,8 +39,10 @@ func (n *SubWorkflowNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *SubWorkflowNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "workflow_id", Type: "string", Default: "",
-			Description: "ID of the sub-workflow to execute"},
+		{
+			Name: "workflow_id", Type: "string", Default: "",
+			Description: "ID of the sub-workflow to execute",
+		},
 	}
 }
 

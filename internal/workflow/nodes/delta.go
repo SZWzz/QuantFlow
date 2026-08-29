@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -18,8 +17,8 @@ func NewDeltaNode(id string, params map[string]any) (workflow.BaseNode, error) {
 }
 
 func (n *DeltaNode) ID() string       { return n.id }
-func (n *DeltaNode) NodeType() string  { return "delta" }
-func (n *DeltaNode) Category() string  { return "alpha" }
+func (n *DeltaNode) NodeType() string { return "delta" }
+func (n *DeltaNode) Category() string { return "alpha" }
 
 func (n *DeltaNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "values", Type: workflow.PortSeries, Required: true}}

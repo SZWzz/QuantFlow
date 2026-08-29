@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // MergeNode merges two data series by index alignment (inner/outer join).
-type MergeNode struct{ id string; params map[string]any }
+type MergeNode struct {
+	id     string
+	params map[string]any
+}
 
 // NewMergeNode creates a new MergeNode.
 func NewMergeNode(id string, params map[string]any) (workflow.BaseNode, error) {
@@ -50,9 +52,15 @@ func (n *MergeNode) Execute(ctx context.Context, inputs map[string]any, params m
 	result := make([]float64, m)
 	for i := 0; i < m; i++ {
 		var va, vb float64
-		if i < len(a) { va = a[i] }
-		if i < len(b) { vb = b[i] }
-		if how == "inner" && (i >= len(a) || i >= len(b)) { continue }
+		if i < len(a) {
+			va = a[i]
+		}
+		if i < len(b) {
+			vb = b[i]
+		}
+		if how == "inner" && (i >= len(a) || i >= len(b)) {
+			continue
+		}
 		result[i] = (va + vb) / 2
 	}
 	return map[string]any{"merged": result}, nil

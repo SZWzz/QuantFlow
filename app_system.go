@@ -6,21 +6,21 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"runtime"
-	"time"
-
 	"quantflow/internal/crash"
 	"quantflow/internal/updater"
+	"runtime"
+	"time"
 )
 
 // GetSystemStats returns runtime statistics for the system monitor panel.
 func (a *App) GetSystemStats(ctx context.Context) map[string]interface{} {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
+	// uint64→int 转换安全：内存字节数除以 1MiB 后远低于 int64 上限
 	return map[string]interface{}{
 		"goroutines":     runtime.NumGoroutine(),
-		"mem_alloc_mb":   int(m.Alloc / 1024 / 1024),
-		"mem_sys_mb":     int(m.Sys / 1024 / 1024),
+		"mem_alloc_mb":   int(m.Alloc / 1024 / 1024), //nolint:gosec // MB 级别数值不可能溢出 int
+		"mem_sys_mb":     int(m.Sys / 1024 / 1024),   //nolint:gosec // 同上
 		"num_gc":         int(m.NumGC),
 		"go_version":     runtime.Version(),
 		"uptime_seconds": int(time.Since(startTime).Seconds()),
@@ -63,7 +63,7 @@ type ConnectionStatus struct {
 func (a *App) GetConnectionStatus() ConnectionStatus {
 	status := ConnectionStatus{
 		Markets: map[string]string{
-			"A股":  "未配置",
+			"A股": "未配置",
 			"港股": "未配置",
 			"美股": "未配置",
 			"加密": "未配置",
@@ -130,21 +130,6 @@ func (a *App) GetConnectionStatus() ConnectionStatus {
 	return status
 }
 
-func marketLabel(mkt string) string {
-	switch mkt {
-	case "CN":
-		return "A股"
-	case "HK":
-		return "港股"
-	case "US":
-		return "美股"
-	case "CRYPTO":
-		return "加密"
-	default:
-		return mkt
-	}
-}
-
 // buildVersion is set at build time via ldflags.
 // Default matches the frontend package.json version (updated per CLAUDE.md rule 3).
 var buildVersion = "2026.7.17"
@@ -161,8 +146,10 @@ func (a *App) GetVersion() string {
 	return buildVersion
 }
 
-const updaterOwner = "SZWzz"
-const updaterRepo = "QuantFlow"
+const (
+	updaterOwner = "SZWzz"
+	updaterRepo  = "QuantFlow"
+)
 
 // CheckUpdate checks for a new version. Returns update info or nil if up-to-date.
 func (a *App) CheckUpdate() *updater.UpdateInfo {

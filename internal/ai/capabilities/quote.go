@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-
+	"log/slog"
 	"quantflow/internal/ai"
 	"quantflow/internal/market"
+	"strings"
 )
 
 // QuoteResult holds a stock quote returned by the quote_lookup capability.
@@ -27,7 +27,7 @@ func SetMarketRegistry(reg *market.AdapterRegistry) {
 
 // RegisterQuoteCapabilities registers quote_lookup and search_symbol capabilities.
 func RegisterQuoteCapabilities(reg *ai.CapabilityRegistry) {
-	reg.Register(&ai.Capability{
+	if err := reg.Register(&ai.Capability{
 		Name:        "quote_lookup",
 		Description: "Get the current price and daily change for a stock symbol. Use this to check real-time market data.",
 		Parameters: json.RawMessage(`{
@@ -62,9 +62,11 @@ func RegisterQuoteCapabilities(reg *ai.CapabilityRegistry) {
 			return fmt.Sprintf("Quote for %s: real-time market data not available (market registry not wired).",
 				strings.ToUpper(params.Symbol)), nil
 		},
-	})
+	}); err != nil {
+		slog.Error("register capability failed", "name", "quote_lookup", "error", err)
+	}
 
-	reg.Register(&ai.Capability{
+	if err := reg.Register(&ai.Capability{
 		Name:        "search_symbol",
 		Description: "Search for stock symbols by company name or ticker. Returns matching symbols.",
 		Parameters: json.RawMessage(`{
@@ -84,16 +86,16 @@ func RegisterQuoteCapabilities(reg *ai.CapabilityRegistry) {
 			query := strings.ToUpper(params.Query)
 			// Common symbol mappings
 			known := map[string]string{
-				"APPLE":    "AAPL",
-				"GOOGLE":   "GOOGL",
+				"APPLE":     "AAPL",
+				"GOOGLE":    "GOOGL",
 				"MICROSOFT": "MSFT",
-				"TESLA":    "TSLA",
-				"NVIDIA":   "NVDA",
-				"阿里巴巴":  "BABA",
-				"腾讯":     "0700.HK",
-				"茅台":     "600519.SH",
-				"平安":     "000001.SZ",
-				"比亚迪":   "002594.SZ",
+				"TESLA":     "TSLA",
+				"NVIDIA":    "NVDA",
+				"阿里巴巴":      "BABA",
+				"腾讯":        "0700.HK",
+				"茅台":        "600519.SH",
+				"平安":        "000001.SZ",
+				"比亚迪":       "002594.SZ",
 			}
 			var matches []string
 			for key, sym := range known {
@@ -110,5 +112,7 @@ func RegisterQuoteCapabilities(reg *ai.CapabilityRegistry) {
 			}
 			return string(result), nil
 		},
-	})
+	}); err != nil {
+		slog.Error("register capability failed", "name", "search_symbol", "error", err)
+	}
 }

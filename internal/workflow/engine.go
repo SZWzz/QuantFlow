@@ -21,16 +21,6 @@ func generateShortID() string {
 	return hex.EncodeToString(b)
 }
 
-// generateUniqueShortID returns a short ID that does not appear in the given set.
-func generateUniqueShortID(existing map[string]bool) string {
-	for {
-		id := generateShortID()
-		if !existing[id] {
-			return id
-		}
-	}
-}
-
 // buildUpstreamMap converts the sync.Map of upstream outputs into a regular map
 // for expression resolution.
 func buildUpstreamMap(upstream *sync.Map) map[string]map[string]any {

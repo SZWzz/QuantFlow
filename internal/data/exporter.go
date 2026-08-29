@@ -55,7 +55,7 @@ func exportWhere(table, symbol, interval, dateFrom, dateTo string) (string, []an
 
 func ExportCSV(db *sql.DB, table, symbol, interval, dateFrom, dateTo, outputPath string) (int64, error) {
 	where, args := exportWhere(table, symbol, interval, dateFrom, dateTo)
-	q := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s ORDER BY symbol, ts", table, where)
+	q := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s ORDER BY symbol, ts", table, where) //nolint:gosec // table 经白名单校验，值全走 args 占位符 //nolint:gosec // table 经白名单校验，值全走 args 占位符
 	rows, err := db.Query(q, args...)
 	if err != nil {
 		return 0, fmt.Errorf("query: %w", err)
@@ -67,7 +67,7 @@ func ExportCSV(db *sql.DB, table, symbol, interval, dateFrom, dateTo, outputPath
 		return 0, err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
 		return 0, fmt.Errorf("mkdir: %w", err)
 	}
 
@@ -117,7 +117,7 @@ func ExportCSV(db *sql.DB, table, symbol, interval, dateFrom, dateTo, outputPath
 
 func ExportParquet(db *sql.DB, table, symbol, interval, dateFrom, dateTo, outputPath string) (int64, error) {
 	where, args := exportWhere(table, symbol, interval, dateFrom, dateTo)
-	q := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s ORDER BY symbol, ts", table, where)
+	q := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s ORDER BY symbol, ts", table, where) //nolint:gosec // table 经白名单校验，值全走 args 占位符
 	rows, err := db.Query(q, args...)
 	if err != nil {
 		return 0, fmt.Errorf("query: %w", err)
@@ -151,7 +151,7 @@ func ExportParquet(db *sql.DB, table, symbol, interval, dateFrom, dateTo, output
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
 		return 0, fmt.Errorf("mkdir: %w", err)
 	}
 

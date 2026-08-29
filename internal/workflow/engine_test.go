@@ -64,7 +64,8 @@ func TestEngine_ExecuteParallelDAG(t *testing.T) {
 		ID: "parallel",
 		Nodes: []NodeInstance{
 			{ID: "src", NodeType: "passthrough", Params: map[string]any{"value": "data"}},
-			{ID: "w1", NodeType: "passthrough"}, {ID: "w2", NodeType: "passthrough"},
+			{ID: "w1", NodeType: "passthrough"},
+			{ID: "w2", NodeType: "passthrough"},
 			{ID: "snk", NodeType: "passthrough"},
 		},
 		Edges: []Edge{
@@ -90,13 +91,18 @@ func TestEngine_ExecuteParallelDAG(t *testing.T) {
 
 type passthroughNode struct{ id string }
 
-func (n *passthroughNode) ID() string                   { return n.id }
-func (n *passthroughNode) NodeType() string             { return "passthrough" }
-func (n *passthroughNode) Category() string             { return "test" }
-func (n *passthroughNode) InputPorts() []PortDefinition  { return []PortDefinition{{Name: "input", Type: PortAny, Required: false}} }
-func (n *passthroughNode) OutputPorts() []PortDefinition { return []PortDefinition{{Name: "output", Type: PortAny, Required: false}} }
-func (n *passthroughNode) ParamSchema() []ParamDef       { return nil }
-func (n *passthroughNode) Validate() error               { return nil }
+func (n *passthroughNode) ID() string       { return n.id }
+func (n *passthroughNode) NodeType() string { return "passthrough" }
+func (n *passthroughNode) Category() string { return "test" }
+func (n *passthroughNode) InputPorts() []PortDefinition {
+	return []PortDefinition{{Name: "input", Type: PortAny, Required: false}}
+}
+
+func (n *passthroughNode) OutputPorts() []PortDefinition {
+	return []PortDefinition{{Name: "output", Type: PortAny, Required: false}}
+}
+func (n *passthroughNode) ParamSchema() []ParamDef { return nil }
+func (n *passthroughNode) Validate() error         { return nil }
 func (n *passthroughNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *NodeContext) (map[string]any, error) {
 	if v, ok := params["value"]; ok {
 		return map[string]any{"output": v}, nil
@@ -109,9 +115,9 @@ func (n *passthroughNode) Execute(ctx context.Context, inputs map[string]any, pa
 
 type slowNode struct{ id string }
 
-func (n *slowNode) ID() string                   { return n.id }
-func (n *slowNode) NodeType() string             { return "slow" }
-func (n *slowNode) Category() string             { return "test" }
+func (n *slowNode) ID() string                    { return n.id }
+func (n *slowNode) NodeType() string              { return "slow" }
+func (n *slowNode) Category() string              { return "test" }
 func (n *slowNode) InputPorts() []PortDefinition  { return nil }
 func (n *slowNode) OutputPorts() []PortDefinition { return nil }
 func (n *slowNode) ParamSchema() []ParamDef       { return nil }

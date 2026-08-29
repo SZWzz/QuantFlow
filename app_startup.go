@@ -7,11 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strconv"
-	"time"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"quantflow/internal/ai"
 	"quantflow/internal/ai/capabilities"
 	"quantflow/internal/auth"
@@ -22,8 +17,8 @@ import (
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/notify"
 	"quantflow/internal/portfolio"
-	"quantflow/internal/research"
 	"quantflow/internal/python"
+	"quantflow/internal/research"
 	"quantflow/internal/schedule"
 	"quantflow/internal/storage"
 	"quantflow/internal/trading"
@@ -31,10 +26,16 @@ import (
 	"quantflow/internal/workflow"
 	"quantflow/internal/workflow/nodes"
 	"quantflow/internal/ws"
+	"strconv"
+	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // ServiceStartup is called by Wails v3 when the application starts.
 // It initializes all services: config, DB, market adapters, research, etc.
+//
+//nolint:gocyclo // 启动序列本质是顺序编排清单，每个分支是独立子系统的接线；后续可按子系统抽 init 函数
 func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
 	configPath := "config.yaml"
 	if execPath, err := os.Executable(); err == nil {

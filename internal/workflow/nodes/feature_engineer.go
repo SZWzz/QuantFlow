@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
-
 	"quantflow/internal/workflow"
+	"sort"
 )
 
 // FeatureEngineerNode preprocesses factor data: normalization, NA filling,

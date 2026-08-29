@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strings"
-	"time"
-	"unicode"
-
 	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/research"
 	"quantflow/internal/trading"
+	"strings"
+	"time"
+	"unicode"
 )
 
 // GetSentiment returns sentiment analysis for a symbol.
@@ -640,41 +639,41 @@ func (a *App) fetchDelistingFinancialJSON(symbol string) (string, error) {
 // sinaToAnalyzer maps Sina Chinese financial item names to the standardized
 // short names that the Python analyzer expects.
 var sinaToAnalyzer = map[string]string{
-	"营业总收入":                  "营业总收入",
-	"营业收入":                   "营业总收入",
-	"营业成本":                   "营业成本",
-	"营业总成本":                  "营业总成本",
-	"营业利润":                   "营业利润",
-	"利润总额":                   "利润总额",
-	"净利润":                     "净利润",
-	"归属于母公司所有者的净利润":        "归母净利润",
-	"归属于母公司股东的净利润":         "归母净利润",
-	"扣除非经常性损益后的净利润":       "扣非净利润",
-	"扣非净利润":                  "扣非净利润",
-	"资产总计":                    "总资产",
-	"流动资产合计":                 "流动资产",
-	"货币资金":                    "货币资金",
-	"应收账款":                    "应收账款",
-	"存货":                       "存货",
-	"固定资产":                    "固定资产",
-	"商誉":                       "商誉",
-	"负债合计":                    "总负债",
-	"流动负债合计":                 "流动负债",
-	"短期借款":                    "短期借款",
-	"长期借款":                    "长期借款",
-	"股东权益合计":                 "股东权益",
-	"归属于母公司股东权益合计":         "股东权益",
-	"未分配利润":                  "未分配利润",
-	"经营活动产生的现金流量净额":       "经营现金流净额",
-	"投资活动产生的现金流量净额":       "投资现金流净额",
-	"筹资活动产生的现金流量净额":       "筹资现金流净额",
-	"购建固定资产、无形资产和其他长期资产支付的现金": "资本支出",
+	"营业总收入": "营业总收入",
+	"营业收入":  "营业总收入",
+	"营业成本":  "营业成本",
+	"营业总成本": "营业总成本",
+	"营业利润":  "营业利润",
+	"利润总额":  "利润总额",
+	"净利润":   "净利润",
+	"归属于母公司所有者的净利润": "归母净利润",
+	"归属于母公司股东的净利润":  "归母净利润",
+	"扣除非经常性损益后的净利润": "扣非净利润",
+	"扣非净利润":         "扣非净利润",
+	"资产总计":          "总资产",
+	"流动资产合计":        "流动资产",
+	"货币资金":          "货币资金",
+	"应收账款":          "应收账款",
+	"存货":            "存货",
+	"固定资产":          "固定资产",
+	"商誉":            "商誉",
+	"负债合计":          "总负债",
+	"流动负债合计":        "流动负债",
+	"短期借款":          "短期借款",
+	"长期借款":          "长期借款",
+	"股东权益合计":        "股东权益",
+	"归属于母公司股东权益合计":  "股东权益",
+	"未分配利润":         "未分配利润",
+	"经营活动产生的现金流量净额": "经营现金流净额",
+	"投资活动产生的现金流量净额": "投资现金流净额",
+	"筹资活动产生的现金流量净额": "筹资现金流净额",
+	"购建固定资产、无形资产和其他长期资产支付的现金":  "资本支出",
 	"购建固定资产、无形资产和其他长期资产所支付的现金": "资本支出",
-	"企业自由现金流量":                "自由现金流",
-	"销售费用":                    "销售费用",
-	"管理费用":                    "管理费用",
-	"研发费用":                    "研发费用",
-	"财务费用":                    "财务费用",
+	"企业自由现金流量": "自由现金流",
+	"销售费用":     "销售费用",
+	"管理费用":     "管理费用",
+	"研发费用":     "研发费用",
+	"财务费用":     "财务费用",
 }
 
 // formatFinPeriods converts FinancialStatementPeriod slice to a map-slice format
@@ -830,23 +829,23 @@ func (a *App) computeDelistingRisk(symbol, mkt string, isST bool, metrics *tradi
 
 // OptionPriceRequest is the input for option pricing calculations.
 type OptionPriceRequest struct {
-	OptionType string  `json:"option_type"` // "call" or "put"
-	SpotPrice  float64 `json:"spot_price"`
-	Strike     float64 `json:"strike"`
-	TimeToExp  float64 `json:"time_to_expiry"` // years
-	RiskFree   float64 `json:"risk_free_rate"`
-	Volatility float64 `json:"volatility"`
+	OptionType  string  `json:"option_type"` // "call" or "put"
+	SpotPrice   float64 `json:"spot_price"`
+	Strike      float64 `json:"strike"`
+	TimeToExp   float64 `json:"time_to_expiry"` // years
+	RiskFree    float64 `json:"risk_free_rate"`
+	Volatility  float64 `json:"volatility"`
 	MarketPrice float64 `json:"market_price,omitempty"` // for IV calculation
-	Steps      int    `json:"steps,omitempty"`          // binomial tree steps
-	American   bool   `json:"american,omitempty"`       // American exercise
+	Steps       int     `json:"steps,omitempty"`        // binomial tree steps
+	American    bool    `json:"american,omitempty"`     // American exercise
 }
 
 // OptionPriceResult is the output of option pricing.
 type OptionPriceResult struct {
-	Price       float64              `json:"price"`
-	BinomialPrice float64            `json:"binomial_price,omitempty"`
-	Greeks      research.OptionGreeks `json:"greeks"`
-	ImpliedVol  float64              `json:"implied_vol,omitempty"`
+	Price         float64               `json:"price"`
+	BinomialPrice float64               `json:"binomial_price,omitempty"`
+	Greeks        research.OptionGreeks `json:"greeks"`
+	ImpliedVol    float64               `json:"implied_vol,omitempty"`
 }
 
 // ComputeOptionPrice calculates option price, Greeks, binomial price, and implied volatility.

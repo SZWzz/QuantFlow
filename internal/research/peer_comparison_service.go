@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
 	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"
 )

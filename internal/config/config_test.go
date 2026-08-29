@@ -11,7 +11,7 @@ func TestLoad_Defaults(t *testing.T) {
 	cfgPath := filepath.Join(tmp, "config.yaml")
 	os.WriteFile(cfgPath, []byte(`version: "0.0.1"
 log_level: "info"
-db_path: "data/quantflow.db"`), 0644)
+db_path: "data/quantflow.db"`), 0o600)
 
 	cfg, err := loadFile(cfgPath)
 	if err != nil {
@@ -39,7 +39,7 @@ func TestLoadConfig_WithFile(t *testing.T) {
 	tmp := t.TempDir()
 	cfgPath := filepath.Join(tmp, "config.yaml")
 	// Only override log_level — version and db_path should stay as defaults
-	os.WriteFile(cfgPath, []byte(`log_level: "debug"`), 0644)
+	os.WriteFile(cfgPath, []byte(`log_level: "debug"`), 0o600)
 
 	cfg, err := loadFile(cfgPath)
 	if err != nil {
@@ -81,11 +81,11 @@ func TestLoadConfig_MissingFile(t *testing.T) {
 func TestLoadConfig_FromConfigDir(t *testing.T) {
 	tmp := t.TempDir()
 	configDir := filepath.Join(tmp, "config")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}
 	cfgPath := filepath.Join(configDir, "config.yaml")
-	os.WriteFile(cfgPath, []byte(`log_level: "warn"`), 0644)
+	os.WriteFile(cfgPath, []byte(`log_level: "warn"`), 0o600)
 
 	cfg, err := Load(cfgPath)
 	if err != nil {

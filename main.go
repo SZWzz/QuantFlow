@@ -4,17 +4,22 @@ import (
 	"embed"
 	"log/slog"
 	"os"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"quantflow/internal/crash"
 	"quantflow/internal/ws"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
+	// run() carries the real logic so deferred cleanup (panic capture) runs
+	// before the process-level os.Exit — os.Exit skips defers.
+	os.Exit(run())
+}
+
+func run() int {
 	defer crash.CapturePanic()
 
 	// Initialize the crash report store and register signal handlers before
@@ -58,6 +63,7 @@ func main() {
 	err := app.Run()
 	if err != nil {
 		slog.Error("application run failed", "error", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }

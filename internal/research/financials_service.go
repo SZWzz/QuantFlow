@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"quantflow/internal/market/adapters"
 	"strconv"
 	"strings"
-
-	"quantflow/internal/market/adapters"
 )
 
 // FinancialsService provides financial data and ratio computation.
@@ -68,16 +67,28 @@ func (s *FinancialsService) fetchFromMootdx(ctx context.Context, symbol string) 
 
 	// Fill additional fields from raw data (try pinyin keys first, then Chinese)
 	for _, k := range []string{"zongzichan", "总资产"} {
-		if v, ok := fin.Raw[k]; ok { fd.TotalAssets = parseFloatAny(v); break }
+		if v, ok := fin.Raw[k]; ok {
+			fd.TotalAssets = parseFloatAny(v)
+			break
+		}
 	}
 	for _, k := range []string{"jingzichan", "净资产"} {
-		if v, ok := fin.Raw[k]; ok { fd.TotalEquity = parseFloatAny(v); break }
+		if v, ok := fin.Raw[k]; ok {
+			fd.TotalEquity = parseFloatAny(v)
+			break
+		}
 	}
 	for _, k := range []string{"zongfuzhai", "总负债", "fuzhaiheji", "负债合计"} {
-		if v, ok := fin.Raw[k]; ok { fd.TotalDebt = parseFloatAny(v); break }
+		if v, ok := fin.Raw[k]; ok {
+			fd.TotalDebt = parseFloatAny(v)
+			break
+		}
 	}
 	for _, k := range []string{"jingyingxianjinliu", "经营活动现金流量净额", "jingyinghuodongchanshengdexianjinliuliangjing"} {
-		if v, ok := fin.Raw[k]; ok { fd.FreeCashFlow = parseFloatAny(v); break }
+		if v, ok := fin.Raw[k]; ok {
+			fd.FreeCashFlow = parseFloatAny(v)
+			break
+		}
 	}
 
 	return fd, nil
@@ -136,7 +147,7 @@ func (s *FinancialsService) fetchFromSina(ctx context.Context, symbol string) (*
 				fd.TotalAssets = v
 			case matchTitle(item.Title, "所有者权益", "所有者权益(或股东权益)合计", "归属于母公司所有者权益合计"):
 				fd.TotalEquity = v
-			case matchTitle(item.Title, "负债合计", "负债和所有者权益") :
+			case matchTitle(item.Title, "负债合计", "负债和所有者权益"):
 				// "负债合计" gives total liabilities; we need TotalDebt which is usually interest-bearing
 				// Use "负债合计" as approximation for total debt
 				if fd.TotalDebt == 0 {
@@ -236,4 +247,3 @@ func parseSinaValue(v interface{}) float64 {
 		return 0
 	}
 }
-

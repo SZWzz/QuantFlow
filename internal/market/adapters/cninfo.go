@@ -185,4 +185,3 @@ func cninfoTsToDate(ts interface{}) string {
 	}
 	return ""
 }
-

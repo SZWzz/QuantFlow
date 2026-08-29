@@ -2,9 +2,8 @@ package nodes
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/workflow"
+	"testing"
 )
 
 func TestDataNormalizeNode_OHLCV(t *testing.T) {
@@ -14,8 +13,8 @@ func TestDataNormalizeNode_OHLCV(t *testing.T) {
 	}
 
 	params := map[string]any{
-		"source": "eastmoney",
-		"target": "ohlcv",
+		"source":  "eastmoney",
+		"target":  "ohlcv",
 		"mapping": `{"symbol":"code","date":"date","open":"open","high":"high","low":"low","close":"close","volume":"volume"}`,
 	}
 

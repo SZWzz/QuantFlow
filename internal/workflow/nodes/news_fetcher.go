@@ -3,10 +3,9 @@ package nodes
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/workflow"
+	"strings"
 )
 
 // NewsFetcherNode fetches financial news for a stock symbol and outputs
@@ -14,7 +13,8 @@ import (
 //
 // Inputs:  symbol (string, required) — 6-digit CN stock code
 // Outputs: news_text (string) — concatenated article titles + content for NLP
-//          articles  ([]adapters.NewsArticle) — structured article list
+//
+//	articles  ([]adapters.NewsArticle) — structured article list
 //
 // Typical chain: NewsFetcherNode → SentimentNode (connect news_text port)
 type NewsFetcherNode struct {

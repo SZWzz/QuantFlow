@@ -13,10 +13,10 @@ import (
 // EastMoney mixes industry, concept, and region blocks in one list; the Name
 // field is self-explanatory (e.g. "白酒"=industry, "贵州板块"=region, "酿酒概念"=concept).
 type ConceptBlock struct {
-	Name          string  `json:"name"`           // 板块名称
-	Code          string  `json:"code"`           // BK板块代码 e.g. "BK0477"
-	ChangePct     float64 `json:"change_pct"`     // 板块当日涨跌幅%
-	LeadStock     string  `json:"lead_stock"`     // 板块龙头股简称
+	Name          string  `json:"name"`            // 板块名称
+	Code          string  `json:"code"`            // BK板块代码 e.g. "BK0477"
+	ChangePct     float64 `json:"change_pct"`      // 板块当日涨跌幅%
+	LeadStock     string  `json:"lead_stock"`      // 板块龙头股简称
 	LeadStockCode string  `json:"lead_stock_code"` // 板块龙头股代码 e.g. "600519"
 }
 

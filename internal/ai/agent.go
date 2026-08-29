@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"quantflow/internal/python"
 	"strings"
 	"time"
 
-	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
 

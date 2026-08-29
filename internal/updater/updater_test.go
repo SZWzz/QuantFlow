@@ -35,7 +35,7 @@ func TestChecksumVerify(t *testing.T) {
 	expected := hex.EncodeToString(sum[:])
 
 	tmp := filepath.Join(t.TempDir(), "test.bin")
-	if err := os.WriteFile(tmp, content, 0644); err != nil {
+	if err := os.WriteFile(tmp, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
 

@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 // IterationRequest contains the backtest results for strategy optimization.
 type IterationRequest struct {
-	WorkflowJSON string              `json:"workflow_json"` // original workflow as JSON
-	Metrics      *IterationMetrics   `json:"metrics"`
-	Goal         string              `json:"goal"` // "max_sharpe" | "min_drawdown" | "max_return"
+	WorkflowJSON string            `json:"workflow_json"` // original workflow as JSON
+	Metrics      *IterationMetrics `json:"metrics"`
+	Goal         string            `json:"goal"` // "max_sharpe" | "min_drawdown" | "max_return"
 }
 
 // IterationMetrics summarizes backtest performance.
@@ -25,22 +24,22 @@ type IterationMetrics struct {
 
 // IterationResult contains the parameter tuning suggestions.
 type IterationResult struct {
-	Analysis string         `json:"analysis"` // natural language analysis
-	Changes  []ParamChange  `json:"changes"`  // suggested parameter changes
+	Analysis string        `json:"analysis"` // natural language analysis
+	Changes  []ParamChange `json:"changes"`  // suggested parameter changes
 }
 
 // ParamChange describes a single parameter adjustment.
 type ParamChange struct {
-	NodeID   string  `json:"node_id"`
-	Param    string  `json:"param"`
-	From     float64 `json:"from"`
-	To       float64 `json:"to"`
-	Reason   string  `json:"reason"`
+	NodeID string  `json:"node_id"`
+	Param  string  `json:"param"`
+	From   float64 `json:"from"`
+	To     float64 `json:"to"`
+	Reason string  `json:"reason"`
 }
 
 // IterationAgent analyzes backtest results and suggests parameter improvements.
 type IterationAgent struct {
-	llm      LLMCaller
+	llm       LLMCaller
 	maxRounds int
 }
 
@@ -117,8 +116,4 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
-}
-
-func containsAny(s, substr string) bool {
-	return strings.Contains(s, substr)
 }

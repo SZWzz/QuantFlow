@@ -7,9 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 const finnhubBaseURL = "https://finnhub.io/api/v1"
@@ -39,7 +38,7 @@ func (a *FinnhubAdapter) SetAPIKey(key string) {
 	}
 }
 
-func (a *FinnhubAdapter) Name() string      { return "finnhub" }
+func (a *FinnhubAdapter) Name() string       { return "finnhub" }
 func (a *FinnhubAdapter) Markets() []string  { return []string{"US"} }
 func (a *FinnhubAdapter) RequiresAuth() bool { return true }
 
@@ -84,12 +83,12 @@ func (a *FinnhubAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 	}
 
 	var q struct {
-		Current     float64 `json:"c"`
-		High        float64 `json:"h"`
-		Low         float64 `json:"l"`
-		Open        float64 `json:"o"`
-		PrevClose   float64 `json:"pc"`
-		Timestamp   int64   `json:"t"`
+		Current   float64 `json:"c"`
+		High      float64 `json:"h"`
+		Low       float64 `json:"l"`
+		Open      float64 `json:"o"`
+		PrevClose float64 `json:"pc"`
+		Timestamp int64   `json:"t"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&q); err != nil {
 		return nil, fmt.Errorf("finnhub: parse error: %w", err)
@@ -443,7 +442,7 @@ func (a *FinnhubAdapter) FetchSECFilings(ctx context.Context, symbol string) ([]
 type EarningsEvent struct {
 	Symbol          string  `json:"symbol"`
 	Date            string  `json:"date"`
-	Hour            string  `json:"hour"`  // bmo=before market open, amc=after close
+	Hour            string  `json:"hour"` // bmo=before market open, amc=after close
 	Quarter         int     `json:"quarter"`
 	Year            int     `json:"year"`
 	EPSActual       float64 `json:"eps_actual"`

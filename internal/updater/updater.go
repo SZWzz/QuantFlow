@@ -106,7 +106,7 @@ func (u *Updater) fetchChecksum(ctx context.Context, rel *ReleaseInfo, filename 
 }
 
 func (u *Updater) Download(ctx context.Context, url, destDir string, progressCh chan<- int64) (string, error) {
-	if err := os.MkdirAll(destDir, 0755); err != nil {
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return "", fmt.Errorf("create download dir: %w", err)
 	}
 
@@ -223,5 +223,7 @@ func goarch() string {
 }
 
 // osGoos and osGoarch are overridden in platform-specific files
-var osGoos = func() string { return "unknown" }
-var osGoarch = func() string { return "unknown" }
+var (
+	osGoos   = func() string { return "unknown" }
+	osGoarch = func() string { return "unknown" }
+)

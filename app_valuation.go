@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/market"
 	"quantflow/internal/trading"
 )
@@ -29,15 +28,7 @@ func (a *App) GetPriceBand(ctx context.Context, symbol, market, interval string,
 	// Convert market.OHLCVBar to trading.OHLCVBar
 	tradingBars := make([]trading.OHLCVBar, len(bars))
 	for i, b := range bars {
-		tradingBars[i] = trading.OHLCVBar{
-			Symbol: b.Symbol,
-			Date:   b.Date,
-			Open:   b.Open,
-			High:   b.High,
-			Low:    b.Low,
-			Close:  b.Close,
-			Volume: b.Volume,
-		}
+		tradingBars[i] = trading.OHLCVBar(b)
 	}
 
 	return trading.ComputePriceBand(symbol, tradingBars), nil

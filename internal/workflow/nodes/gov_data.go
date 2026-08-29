@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"time"
-
 	"quantflow/internal/research"
 	"quantflow/internal/workflow"
+	"time"
 )
 
 // GovDataNode fetches economic indicator data from FRED and extracts
@@ -24,8 +23,8 @@ func NewGovDataNode(id string, params map[string]any) (workflow.BaseNode, error)
 }
 
 func (n *GovDataNode) ID() string       { return n.id }
-func (n *GovDataNode) NodeType() string  { return "gov_data" }
-func (n *GovDataNode) Category() string  { return "alternative_data" }
+func (n *GovDataNode) NodeType() string { return "gov_data" }
+func (n *GovDataNode) Category() string { return "alternative_data" }
 
 func (n *GovDataNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
@@ -59,10 +58,7 @@ func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params
 		indicator = v
 	}
 
-	lookback := int(resolveFloatParam(params, n.params, "lookback"))
-	if lookback <= 0 {
-		lookback = 12
-	}
+	// lookback 参数保留在端口定义中，供未来扩展（当前信号判定不依赖历史窗口）
 
 	var signals []research.MacroSignal
 	var targetSignal *research.MacroSignal
@@ -104,7 +100,7 @@ func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params
 	}
 
 	// Build macro signal output
-	action := "hold"
+	var action string
 	confidence := 0.0
 	description := ""
 
@@ -124,15 +120,16 @@ func (n *GovDataNode) Execute(ctx context.Context, inputs map[string]any, params
 	} else {
 		// Aggregate signal
 		total := len(signals)
-		if bullishCount > total/3 && bullishCount > bearishCount {
+		switch {
+		case bullishCount > total/3 && bullishCount > bearishCount:
 			action = "buy"
 			confidence = float64(bullishCount) / float64(total)
 			description = "宏观指标总体偏多"
-		} else if bearishCount > total/3 && bearishCount > bullishCount {
+		case bearishCount > total/3 && bearishCount > bullishCount:
 			action = "sell"
 			confidence = float64(bearishCount) / float64(total)
 			description = "宏观指标总体偏空"
-		} else {
+		default:
 			action = "hold"
 			confidence = 0.2
 			description = "宏观指标信号中性/混合"

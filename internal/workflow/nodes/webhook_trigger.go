@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 
 	"github.com/google/uuid"
@@ -37,8 +36,10 @@ func (n *WebhookTriggerNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *WebhookTriggerNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "path", Type: "string", Default: "/webhook",
-			Description: "URL path for this webhook"},
+		{
+			Name: "path", Type: "string", Default: "/webhook",
+			Description: "URL path for this webhook",
+		},
 	}
 }
 

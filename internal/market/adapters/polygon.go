@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 // rateLimiter implements a token bucket rate limiter with a background
@@ -88,7 +87,7 @@ func NewPolygonAdapter(cfg PolygonConfig) *PolygonAdapter {
 
 // ── market.Adapter interface ──────────────────────────────────────
 
-func (p *PolygonAdapter) Name() string      { return "polygon" }
+func (p *PolygonAdapter) Name() string       { return "polygon" }
 func (p *PolygonAdapter) Markets() []string  { return []string{"US"} }
 func (p *PolygonAdapter) RequiresAuth() bool { return true }
 

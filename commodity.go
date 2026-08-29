@@ -6,16 +6,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"quantflow/internal/market"
 	"strconv"
 	"strings"
 	"time"
-
-	"quantflow/internal/market"
 )
 
-// commodityDef maps a label to its Sina futures symbol.
+// commodityDef maps to its Sina futures symbol.
 type commodityDef struct {
-	label  string // "CL" → WTI crude, "NG" → natural gas
 	symbol string // "hf_CL", "hf_NG"
 	name   string
 	nameCN string
@@ -93,16 +91,16 @@ func parseSinaCommodities(body string) []map[string]interface{} {
 		}
 
 		results = append(results, map[string]interface{}{
-			"symbol":      cfg.symbol,
-			"name":        cfg.name,
-			"name_cn":     cfg.nameCN,
-			"price":       price,
-			"open":        open,
-			"high":        high,
-			"low":         low,
-			"change_pct":  changePct,
-			"unit":        cfg.unit,
-			"updated":     fields[6],
+			"symbol":     cfg.symbol,
+			"name":       cfg.name,
+			"name_cn":    cfg.nameCN,
+			"price":      price,
+			"open":       open,
+			"high":       high,
+			"low":        low,
+			"change_pct": changePct,
+			"unit":       cfg.unit,
+			"updated":    fields[6],
 		})
 	}
 	_ = json.NewDecoder // ensure json imported

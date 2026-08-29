@@ -35,12 +35,6 @@ type MacroFetcher interface {
 type MacroService struct {
 	fetcher MacroFetcher
 	db      *sql.DB
-	cache   map[string]*macroCacheEntry
-}
-
-type macroCacheEntry struct {
-	data      []byte
-	expiresAt time.Time
 }
 
 // NewMacroService creates a new MacroService.
@@ -48,7 +42,6 @@ func NewMacroService(fetcher MacroFetcher, db *sql.DB) *MacroService {
 	return &MacroService{
 		fetcher: fetcher,
 		db:      db,
-		cache:   make(map[string]*macroCacheEntry),
 	}
 }
 
@@ -108,7 +101,8 @@ func classifyMacroIndicators(items []struct {
 	Value float64 `json:"value"`
 	Unit  string  `json:"unit"`
 	Date  string  `json:"date"`
-}) *MacroSnapshot {
+},
+) *MacroSnapshot {
 	s := emptySnapshot()
 	for _, item := range items {
 		mi := MacroIndicator{

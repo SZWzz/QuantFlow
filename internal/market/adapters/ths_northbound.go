@@ -146,9 +146,12 @@ func (a *THSNorthboundAdapter) cacheDaily(hgt, sgt float64) {
 
 	today := time.Now().Format("2006-01-02")
 
-	// Ensure directory exists
+	// Ensure directory exists (best-effort cache; write below reports real failures)
 	dir := filepath.Dir(a.cachePath)
-	os.MkdirAll(dir, 0755)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		slog.Warn("create northbound cache dir failed", "dir", dir, "error", err)
+		return
+	}
 
 	// Read existing
 	existing := make(map[string]string)
@@ -169,7 +172,9 @@ func (a *THSNorthboundAdapter) cacheDaily(hgt, sgt float64) {
 		lines = append(lines, existing[d])
 	}
 	// Sort by date is not critical for correctness; simple append is fine
-	os.WriteFile(a.cachePath, []byte(joinLines(lines)), 0644)
+	if err := os.WriteFile(a.cachePath, []byte(joinLines(lines)), 0o600); err != nil {
+		slog.Warn("write northbound cache failed", "path", a.cachePath, "error", err)
+	}
 }
 
 func splitLines(s string) []string {

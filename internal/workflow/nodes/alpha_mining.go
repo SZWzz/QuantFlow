@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"quantflow/internal/python"
 	"quantflow/internal/python/proto"
 	"quantflow/internal/workflow"
@@ -80,16 +79,20 @@ func (n *AlphaMiningNode) Execute(ctx context.Context, inputs map[string]any, pa
 	}
 
 	mlClient := python.NewMLClient(bridge)
+	// int→int32 参数钳制：防止前端传入超出 int32 范围的值静默回绕
+	clamp32 := func(v, lo, hi int) int32 {
+		return int32(min(max(v, lo), hi)) //nolint:gosec // 已钳制到 [lo,hi]，不会溢出
+	}
 	req := &proto.AlphaMiningRequest{
 		BaseFactorNames: getFactorNames(factorPool),
 		FactorData:      factorJSON,
 		ReturnsData:     returnsJSON,
-		PopulationSize:  int32(getIntParam(params, "population_size", 200)),
-		Generations:     int32(getIntParam(params, "generations", 50)),
+		PopulationSize:  clamp32(getIntParam(params, "population_size", 200), 1, 100000),
+		Generations:     clamp32(getIntParam(params, "generations", 50), 1, 100000),
 		CrossoverRate:   getFloatParam(params, "crossover_rate", 0.7),
 		MutationRate:    getFloatParam(params, "mutation_rate", 0.1),
 		FitnessMetric:   getStringParam(params, "fitness_metric", "ic"),
-		TopK:            int32(getIntParam(params, "top_k", 20)),
+		TopK:            clamp32(getIntParam(params, "top_k", 20), 1, 100000),
 	}
 
 	resp, err := mlClient.AlphaMining(ctx, req)

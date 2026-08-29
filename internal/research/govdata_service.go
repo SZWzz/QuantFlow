@@ -4,10 +4,9 @@ import (
 	"context"
 	"log/slog"
 	"math"
+	"quantflow/internal/market/adapters"
 	"sync"
 	"time"
-
-	"quantflow/internal/market/adapters"
 )
 
 // GovDataService provides economic indicator data with TTL caching
@@ -31,9 +30,9 @@ type MacroSignal struct {
 	Name        string  `json:"name"`
 	NameCN      string  `json:"name_cn"`
 	LatestValue float64 `json:"latest_value"`
-	Change      float64 `json:"change"`     // MoM or QoQ change
-	Direction   string  `json:"direction"`  // up, down, flat
-	Signal      string  `json:"signal"`     // bullish, bearish, neutral
+	Change      float64 `json:"change"`    // MoM or QoQ change
+	Direction   string  `json:"direction"` // up, down, flat
+	Signal      string  `json:"signal"`    // bullish, bearish, neutral
 	Unit        string  `json:"unit"`
 	Category    string  `json:"category"`
 	UpdatedAt   int64   `json:"updated_at"`
@@ -119,15 +118,6 @@ func (s *GovDataService) GetIndicator(ctx context.Context, seriesID string, limi
 // GetAllSignals fetches all 15 indicators and computes macro signals.
 // Returns a MacroSignal for each indicator with direction and trading signal.
 func (s *GovDataService) GetAllSignals(ctx context.Context) ([]MacroSignal, error) {
-	cacheKey := "all_signals"
-
-	s.mu.RLock()
-	if _, ok := s.cache[cacheKey]; ok {
-		s.mu.RUnlock()
-	} else {
-		s.mu.RUnlock()
-	}
-
 	// Collect all indicator IDs in stable order
 	order := []string{
 		"GDP", "GDPC1", "CPIAUCSL", "PCEPI", "PPIACO",
@@ -259,22 +249,6 @@ func computeEconomicSignal(category, direction string) string {
 	}
 }
 
-// categoryNameCN returns Chinese category name for display.
-func categoryNameCN(category string) string {
-	names := map[string]string{
-		"gdp":        "GDP/增长",
-		"inflation":  "通胀",
-		"employment": "就业",
-		"rates":      "利率",
-		"energy":     "能源",
-		"housing":    "房地产",
-	}
-	if cn, ok := names[category]; ok {
-		return cn
-	}
-	return category
-}
-
 // ── Mock data ─────────────────────────────────────────────────────
 
 func mockIndicatorPoints(seriesID string, limit int) []adapters.IndicatorPoint {
@@ -283,21 +257,21 @@ func mockIndicatorPoints(seriesID string, limit int) []adapters.IndicatorPoint {
 		unit  float64 // per-month increment
 		noise float64 // random variation
 	}{
-		"GDP":         {base: 29000, unit: 150, noise: 200},
-		"GDPC1":       {base: 23000, unit: 80, noise: 100},
-		"CPIAUCSL":    {base: 315, unit: 0.3, noise: 0.2},
-		"PCEPI":       {base: 125, unit: 0.2, noise: 0.1},
-		"PPIACO":      {base: 265, unit: 0.4, noise: 0.3},
-		"UNRATE":      {base: 3.9, unit: 0.02, noise: 0.1},
-		"PAYEMS":      {base: 159000, unit: 200, noise: 100},
-		"IC4WSA":      {base: 220, unit: 1, noise: 5},
-		"FEDFUNDS":    {base: 4.25, unit: -0.05, noise: 0.1},
-		"DGS10":       {base: 4.5, unit: -0.02, noise: 0.1},
-		"T10Y2Y":      {base: -0.3, unit: 0.02, noise: 0.05},
-		"DCOILWTICO":  {base: 75, unit: 0.5, noise: 2},
-		"NGDPRPI":     {base: 3.5, unit: 0.05, noise: 0.2},
-		"HOUST":       {base: 1450, unit: 10, noise: 30},
-		"MSPUS":       {base: 420000, unit: 2000, noise: 5000},
+		"GDP":        {base: 29000, unit: 150, noise: 200},
+		"GDPC1":      {base: 23000, unit: 80, noise: 100},
+		"CPIAUCSL":   {base: 315, unit: 0.3, noise: 0.2},
+		"PCEPI":      {base: 125, unit: 0.2, noise: 0.1},
+		"PPIACO":     {base: 265, unit: 0.4, noise: 0.3},
+		"UNRATE":     {base: 3.9, unit: 0.02, noise: 0.1},
+		"PAYEMS":     {base: 159000, unit: 200, noise: 100},
+		"IC4WSA":     {base: 220, unit: 1, noise: 5},
+		"FEDFUNDS":   {base: 4.25, unit: -0.05, noise: 0.1},
+		"DGS10":      {base: 4.5, unit: -0.02, noise: 0.1},
+		"T10Y2Y":     {base: -0.3, unit: 0.02, noise: 0.05},
+		"DCOILWTICO": {base: 75, unit: 0.5, noise: 2},
+		"NGDPRPI":    {base: 3.5, unit: 0.05, noise: 0.2},
+		"HOUST":      {base: 1450, unit: 10, noise: 30},
+		"MSPUS":      {base: 420000, unit: 2000, noise: 5000},
 	}
 
 	data, ok := mockValues[seriesID]
@@ -312,7 +286,7 @@ func mockIndicatorPoints(seriesID string, limit int) []adapters.IndicatorPoint {
 	now := time.Now()
 	points := make([]adapters.IndicatorPoint, limit)
 	for i := 0; i < limit; i++ {
-		date := now.AddDate(0, -(limit-i), 0).Format("2006-01-02")
+		date := now.AddDate(0, -(limit - i), 0).Format("2006-01-02")
 		// Monthly data: march forward from limit months ago
 		value := data.base + data.unit*float64(i) + float64(i%3-1)*data.noise
 		points[i] = adapters.IndicatorPoint{
@@ -321,64 +295,6 @@ func mockIndicatorPoints(seriesID string, limit int) []adapters.IndicatorPoint {
 		}
 	}
 	return points
-}
-
-// mockMacroSignals returns realistic mock signals for all 15 indicators.
-func mockMacroSignals() []MacroSignal {
-	order := []string{
-		"GDP", "GDPC1", "CPIAUCSL", "PCEPI", "PPIACO",
-		"UNRATE", "PAYEMS", "IC4WSA",
-		"FEDFUNDS", "DGS10", "T10Y2Y",
-		"DCOILWTICO", "NGDPRPI",
-		"HOUST", "MSPUS",
-	}
-
-	// Realistic mock data with directional signals
-	mockData := map[string]struct {
-		latest    float64
-		change    float64
-		direction string
-		signal    string
-	}{
-		"GDP":         {latest: 29250.3, change: 2.8, direction: "up", signal: "bullish"},
-		"GDPC1":       {latest: 23250.1, change: 2.1, direction: "up", signal: "bullish"},
-		"CPIAUCSL":    {latest: 316.8, change: 0.3, direction: "up", signal: "bearish"},
-		"PCEPI":       {latest: 125.6, change: 0.2, direction: "up", signal: "bearish"},
-		"PPIACO":      {latest: 267.2, change: 0.5, direction: "up", signal: "bearish"},
-		"UNRATE":      {latest: 3.8, change: -2.6, direction: "down", signal: "bullish"},
-		"PAYEMS":      {latest: 159850, change: 0.15, direction: "up", signal: "bullish"},
-		"IC4WSA":      {latest: 215, change: -3.2, direction: "down", signal: "bullish"},
-		"FEDFUNDS":    {latest: 4.25, change: 0, direction: "flat", signal: "neutral"},
-		"DGS10":       {latest: 4.32, change: -1.8, direction: "down", signal: "bullish"},
-		"T10Y2Y":      {latest: -0.25, change: 10.0, direction: "up", signal: "bearish"}, // steepening = fear
-		"DCOILWTICO":  {latest: 72.5, change: -3.5, direction: "down", signal: "bullish"},
-		"NGDPRPI":     {latest: 3.85, change: 8.5, direction: "up", signal: "bearish"},
-		"HOUST":       {latest: 1480, change: 1.2, direction: "up", signal: "bullish"},
-		"MSPUS":       {latest: 428500, change: 0.8, direction: "up", signal: "bullish"},
-	}
-
-	signals := make([]MacroSignal, 0, len(order))
-	for _, id := range order {
-		meta, ok := adapters.FREDIndicators[id]
-		if !ok {
-			continue
-		}
-		data := mockData[id]
-
-		signals = append(signals, MacroSignal{
-			IndicatorID: meta.ID,
-			Name:        meta.Name,
-			NameCN:      meta.NameCN,
-			LatestValue: data.latest,
-			Change:      data.change,
-			Direction:   data.direction,
-			Signal:      data.signal,
-			Unit:        meta.Unit,
-			Category:    meta.Category,
-			UpdatedAt:   time.Now().UnixMilli(),
-		})
-	}
-	return signals
 }
 
 // signalEmoji returns an emoji for the signal direction.
@@ -405,5 +321,7 @@ func directionArrow(direction string) string {
 	}
 }
 
-var _ = signalEmoji // ensure helpers are used
-var _ = directionArrow
+var (
+	_ = signalEmoji // ensure helpers are used
+	_ = directionArrow
+)

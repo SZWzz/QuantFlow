@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"math"
-
 	"quantflow/internal/workflow"
 )
 
 // RollingZScoreNode computes rolling (value - mean) / stddev over N periods.
-type RollingZScoreNode struct{ id string; params map[string]any }
+type RollingZScoreNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewRollingZScoreNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &RollingZScoreNode{id: id, params: params}, nil

@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -19,8 +18,8 @@ func NewCrossOverNode(id string, params map[string]any) (workflow.BaseNode, erro
 }
 
 func (n *CrossOverNode) ID() string       { return n.id }
-func (n *CrossOverNode) NodeType() string  { return "cross_over" }
-func (n *CrossOverNode) Category() string  { return "alpha" }
+func (n *CrossOverNode) NodeType() string { return "cross_over" }
+func (n *CrossOverNode) Category() string { return "alpha" }
 
 func (n *CrossOverNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

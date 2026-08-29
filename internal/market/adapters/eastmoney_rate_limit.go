@@ -29,7 +29,7 @@ func (r *EastMoneyRateLimiter) Wait() {
 	defer r.mu.Unlock()
 
 	elapsed := time.Since(r.lastCall)
-	jitter := time.Duration(rand.Intn(200)) * time.Millisecond
+	jitter := time.Duration(rand.Intn(200)) * time.Millisecond //nolint:gosec // 限流抖动非安全用途，math/rand 足够
 	wait := r.minGap - elapsed + jitter
 	if wait > 0 {
 		time.Sleep(wait)

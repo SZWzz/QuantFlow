@@ -4,9 +4,14 @@ import "testing"
 
 func TestDetectMarketForSymbol(t *testing.T) {
 	tests := []struct{ symbol, want string }{
-		{"600519", "CN"}, {"000001", "CN"}, {"300750", "CN"},
-		{"00700", "HK"}, {"00700.HK", "HK"},
-		{"AAPL", "US"}, {"MSFT", "US"}, {"TSLA", "US"},
+		{"600519", "CN"},
+		{"000001", "CN"},
+		{"300750", "CN"},
+		{"00700", "HK"},
+		{"00700.HK", "HK"},
+		{"AAPL", "US"},
+		{"MSFT", "US"},
+		{"TSLA", "US"},
 	}
 	for _, tt := range tests {
 		got := detectMarketForSymbol(tt.symbol)

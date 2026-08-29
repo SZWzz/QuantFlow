@@ -164,7 +164,6 @@ func (m *CredentialManager) Save(name, credType string, keys map[string]string) 
 		return fmt.Errorf("credential: marshal keys: %w", err)
 	}
 	encrypted, err := m.encrypt(plain)
-
 	if err != nil {
 		return err
 	}

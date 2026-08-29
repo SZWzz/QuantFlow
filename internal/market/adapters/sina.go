@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
-
-	"quantflow/internal/market"
-	"quantflow/internal/normalize"
 )
 
 // SinaAdapter fetches A-share and HK stock quotes from Sina Finance (free, no auth).
@@ -26,7 +25,7 @@ func NewSinaAdapter() *SinaAdapter {
 	return &SinaAdapter{client: &http.Client{Timeout: 10 * time.Second}}
 }
 
-func (a *SinaAdapter) Name() string      { return "sina" }
+func (a *SinaAdapter) Name() string       { return "sina" }
 func (a *SinaAdapter) Markets() []string  { return []string{"CN", "HK", "US"} }
 func (a *SinaAdapter) RequiresAuth() bool { return false }
 
@@ -380,4 +379,3 @@ func decodeGBK(data []byte) (string, error) {
 	}
 	return out, nil
 }
-

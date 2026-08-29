@@ -4,15 +4,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"testing"
-
 	"quantflow/internal/market"
+	"testing"
 )
 
 func TestDataLoaderNode_CSV(t *testing.T) {
 	tmp := t.TempDir()
 	csvPath := filepath.Join(tmp, "test.csv")
-	os.WriteFile(csvPath, []byte("date,open,high,low,close,volume\n2024-01-01,100,110,95,105,1000\n2024-01-02,105,115,100,110,1200\n"), 0644)
+	os.WriteFile(csvPath, []byte("date,open,high,low,close,volume\n2024-01-01,100,110,95,105,1000\n2024-01-02,105,115,100,110,1200\n"), 0o600)
 
 	node, err := NewDataLoaderNode("loader1", map[string]any{"source": "csv", "path": csvPath})
 	if err != nil {

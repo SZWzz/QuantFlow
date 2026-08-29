@@ -3,9 +3,8 @@
 package market
 
 import (
-	"time"
-
 	"quantflow/internal/normalize"
+	"time"
 )
 
 // DepthLevel represents a single price level in the order book.
@@ -65,9 +64,9 @@ type MarketMessage struct {
 
 // CachedMessage holds a message with TTL metadata.
 type CachedMessage struct {
-	Msg       MarketMessage
-	CachedAt  time.Time
-	TTL       time.Duration
+	Msg      MarketMessage
+	CachedAt time.Time
+	TTL      time.Duration
 }
 
 // Expired returns true if the cached message has exceeded its TTL.

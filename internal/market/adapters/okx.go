@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 // OKXAdapter fetches crypto data from OKX (free, no auth).
@@ -19,7 +18,7 @@ func NewOKXAdapter() *OKXAdapter {
 	return &OKXAdapter{client: &http.Client{Timeout: 10 * time.Second}}
 }
 
-func (a *OKXAdapter) Name() string      { return "okx" }
+func (a *OKXAdapter) Name() string       { return "okx" }
 func (a *OKXAdapter) Markets() []string  { return []string{"CRYPTO"} }
 func (a *OKXAdapter) RequiresAuth() bool { return false }
 
@@ -47,7 +46,7 @@ func (a *OKXAdapter) FetchQuote(ctx context.Context, symbol string) (*market.Quo
 	var result struct {
 		Code string `json:"code"`
 		Data []struct {
-			Last   string `json:"last"`
+			Last    string `json:"last"`
 			Open24h string `json:"open24h"`
 			High24h string `json:"high24h"`
 			Low24h  string `json:"low24h"`

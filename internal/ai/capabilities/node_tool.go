@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"quantflow/internal/ai"
 	"quantflow/internal/workflow"
 )
@@ -44,11 +43,8 @@ func paramSchemaToJSONSchema(params []workflow.ParamDef) json.RawMessage {
 			schema["items"] = map[string]string{"type": "string"}
 		}
 		props[p.Name] = schema
-		if p.Description == "" {
-			// Parameters without explicit descriptions are likely required.
-			// We treat all params as optional to avoid LLM validation failures.
-		}
-		// All params are currently treated as optional — LLMs handle missing ones gracefully.
+		// Parameters without explicit descriptions are likely required, but we
+		// treat all params as optional to avoid LLM validation failures.
 		_ = required
 	}
 

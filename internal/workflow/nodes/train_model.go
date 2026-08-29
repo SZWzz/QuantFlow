@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"quantflow/internal/ml"
 	"quantflow/internal/python"
 	"quantflow/internal/python/proto"
@@ -108,7 +107,7 @@ func (n *TrainModelNode) Execute(ctx context.Context, inputs map[string]any, par
 		Targets:         targetJSON,
 		Hyperparams:     hyperparams,
 		TargetType:      getStringParam(params, "target_type", "regression"),
-		ForecastHorizon: int32(getIntParam(params, "forecast_horizon", 5)),
+		ForecastHorizon: int32(min(max(getIntParam(params, "forecast_horizon", 5), 1), 3650)), //nolint:gosec // 已钳制 1..3650
 	}
 	resp, err := mlClient.Train(ctx, req)
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
 	"quantflow/internal/workflow"
 )
 
@@ -19,9 +18,9 @@ func NewAlertNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &AlertNode{id: id, params: params}, nil
 }
 
-func (n *AlertNode) ID() string        { return n.id }
-func (n *AlertNode) NodeType() string  { return "alert" }
-func (n *AlertNode) Category() string  { return "notify" }
+func (n *AlertNode) ID() string       { return n.id }
+func (n *AlertNode) NodeType() string { return "alert" }
+func (n *AlertNode) Category() string { return "notify" }
 
 func (n *AlertNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
@@ -53,7 +52,7 @@ func (n *AlertNode) Execute(ctx context.Context, inputs map[string]any, params m
 		case int:
 			value = float64(val)
 		default:
-			fmt.Sscanf(fmt.Sprintf("%v", val), "%f", &value)
+			_, _ = fmt.Sscanf(fmt.Sprintf("%v", val), "%f", &value) // best-effort: 非数值保持 0
 		}
 	}
 	cond := getStringParam(params, "condition", "gt")

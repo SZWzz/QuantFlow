@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
-
 	"quantflow/internal/market"
 	"quantflow/internal/normalize"
+	"strings"
+	"time"
 )
 
 const (
@@ -27,14 +26,18 @@ func NewBaiduAdapter() *BaiduAdapter {
 	return &BaiduAdapter{client: &http.Client{Timeout: 10 * time.Second}}
 }
 
-func (a *BaiduAdapter) Name() string      { return "baidu" }
+func (a *BaiduAdapter) Name() string       { return "baidu" }
 func (a *BaiduAdapter) Markets() []string  { return []string{"CN"} }
 func (a *BaiduAdapter) RequiresAuth() bool { return false }
 
 func (a *BaiduAdapter) IsAvailable(ctx context.Context) bool {
 	req, _ := http.NewRequestWithContext(ctx, "HEAD", "https://finance.pae.baidu.com/selfselect/openapi/v2", nil)
-	_, err := a.client.Do(req)
-	return err == nil
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return true
 }
 
 // ── Quote ──────────────────────────────────────────────────────────────────────
@@ -86,7 +89,7 @@ func (a *BaiduAdapter) FetchOHLCV(ctx context.Context, symbol string, interval s
 	}
 
 	code := toBaiduCode(symbol)
-	plain := strings.TrimLeft(code, "shsz")
+	plain := strings.TrimLeft(code, "shz") // cutset: s/h/z (deduped from "shsz")
 
 	params := fmt.Sprintf(
 		"all=1&isIndex=false&isBk=false&isBlock=false&isFutures=false&isStock=true&newFormat=1&group=quotation_kline_ab&finClientType=pc&code=%s&ktype=1",

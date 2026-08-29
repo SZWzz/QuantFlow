@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"quantflow/internal/market"
+	"quantflow/internal/market/adapters"
+	"quantflow/internal/python"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"quantflow/internal/market"
-	"quantflow/internal/market/adapters"
-	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
 
@@ -61,7 +61,7 @@ func (c *fetchDataCache) Get(key string) (map[string]interface{}, bool) {
 			c.mu.Lock()
 			delete(c.store, key)
 			c.mu.Unlock()
-			}
+		}
 		return nil, false
 	}
 	return entry.data, true
@@ -91,7 +91,7 @@ func (c *marketOverviewCache) get(mkt string) (map[string]interface{}, bool) {
 	if !ok || time.Now().After(entry.expires) {
 		if ok {
 			delete(c.entries, mkt)
-			}
+		}
 		return nil, false
 	}
 	return entry.data, true
@@ -108,8 +108,8 @@ func (c *marketOverviewCache) set(mkt string, data map[string]interface{}) {
 
 // indexOHLCVCache caches daily OHLCV bars per index code to avoid repeated fetches.
 type indexOHLCVCache struct {
-	mu    sync.Mutex
-	data  map[string][]market.OHLCVBar
+	mu      sync.Mutex
+	data    map[string][]market.OHLCVBar
 	expires map[string]time.Time
 }
 
@@ -324,15 +324,13 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 
 	// Build cache key. Skip cache for mootdx (real-time quotes).
 	cacheKey := source + ":" + dataType + ":" + strings.Join(symbols, ",")
-	if params != nil {
-		for k, v := range params {
-			cacheKey += ":" + k + "=" + v
-		}
+	for k, v := range params {
+		cacheKey += ":" + k + "=" + v
 	}
 	if a.dataCache != nil && source != "mootdx" {
 		if cached, ok := a.dataCache.Get(cacheKey); ok {
 			return cached, nil
-			}
+		}
 	}
 
 	ctx, cancel := market.RequestCtx()
@@ -365,7 +363,7 @@ func (a *App) FetchData(source, dataType string, symbols []string, startDate, en
 		ttl := fetchDataCacheDefaultTTL
 		if dataType == "macro_cn_summary" {
 			ttl = fetchDataCacheMacroTTL
-			}
+		}
 		a.dataCache.Set(cacheKey, result, ttl)
 	}
 
@@ -381,7 +379,7 @@ func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
 		var cached interface{}
 		if err := a.fundFlowCache.Get(cacheKey, &cached); err == nil {
 			return cached, nil
-			}
+		}
 		return nil, fmt.Errorf("market %q is currently closed (no cached data)", market.MarketForSymbol(symbol))
 	}
 	if a.fundFlowSvc == nil {
@@ -411,7 +409,7 @@ func (a *App) GetFundFlow(symbol string, flowType string) (interface{}, error) {
 			if e := a.fundFlowCache.Save(); e != nil {
 				slog.Warn("save fund flow cache", "error", e)
 			}
-			}()
+		}()
 	}
 	return result, err
 }
@@ -473,7 +471,7 @@ func (a *App) saveLastMinuteTicks(symbol string, ticks []market.MinuteTick) {
 	if b, err := os.ReadFile(path); err == nil {
 		if err := json.Unmarshal(b, &data); err != nil {
 			slog.Warn("unmarshal last minute ticks", "error", err)
-			}
+		}
 	}
 	data[symbol] = ticks
 
@@ -483,11 +481,13 @@ func (a *App) saveLastMinuteTicks(symbol string, ticks []market.MinuteTick) {
 		return
 	}
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, b, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, b, 0o600); err != nil {
 		slog.Warn("write last minute ticks tmp", "symbol", symbol, "error", err)
 		return
 	}
-	os.Rename(tmpPath, path)
+	if err := os.Rename(tmpPath, path); err != nil {
+		slog.Warn("rename last minute ticks tmp", "symbol", symbol, "error", err)
+	}
 }
 
 // loadLastMinuteTicks returns persisted minute ticks for a symbol, or nil.
@@ -566,13 +566,13 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			{"HSI.HK", "恒生指数"},
 			{"HSCEI.HK", "国企指数"},
 			{"HSTECH.HK", "恒生科技"},
-			}
+		}
 	case "US":
 		indices = []idxDef{
 			{"^GSPC", "S&P 500"},
 			{"^IXIC", "NASDAQ"},
 			{"^DJI", "Dow Jones"},
-			}
+		}
 	default:
 		marketName = "CN"
 		indices = []idxDef{
@@ -581,7 +581,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			{"399006.SZ", "创业板指"},
 			{"000688.SH", "科创50"},
 			{"000300.SH", "沪深300"},
-			}
+		}
 	}
 
 	type idxResult struct {
@@ -632,13 +632,13 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			}
 
 			ch <- idxResult{idx.code, snap, ohlcv}
-			}(idx)
+		}(idx)
 	}
 	wg.Wait()
 	close(ch)
 
 	result := make([]map[string]interface{}, 0, len(indices))
-		// Reorder results to match the original indices order (goroutines
+	// Reorder results to match the original indices order (goroutines
 	// complete non-deterministically so channel order is random).
 	ordered := make([]idxResult, len(indices))
 	codePos := make(map[string]int, len(indices))
@@ -650,18 +650,18 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	}
 
 	for _, r := range ordered {
-			if r.snap == nil { // goroutine failed (e.g. adapter unavailable), skip
-				continue
-			}
-			ohlcvArr := make([]map[string]interface{}, 0, len(r.ohlcv))
-			for _, b := range r.ohlcv {
+		if r.snap == nil { // goroutine failed (e.g. adapter unavailable), skip
+			continue
+		}
+		ohlcvArr := make([]map[string]interface{}, 0, len(r.ohlcv))
+		for _, b := range r.ohlcv {
 			ohlcvArr = append(ohlcvArr, map[string]interface{}{
 				"open":  b.Open,
 				"high":  b.High,
 				"low":   b.Low,
 				"close": b.Close,
 			})
-			}
+		}
 		result = append(result, map[string]interface{}{
 			"code":       r.code,
 			"name":       getIndexName(r.code, indices),
@@ -670,7 +670,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 			"change_pct": r.snap.ChangePct,
 			"prev_close": r.snap.PrevClose,
 			"ohlcv":      ohlcvArr,
-			})
+		})
 	}
 
 	out := map[string]interface{}{
@@ -683,7 +683,7 @@ func (a *App) GetMarketOverview(mkt string) (map[string]interface{}, error) {
 	if mkt == "CN" || marketName == "CN" {
 		if adv, dec, unch := fetchSinaIndexBreadth(ctx); adv+dec+unch > 0 {
 			out["breadth"] = map[string]int{"advancers": adv, "decliners": dec, "unchanged": unch}
-			}
+		}
 	}
 
 	overviewCache.set(mkt, out)
@@ -695,7 +695,7 @@ func getIndexName(code string, indices []idxDef) string {
 	for _, idx := range indices {
 		if idx.code == code {
 			return idx.name
-			}
+		}
 	}
 	return code
 }
@@ -711,12 +711,12 @@ func (a *App) GetCryptoOverview(ctx context.Context, symbols []string) (map[stri
 		snap, _, err := reg.FetchQuoteWithFallback(ctx, "CRYPTO", sym)
 		if err != nil {
 			continue
-			}
+		}
 		results = append(results, map[string]interface{}{
 			"symbol":     sym,
 			"price":      snap.Last,
 			"change_pct": snap.ChangePct,
-			})
+		})
 	}
 	return map[string]interface{}{"cryptos": results}, nil
 }
@@ -745,7 +745,7 @@ func (a *App) GetCryptoFundingRates(ctx context.Context, symbols []string) ([]ma
 			"index_price":       r.IndexPrice,
 			"funding_rate":      r.FundingRate,
 			"next_funding_time": r.NextFundingTime,
-			})
+		})
 	}
 	return result, nil
 }
@@ -775,7 +775,7 @@ func (a *App) GetCryptoLiquidations(ctx context.Context, symbol string, limit in
 			"amount":     l.Amount,
 			"time":       l.Time,
 			"order_side": l.OrderSide,
-			})
+		})
 	}
 	return result, nil
 }
@@ -799,7 +799,7 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 		var cached *market.DepthSnapshot
 		if err := a.depthCache.Get(cacheKey, &cached); err == nil {
 			return cached, nil
-			}
+		}
 		return nil, fmt.Errorf("market %q is currently closed (no cached data)", mkt)
 	}
 	var snap *market.DepthSnapshot
@@ -815,17 +815,17 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 				}
 				slog.Warn("sina depth failed, trying tencent", "symbol", symbol, "err", depthErr)
 			}
-			}
+		}
 		adpt = a.marketReg.Get("tencent")
 		if adpt == nil {
 			depthErr = fmt.Errorf("tencent adapter not available")
 			break
-			}
+		}
 		tc, ok := adpt.(*adapters.TencentAdapter)
 		if !ok {
 			depthErr = fmt.Errorf("tencent adapter type assertion failed")
 			break
-			}
+		}
 		snap, depthErr = tc.FetchDepth(ctx, symbol)
 	case "HK":
 		adpt := a.marketReg.Get("sina")
@@ -837,17 +837,17 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 				}
 				slog.Warn("sina HK depth failed, trying tencent", "symbol", symbol, "err", depthErr)
 			}
-			}
+		}
 		adpt = a.marketReg.Get("tencent")
 		if adpt == nil {
 			depthErr = fmt.Errorf("tencent adapter not available")
 			break
-			}
+		}
 		tc, ok := adpt.(*adapters.TencentAdapter)
 		if !ok {
 			depthErr = fmt.Errorf("tencent adapter type assertion failed")
 			break
-			}
+		}
 		snap, depthErr = tc.FetchDepth(ctx, symbol)
 	case "CRYPTO":
 		exchange := "binance"
@@ -855,7 +855,7 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 		if err != nil {
 			depthErr = err
 			break
-			}
+		}
 		data, _ := raw["data"].(string)
 		snap = &market.DepthSnapshot{Symbol: symbol}
 		depthErr = fmt.Errorf("crypto depth via Python sidecar, data=%s", data)
@@ -874,7 +874,7 @@ func (a *App) GetDepth(ctx context.Context, mkt, symbol string) (*market.DepthSn
 			if e := a.depthCache.Save(); e != nil {
 				slog.Warn("save depth cache", "error", e)
 			}
-			}()
+		}()
 	}
 	return snap, depthErr
 }
@@ -922,7 +922,7 @@ func (a *App) GetShortInterest(ctx context.Context, symbol string) ([]map[string
 			"avg_daily_vol":  d.AvgDailyVolume,
 			"days_to_cover":  d.DaysToCover,
 			"short_pct":      d.ShortPercent,
-			})
+		})
 	}
 	return result, nil
 }
@@ -954,7 +954,7 @@ func (a *App) GetEarningsCalendar(ctx context.Context, from, to string) ([]map[s
 			"eps_estimate":     e.EPSEstimate,
 			"revenue_actual":   e.RevenueActual,
 			"revenue_estimate": e.RevenueEstimate,
-			})
+		})
 	}
 	return result, nil
 }
@@ -1061,17 +1061,17 @@ func (a *App) GetHKTradingCalendar(year int) (map[string]interface{}, error) {
 
 // HKSettlementInfo holds static HK market settlement rules.
 type HKSettlementInfo struct {
-	Market          string  `json:"market"`
-	SettlementDays  int     `json:"settlement_days"`
-	StampDuty       float64 `json:"stamp_duty"`
-	ExchangeFee     float64 `json:"exchange_fee"`
-	SFCLevy         float64 `json:"sfc_levy"`
-	TradingFee      float64 `json:"trading_fee"`
-	FRCLevy         float64 `json:"frc_levy"`
-	HasPriceLimits  bool    `json:"has_price_limits"`
-	LotSizeMin      int     `json:"lot_size_min"`
-	Currency        string  `json:"currency"`
-	Description     string  `json:"description"`
+	Market         string  `json:"market"`
+	SettlementDays int     `json:"settlement_days"`
+	StampDuty      float64 `json:"stamp_duty"`
+	ExchangeFee    float64 `json:"exchange_fee"`
+	SFCLevy        float64 `json:"sfc_levy"`
+	TradingFee     float64 `json:"trading_fee"`
+	FRCLevy        float64 `json:"frc_levy"`
+	HasPriceLimits bool    `json:"has_price_limits"`
+	LotSizeMin     int     `json:"lot_size_min"`
+	Currency       string  `json:"currency"`
+	Description    string  `json:"description"`
 }
 
 // GetHKSettlementInfo returns static HK market settlement rules.

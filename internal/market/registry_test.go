@@ -21,7 +21,7 @@ type mockAdapter struct {
 	quoteErr     error
 }
 
-func (m *mockAdapter) Name() string                         { return m.name }
+func (m *mockAdapter) Name() string                          { return m.name }
 func (m *mockAdapter) Markets() []string                     { return m.markets }
 func (m *mockAdapter) RequiresAuth() bool                    { return m.requiresAuth }
 func (m *mockAdapter) IsAvailable(ctx context.Context) bool  { return m.available }
@@ -165,17 +165,19 @@ type mockIndustryRankProvider struct {
 	ranks []IndustryRank
 }
 
-func (m *mockIndustryRankProvider) Name() string                         { return m.name }
-func (m *mockIndustryRankProvider) Markets() []string                    { return []string{"ZZ"} }
-func (m *mockIndustryRankProvider) RequiresAuth() bool                   { return false }
-func (m *mockIndustryRankProvider) IsAvailable(ctx context.Context) bool { return true }
+func (m *mockIndustryRankProvider) Name() string                          { return m.name }
+func (m *mockIndustryRankProvider) Markets() []string                     { return []string{"ZZ"} }
+func (m *mockIndustryRankProvider) RequiresAuth() bool                    { return false }
+func (m *mockIndustryRankProvider) IsAvailable(ctx context.Context) bool  { return true }
 func (m *mockIndustryRankProvider) HealthCheck(ctx context.Context) error { return nil }
 func (m *mockIndustryRankProvider) FetchQuote(ctx context.Context, symbol string) (*QuoteSnapshot, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
 func (m *mockIndustryRankProvider) FetchOHLCV(ctx context.Context, symbol, interval, fqfactor string, start, end int64) ([]OHLCVBar, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+
 func (m *mockIndustryRankProvider) FetchIndustryRanks(ctx context.Context, market string, topN int) ([]IndustryRank, error) {
 	if m.fail {
 		return nil, fmt.Errorf("mock: %s failed", m.name)

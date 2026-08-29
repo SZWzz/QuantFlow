@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-
 	"quantflow/internal/workflow"
 )
 
@@ -17,9 +16,9 @@ func NewRiskMetricsNode(id string, params map[string]any) (workflow.BaseNode, er
 	return &RiskMetricsNode{id: id, params: params}, nil
 }
 
-func (n *RiskMetricsNode) ID() string        { return n.id }
-func (n *RiskMetricsNode) NodeType() string  { return "risk_metrics" }
-func (n *RiskMetricsNode) Category() string  { return "risk" }
+func (n *RiskMetricsNode) ID() string       { return n.id }
+func (n *RiskMetricsNode) NodeType() string { return "risk_metrics" }
+func (n *RiskMetricsNode) Category() string { return "risk" }
 
 func (n *RiskMetricsNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

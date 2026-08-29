@@ -9,10 +9,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"quantflow/internal/trading"
 	"sync"
 	"time"
-
-	"quantflow/internal/trading"
 )
 
 // IBKRBroker implements trading.Broker for Interactive Brokers via Client Portal REST API.
@@ -43,7 +42,7 @@ func NewIBKRBroker(cfg IBKRConfig) *IBKRBroker {
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // IBKR Client Portal Gateway 是本地自签名证书端点
 			},
 		},
 	}

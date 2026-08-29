@@ -66,7 +66,7 @@ func (c *OffHoursCache[T]) Save() error {
 		return nil
 	}
 	dir := filepath.Dir(c.path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	b, err := json.MarshalIndent(c.data, "", "  ")
@@ -74,7 +74,7 @@ func (c *OffHoursCache[T]) Save() error {
 		return err
 	}
 	tmpPath := c.path + ".tmp"
-	if err := os.WriteFile(tmpPath, b, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, b, 0o600); err != nil {
 		return err
 	}
 	if err := os.Rename(tmpPath, c.path); err != nil {

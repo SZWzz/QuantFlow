@@ -2,11 +2,11 @@ package backtest
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math"
-	"sort"
-
 	"quantflow/internal/trading"
+	"sort"
 )
 
 // ── Slippage Models ──────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ type CNEngine struct {
 	*Runner
 	prevClose     map[string]float64 // symbol → previous trading day close (for price limit)
 	slippageModel SlippageModel      // execution slippage model
-	stampDutyRate float64             // 印花税率，默认 0.0005 (万分之5，卖出)
+	stampDutyRate float64            // 印花税率，默认 0.0005 (万分之5，卖出)
 }
 
 // NewCNEngine creates an A-share backtesting engine with default A-share config.
@@ -91,7 +91,9 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
 
 	portfolio := NewPortfolio(e.config.InitialCash)
-	e.oms.GetCashLedger().Deposit(e.config.InitialCash)
+	if err := e.oms.GetCashLedger().Deposit(e.config.InitialCash); err != nil {
+		return nil, fmt.Errorf("deposit initial cash: %w", err)
+	}
 	var equityCurve []EquityPoint
 	var tradeRecords []TradeRecord
 	latestPrices := make(map[string]float64)
@@ -123,22 +125,25 @@ func (e *CNEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 				avgPrice := pos.AvgPrice // capture before FillOrder clears it
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", availableQty, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, availableQty, bar.Close)
-					portfolio.Cash = e.oms.GetCashBalance()
-					revenue := bar.Close*availableQty - e.stampDuty(bar.Close*availableQty) - bar.Close*availableQty*e.config.Commission
-					pnl := revenue - avgPrice*availableQty
+					// Only record the trade when the fill actually succeeds —
+					// recording a rejected fill produces phantom P&L.
+					if _, fillErr := e.oms.FillOrder(order.ID, availableQty, bar.Close); fillErr == nil {
+						portfolio.Cash = e.oms.GetCashBalance()
+						revenue := bar.Close*availableQty - e.stampDuty(bar.Close*availableQty) - bar.Close*availableQty*e.config.Commission
+						pnl := revenue - avgPrice*availableQty
 
-					newQty := heldQty - availableQty
-					if newQty <= 0 {
-						delete(portfolio.Positions, bar.Symbol)
-						delete(portfolio.AvgPrice, bar.Symbol)
-					} else {
-						portfolio.Positions[bar.Symbol] = newQty
+						newQty := heldQty - availableQty
+						if newQty <= 0 {
+							delete(portfolio.Positions, bar.Symbol)
+							delete(portfolio.AvgPrice, bar.Symbol)
+						} else {
+							portfolio.Positions[bar.Symbol] = newQty
+						}
+						tradeRecords = append(tradeRecords, TradeRecord{
+							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+							Quantity: availableQty, Price: bar.Close, PnL: pnl,
+						})
 					}
-					tradeRecords = append(tradeRecords, TradeRecord{
-						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: availableQty, Price: bar.Close, PnL: pnl,
-					})
 				}
 				goto recordEquityCN
 			}
@@ -223,11 +228,11 @@ func (e *CNEngine) processCNBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		_ = sym
 	}
 	mockOrder := &trading.Order{
-		Symbol:   bar.Symbol,
-		Side:     trading.SideBuy,
+		Symbol:    bar.Symbol,
+		Side:      trading.SideBuy,
 		OrderType: trading.TypeMarket,
-		Quantity: qty,
-		Price:    effectivePrice,
+		Quantity:  qty,
+		Price:     effectivePrice,
 	}
 	if err := e.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
 		slog.Debug("buy signal risk rejected", "symbol", bar.Symbol, "error", err)

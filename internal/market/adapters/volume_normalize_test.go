@@ -1,9 +1,8 @@
 package adapters
 
 import (
-	"testing"
-
 	"quantflow/internal/normalize"
+	"testing"
 )
 
 // TestAllCNAdaptersNormalizeVolume verifies all A-share adapters are mapped

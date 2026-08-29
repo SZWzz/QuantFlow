@@ -3,7 +3,6 @@ package research
 import (
 	"context"
 	"log/slog"
-
 	"quantflow/internal/market/adapters"
 )
 

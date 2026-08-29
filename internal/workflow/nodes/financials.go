@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
 	"quantflow/internal/workflow"
 )
 
@@ -76,23 +75,23 @@ func (n *FinancialsNode) Validate() error { return nil }
 func mockFinancialsOutput(symbol string) map[string]any {
 	return map[string]any{
 		"financial_data": map[string]any{
-			"symbol":        symbol,
-			"revenue":       0.0,
-			"net_income":    0.0,
-			"eps":           0.0,
-			"total_assets":  0.0,
-			"total_equity":  0.0,
-			"total_debt":    0.0,
+			"symbol":         symbol,
+			"revenue":        0.0,
+			"net_income":     0.0,
+			"eps":            0.0,
+			"total_assets":   0.0,
+			"total_equity":   0.0,
+			"total_debt":     0.0,
 			"free_cash_flow": 0.0,
-			"market_cap":    0.0,
+			"market_cap":     0.0,
 		},
 		"ratios": map[string]any{
-			"pe_ratio":     0.0,
-			"pb_ratio":     0.0,
-			"roe":          0.0,
-			"roa":          0.0,
+			"pe_ratio":       0.0,
+			"pb_ratio":       0.0,
+			"roe":            0.0,
+			"roa":            0.0,
 			"debt_to_equity": 0.0,
-			"net_margin":    0.0,
+			"net_margin":     0.0,
 		},
 	}
 }

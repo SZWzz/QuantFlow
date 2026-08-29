@@ -56,7 +56,6 @@ func ComputePriceBand(symbol string, bars []OHLCVBar) *BandResult {
 	stddev := math.Sqrt(variance / n)
 
 	latest := prices[len(prices)-1]
-	percentile := float64(50)
 	sorted := make([]float64, len(prices))
 	copy(sorted, prices)
 	sort.Float64s(sorted)
@@ -66,7 +65,7 @@ func ComputePriceBand(symbol string, bars []OHLCVBar) *BandResult {
 			count++
 		}
 	}
-	percentile = math.Round(float64(count)/n*10000) / 100
+	percentile := math.Round(float64(count)/n*10000) / 100
 
 	// Generate band points (every Nth bar to reduce data size)
 	step := 1

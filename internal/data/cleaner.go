@@ -63,13 +63,13 @@ func CleanupData(db *sql.DB, table, symbol, before string, dryRun bool) (*Cleanu
 		}
 	}
 
-	countQ := fmt.Sprintf("SELECT COUNT(*) FROM \"%s\" WHERE %s", table, where)
+	countQ := fmt.Sprintf("SELECT COUNT(*) FROM \"%s\" WHERE %s", table, where) //nolint:gosec // table 经 allowedCleanupTables 白名单校验，值全走 args 占位符
 	var total int64
 	if err := db.QueryRow(countQ, args...).Scan(&total); err != nil {
 		return nil, fmt.Errorf("count: %w", err)
 	}
 
-	previewQ := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s LIMIT 10", table, where)
+	previewQ := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s LIMIT 10", table, where) //nolint:gosec // table 经 allowedCleanupTables 白名单校验
 	rows, err := db.Query(previewQ, args...)
 	if err != nil {
 		return nil, fmt.Errorf("preview: %w", err)
@@ -105,7 +105,7 @@ func CleanupData(db *sql.DB, table, symbol, before string, dryRun bool) (*Cleanu
 	}
 
 	if !dryRun && total > 0 {
-		deleteQ := fmt.Sprintf("DELETE FROM \"%s\" WHERE %s", table, where)
+		deleteQ := fmt.Sprintf("DELETE FROM \"%s\" WHERE %s", table, where) //nolint:gosec // table 经 allowedCleanupTables 白名单校验
 		res, err := db.Exec(deleteQ, args...)
 		if err != nil {
 			return nil, fmt.Errorf("delete: %w", err)

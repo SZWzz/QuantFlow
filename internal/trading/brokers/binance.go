@@ -12,11 +12,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"quantflow/internal/trading"
 	"strings"
 	"sync"
 	"time"
-
-	"quantflow/internal/trading"
 )
 
 // BinanceConfig holds Binance API credentials and settings.
@@ -156,15 +155,15 @@ func (b *BinanceBroker) GetOrders(ctx context.Context) ([]*trading.Order, error)
 
 	body, _ := io.ReadAll(resp.Body)
 	var binanceOrders []struct {
-		OrderID      int64  `json:"orderId"`
-		Symbol       string `json:"symbol"`
-		Side         string `json:"side"`
-		Type         string `json:"type"`
-		OrigQty      string `json:"origQty"`
-		Price        string `json:"price"`
-		StopPrice    string `json:"stopPrice"`
-		Status       string `json:"status"`
-		ExecutedQty  string `json:"executedQty"`
+		OrderID     int64  `json:"orderId"`
+		Symbol      string `json:"symbol"`
+		Side        string `json:"side"`
+		Type        string `json:"type"`
+		OrigQty     string `json:"origQty"`
+		Price       string `json:"price"`
+		StopPrice   string `json:"stopPrice"`
+		Status      string `json:"status"`
+		ExecutedQty string `json:"executedQty"`
 	}
 	if err := json.Unmarshal(body, &binanceOrders); err != nil {
 		return nil, fmt.Errorf("parse orders: %w", err)
@@ -179,10 +178,11 @@ func (b *BinanceBroker) GetOrders(ctx context.Context) ([]*trading.Order, error)
 			OrderType: binanceTypeToOrderType(bo.Type),
 			Status:    binanceStatusToOrderStatus(bo.Status),
 		}
-		fmt.Sscanf(bo.OrigQty, "%f", &o.Quantity)
-		fmt.Sscanf(bo.Price, "%f", &o.Price)
-		fmt.Sscanf(bo.StopPrice, "%f", &o.StopPrice)
-		fmt.Sscanf(bo.ExecutedQty, "%f", &o.FilledQty)
+		// Best-effort numeric parsing: malformed qty/price fields degrade to 0
+		_, _ = fmt.Sscanf(bo.OrigQty, "%f", &o.Quantity)
+		_, _ = fmt.Sscanf(bo.Price, "%f", &o.Price)
+		_, _ = fmt.Sscanf(bo.StopPrice, "%f", &o.StopPrice)
+		_, _ = fmt.Sscanf(bo.ExecutedQty, "%f", &o.FilledQty)
 		orders = append(orders, o)
 	}
 	return orders, nil
@@ -211,8 +211,9 @@ func (b *BinanceBroker) GetPositions(ctx context.Context) ([]*trading.Position, 
 	var positions []*trading.Position
 	for _, bal := range acct.Balances {
 		var free, locked float64
-		fmt.Sscanf(bal.Free, "%f", &free)
-		fmt.Sscanf(bal.Locked, "%f", &locked)
+		// Best-effort numeric parsing: malformed balance fields degrade to 0
+		_, _ = fmt.Sscanf(bal.Free, "%f", &free)
+		_, _ = fmt.Sscanf(bal.Locked, "%f", &locked)
 		if free+locked > 0 {
 			positions = append(positions, &trading.Position{Symbol: bal.Asset, Quantity: free + locked})
 		}
@@ -243,8 +244,9 @@ func (b *BinanceBroker) GetAccount(ctx context.Context) (*trading.AccountInfo, e
 	info := &trading.AccountInfo{BrokerName: "binance", Currency: "USDT"}
 	for _, bal := range acct.Balances {
 		var free, locked float64
-		fmt.Sscanf(bal.Free, "%f", &free)
-		fmt.Sscanf(bal.Locked, "%f", &locked)
+		// Best-effort numeric parsing: malformed balance fields degrade to 0
+		_, _ = fmt.Sscanf(bal.Free, "%f", &free)
+		_, _ = fmt.Sscanf(bal.Locked, "%f", &locked)
 		info.CashBalance += free
 		info.TotalValue += free + locked
 	}
@@ -313,7 +315,7 @@ func normalizeBinanceSymbol(symbol string) string {
 		}
 	}
 	if !hasQuote {
-		symbol = symbol + "USDT"
+		symbol += "USDT"
 	}
 	return strings.ToUpper(symbol)
 }

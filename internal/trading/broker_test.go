@@ -18,7 +18,7 @@ func newMockBroker(name string) *mockBroker {
 	return &mockBroker{name: name, orders: make(map[string]*Order)}
 }
 
-func (m *mockBroker) Connect(ctx context.Context) error   { m.connected = true; return nil }
+func (m *mockBroker) Connect(ctx context.Context) error    { m.connected = true; return nil }
 func (m *mockBroker) Disconnect(ctx context.Context) error { m.connected = false; return nil }
 func (m *mockBroker) IsConnected() bool                    { return m.connected }
 func (m *mockBroker) Name() string                         { return m.name }
@@ -61,7 +61,7 @@ func (m *mockBroker) GetAccount(ctx context.Context) (*AccountInfo, error) {
 }
 
 func (m *mockBroker) OnOrderUpdate(fn func(*Order)) { m.orderUpdates = append(m.orderUpdates, fn) }
-func (m *mockBroker) OnTradeUpdate(fn func(*Trade))  { m.tradeUpdates = append(m.tradeUpdates, fn) }
+func (m *mockBroker) OnTradeUpdate(fn func(*Trade)) { m.tradeUpdates = append(m.tradeUpdates, fn) }
 
 func TestOMS_WithBroker_PlaceOrderLive(t *testing.T) {
 	oms := NewOMS()

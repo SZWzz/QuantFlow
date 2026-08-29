@@ -2,9 +2,8 @@ package nodes
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/trading"
+	"testing"
 )
 
 func TestOrderQueryNode_NoOMS(t *testing.T) {

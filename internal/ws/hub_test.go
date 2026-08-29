@@ -95,7 +95,7 @@ func TestHubBroadcastDifferentTopics(t *testing.T) {
 func TestHubBroadcastBufferFull(t *testing.T) {
 	h := NewHub()
 
-	ch := make(chan []byte, 0)
+	ch := make(chan []byte)
 	client := NewClient(h, nil)
 	client.send = ch
 

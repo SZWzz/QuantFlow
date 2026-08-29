@@ -2,10 +2,9 @@ package adapters
 
 import (
 	"context"
+	"quantflow/internal/market"
 	"testing"
 	"time"
-
-	"quantflow/internal/market"
 )
 
 // quoteAdapterTest holds the config for testing a single adapter's FetchQuote.

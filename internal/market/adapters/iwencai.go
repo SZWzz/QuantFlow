@@ -20,12 +20,12 @@ type IwencaiArticle struct {
 	UID         string      `json:"uid"`
 	Title       string      `json:"title"`
 	PublishDate string      `json:"publish_date"`
-	Channel     string      `json:"channel"` // "report" / "announcement" / "news"
-	ScoreRaw    interface{} `json:"score"`   // number or string-encoded float
-	Content     string      `json:"content"` // snippet or full text
-	OrgName     string      `json:"org_name"`     // 机构名称 (from extra.organization)
-	PDFURL      string      `json:"pdf_url"`      // PDF link (from extra.pdf_url)
-	Author      string      `json:"author"`       // 作者 (from extra.author)
+	Channel     string      `json:"channel"`  // "report" / "announcement" / "news"
+	ScoreRaw    interface{} `json:"score"`    // number or string-encoded float
+	Content     string      `json:"content"`  // snippet or full text
+	OrgName     string      `json:"org_name"` // 机构名称 (from extra.organization)
+	PDFURL      string      `json:"pdf_url"`  // PDF link (from extra.pdf_url)
+	Author      string      `json:"author"`   // 作者 (from extra.author)
 }
 
 // Score returns the relevance score as a string for comparison.
@@ -120,8 +120,8 @@ func (a *IwencaiAdapter) Search(ctx context.Context, query string, channel strin
 	}
 
 	var result struct {
-		StatusCode int              `json:"status_code"`
-		StatusMsg  string           `json:"status_msg"`
+		StatusCode int               `json:"status_code"`
+		StatusMsg  string            `json:"status_msg"`
 		Data       []json.RawMessage `json:"data"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -179,8 +179,8 @@ func (a *IwencaiAdapter) Query(ctx context.Context, query string, page, limit in
 	}
 
 	var result struct {
-		StatusCode int              `json:"status_code"`
-		StatusMsg  string           `json:"status_msg"`
+		StatusCode int               `json:"status_code"`
+		StatusMsg  string            `json:"status_msg"`
 		Datas      []json.RawMessage `json:"datas"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -247,7 +247,9 @@ func (a *IwencaiAdapter) post(ctx context.Context, path string, payload interfac
 // clawHeaders returns the SkillHub 2.0 X-Claw authentication headers.
 func clawHeaders() map[string]string {
 	traceID := make([]byte, 32)
-	rand.Read(traceID)
+	// crypto/rand.Read on supported platforms never fails in practice; a short
+	// read would just yield a less-random trace ID, which is cosmetic
+	_, _ = rand.Read(traceID)
 	return map[string]string{
 		"X-Claw-Call-Type":      "normal",
 		"X-Claw-Skill-Id":       "report-search",
@@ -315,6 +317,7 @@ func dedupArticles(articles []IwencaiArticle) []IwencaiArticle {
 // scoreVal parses a score string to float64 for comparison.
 func scoreVal(s string) float64 {
 	var f float64
-	fmt.Sscanf(s, "%f", &f)
+	// Best-effort parse: malformed input degrades to 0
+	_, _ = fmt.Sscanf(s, "%f", &f)
 	return f
 }

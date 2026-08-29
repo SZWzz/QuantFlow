@@ -5,14 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"quantflow/internal/market"
+	"quantflow/internal/market/wsconn"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/coder/websocket"
-
-	"quantflow/internal/market"
-	"quantflow/internal/market/wsconn"
 )
 
 const gateWSURL = "wss://api.gateio.ws/ws/v4/"
@@ -21,9 +19,9 @@ var _ wsconn.WSConnector = (*GateIOAdapter)(nil)
 
 // gateTickerEvent is the Gate.io WebSocket spot.tickers event.
 type gateTickerEvent struct {
-	Time    int64            `json:"time"`
-	Channel string           `json:"channel"`
-	Event   string           `json:"event"`
+	Time    int64             `json:"time"`
+	Channel string            `json:"channel"`
+	Event   string            `json:"event"`
 	Result  *gateTickerResult `json:"result"`
 }
 
@@ -41,11 +39,10 @@ type gateTickerResult struct {
 }
 
 type gateWSState struct {
-	conn     *websocket.Conn
-	cancel   context.CancelFunc
-	hub      *market.MarketDataHub
-	mu       sync.Mutex
-	reconn   int
+	conn   *websocket.Conn
+	cancel context.CancelFunc
+	hub    *market.MarketDataHub
+	reconn int
 }
 
 // ConnectWS connects to Gate.io WebSocket public channel.
@@ -77,10 +74,11 @@ func (a *GateIOAdapter) ConnectWS(ctx context.Context, hub *market.MarketDataHub
 }
 
 func (a *GateIOAdapter) DisconnectWS() error  { return nil }
-func (a *GateIOAdapter) SupportsWS() bool      { return true }
-func (a *GateIOAdapter) ExchangeName() string  { return "gateio" }
+func (a *GateIOAdapter) SupportsWS() bool     { return true }
+func (a *GateIOAdapter) ExchangeName() string { return "gateio" }
 
 func (s *gateWSState) connect(ctx context.Context) error {
+	//nolint:bodyclose // coder/websocket: 成功时 resp.Body 由库接管（置 nil），无需关闭
 	conn, _, err := websocket.Dial(ctx, gateWSURL, nil)
 	if err != nil {
 		return err

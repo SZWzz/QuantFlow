@@ -12,14 +12,14 @@ import (
 
 // FinancialStatementItem holds a single line item from a financial statement.
 type FinancialStatementItem struct {
-	Title   string `json:"item_title"`   // 科目名称
-	Value   string `json:"item_value"`   // 值(新浪原始格式)
-	YoYPct  string `json:"item_tongbi"`  // 同比变化
+	Title  string `json:"item_title"`  // 科目名称
+	Value  string `json:"item_value"`  // 值(新浪原始格式)
+	YoYPct string `json:"item_tongbi"` // 同比变化
 }
 
 // FinancialStatementPeriod holds one reporting period's financial data.
 type FinancialStatementPeriod struct {
-	Period string                  `json:"period"` // e.g. "2026-03-31"
+	Period string                   `json:"period"` // e.g. "2026-03-31"
 	Items  []FinancialStatementItem `json:"items"`
 }
 
@@ -159,5 +159,7 @@ func (a *SinaFinancialsAdapter) fetchReport(ctx context.Context, code, reportTyp
 }
 
 // 新浪用 20260331 这样的格式。排序需要按字符串倒序。先确保导入 sort 包了。
-var _ = sort.Reverse // force import
-var _ = time.Now     // force import
+var (
+	_ = sort.Reverse // force import
+	_ = time.Now     // force import
+)

@@ -37,7 +37,7 @@ func (c *DataClient) FetchData(ctx context.Context, req *pb.FetchDataRequest) (*
 				lastErr = err
 				// Linear backoff with jitter: baseDelay * (attempt+1) ± 25%.
 				baseDelay := time.Duration(attempt+1) * 100 * time.Millisecond
-				jitter := time.Duration(rand.Int63n(int64(baseDelay) / 2))
+				jitter := time.Duration(rand.Int63n(int64(baseDelay) / 2)) //nolint:gosec // 重试抖动非安全用途，math/rand 足够
 				sleepDuration := baseDelay + jitter
 				select {
 				case <-ctx.Done():

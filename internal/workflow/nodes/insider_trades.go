@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
 	"quantflow/internal/research"
 	"quantflow/internal/workflow"
 )
@@ -109,13 +108,14 @@ func analyzeInsiderActivity(txns []research.InsiderTransaction) (string, map[str
 	var activity string
 	var action string
 
-	if buyRatio > 0.6 {
+	switch {
+	case buyRatio > 0.6:
 		activity = "bullish"
 		action = "buy"
-	} else if buyRatio < 0.4 {
+	case buyRatio < 0.4:
 		activity = "bearish"
 		action = "sell"
-	} else {
+	default:
 		activity = "neutral"
 		action = "hold"
 	}

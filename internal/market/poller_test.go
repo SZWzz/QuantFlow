@@ -2,10 +2,9 @@ package market
 
 import (
 	"context"
+	"quantflow/internal/ws"
 	"testing"
 	"time"
-
-	"quantflow/internal/ws"
 )
 
 type mockPollAdapter struct {
@@ -17,8 +16,8 @@ type mockPollAdapter struct {
 func (m *mockPollAdapter) Name() string                          { return m.name }
 func (m *mockPollAdapter) Markets() []string                     { return nil }
 func (m *mockPollAdapter) RequiresAuth() bool                    { return false }
-func (m *mockPollAdapter) IsAvailable(ctx context.Context) bool   { return m.available }
-func (m *mockPollAdapter) HealthCheck(ctx context.Context) error  { return nil }
+func (m *mockPollAdapter) IsAvailable(ctx context.Context) bool  { return m.available }
+func (m *mockPollAdapter) HealthCheck(ctx context.Context) error { return nil }
 func (m *mockPollAdapter) FetchQuote(_ context.Context, symbol string) (*QuoteSnapshot, error) {
 	q, ok := m.quotes[symbol]
 	if !ok {
@@ -26,6 +25,7 @@ func (m *mockPollAdapter) FetchQuote(_ context.Context, symbol string) (*QuoteSn
 	}
 	return q, nil
 }
+
 func (m *mockPollAdapter) FetchOHLCV(_ context.Context, _, _, _ string, _, _ int64) ([]OHLCVBar, error) {
 	return nil, nil
 }

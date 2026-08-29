@@ -46,8 +46,8 @@ type RegionSnapshot struct {
 	SolarGHI  float64 `json:"solar_ghi"`  // latest monthly avg (kWh/m^2/day)
 	WindSpeed float64 `json:"wind_speed"` // latest monthly avg (m/s)
 	Trend     string  `json:"trend"`      // up/down/stable
-	Wildfires int     `json:"wildfires"`   // recent count in region
-	AssetLink string  `json:"asset_link"`  // associated commodity
+	Wildfires int     `json:"wildfires"`  // recent count in region
+	AssetLink string  `json:"asset_link"` // associated commodity
 }
 
 // SatelliteRegions contains the 5 predefined energy regions with metadata.
@@ -183,6 +183,7 @@ func (a *SatelliteHTTPAdapter) FetchWildfireCount(ctx context.Context, daysBack 
 	if daysBack <= 0 {
 		daysBack = 7
 	}
+	_ = daysBack // reserved for the FIRMS area endpoint once MAP_KEY is wired
 
 	// The FIRMS area endpoint requires a MAP_KEY:
 	// https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/VIIRS_SNPP_NRT/world/{days}

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"quantflow/internal/python"
 
 	pb "quantflow/internal/python/proto"
-	"quantflow/internal/python"
 )
 
 // InsiderTradingService fetches insider transactions from SEC EDGAR Form 4

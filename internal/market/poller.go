@@ -3,10 +3,9 @@ package market
 import (
 	"context"
 	"log/slog"
+	"quantflow/internal/ws"
 	"sync"
 	"time"
-
-	"quantflow/internal/ws"
 )
 
 // QuotePoller periodically fetches quotes for subscribed symbols and
@@ -127,10 +126,10 @@ func (p *QuotePoller) pollOnce(ctx context.Context) {
 			continue
 		}
 
-			// Skip HTTP poll if a WS connection covers this symbol's exchange
-			if p.wsChecker != nil && p.isCoveredByWS(market) {
-				continue
-			}
+		// Skip HTTP poll if a WS connection covers this symbol's exchange
+		if p.wsChecker != nil && p.isCoveredByWS(market) {
+			continue
+		}
 
 		quote, adapter, err := p.reg.FetchQuoteWithFallback(ctx, market, symbol)
 		if err != nil {

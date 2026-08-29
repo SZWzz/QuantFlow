@@ -13,7 +13,7 @@ type stubNode struct {
 	params   map[string]any
 }
 
-func (s *stubNode) ID() string                   { return s.id }
+func (s *stubNode) ID() string                    { return s.id }
 func (s *stubNode) NodeType() string              { return s.nodeType }
 func (s *stubNode) Category() string              { return s.cat }
 func (s *stubNode) InputPorts() []PortDefinition  { return nil }

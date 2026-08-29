@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -18,9 +17,9 @@ func NewCancelOrderNode(id string, params map[string]any) (workflow.BaseNode, er
 	return &CancelOrderNode{id: id, params: params}, nil
 }
 
-func (n *CancelOrderNode) ID() string        { return n.id }
-func (n *CancelOrderNode) NodeType() string  { return "cancel_order" }
-func (n *CancelOrderNode) Category() string  { return "trading" }
+func (n *CancelOrderNode) ID() string       { return n.id }
+func (n *CancelOrderNode) NodeType() string { return "cancel_order" }
+func (n *CancelOrderNode) Category() string { return "trading" }
 
 func (n *CancelOrderNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

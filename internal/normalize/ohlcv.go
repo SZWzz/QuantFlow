@@ -6,7 +6,7 @@ package normalize
 // All adapters SHOULD normalize their output to this type.
 type OHLCVBar struct {
 	Symbol string  `json:"symbol"`
-	Date   string  `json:"date"`   // "2006-01-02"
+	Date   string  `json:"date"` // "2006-01-02"
 	Open   float64 `json:"open"`
 	High   float64 `json:"high"`
 	Low    float64 `json:"low"`

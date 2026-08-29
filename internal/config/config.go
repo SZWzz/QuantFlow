@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"quantflow/internal/auth"
 
 	"gopkg.in/yaml.v3"
@@ -12,13 +11,13 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	path string // resolved absolute path, set by Load
+	path string                  // resolved absolute path, set by Load
 	cm   *auth.CredentialManager // optional, set at startup
 
-	Version              string            `yaml:"version"`
-	UpdateCheckInterval  string            `yaml:"update_check_interval"`
-	LogLevel             string            `yaml:"log_level"`
-	DBPath         string            `yaml:"db_path"`
+	Version             string `yaml:"version"`
+	UpdateCheckInterval string `yaml:"update_check_interval"`
+	LogLevel            string `yaml:"log_level"`
+	DBPath              string `yaml:"db_path"`
 	// APIKeys stores optional API keys loaded from config YAML.
 	// Deprecated: API keys should be stored in the CredentialManager (AES-256-GCM
 	// encrypted). This field is populated during Config.Load() for backward
@@ -31,10 +30,10 @@ type Config struct {
 // DefaultConfig returns sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
-		Version:              "0.0.1",
-		UpdateCheckInterval:  "daily",
-		LogLevel:             "info",
-		DBPath:   "data/quantflow.db",
+		Version:             "0.0.1",
+		UpdateCheckInterval: "daily",
+		LogLevel:            "info",
+		DBPath:              "data/quantflow.db",
 	}
 }
 
@@ -48,7 +47,7 @@ func (c *Config) Save() error {
 	if savePath == "" {
 		savePath = "config.yaml"
 	}
-	if err := os.WriteFile(savePath, data, 0644); err != nil {
+	if err := os.WriteFile(savePath, data, 0o600); err != nil { // 0o600: config 可能含凭据
 		return fmt.Errorf("write config: %w", err)
 	}
 	return nil

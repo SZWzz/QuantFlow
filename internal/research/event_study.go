@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 // EventStudyResult holds CAR analysis around an event date.

@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-
 	"quantflow/internal/ai"
 	"quantflow/internal/market"
 	"quantflow/internal/market/adapters"

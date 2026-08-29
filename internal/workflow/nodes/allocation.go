@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-
 	"quantflow/internal/workflow"
 )
 
@@ -17,9 +16,9 @@ func NewAllocationNode(id string, params map[string]any) (workflow.BaseNode, err
 	return &AllocationNode{id: id, params: params}, nil
 }
 
-func (n *AllocationNode) ID() string        { return n.id }
-func (n *AllocationNode) NodeType() string  { return "allocation" }
-func (n *AllocationNode) Category() string  { return "portfolio" }
+func (n *AllocationNode) ID() string       { return n.id }
+func (n *AllocationNode) NodeType() string { return "allocation" }
+func (n *AllocationNode) Category() string { return "portfolio" }
 
 func (n *AllocationNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

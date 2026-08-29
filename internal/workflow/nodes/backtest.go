@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/backtest"
 	"quantflow/internal/market"
 	"quantflow/internal/trading"
@@ -45,14 +44,22 @@ func (n *BacktestNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *BacktestNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "market", Type: "string", Default: "CN",
-			Description: "Market: CN, US, HK, CRYPTO"},
-		{Name: "start_date", Type: "string", Default: "2024-01-01",
-			Description: "Start date (YYYY-MM-DD)"},
-		{Name: "end_date", Type: "string", Default: "2024-12-31",
-			Description: "End date (YYYY-MM-DD)"},
-		{Name: "initial_cash", Type: "float", Default: 1000000,
-			Description: "Initial cash for the backtest"},
+		{
+			Name: "market", Type: "string", Default: "CN",
+			Description: "Market: CN, US, HK, CRYPTO",
+		},
+		{
+			Name: "start_date", Type: "string", Default: "2024-01-01",
+			Description: "Start date (YYYY-MM-DD)",
+		},
+		{
+			Name: "end_date", Type: "string", Default: "2024-12-31",
+			Description: "End date (YYYY-MM-DD)",
+		},
+		{
+			Name: "initial_cash", Type: "float", Default: 1000000,
+			Description: "Initial cash for the backtest",
+		},
 	}
 }
 
@@ -94,15 +101,7 @@ func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, param
 	// Convert market.OHLCVBar → trading.OHLCVBar for engine consumption.
 	tradingBars := make([]trading.OHLCVBar, len(bars))
 	for i, b := range bars {
-		tradingBars[i] = trading.OHLCVBar{
-			Symbol: b.Symbol,
-			Date:   b.Date,
-			Open:   b.Open,
-			High:   b.High,
-			Low:    b.Low,
-			Close:  b.Close,
-			Volume: b.Volume,
-		}
+		tradingBars[i] = trading.OHLCVBar(b)
 	}
 
 	// Create simple strategy
@@ -170,15 +169,15 @@ func (n *BacktestNode) Execute(ctx context.Context, inputs map[string]any, param
 	}
 
 	outputs := map[string]any{
-		"result":          result,
-		"equity_curve":    equityValues,
-		"metrics":         result.Metrics,
-		"trades":          result.Trades,
-		"strategy_name":   strategy.Name,
-		"symbol":          symbol,
-		"engine_type":     marketName,
-		"backtest_start":  startDate,
-		"backtest_end":    endDate,
+		"result":         result,
+		"equity_curve":   equityValues,
+		"metrics":        result.Metrics,
+		"trades":         result.Trades,
+		"strategy_name":  strategy.Name,
+		"symbol":         symbol,
+		"engine_type":    marketName,
+		"backtest_start": startDate,
+		"backtest_end":   endDate,
 	}
 	if nctx != nil && nctx.RunID != "" {
 		outputs["run_id"] = nctx.RunID

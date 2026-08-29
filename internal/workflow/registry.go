@@ -17,11 +17,11 @@ type NodePortInfo struct {
 
 // NodeMeta holds metadata about a registered node type.
 type NodeMeta struct {
-	NodeType    string          `json:"node_type"`
-	Category    string          `json:"category"`
-	InputPorts  []NodePortInfo  `json:"input_ports"`
-	OutputPorts []NodePortInfo  `json:"output_ports"`
-	Params      []ParamDef      `json:"params"`
+	NodeType    string         `json:"node_type"`
+	Category    string         `json:"category"`
+	InputPorts  []NodePortInfo `json:"input_ports"`
+	OutputPorts []NodePortInfo `json:"output_ports"`
+	Params      []ParamDef     `json:"params"`
 }
 
 // NodeRegistry manages node type registration and instantiation.

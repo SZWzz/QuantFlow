@@ -8,10 +8,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"quantflow/internal/workflow"
 	"strings"
 	"time"
-
-	"quantflow/internal/workflow"
 )
 
 type HTTPRequestNode struct {

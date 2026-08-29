@@ -3,20 +3,22 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/python"
 	"quantflow/internal/workflow"
 )
 
-type IndicatorBIASNode struct{ id string; params map[string]any }
+type IndicatorBIASNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewIndicatorBIASNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &IndicatorBIASNode{id: id, params: params}, nil
 }
 
 func (n *IndicatorBIASNode) ID() string       { return n.id }
-func (n *IndicatorBIASNode) NodeType() string  { return "indicator_bias" }
-func (n *IndicatorBIASNode) Category() string  { return "indicators" }
+func (n *IndicatorBIASNode) NodeType() string { return "indicator_bias" }
+func (n *IndicatorBIASNode) Category() string { return "indicators" }
 
 func (n *IndicatorBIASNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "prices", Type: workflow.PortSeries, Required: true}}

@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
-
 	"quantflow/internal/research"
 	"quantflow/internal/workflow"
+	"time"
 )
 
 // GeopoliticsNode fetches geopolitical risk data and extracts
@@ -24,8 +23,8 @@ func NewGeopoliticsNode(id string, params map[string]any) (workflow.BaseNode, er
 }
 
 func (n *GeopoliticsNode) ID() string       { return n.id }
-func (n *GeopoliticsNode) NodeType() string  { return "geopolitics" }
-func (n *GeopoliticsNode) Category() string  { return "alternative_data" }
+func (n *GeopoliticsNode) NodeType() string { return "geopolitics" }
+func (n *GeopoliticsNode) Category() string { return "alternative_data" }
 
 func (n *GeopoliticsNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

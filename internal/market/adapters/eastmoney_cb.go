@@ -6,37 +6,36 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 const eastMoneyCBURL = "https://datacenter.eastmoney.com/api/data/v1/get"
 
 // CBQuote represents a convertible bond quote with analysis fields.
 type CBQuote struct {
-	Code            string  `json:"code"`             // 转债代码 e.g. "123218"
-	Name            string  `json:"name"`             // 转债名称
-	StockCode       string  `json:"stock_code"`       // 正股代码
-	StockName       string  `json:"stock_name"`       // 正股名称
-	Price           float64 `json:"price"`            // 转债价格
-	StockPrice      float64 `json:"stock_price"`      // 正股价格
-	PremiumRate     float64 `json:"premium_rate"`     // 转股溢价率 (%)
-	ConversionPrice float64 `json:"conversion_price"` // 转股价
-	ConversionValue float64 `json:"conversion_value"` // 转股价值
-	YTM             float64 `json:"ytm"`              // 到期收益率 (%)
-	BondValue       float64 `json:"bond_value"`       // 纯债价值
-	Volume          float64 `json:"volume"`           // 成交量
-	Amount          float64 `json:"amount"`           // 成交额
-	CbChangePct     float64 `json:"cb_change_pct"`    // 转债涨跌幅
-	StockChangePct  float64 `json:"stock_change_pct"` // 正股涨跌幅
-	RemainSize      float64 `json:"remain_size"`      // 剩余规模 (亿元)
-	ListDate        string  `json:"list_date"`        // 上市日期
-	MaturityDate    string  `json:"maturity_date"`    // 到期日期
-	PutPrice        float64 `json:"put_price"`        // 回售触发价
-	CallPrice       float64 `json:"call_price"`       // 强赎触发价
-	Rating          string  `json:"rating"`           // 信用评级
-	PutConvertPrice float64 `json:"put_convert_price"`// 回售价
+	Code            string  `json:"code"`              // 转债代码 e.g. "123218"
+	Name            string  `json:"name"`              // 转债名称
+	StockCode       string  `json:"stock_code"`        // 正股代码
+	StockName       string  `json:"stock_name"`        // 正股名称
+	Price           float64 `json:"price"`             // 转债价格
+	StockPrice      float64 `json:"stock_price"`       // 正股价格
+	PremiumRate     float64 `json:"premium_rate"`      // 转股溢价率 (%)
+	ConversionPrice float64 `json:"conversion_price"`  // 转股价
+	ConversionValue float64 `json:"conversion_value"`  // 转股价值
+	YTM             float64 `json:"ytm"`               // 到期收益率 (%)
+	BondValue       float64 `json:"bond_value"`        // 纯债价值
+	Volume          float64 `json:"volume"`            // 成交量
+	Amount          float64 `json:"amount"`            // 成交额
+	CbChangePct     float64 `json:"cb_change_pct"`     // 转债涨跌幅
+	StockChangePct  float64 `json:"stock_change_pct"`  // 正股涨跌幅
+	RemainSize      float64 `json:"remain_size"`       // 剩余规模 (亿元)
+	ListDate        string  `json:"list_date"`         // 上市日期
+	MaturityDate    string  `json:"maturity_date"`     // 到期日期
+	PutPrice        float64 `json:"put_price"`         // 回售触发价
+	CallPrice       float64 `json:"call_price"`        // 强赎触发价
+	Rating          string  `json:"rating"`            // 信用评级
+	PutConvertPrice float64 `json:"put_convert_price"` // 回售价
 }
 
 // DualLowScore computes the dual-low ranking score (lower = better).
@@ -85,28 +84,28 @@ func (a *EastMoneyCBAdapter) FetchCBList(ctx context.Context) ([]CBQuote, error)
 		Success bool `json:"success"`
 		Result  struct {
 			Data []struct {
-				BONDCODE            string      `json:"BONDCODE"`
-				BONDNAME            string      `json:"BONDNAME"`
-				STOCKCODE           string      `json:"STOCKCODE"`
-				STOCKNAME           string      `json:"STOCKNAME"`
-				CLOSEPRICE          interface{} `json:"CLOSEPRICE"`
-				STOCKPRICE          interface{} `json:"STOCKPRICE"`
-				PREMIUMRATE         interface{} `json:"PREMIUMRATE"`
-				CONVERSIONPRICE     interface{} `json:"CONVERSIONPRICE"`
-				CONVERSIONVALUE     interface{} `json:"CONVERSIONVALUE"`
-				YTM                 interface{} `json:"YTM"`
-				BONDVALUE           interface{} `json:"BONDVALUE"`
-				VOLUME              interface{} `json:"VOLUME"`
-				AMOUNT              interface{} `json:"AMOUNT"`
-				CBCHANGEPCT         interface{} `json:"CBCHANGEPCT"`
-				STOCKCHANGEPCT      interface{} `json:"STOCKCHANGEPCT"`
-				REMAINSIZE          interface{} `json:"REMAINSIZE"`
-				LISTDATE            string      `json:"LISTDATE"`
-				MATURITYDATE        string      `json:"MATURITYDATE"`
-				PUTPRICE            interface{} `json:"PUTPRICE"`
-				CALLPRICE           interface{} `json:"CALLPRICE"`
-				RATING              string      `json:"RATING"`
-				PUTCONVERTPRICE     interface{} `json:"PUTCONVERTPRICE"`
+				BONDCODE        string      `json:"BONDCODE"`
+				BONDNAME        string      `json:"BONDNAME"`
+				STOCKCODE       string      `json:"STOCKCODE"`
+				STOCKNAME       string      `json:"STOCKNAME"`
+				CLOSEPRICE      interface{} `json:"CLOSEPRICE"`
+				STOCKPRICE      interface{} `json:"STOCKPRICE"`
+				PREMIUMRATE     interface{} `json:"PREMIUMRATE"`
+				CONVERSIONPRICE interface{} `json:"CONVERSIONPRICE"`
+				CONVERSIONVALUE interface{} `json:"CONVERSIONVALUE"`
+				YTM             interface{} `json:"YTM"`
+				BONDVALUE       interface{} `json:"BONDVALUE"`
+				VOLUME          interface{} `json:"VOLUME"`
+				AMOUNT          interface{} `json:"AMOUNT"`
+				CBCHANGEPCT     interface{} `json:"CBCHANGEPCT"`
+				STOCKCHANGEPCT  interface{} `json:"STOCKCHANGEPCT"`
+				REMAINSIZE      interface{} `json:"REMAINSIZE"`
+				LISTDATE        string      `json:"LISTDATE"`
+				MATURITYDATE    string      `json:"MATURITYDATE"`
+				PUTPRICE        interface{} `json:"PUTPRICE"`
+				CALLPRICE       interface{} `json:"CALLPRICE"`
+				RATING          string      `json:"RATING"`
+				PUTCONVERTPRICE interface{} `json:"PUTCONVERTPRICE"`
 			} `json:"data"`
 		} `json:"result"`
 	}
@@ -167,4 +166,3 @@ func toFloat64(v interface{}) float64 {
 		return 0
 	}
 }
-

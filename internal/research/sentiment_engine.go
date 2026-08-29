@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"quantflow/internal/market/adapters"
+	"quantflow/internal/python"
 	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 
-	"quantflow/internal/market/adapters"
-	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
 

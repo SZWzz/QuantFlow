@@ -64,8 +64,9 @@ func (u *Updater) Replace(execPath, downloadedPath string) error {
 		return fmt.Errorf("backup existing app: %w", err)
 	}
 	if err := os.Rename(newApp, appDir); err != nil {
-		// Restore backup
-		os.Rename(backupPath, appDir)
+		// Restore backup (best-effort: if this also fails the app dir is left
+		// missing and the user must reinstall — nothing more we can do here)
+		_ = os.Rename(backupPath, appDir)
 		return fmt.Errorf("replace app bundle: %w", err)
 	}
 	os.RemoveAll(backupPath)

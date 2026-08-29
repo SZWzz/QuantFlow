@@ -35,28 +35,29 @@ func NormalizeCN(input string) (*SymbolIdentity, error) {
 
 	// 1. Strip and detect suffix: .SH .SS .SZ .BJ
 	upper := strings.ToUpper(s)
-	if strings.HasSuffix(upper, ".SH") || strings.HasSuffix(upper, ".SS") {
+	switch {
+	case strings.HasSuffix(upper, ".SH") || strings.HasSuffix(upper, ".SS"):
 		id.Code = strings.TrimSuffix(strings.TrimSuffix(upper, ".SH"), ".SS")
 		id.Market = "SH"
-	} else if strings.HasSuffix(upper, ".SZ") {
+	case strings.HasSuffix(upper, ".SZ"):
 		id.Code = strings.TrimSuffix(upper, ".SZ")
 		id.Market = "SZ"
-	} else if strings.HasSuffix(upper, ".BJ") {
+	case strings.HasSuffix(upper, ".BJ"):
 		id.Code = strings.TrimSuffix(upper, ".BJ")
 		id.Market = "BJ"
-	} else if strings.HasPrefix(upper, "SH") && len(upper) == 8 {
+	case strings.HasPrefix(upper, "SH") && len(upper) == 8:
 		id.Code = upper[2:]
 		id.Market = "SH"
-	} else if strings.HasPrefix(upper, "SZ") && len(upper) == 8 {
+	case strings.HasPrefix(upper, "SZ") && len(upper) == 8:
 		id.Code = upper[2:]
 		id.Market = "SZ"
-	} else if strings.HasPrefix(upper, "BJ") && len(upper) == 8 {
+	case strings.HasPrefix(upper, "BJ") && len(upper) == 8:
 		id.Code = upper[2:]
 		id.Market = "BJ"
-	} else if len(upper) == 6 && isAllDigits(upper) {
+	case len(upper) == 6 && isAllDigits(upper):
 		id.Code = upper
 		id.Market = marketFromCode(upper)
-	} else {
+	default:
 		return nil, fmt.Errorf("symbol: unrecognized format %q", input)
 	}
 

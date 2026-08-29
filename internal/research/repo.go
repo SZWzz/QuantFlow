@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 )
 
@@ -130,11 +129,4 @@ func (r *ResearchRepo) GetLatestSentiment(symbol string) (*SentimentOutput, erro
 // HealthCheck verifies the database is accessible.
 func (r *ResearchRepo) HealthCheck() error {
 	return r.db.Ping()
-}
-
-// stripChars is a helper used by keyword extraction in the engine.
-func stripChars(s string) string {
-	s = strings.TrimSpace(s)
-	s = strings.Trim(s, ".,!?;:()[]{}\"'")
-	return s
 }

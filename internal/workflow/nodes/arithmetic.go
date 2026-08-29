@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // ArithmeticNode performs element-wise arithmetic on two series: a[i] op b[i].
-type ArithmeticNode struct{ id string; params map[string]any }
+type ArithmeticNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewArithmeticNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &ArithmeticNode{id: id, params: params}, nil

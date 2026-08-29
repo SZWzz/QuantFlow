@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"quantflow/internal/market"
+	"quantflow/internal/python"
 	"sync"
 	"time"
 
-	"quantflow/internal/market"
-	"quantflow/internal/python"
 	pb "quantflow/internal/python/proto"
 )
 
@@ -27,9 +27,9 @@ func NewAKShareMinuteAdapter(dataClient *python.DataClient) *AKShareMinuteAdapte
 	}
 }
 
-func (a *AKShareMinuteAdapter) Name() string              { return "akshare_hk_minute" }
-func (a *AKShareMinuteAdapter) Markets() []string          { return []string{"HK"} }
-func (a *AKShareMinuteAdapter) RequiresAuth() bool         { return false }
+func (a *AKShareMinuteAdapter) Name() string       { return "akshare_hk_minute" }
+func (a *AKShareMinuteAdapter) Markets() []string  { return []string{"HK"} }
+func (a *AKShareMinuteAdapter) RequiresAuth() bool { return false }
 
 func (a *AKShareMinuteAdapter) IsAvailable(ctx context.Context) bool {
 	return a.dataClient != nil

@@ -11,17 +11,17 @@ import (
 
 // THSHotStock represents a single strong-performing stock with its reason tags.
 type THSHotStock struct {
-	Code     string  `json:"code"`
-	Name     string  `json:"name"`
-	Reason   string  `json:"reason"`    // 题材归因 tags, e.g. "算力租赁+Token工厂+AI政务"
-	Close    float64 `json:"close"`
-	Change   float64 `json:"change_amt"` // 涨跌额
-	ChangePct float64 `json:"change_pct"` // 涨幅%
+	Code      string  `json:"code"`
+	Name      string  `json:"name"`
+	Reason    string  `json:"reason"` // 题材归因 tags, e.g. "算力租赁+Token工厂+AI政务"
+	Close     float64 `json:"close"`
+	Change    float64 `json:"change_amt"`   // 涨跌额
+	ChangePct float64 `json:"change_pct"`   // 涨幅%
 	Turnover  float64 `json:"turnover_pct"` // 换手率%
-	Amount   float64 `json:"amount"`       // 成交额(元)
-	Volume   float64 `json:"volume"`       // 成交量(股)
-	DDENet   float64 `json:"dde_net"`      // 大单净量
-	Market   string  `json:"market"`       // 市场(沪/深/北)
+	Amount    float64 `json:"amount"`       // 成交额(元)
+	Volume    float64 `json:"volume"`       // 成交量(股)
+	DDENet    float64 `json:"dde_net"`      // 大单净量
+	Market    string  `json:"market"`       // 市场(沪/深/北)
 }
 
 // THSHotAdapter fetches daily strong-performing stocks with analyst-curated

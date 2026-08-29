@@ -2,10 +2,10 @@ package backtest
 
 import (
 	"context"
+	"fmt"
+	"quantflow/internal/trading"
 	"sort"
 	"time"
-
-	"quantflow/internal/trading"
 )
 
 // ── PDT (Pattern Day Trader) Tracker ───────────────────────────────────────
@@ -96,7 +96,9 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 	tradingDates := extractTradingDates(bars)
 
 	portfolio := NewPortfolio(e.config.InitialCash)
-	e.oms.GetCashLedger().Deposit(e.config.InitialCash)
+	if err := e.oms.GetCashLedger().Deposit(e.config.InitialCash); err != nil {
+		return nil, fmt.Errorf("deposit initial cash: %w", err)
+	}
 	var equityCurve []EquityPoint
 	var tradeRecords []TradeRecord
 	latestPrices := make(map[string]float64)
@@ -128,16 +130,17 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		// P0: Fill at bar.Close — stop was triggered at close, so open has already passed.
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			avgPrice := pos.AvgPrice // capture before FillOrder clears it
+			posQty := pos.Quantity   // 同理：FillOrder 会原地扣减持仓
 			if e.risk.CheckStopLoss(pos, bar.Close) {
-				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
+				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", posQty, 0)
 				if err == nil {
 					// Only record the trade when the fill actually succeeds —
 					// recording a rejected fill produces phantom P&L.
-					if _, fillErr := e.oms.FillOrder(order.ID, pos.Quantity, bar.Close); fillErr == nil {
+					if _, fillErr := e.oms.FillOrder(order.ID, posQty, bar.Close); fillErr == nil {
 						tradeRecords = append(tradeRecords, TradeRecord{
 							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-							Quantity: pos.Quantity, Price: bar.Close,
-							PnL:      (bar.Close - avgPrice) * pos.Quantity,
+							Quantity: posQty, Price: bar.Close,
+							PnL: (bar.Close - avgPrice) * posQty,
 						})
 						if dailyBuys[bar.Symbol] {
 							barDate, _ := time.Parse("2006-01-02", bar.Date)
@@ -153,13 +156,13 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 				}
 			}
 			if e.risk.CheckTakeProfit(pos, bar.Close) {
-				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
+				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", posQty, 0)
 				if err == nil {
-					if _, fillErr := e.oms.FillOrder(order.ID, pos.Quantity, bar.Close); fillErr == nil {
+					if _, fillErr := e.oms.FillOrder(order.ID, posQty, bar.Close); fillErr == nil {
 						tradeRecords = append(tradeRecords, TradeRecord{
 							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-							Quantity: pos.Quantity, Price: bar.Close,
-							PnL:      (bar.Close - avgPrice) * pos.Quantity,
+							Quantity: posQty, Price: bar.Close,
+							PnL: (bar.Close - avgPrice) * posQty,
 						})
 						if dailyBuys[bar.Symbol] {
 							barDate, _ := time.Parse("2006-01-02", bar.Date)
@@ -237,11 +240,11 @@ func (e *USEngine) processUSBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		_ = sym
 	}
 	mockOrder := &trading.Order{
-		Symbol:   bar.Symbol,
-		Side:     trading.SideBuy,
+		Symbol:    bar.Symbol,
+		Side:      trading.SideBuy,
 		OrderType: trading.TypeMarket,
-		Quantity: qty,
-		Price:    effectivePrice,
+		Quantity:  qty,
+		Price:     effectivePrice,
 	}
 	if err := e.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
 		return

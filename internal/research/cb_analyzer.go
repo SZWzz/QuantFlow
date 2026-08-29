@@ -2,21 +2,20 @@ package research
 
 import (
 	"math"
-	"sort"
-
 	"quantflow/internal/market/adapters"
+	"sort"
 )
 
 // CBAnalysisResult is the output of convertible bond analysis.
 type CBAnalysisResult struct {
-	Quote          adapters.CBQuote `json:"quote"`
-	DualLowScore   float64          `json:"dual_low_score"`   // 双低评分 (price + premium)
-	FairValue      float64          `json:"fair_value"`       // 估算公允价值
-	ValueGap       float64          `json:"value_gap"`        // 公允价值 - 市价 (正=低估)
-	ValueGapPct    float64          `json:"value_gap_pct"`    // 折价率 (%)
-	PutProbability float64          `json:"put_probability"`  // 下修概率 (0-1)
-	IsCallRisk     bool             `json:"is_call_risk"`     // 强赎风险
-	IsPutOpportunity bool           `json:"is_put_opportunity"` // 回售套利机会
+	Quote            adapters.CBQuote `json:"quote"`
+	DualLowScore     float64          `json:"dual_low_score"`     // 双低评分 (price + premium)
+	FairValue        float64          `json:"fair_value"`         // 估算公允价值
+	ValueGap         float64          `json:"value_gap"`          // 公允价值 - 市价 (正=低估)
+	ValueGapPct      float64          `json:"value_gap_pct"`      // 折价率 (%)
+	PutProbability   float64          `json:"put_probability"`    // 下修概率 (0-1)
+	IsCallRisk       bool             `json:"is_call_risk"`       // 强赎风险
+	IsPutOpportunity bool             `json:"is_put_opportunity"` // 回售套利机会
 }
 
 // CBAnalyzer performs convertible bond analysis.

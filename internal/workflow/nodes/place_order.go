@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/trading"
 	"quantflow/internal/workflow"
 )
@@ -19,9 +18,9 @@ func NewPlaceOrderNode(id string, params map[string]any) (workflow.BaseNode, err
 	return &PlaceOrderNode{id: id, params: params}, nil
 }
 
-func (n *PlaceOrderNode) ID() string        { return n.id }
-func (n *PlaceOrderNode) NodeType() string  { return "place_order" }
-func (n *PlaceOrderNode) Category() string  { return "trading" }
+func (n *PlaceOrderNode) ID() string       { return n.id }
+func (n *PlaceOrderNode) NodeType() string { return "place_order" }
+func (n *PlaceOrderNode) Category() string { return "trading" }
 
 func (n *PlaceOrderNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

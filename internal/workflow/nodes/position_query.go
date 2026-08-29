@@ -2,7 +2,6 @@ package nodes
 
 import (
 	"context"
-
 	"quantflow/internal/trading"
 	"quantflow/internal/workflow"
 )
@@ -18,9 +17,9 @@ func NewPositionQueryNode(id string, params map[string]any) (workflow.BaseNode, 
 	return &PositionQueryNode{id: id, params: params}, nil
 }
 
-func (n *PositionQueryNode) ID() string        { return n.id }
-func (n *PositionQueryNode) NodeType() string  { return "position_query" }
-func (n *PositionQueryNode) Category() string  { return "trading" }
+func (n *PositionQueryNode) ID() string       { return n.id }
+func (n *PositionQueryNode) NodeType() string { return "position_query" }
+func (n *PositionQueryNode) Category() string { return "trading" }
 
 func (n *PositionQueryNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

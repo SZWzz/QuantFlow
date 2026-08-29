@@ -9,12 +9,6 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
-	"strings"
-	"sync"
-	"time"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"quantflow/internal/ai"
 	"quantflow/internal/auth"
 	"quantflow/internal/backtest"
@@ -25,18 +19,26 @@ import (
 	"quantflow/internal/market/adapters"
 	"quantflow/internal/notify"
 	"quantflow/internal/portfolio"
-	"quantflow/internal/research"
 	"quantflow/internal/python"
-	pb "quantflow/internal/python/proto"
+	"quantflow/internal/research"
 	"quantflow/internal/schedule"
 	"quantflow/internal/storage"
 	"quantflow/internal/trading"
 	"quantflow/internal/workflow"
 	"quantflow/internal/ws"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+
+	pb "quantflow/internal/python/proto"
 )
 
-var startTime = time.Now() // used by GetSystemStats for uptime
-var execQueue *workflow.ExecutionQueue
+var (
+	startTime = time.Now() // used by GetSystemStats for uptime
+	execQueue *workflow.ExecutionQueue
+)
 
 // App is the Wails-bound application struct. All exported methods are
 // available to the frontend via the generated TypeScript bindings.
@@ -59,7 +61,7 @@ type App struct {
 
 	// Phase 5
 	oms          *trading.OMS
-	tradingMode  *trading.EngineMode      // paper/live mode manager
+	tradingMode  *trading.EngineMode       // paper/live mode manager
 	brokers      map[string]trading.Broker // all registered live brokers by name
 	notifyMgr    *notify.Manager
 	scheduleRepo *schedule.Repo
@@ -70,53 +72,52 @@ type App struct {
 	credMgr      *auth.CredentialManager
 
 	// FetchData TTL cache (macro summaries, akshare endpoints, etc.).
-	dataCache     *fetchDataCache
+	dataCache *fetchDataCache
 
 	// Market data: adapter registry + fallback chains (wired in startup).
-	marketReg     *market.AdapterRegistry
+	marketReg *market.AdapterRegistry
 
 	// Market data hub for in-process pub/sub.
-	marketHub     *market.MarketDataHub
+	marketHub *market.MarketDataHub
 
 	// Sector service for industry dashboard.
-	sectorSvc     *market.SectorService
+	sectorSvc *market.SectorService
 
 	// Research services (exposed for analysis panels)
-	finSvc       *research.FinancialsService
-	peerSvc      *research.PeerComparisonService
-	macroSvc      *market.MacroService
-	styleSvc      *market.StyleService
-	eventStudySvc *research.EventStudyService
+	finSvc          *research.FinancialsService
+	peerSvc         *research.PeerComparisonService
+	macroSvc        *market.MacroService
+	styleSvc        *market.StyleService
+	eventStudySvc   *research.EventStudyService
 	shareholderAdpt *adapters.EastMoneyShareholderAdapter
 	unlockAdpt      *adapters.EastMoneyUnlockAdapter
 	attrSvc         *portfolio.AttributionService
 
 	// WebSocket service wrapper (set during ServiceStartup, registered in main.go).
-	wsSvc         *ws.MarketWSService
-	wsHub         *ws.Hub
+	wsSvc *ws.MarketWSService
+	wsHub *ws.Hub
 
 	// QuotePoller for periodic quote fetch + WebSocket broadcast.
-	quotePoller   *market.QuotePoller
+	quotePoller *market.QuotePoller
 	// MinutePoller for real-time minute tick push via WebSocket.
-	minutePoller  *market.MinutePoller
-	newsAdpt      adapters.NewsAdapter // news source for sentiment analysis
+	minutePoller   *market.MinutePoller
+	newsAdpt       adapters.NewsAdapter // news source for sentiment analysis
 	globalNewsAdpt *adapters.EastMoneyGlobalNewsAdapter
-	conceptAdpt   *adapters.EastMoneyConceptAdapter
-	macAdpt       *adapters.MacAdapter
-	signalsAdpt   *adapters.EastMoneySignalsAdapter
-	capitalAdpt   *adapters.EastMoneyCapitalAdapter
-	fundFlowAdpt  *adapters.EastMoneyFundFlowAdapter
-	sinaFinAdpt   *adapters.SinaFinancialsAdapter
+	conceptAdpt    *adapters.EastMoneyConceptAdapter
+	macAdpt        *adapters.MacAdapter
+	signalsAdpt    *adapters.EastMoneySignalsAdapter
+	capitalAdpt    *adapters.EastMoneyCapitalAdapter
+	fundFlowAdpt   *adapters.EastMoneyFundFlowAdapter
+	sinaFinAdpt    *adapters.SinaFinancialsAdapter
 	reportAdpt     *adapters.EastMoneyReportAdapter
 	consensusAdpt  *adapters.THSConsensusAdapter
-	thsHotAdpt     *adapters.THSHotAdapter
 	northboundAdpt *adapters.THSNorthboundAdapter
 	cninfoAdpt     *adapters.CninfoAdapter
 	iwencaiAdpt    *adapters.IwencaiAdapter
-	eastmoneyAdpt  *adapters.EastMoneyAdapter       // stock info for research overview
-	congressAdpt   *adapters.CongressTradesAdapter  // US congressional trades
+	eastmoneyAdpt  *adapters.EastMoneyAdapter      // stock info for research overview
+	congressAdpt   *adapters.CongressTradesAdapter // US congressional trades
 
-	polymarketAdpt      adapters.PolymarketAdapter  // prediction market data source
+	polymarketAdpt      adapters.PolymarketAdapter // prediction market data source
 	predictionMarketSvc *research.PredictionMarketService
 
 	geopoliticsAdpt adapters.GeopoliticsAdapter // geopolitical data source (GDELT)

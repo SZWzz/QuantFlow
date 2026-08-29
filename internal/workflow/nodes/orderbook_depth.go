@@ -24,12 +24,14 @@ func (n *OrderbookDepthNode) InputPorts() []workflow.PortDefinition {
 		{Name: "exchange", Type: workflow.PortString, Required: false},
 	}
 }
+
 func (n *OrderbookDepthNode) OutputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
 		{Name: "bids", Type: workflow.PortSeries},
 		{Name: "asks", Type: workflow.PortSeries},
 	}
 }
+
 func (n *OrderbookDepthNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{{Name: "limit", Type: "number", Default: "20", Description: "Price levels per side"}}
 }

@@ -22,7 +22,7 @@ func NewStore(dir string) *Store {
 }
 
 func (s *Store) Save(report *CrashReport) (string, error) {
-	if err := os.MkdirAll(s.dir, 0755); err != nil {
+	if err := os.MkdirAll(s.dir, 0o755); err != nil {
 		return "", fmt.Errorf("create crash dir: %w", err)
 	}
 
@@ -32,7 +32,7 @@ func (s *Store) Save(report *CrashReport) (string, error) {
 		return "", fmt.Errorf("marshal report: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return "", fmt.Errorf("write report: %w", err)
 	}
 	return path, nil

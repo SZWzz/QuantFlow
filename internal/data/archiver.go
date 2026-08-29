@@ -62,7 +62,7 @@ func ArchiveData(db *sql.DB, source, symbol, before string) (*ArchiveResult, err
 		args = append(args, before)
 	}
 
-	q := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s ORDER BY %s", source, where, dateCol)
+	q := fmt.Sprintf("SELECT * FROM \"%s\" WHERE %s ORDER BY %s", source, where, dateCol) //nolint:gosec // source/dateCol 均来自 validArchiveSources 白名单，用户输入只进 args 占位符
 	rows, err := db.Query(q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query %s: %w", source, err)
@@ -206,12 +206,13 @@ func UnarchiveData(db *sql.DB, archiveID int64) (int64, error) {
 		colList += `"` + c + `"`
 	}
 
-	q := fmt.Sprintf("INSERT OR IGNORE INTO \"%s\" (%s) VALUES (%s)", source, colList, placeholders)
+	q := fmt.Sprintf("INSERT OR IGNORE INTO \"%s\" (%s) VALUES (%s)", source, colList, placeholders) //nolint:gosec // source/列名来自白名单，值全走占位符
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	// Rollback after a successful Commit returns sql.ErrTxDone — safe to ignore
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.Prepare(q)
 	if err != nil {

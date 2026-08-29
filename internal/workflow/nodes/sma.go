@@ -4,7 +4,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -106,5 +105,3 @@ func toFloat64Slice(raw any) ([]float64, bool) {
 	result := extractFloat64Slice(raw)
 	return result, result != nil
 }
-
-

@@ -70,7 +70,8 @@ func (m *Manager) MarkAllRead() error {
 
 func (m *Manager) UnreadCount() int {
 	var count int
-	m.db.QueryRow("SELECT COUNT(*) FROM notifications WHERE is_read = 0").Scan(&count)
+	// Scan error leaves count=0 — acceptable degradation for a badge counter
+	_ = m.db.QueryRow("SELECT COUNT(*) FROM notifications WHERE is_read = 0").Scan(&count)
 	return count
 }
 
@@ -86,8 +87,10 @@ func (m *Manager) processEvents() {
 			slog.Warn("marshal notification metadata", "error", err)
 			metadataJSON = []byte("{}")
 		}
-		m.db.Exec("INSERT INTO notifications (level, title, body, metadata) VALUES (?, ?, ?, ?)",
-			msg.Level, msg.Title, msg.Body, string(metadataJSON))
+		if _, err := m.db.Exec("INSERT INTO notifications (level, title, body, metadata) VALUES (?, ?, ?, ?)",
+			msg.Level, msg.Title, msg.Body, string(metadataJSON)); err != nil {
+			slog.Warn("persist notification failed", "title", msg.Title, "error", err)
+		}
 
 		for _, n := range notifiers {
 			go func(notifier Notifier) {

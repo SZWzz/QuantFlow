@@ -2,9 +2,8 @@ package nodes
 
 import (
 	"context"
-	"time"
-
 	"quantflow/internal/workflow"
+	"time"
 )
 
 // WaitNode pauses workflow execution for a configurable duration.
@@ -18,9 +17,9 @@ func NewWaitNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &WaitNode{id: id, params: params}, nil
 }
 
-func (n *WaitNode) ID() string        { return n.id }
-func (n *WaitNode) NodeType() string  { return "wait" }
-func (n *WaitNode) Category() string  { return "schedule" }
+func (n *WaitNode) ID() string       { return n.id }
+func (n *WaitNode) NodeType() string { return "wait" }
+func (n *WaitNode) Category() string { return "schedule" }
 
 func (n *WaitNode) InputPorts() []workflow.PortDefinition  { return nil }
 func (n *WaitNode) OutputPorts() []workflow.PortDefinition { return nil }

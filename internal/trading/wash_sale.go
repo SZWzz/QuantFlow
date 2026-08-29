@@ -8,11 +8,11 @@ import (
 
 // WashSaleEvent represents a flagged wash sale trade pair.
 type WashSaleEvent struct {
-	Symbol       string  `json:"symbol"`
-	LossDate     string  `json:"loss_date"`
-	LossAmount   float64 `json:"loss_amount"`
-	RepurchaseDate string `json:"repurchase_date"`
-	WindowDays   int     `json:"window_days"`
+	Symbol         string  `json:"symbol"`
+	LossDate       string  `json:"loss_date"`
+	LossAmount     float64 `json:"loss_amount"`
+	RepurchaseDate string  `json:"repurchase_date"`
+	WindowDays     int     `json:"window_days"`
 	DisallowedLoss float64 `json:"disallowed_loss"`
 	AdjustedBasis  float64 `json:"adjusted_basis"`
 }
@@ -79,13 +79,13 @@ func (w *WashSaleChecker) Check(trades []TradeRecord) []WashSaleEvent {
 				if (st[j].Date.Equal(lossWindowStart) || st[j].Date.After(lossWindowStart)) &&
 					(st[j].Date.Equal(lossWindowEnd) || st[j].Date.Before(lossWindowEnd)) {
 					events = append(events, WashSaleEvent{
-						Symbol:          symbol,
-						LossDate:        t.Date.Format("2006-01-02"),
-						LossAmount:      lossAmt,
-						RepurchaseDate:  st[j].Date.Format("2006-01-02"),
-						WindowDays:      w.WindowDays,
-						DisallowedLoss:  lossAmt,
-						AdjustedBasis:   st[j].Price + lossAmt/float64(st[j].Quantity),
+						Symbol:         symbol,
+						LossDate:       t.Date.Format("2006-01-02"),
+						LossAmount:     lossAmt,
+						RepurchaseDate: st[j].Date.Format("2006-01-02"),
+						WindowDays:     w.WindowDays,
+						DisallowedLoss: lossAmt,
+						AdjustedBasis:  st[j].Price + lossAmt/float64(st[j].Quantity),
 					})
 				}
 			}

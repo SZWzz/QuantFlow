@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"time"
-
 	"quantflow/internal/research"
 	"quantflow/internal/workflow"
+	"time"
 )
 
 // PredictionMarketNode fetches prediction market data and extracts
@@ -25,7 +24,7 @@ func NewPredictionMarketNode(id string, params map[string]any) (workflow.BaseNod
 
 func (n *PredictionMarketNode) ID() string       { return n.id }
 func (n *PredictionMarketNode) NodeType() string { return "prediction_market" }
-func (n *PredictionMarketNode) Category() string  { return "alternative_data" }
+func (n *PredictionMarketNode) Category() string { return "alternative_data" }
 
 func (n *PredictionMarketNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{
@@ -131,4 +130,3 @@ func signalToMap(s research.SignalSummary) map[string]any {
 		"description": s.Description,
 	}
 }
-

@@ -2,9 +2,8 @@ package nodes
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/workflow"
+	"testing"
 )
 
 func TestEvaluateModelNode_Registration(t *testing.T) {

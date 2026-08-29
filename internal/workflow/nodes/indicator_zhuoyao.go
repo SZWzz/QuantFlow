@@ -3,20 +3,22 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/python"
 	"quantflow/internal/workflow"
 )
 
-type IndicatorZhuoyaoNode struct{ id string; params map[string]any }
+type IndicatorZhuoyaoNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewIndicatorZhuoyaoNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &IndicatorZhuoyaoNode{id: id, params: params}, nil
 }
 
 func (n *IndicatorZhuoyaoNode) ID() string       { return n.id }
-func (n *IndicatorZhuoyaoNode) NodeType() string  { return "indicator_zhuoyao" }
-func (n *IndicatorZhuoyaoNode) Category() string  { return "indicators" }
+func (n *IndicatorZhuoyaoNode) NodeType() string { return "indicator_zhuoyao" }
+func (n *IndicatorZhuoyaoNode) Category() string { return "indicators" }
 
 func (n *IndicatorZhuoyaoNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "ohlcv", Type: workflow.PortSeries, Required: true}}

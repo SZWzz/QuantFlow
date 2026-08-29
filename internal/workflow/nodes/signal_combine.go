@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // SignalCombineNode combines multiple signal arrays using AND, OR, or majority vote.
-type SignalCombineNode struct{ id string; params map[string]any }
+type SignalCombineNode struct {
+	id     string
+	params map[string]any
+}
 
 // NewSignalCombineNode creates a new SignalCombineNode.
 func NewSignalCombineNode(id string, params map[string]any) (workflow.BaseNode, error) {

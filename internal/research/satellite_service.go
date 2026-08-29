@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"quantflow/internal/market/adapters"
 	"sync"
 	"time"
-
-	"quantflow/internal/market/adapters"
 )
 
 // SatelliteService provides satellite-derived alternative data with TTL caching
@@ -38,8 +37,8 @@ func NewSatelliteService(adapter adapters.SatelliteAdapter) *SatelliteService {
 type SatelliteSignal struct {
 	Region      string  `json:"region"`
 	Signal      string  `json:"signal"`      // bullish, bearish, neutral
-	Description string  `json:"description"`  // Human-readable reasoning
-	Confidence  float64 `json:"confidence"`   // 0.0 - 1.0
+	Description string  `json:"description"` // Human-readable reasoning
+	Confidence  float64 `json:"confidence"`  // 0.0 - 1.0
 }
 
 // isAvailable returns true if the adapter is reachable.

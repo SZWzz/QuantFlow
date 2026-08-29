@@ -3,12 +3,11 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"quantflow/internal/trading"
+	"quantflow/internal/workflow"
 	"strings"
 	"testing"
 	"time"
-
-	"quantflow/internal/trading"
-	"quantflow/internal/workflow"
 )
 
 // setupTestDB opens a migrated temp SQLite database for repo tests.

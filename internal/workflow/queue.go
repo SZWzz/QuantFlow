@@ -9,17 +9,17 @@ import (
 
 // QueuedWorkflow represents a workflow waiting for or in execution.
 type QueuedWorkflow struct {
-	RunID       string                  `json:"run_id"`
-	WorkflowID  string                  `json:"workflow_id"`
-	Workflow    *Workflow               `json:"-"`
-	Status      string                  `json:"status"` // "queued" | "running" | "completed" | "failed"
-	Result      *ExecutionResult        `json:"result,omitempty"`
-	QueuePos    int                     `json:"queue_position"`
-	EnqueuedAt  time.Time               `json:"enqueued_at"`
-	StartedAt   time.Time               `json:"started_at,omitempty"`
-	FinishedAt  time.Time               `json:"finished_at,omitempty"`
-	Error       string                  `json:"error,omitempty"`
-	NodeResults map[string]*NodeResult  `json:"node_results,omitempty"`
+	RunID       string                 `json:"run_id"`
+	WorkflowID  string                 `json:"workflow_id"`
+	Workflow    *Workflow              `json:"-"`
+	Status      string                 `json:"status"` // "queued" | "running" | "completed" | "failed"
+	Result      *ExecutionResult       `json:"result,omitempty"`
+	QueuePos    int                    `json:"queue_position"`
+	EnqueuedAt  time.Time              `json:"enqueued_at"`
+	StartedAt   time.Time              `json:"started_at,omitempty"`
+	FinishedAt  time.Time              `json:"finished_at,omitempty"`
+	Error       string                 `json:"error,omitempty"`
+	NodeResults map[string]*NodeResult `json:"node_results,omitempty"`
 }
 
 // ExecutionQueue manages asynchronous workflow execution.

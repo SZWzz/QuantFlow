@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"quantflow/internal/market"
 	"sync"
 	"time"
-
-	"quantflow/internal/market"
 )
 
 const qosMinuteCooldown = 3 * time.Second
@@ -41,10 +40,10 @@ func NewQOSMinuteAdapter(cfg QOSConfig) *QOSMinuteAdapter {
 	}
 }
 
-func (a *QOSMinuteAdapter) Name() string              { return "qos" }
-func (a *QOSMinuteAdapter) Markets() []string          { return []string{"HK"} }
-func (a *QOSMinuteAdapter) RequiresAuth() bool         { return true }
-func (a *QOSMinuteAdapter) SetAPIKey(key string)       { a.apiKey = key }
+func (a *QOSMinuteAdapter) Name() string         { return "qos" }
+func (a *QOSMinuteAdapter) Markets() []string    { return []string{"HK"} }
+func (a *QOSMinuteAdapter) RequiresAuth() bool   { return true }
+func (a *QOSMinuteAdapter) SetAPIKey(key string) { a.apiKey = key }
 
 func (a *QOSMinuteAdapter) IsAvailable(ctx context.Context) bool {
 	return a.apiKey != ""
@@ -71,10 +70,10 @@ type qosKlineReq struct {
 }
 
 type qosSingleReq struct {
-	Code  string `json:"c"`  // "HK:700"
-	Count int    `json:"co"` // 240 = number of 1-min bars
-	Adjust int   `json:"a"`  // 0 = no adjust
-	Ktype int    `json:"kt"` // 1 = 1min
+	Code   string `json:"c"`  // "HK:700"
+	Count  int    `json:"co"` // 240 = number of 1-min bars
+	Adjust int    `json:"a"`  // 0 = no adjust
+	Ktype  int    `json:"kt"` // 1 = 1min
 }
 
 type qosKlineRespItem struct {

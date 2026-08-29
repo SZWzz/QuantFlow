@@ -2,7 +2,6 @@ package nodes
 
 import (
 	"context"
-
 	"quantflow/internal/workflow"
 )
 
@@ -17,9 +16,9 @@ func NewPortfolioSummaryNode(id string, params map[string]any) (workflow.BaseNod
 	return &PortfolioSummaryNode{id: id, params: params}, nil
 }
 
-func (n *PortfolioSummaryNode) ID() string        { return n.id }
-func (n *PortfolioSummaryNode) NodeType() string  { return "portfolio_summary" }
-func (n *PortfolioSummaryNode) Category() string  { return "portfolio" }
+func (n *PortfolioSummaryNode) ID() string       { return n.id }
+func (n *PortfolioSummaryNode) NodeType() string { return "portfolio_summary" }
+func (n *PortfolioSummaryNode) Category() string { return "portfolio" }
 
 func (n *PortfolioSummaryNode) InputPorts() []workflow.PortDefinition { return nil }
 

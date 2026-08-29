@@ -15,16 +15,16 @@ type ReconciliationReport struct {
 	DiffCount  int                  `json:"diff_count"`
 	Dirt       string               `json:"dirt"` // "clean" or "dirty"
 	Diffs      []ReconciliationDiff `json:"diffs"`
-	OMSOnly    []string            `json:"oms_only"`    // symbols in OMS but not broker
-	BrokerOnly []string            `json:"broker_only"` // symbols in broker but not OMS
+	OMSOnly    []string             `json:"oms_only"`    // symbols in OMS but not broker
+	BrokerOnly []string             `json:"broker_only"` // symbols in broker but not OMS
 }
 
 // ReconciliationDiff represents a single position mismatch.
 type ReconciliationDiff struct {
-	Symbol        string  `json:"symbol"`
-	OMSQuantity   float64 `json:"oms_quantity"`
-	BrokerQty     float64 `json:"broker_quantity"`
-	OMSAvgPrice   float64 `json:"oms_avg_price"`
+	Symbol         string  `json:"symbol"`
+	OMSQuantity    float64 `json:"oms_quantity"`
+	BrokerQty      float64 `json:"broker_quantity"`
+	OMSAvgPrice    float64 `json:"oms_avg_price"`
 	BrokerAvgPrice float64 `json:"broker_avg_price"`
 }
 
@@ -70,10 +70,10 @@ func ReconcileAll(oms *OMS, brokers map[string]Broker) []*ReconciliationReport {
 				} else {
 					report.DiffCount++
 					report.Diffs = append(report.Diffs, ReconciliationDiff{
-						Symbol:        symbol,
-						OMSQuantity:   omsPos.Quantity,
-						BrokerQty:     brokerPos.Quantity,
-						OMSAvgPrice:   omsPos.AvgPrice,
+						Symbol:         symbol,
+						OMSQuantity:    omsPos.Quantity,
+						BrokerQty:      brokerPos.Quantity,
+						OMSAvgPrice:    omsPos.AvgPrice,
 						BrokerAvgPrice: brokerPos.AvgPrice,
 					})
 				}

@@ -64,7 +64,7 @@ func NewMacAdapter(addr string) *MacAdapter {
 	return &MacAdapter{addrs: append([]string(nil), macFallbackAddrs...)}
 }
 
-func (a *MacAdapter) Name() string      { return "mac" }
+func (a *MacAdapter) Name() string       { return "mac" }
 func (a *MacAdapter) Markets() []string  { return []string{"CN"} }
 func (a *MacAdapter) RequiresAuth() bool { return false }
 
@@ -127,8 +127,9 @@ func buildMACRequest(msgID uint16, body []byte, headFlag uint8) []byte {
 	hdr[0] = headFlag
 	// customize: bytes 1-4 = 0 (default)
 	hdr[5] = macVersion
-	binary.LittleEndian.PutUint16(hdr[6:], uint16(len(inner)))
-	binary.LittleEndian.PutUint16(hdr[8:], uint16(len(inner)))
+	// MAC 协议包体上限远小于 64KiB（每页最多几百条记录），uint16 截断不会发生
+	binary.LittleEndian.PutUint16(hdr[6:], uint16(len(inner))) //nolint:gosec // 见上注释
+	binary.LittleEndian.PutUint16(hdr[8:], uint16(len(inner))) //nolint:gosec // 见上注释
 
 	return append(hdr, inner...)
 }
@@ -161,14 +162,22 @@ func (a *MacAdapter) sendMACRequest(msgID uint16, body []byte, headFlag uint8) (
 			time.Sleep(200 * time.Millisecond)
 		}
 
-		conn.SetWriteDeadline(time.Now().Add(macWriteTimeout))
+		if err := conn.SetWriteDeadline(time.Now().Add(macWriteTimeout)); err != nil {
+			conn.Close()
+			a.conn = nil
+			continue
+		}
 		if _, err := conn.Write(req); err != nil {
 			conn.Close()
 			a.conn = nil
 			continue
 		}
 
-		conn.SetReadDeadline(time.Now().Add(macReadTimeout))
+		if err := conn.SetReadDeadline(time.Now().Add(macReadTimeout)); err != nil {
+			conn.Close()
+			a.conn = nil
+			continue
+		}
 
 		// Read 16-byte response header
 		respHdr := make([]byte, respHeaderSize)
@@ -207,7 +216,8 @@ func (a *MacAdapter) sendMACRequest(msgID uint16, body []byte, headFlag uint8) (
 			}
 			defer r.Close()
 			var buf bytes.Buffer
-			if _, err := io.Copy(&buf, r); err != nil {
+			// 限制解压上限 64MiB，防解压炸弹（正常响应 < 1MiB）
+			if _, err := io.Copy(&buf, io.LimitReader(r, 64<<20)); err != nil {
 				return nil, fmt.Errorf("mac: zlib decompress: %w", err)
 			}
 			if buf.Len() != unzipsize {
@@ -243,8 +253,8 @@ func (a *MacAdapter) GetBlockRank(market int, sortField int, count int) ([]Block
 	body := make([]byte, 8)
 	body[0] = byte(market)
 	body[1] = byte(sortField)
-	binary.LittleEndian.PutUint16(body[2:], uint16(0)) // start
-	binary.LittleEndian.PutUint16(body[4:], uint16(count))
+	binary.LittleEndian.PutUint16(body[2:], uint16(0))                  // start
+	binary.LittleEndian.PutUint16(body[4:], uint16(min(count, 0xFFFF))) //nolint:gosec // 已钳制到 uint16 范围
 	// 0x122B = board members quotes (reused for block rank)
 
 	resp, err := a.sendMACRequest(0x122B, body, macHeadFlag)
@@ -299,7 +309,7 @@ func (a *MacAdapter) GetCapitalFlow(symbol string) (*CapitalFlow, error) {
 
 	// Build request: H:market + 8s:code(padded) + 21s:"Stock_ZJLX"
 	body := make([]byte, 2+8+21)
-	binary.LittleEndian.PutUint16(body[0:], uint16(mkt))
+	binary.LittleEndian.PutUint16(body[0:], uint16(mkt)) //nolint:gosec // mkt 为 0/1 市场枚举
 	copy(body[2:10], padCode(code))
 	copy(body[10:], []byte("Stock_ZJLX"))
 
@@ -321,8 +331,8 @@ func (a *MacAdapter) GetCapitalFlow(symbol string) (*CapitalFlow, error) {
 	// Format: "[[12.3, 4.5, ...], [...]]"
 	vals := extractFloats(jsonStr)
 	if len(vals) >= 4 {
-		cf.MainFlow = vals[0] - vals[1]   // main_in - main_out
-		cf.SmallFlow = vals[2] - vals[3]   // retail_in - retail_out
+		cf.MainFlow = vals[0] - vals[1]  // main_in - main_out
+		cf.SmallFlow = vals[2] - vals[3] // retail_in - retail_out
 	}
 	if len(vals) >= 10 {
 		cf.SuperFlow = vals[6]
@@ -352,7 +362,7 @@ func (a *MacAdapter) GetAuction(symbol string) ([]AuctionItem, error) {
 	}
 
 	body := make([]byte, 2+22+4+4+10)
-	binary.LittleEndian.PutUint16(body[0:], uint16(mkt))
+	binary.LittleEndian.PutUint16(body[0:], uint16(mkt)) //nolint:gosec // mkt 为 0/1 市场枚举
 	copy(body[2:24], padCode(code))
 	// start=0, count=500
 	binary.LittleEndian.PutUint32(body[24:], 0)
@@ -376,9 +386,9 @@ func (a *MacAdapter) GetAuction(symbol string) ([]AuctionItem, error) {
 		}
 		r := resp[offset:]
 		sec := binary.LittleEndian.Uint32(r[0:])
-		price := float64(int32(binary.LittleEndian.Uint32(r[4:]))) / 1000
-		matched := int64(int32(binary.LittleEndian.Uint32(r[8:])))
-		unmatched := int64(int32(binary.LittleEndian.Uint32(r[12:])))
+		price := float64(int32(binary.LittleEndian.Uint32(r[4:]))) / 1000 //nolint:gosec // 协议字段为 int32 定点数，位重解释是有意为之
+		matched := int64(int32(binary.LittleEndian.Uint32(r[8:])))        //nolint:gosec // 同上
+		unmatched := int64(int32(binary.LittleEndian.Uint32(r[12:])))     //nolint:gosec // 同上
 
 		h := sec / 3600
 		m := (sec % 3600) / 60
@@ -411,7 +421,7 @@ type AbnormalStock struct {
 // GetAbnormalStocks returns stocks with abnormal price/volume behavior.
 func (a *MacAdapter) GetAbnormalStocks(market int) ([]AbnormalStock, error) {
 	body := make([]byte, 4)
-	binary.LittleEndian.PutUint32(body[0:], uint32(market))
+	binary.LittleEndian.PutUint32(body[0:], uint32(market)) //nolint:gosec // market 为 0/1 市场枚举
 
 	resp, err := a.sendMACRequest(0x1237, body, macHeadFlag)
 	if err != nil {
@@ -433,10 +443,10 @@ func (a *MacAdapter) GetAbnormalStocks(market int) ([]AbnormalStock, error) {
 		r := AbnormalStock{
 			Symbol:    strings.TrimSpace(string(rec[0:6])),
 			Name:      strings.TrimSpace(gbkToString(rec[6:22])),
-			Price:     float64(int32(binary.LittleEndian.Uint32(rec[36:]))) / 1000,
-			ChangePct: float64(int32(binary.LittleEndian.Uint32(rec[60:]))) / 100, // divided
-			Volume:    float64(int32(binary.LittleEndian.Uint32(rec[44:]))),
-			Turnover:  float64(int32(binary.LittleEndian.Uint32(rec[50:]))) / 1000,
+			Price:     float64(int32(binary.LittleEndian.Uint32(rec[36:]))) / 1000, //nolint:gosec // 协议 int32 定点数位重解释
+			ChangePct: float64(int32(binary.LittleEndian.Uint32(rec[60:]))) / 100,  //nolint:gosec // 协议 int32 定点数位重解释
+			Volume:    float64(int32(binary.LittleEndian.Uint32(rec[44:]))),        //nolint:gosec // 协议 int32 位重解释
+			Turnover:  float64(int32(binary.LittleEndian.Uint32(rec[50:]))) / 1000, //nolint:gosec // 协议 int32 定点数位重解释
 			Reason:    describeUnusual(rec[28]),
 		}
 		results = append(results, r)

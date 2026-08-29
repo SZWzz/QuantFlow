@@ -2,9 +2,9 @@ package backtest
 
 import (
 	"context"
-	"sort"
-
+	"fmt"
 	"quantflow/internal/trading"
+	"sort"
 )
 
 // HKEngine is the Hong Kong stock backtesting engine.
@@ -29,9 +29,9 @@ func NewHKEngine(config Config) *HKEngine {
 	}
 	return &HKEngine{
 		Runner:        NewRunner(config),
-		stampDutyRate: 0.0013,                  // 0.1% stamp + 0.0027% SFC + 0.00015% FRC = ~0.13%
-		tradingFee:    0.0000565 + 0.0000278,   // Exchange + SFC levy
-		lotSize:       100,                      // Default lot size
+		stampDutyRate: 0.0013,                // 0.1% stamp + 0.0027% SFC + 0.00015% FRC = ~0.13%
+		tradingFee:    0.0000565 + 0.0000278, // Exchange + SFC levy
+		lotSize:       100,                   // Default lot size
 	}
 }
 
@@ -44,7 +44,9 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
 
 	portfolio := NewPortfolio(e.config.InitialCash)
-	e.oms.GetCashLedger().Deposit(e.config.InitialCash)
+	if err := e.oms.GetCashLedger().Deposit(e.config.InitialCash); err != nil {
+		return nil, fmt.Errorf("deposit initial cash: %w", err)
+	}
 	var equityCurve []EquityPoint
 	var tradeRecords []TradeRecord
 	latestPrices := make(map[string]float64)
@@ -75,16 +77,17 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
 			if e.risk.CheckStopLoss(pos, bar.Close) || e.risk.CheckTakeProfit(pos, bar.Close) {
 				avgPrice := pos.AvgPrice // capture before FillOrder clears it
-				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
+				posQty := pos.Quantity   // 同理：FillOrder 会原地扣减持仓
+				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", posQty, 0)
 				if err == nil {
 					// Only record the trade when the fill actually succeeds —
 					// recording a rejected fill produces phantom P&L.
-					if _, fillErr := e.oms.FillOrder(order.ID, pos.Quantity, bar.Close); fillErr == nil {
-						revenue := bar.Close*pos.Quantity - e.stampDuty(bar.Close*pos.Quantity) - e.tradeFee(bar.Close*pos.Quantity) - bar.Close*pos.Quantity*e.config.Commission
-						pnl := revenue - avgPrice*pos.Quantity
+					if _, fillErr := e.oms.FillOrder(order.ID, posQty, bar.Close); fillErr == nil {
+						revenue := bar.Close*posQty - e.stampDuty(bar.Close*posQty) - e.tradeFee(bar.Close*posQty) - bar.Close*posQty*e.config.Commission
+						pnl := revenue - avgPrice*posQty
 						tradeRecords = append(tradeRecords, TradeRecord{
 							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-							Quantity: pos.Quantity, Price: bar.Close, PnL: pnl,
+							Quantity: posQty, Price: bar.Close, PnL: pnl,
 						})
 						portfolio.Cash = e.oms.GetCashBalance()
 						delete(portfolio.Positions, bar.Symbol)
@@ -161,11 +164,11 @@ func (e *HKEngine) processHKBuySignal(bar trading.OHLCVBar, signal *trading.Sign
 		_ = sym
 	}
 	mockOrder := &trading.Order{
-		Symbol:   bar.Symbol,
-		Side:     trading.SideBuy,
+		Symbol:    bar.Symbol,
+		Side:      trading.SideBuy,
 		OrderType: trading.TypeMarket,
-		Quantity: qty,
-		Price:    effectivePrice,
+		Quantity:  qty,
+		Price:     effectivePrice,
 	}
 	if err := e.risk.CheckOrder(mockOrder, pos, portfolioValue); err != nil {
 		return

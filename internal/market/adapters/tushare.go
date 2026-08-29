@@ -8,10 +8,9 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
-
 	"quantflow/internal/market"
 	"quantflow/internal/normalize"
+	"time"
 )
 
 const tushareBaseURL = "https://api.tushare.pro"
@@ -32,7 +31,7 @@ func NewTuShareAdapter() *TuShareAdapter {
 	}
 }
 
-func (a *TuShareAdapter) Name() string      { return "tushare" }
+func (a *TuShareAdapter) Name() string       { return "tushare" }
 func (a *TuShareAdapter) Markets() []string  { return []string{"CN"} }
 func (a *TuShareAdapter) RequiresAuth() bool { return true }
 
@@ -52,8 +51,8 @@ func (a *TuShareAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 
 	// TuShare daily quote
 	result, err := a.callAPI(ctx, "daily", map[string]any{
-		"ts_code":    symbol,
-		"limit":      "1",
+		"ts_code": symbol,
+		"limit":   "1",
 	}, []string{"ts_code", "trade_date", "open", "high", "low", "close", "vol", "pct_chg", "change"})
 	if err != nil {
 		return nil, err
@@ -218,8 +217,8 @@ type tushareResponse struct {
 }
 
 type tushareData struct {
-	Fields []string   `json:"fields"`
-	Items  [][]any    `json:"items"`
+	Fields []string `json:"fields"`
+	Items  [][]any  `json:"items"`
 }
 
 func fieldsToString(fields []string) string {

@@ -21,9 +21,11 @@ func (n *TradeHistoryNode) Category() string { return "data" }
 func (n *TradeHistoryNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "symbol", Type: workflow.PortString, Required: false}}
 }
+
 func (n *TradeHistoryNode) OutputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "trades", Type: workflow.PortSeries}}
 }
+
 func (n *TradeHistoryNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{{Name: "limit", Type: "number", Default: "100", Description: "Max trade records"}}
 }

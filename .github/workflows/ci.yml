@@ -26,6 +26,9 @@ jobs:
       - run: mkdir -p frontend/dist && echo '<!doctype html><title>ci-placeholder</title>' > frontend/dist/index.html
       - run: go build ./...
       - run: go vet ./...
+      # 版本与 .golangci.yml(v1 配置格式）及本地门禁保持一致
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
       - run: golangci-lint run ./... --timeout 5m
       - run: go test -race ./... -count=1
   frontend:

@@ -5,16 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-
 	"quantflow/internal/ai"
 	"quantflow/internal/python"
+
 	pb "quantflow/internal/python/proto"
 )
 
 // RegisterFactorCapabilities registers list_factors and compute_factor capabilities.
 // These capabilities forward calls to the Python FactorService via gRPC.
 func RegisterFactorCapabilities(reg *ai.CapabilityRegistry, bridge *python.PythonBridge) {
-	reg.Register(&ai.Capability{
+	if err := reg.Register(&ai.Capability{
 		Name:        "list_factors",
 		Description: "List all available alpha factors with their categories and descriptions. Use this to discover what factors can be computed.",
 		Parameters: json.RawMessage(`{
@@ -39,9 +39,9 @@ func RegisterFactorCapabilities(reg *ai.CapabilityRegistry, bridge *python.Pytho
 					Category string `json:"category"`
 				}
 				if err := json.Unmarshal(args, &params); err != nil {
-				slog.Warn("list_factors: unmarshal params", "error", err)
-			}
-			catFilter = params.Category
+					slog.Warn("list_factors: unmarshal params", "error", err)
+				}
+				catFilter = params.Category
 			}
 
 			var lines []string
@@ -57,9 +57,11 @@ func RegisterFactorCapabilities(reg *ai.CapabilityRegistry, bridge *python.Pytho
 			result := "Available factors:\n" + join(lines, "\n")
 			return result, nil
 		},
-	})
+	}); err != nil {
+		slog.Error("register capability failed", "name", "list_factors", "error", err)
+	}
 
-	reg.Register(&ai.Capability{
+	if err := reg.Register(&ai.Capability{
 		Name:        "compute_factor",
 		Description: "Compute an alpha factor for one or more symbols. Requires factor name and symbol. Returns factor values.",
 		Parameters: json.RawMessage(`{
@@ -98,7 +100,9 @@ func RegisterFactorCapabilities(reg *ai.CapabilityRegistry, bridge *python.Pytho
 			}
 			return fmt.Sprintf("Factor %s computed in %dms. Results: %s", params.FactorName, resp.ComputeTimeMs, string(result)), nil
 		},
-	})
+	}); err != nil {
+		slog.Error("register capability failed", "name", "compute_factor", "error", err)
+	}
 }
 
 func join(lines []string, sep string) string {

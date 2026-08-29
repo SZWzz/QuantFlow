@@ -51,7 +51,7 @@ func NewPolymarketAdapter() *PolymarketHTTPAdapter {
 	}
 }
 
-func (a *PolymarketHTTPAdapter) Name() string      { return "polymarket" }
+func (a *PolymarketHTTPAdapter) Name() string       { return "polymarket" }
 func (a *PolymarketHTTPAdapter) RequiresAuth() bool { return false }
 
 func (a *PolymarketHTTPAdapter) IsAvailable(ctx context.Context) bool {

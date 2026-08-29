@@ -42,7 +42,7 @@ copy /Y "%s" "%s"
 del "%s"
 start "" "%s"
 `, newBinary, execPath, batPath, execPath)
-	if err := os.WriteFile(batPath, []byte(batContent), 0644); err != nil {
+	if err := os.WriteFile(batPath, []byte(batContent), 0o644); err != nil {
 		return fmt.Errorf("write replace script: %w", err)
 	}
 

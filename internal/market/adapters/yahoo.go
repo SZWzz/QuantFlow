@@ -7,11 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"strings"
-	"sync"
-	"time"
-
 	"quantflow/internal/market"
+	"strings"
+	"time"
 )
 
 const (
@@ -22,12 +20,10 @@ const (
 )
 
 // YahooAdapter fetches market data from Yahoo Finance (free, no auth).
-// Handles crumb-based cookie auth required by Yahoo's v8 chart API.
+// The v8 chart API currently works without crumb auth; cookie jar is kept
+// so Yahoo-issued cookies are still echoed back on retries.
 type YahooAdapter struct {
-	client  *http.Client
-	crumb   string
-	crumbMu sync.RWMutex
-	crumbAt time.Time
+	client *http.Client
 }
 
 // NewYahooAdapter creates a new Yahoo Finance adapter.
@@ -41,7 +37,7 @@ func NewYahooAdapter() *YahooAdapter {
 	}
 }
 
-func (a *YahooAdapter) Name() string      { return "yahoo" }
+func (a *YahooAdapter) Name() string       { return "yahoo" }
 func (a *YahooAdapter) Markets() []string  { return []string{"US", "HK", "CN"} }
 func (a *YahooAdapter) RequiresAuth() bool { return false }
 
@@ -66,49 +62,6 @@ func (a *YahooAdapter) IsAvailable(ctx context.Context) bool {
 	}
 	resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
-}
-
-// getCrumb fetches a fresh crumb from Yahoo. Crumb expires after ~1 hour.
-func (a *YahooAdapter) getCrumb(ctx context.Context) (string, error) {
-	a.crumbMu.RLock()
-	if a.crumb != "" && time.Since(a.crumbAt) < 30*time.Minute {
-		defer a.crumbMu.RUnlock()
-		return a.crumb, nil
-	}
-	a.crumbMu.RUnlock()
-
-	a.crumbMu.Lock()
-	defer a.crumbMu.Unlock()
-
-	// Double-check after acquiring write lock
-	if a.crumb != "" && time.Since(a.crumbAt) < 30*time.Minute {
-		return a.crumb, nil
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "GET", yahooCrumbURL, nil)
-	if err != nil {
-		return "", err
-	}
-	a.setHeaders(req)
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("crumb request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 256))
-	if err != nil {
-		return "", err
-	}
-	crumb := strings.TrimSpace(string(body))
-	if crumb == "" || resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("crumb unavailable (HTTP %d): %s", resp.StatusCode, string(body))
-	}
-
-	a.crumb = crumb
-	a.crumbAt = time.Now()
-	return crumb, nil
 }
 
 // setHeaders adds the required headers for Yahoo Finance API requests.

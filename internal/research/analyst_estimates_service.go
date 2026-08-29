@@ -3,9 +3,8 @@ package research
 import (
 	"context"
 	"log/slog"
-	"strings"
-
 	"quantflow/internal/market/adapters"
+	"strings"
 )
 
 // AnalystEstimatesService provides analyst rating and consensus data.

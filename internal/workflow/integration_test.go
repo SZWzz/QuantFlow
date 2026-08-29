@@ -21,7 +21,7 @@ func TestIntegration_SMACrossFromFile(t *testing.T) {
 2024-01-02,105,115,100,110,1200
 2024-01-03,110,120,105,115,1300
 2024-01-04,115,125,110,120,1400
-2024-01-05,120,130,115,125,1500`), 0644)
+2024-01-05,120,130,115,125,1500`), 0o644)
 
 	reg := workflow.NewRegistry()
 	reg.RegisterWithCategory("data_loader", nodes.NewDataLoaderNode, "data")

@@ -94,8 +94,8 @@ func TestMarketDataProvider_Concurrent(t *testing.T) {
 		unsubs[i] = unsub
 	}
 
-	if n := hub.SubscriberCount(); n != n {
-		t.Errorf("SubscriberCount = %d, want %d", n, n)
+	if got := hub.SubscriberCount(); got != n {
+		t.Errorf("SubscriberCount = %d, want %d", got, n)
 	}
 
 	hub.Publish("topic_conc", "hello")

@@ -69,12 +69,12 @@ func TestSymbolSearchService_Search(t *testing.T) {
 	}{
 		{"600519", "600519"}, // exact code
 		{"6005", "600519"},   // code prefix
-		{"茅台", "600519"},    // name contains
+		{"茅台", "600519"},     // name contains
 		{"gzmt", "600519"},   // pinyin exact
 		{"gzm", "600519"},    // pinyin prefix
-		{"平安", "000001"},    // name contains
+		{"平安", "000001"},     // name contains
 		{"ndsd", "300750"},   // pinyin
-		{"招商", "600036"},    // name contains
+		{"招商", "600036"},     // name contains
 	}
 
 	for _, tt := range tests {

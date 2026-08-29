@@ -3,13 +3,15 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // BoolCombineNode performs element-wise boolean combination of two series.
 // Treats values > 0 as true.
-type BoolCombineNode struct{ id string; params map[string]any }
+type BoolCombineNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewBoolCombineNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &BoolCombineNode{id: id, params: params}, nil

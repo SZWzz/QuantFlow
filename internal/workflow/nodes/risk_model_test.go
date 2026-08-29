@@ -3,10 +3,9 @@ package nodes
 import (
 	"context"
 	"math"
-	"testing"
-
 	"quantflow/internal/normalize"
 	"quantflow/internal/workflow"
+	"testing"
 )
 
 func TestRiskModelNode_Validate(t *testing.T) {
@@ -98,7 +97,6 @@ func TestRiskModelNode_Execute_FallbackVolatility(t *testing.T) {
 	outputs, err := node.Execute(context.Background(), map[string]any{
 		"returns_data": bars,
 	}, map[string]any{"model_type": "garch"}, &workflow.NodeContext{})
-
 	if err != nil {
 		t.Fatalf("Execute() unexpected error: %v", err)
 	}
@@ -125,7 +123,6 @@ func TestRiskModelNode_Execute_PreComputedReturns(t *testing.T) {
 	outputs, err := node.Execute(context.Background(), map[string]any{
 		"returns_data": returns,
 	}, map[string]any{"model_type": "covariance", "method": "ledoit_wolf"}, &workflow.NodeContext{})
-
 	if err != nil {
 		t.Fatalf("Execute() unexpected error: %v", err)
 	}

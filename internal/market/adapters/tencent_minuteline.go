@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"quantflow/internal/market"
 	"strings"
 	"time"
-
-	"quantflow/internal/market"
 )
 
 const tencentMinuteURL = "http://ifzq.gtimg.cn/appstock/app/minute/query?_var=min_data&code=%s"
@@ -58,10 +57,7 @@ func (a *TencentAdapter) FetchMinuteLine(symbol string) ([]market.MinuteTick, er
 	}
 
 	// Strip JSONP wrapper: min_data={...}
-	raw := strings.TrimSpace(bodyStr)
-	if strings.HasPrefix(raw, "min_data=") {
-		raw = raw[len("min_data="):]
-	}
+	raw := strings.TrimPrefix(strings.TrimSpace(bodyStr), "min_data=")
 
 	var apiResp tencentMinuteResponse
 	if err := json.Unmarshal([]byte(raw), &apiResp); err != nil {

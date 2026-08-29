@@ -7,15 +7,18 @@ import (
 	"quantflow/internal/workflow"
 )
 
-type BollingerNode struct{ id string; params map[string]any }
+type BollingerNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewBollingerNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &BollingerNode{id: id, params: params}, nil
 }
 
 func (n *BollingerNode) ID() string       { return n.id }
-func (n *BollingerNode) NodeType() string  { return "bollinger" }
-func (n *BollingerNode) Category() string  { return "indicator" }
+func (n *BollingerNode) NodeType() string { return "bollinger" }
+func (n *BollingerNode) Category() string { return "indicator" }
 
 func (n *BollingerNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "prices", Type: workflow.PortSeries, Required: true}}
@@ -38,7 +41,9 @@ func (n *BollingerNode) ParamSchema() []workflow.ParamDef {
 
 func (n *BollingerNode) Execute(ctx context.Context, inputs map[string]any, params map[string]any, nctx *workflow.NodeContext) (map[string]any, error) {
 	prices := extractFloatSlice(inputs["prices"])
-	if prices == nil { return nil, fmt.Errorf("bollinger: prices input required") }
+	if prices == nil {
+		return nil, fmt.Errorf("bollinger: prices input required")
+	}
 
 	period := int(getFloatParam(params, "period", 20))
 	k := getFloatParam(params, "multiplier", 2)

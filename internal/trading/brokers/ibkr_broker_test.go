@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"quantflow/internal/trading"
 	"strings"
 	"testing"
-
-	"quantflow/internal/trading"
 )
 
 const mockAccountID = "U1234567"
@@ -35,12 +34,16 @@ func setupIBKRTestServer() (*httptest.Server, *IBKRBroker) {
 			switch method {
 			case http.MethodGet:
 				json.NewEncoder(w).Encode([]map[string]interface{}{
-					{"orderId": 1001, "symbol": "AAPL", "side": "BUY", "orderType": "MKT",
+					{
+						"orderId": 1001, "symbol": "AAPL", "side": "BUY", "orderType": "MKT",
 						"quantity": 100.0, "filledQuantity": 100.0, "avgPrice": 198.50,
-						"status": "Filled", "placedTime": "2026-07-08T10:00:00Z"},
-					{"orderId": 1002, "symbol": "TSLA", "side": "SELL", "orderType": "LMT",
+						"status": "Filled", "placedTime": "2026-07-08T10:00:00Z",
+					},
+					{
+						"orderId": 1002, "symbol": "TSLA", "side": "SELL", "orderType": "LMT",
 						"quantity": 50.0, "limitPrice": 250.00, "filledQuantity": 0,
-						"status": "Submitted", "placedTime": "2026-07-08T11:00:00Z"},
+						"status": "Submitted", "placedTime": "2026-07-08T11:00:00Z",
+					},
 				})
 			case http.MethodPost:
 				json.NewEncoder(w).Encode(map[string]interface{}{
@@ -51,21 +54,26 @@ func setupIBKRTestServer() (*httptest.Server, *IBKRBroker) {
 			}
 
 		case strings.HasPrefix(path, fmt.Sprintf("/iserver/account/%s/order/", mockAccountID)):
-			if method == http.MethodDelete {
+			switch method {
+			case http.MethodDelete:
 				w.WriteHeader(http.StatusOK)
-			} else if method == http.MethodPost {
+			case http.MethodPost:
 				w.WriteHeader(http.StatusOK)
 				json.NewEncoder(w).Encode(map[string]string{"status": "Modified"})
-			} else {
+			default:
 				w.WriteHeader(http.StatusMethodNotAllowed)
 			}
 
 		case path == fmt.Sprintf("/portfolio/%s/positions/0", mockAccountID):
 			json.NewEncoder(w).Encode([]map[string]interface{}{
-				{"symbol": "AAPL", "position": 100.0, "avgCost": 190.25,
-					"marketPrice": 198.50, "unrealizedPnl": 825.00, "unrealizedPnlPerc": 4.34},
-				{"symbol": "MSFT", "position": 50.0, "avgCost": 420.00,
-					"marketPrice": 435.75, "unrealizedPnl": 787.50, "unrealizedPnlPerc": 3.75},
+				{
+					"symbol": "AAPL", "position": 100.0, "avgCost": 190.25,
+					"marketPrice": 198.50, "unrealizedPnl": 825.00, "unrealizedPnlPerc": 4.34,
+				},
+				{
+					"symbol": "MSFT", "position": 50.0, "avgCost": 420.00,
+					"marketPrice": 435.75, "unrealizedPnl": 787.50, "unrealizedPnlPerc": 3.75,
+				},
 			})
 
 		case path == fmt.Sprintf("/portfolio/%s/summary", mockAccountID):

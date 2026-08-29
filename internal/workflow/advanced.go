@@ -32,12 +32,12 @@ type BacktestWindowResult struct {
 
 // BacktestResult aggregates all walk-forward windows.
 type BacktestResult struct {
-	Status     string                `json:"status"`
-	Config     BacktestConfig        `json:"config"`
+	Status     string                 `json:"status"`
+	Config     BacktestConfig         `json:"config"`
 	Windows    []BacktestWindowResult `json:"windows"`
-	AggMetrics map[string]float64    `json:"agg_metrics"`
-	StartedAt  time.Time             `json:"started_at"`
-	FinishedAt time.Time             `json:"finished_at"`
+	AggMetrics map[string]float64     `json:"agg_metrics"`
+	StartedAt  time.Time              `json:"started_at"`
+	FinishedAt time.Time              `json:"finished_at"`
 }
 
 // ExecuteBacktest runs walk-forward backtesting.
@@ -161,20 +161,20 @@ type OptimizeConfig struct {
 }
 
 type OptimizeTrialResult struct {
-	Params   map[string]any    `json:"params"`
+	Params   map[string]any     `json:"params"`
 	Metrics  map[string]float64 `json:"metrics"`
-	Duration time.Duration     `json:"duration"`
-	Error    string            `json:"error,omitempty"`
+	Duration time.Duration      `json:"duration"`
+	Error    string             `json:"error,omitempty"`
 }
 
 type OptimizeResult struct {
-	Status     string               `json:"status"`
-	Config     OptimizeConfig       `json:"config"`
+	Status     string                `json:"status"`
+	Config     OptimizeConfig        `json:"config"`
 	Trials     []OptimizeTrialResult `json:"trials"`
-	TopParams  map[string]any       `json:"top_params"`
-	TopMetrics map[string]float64   `json:"top_metrics"`
-	StartedAt  time.Time            `json:"started_at"`
-	FinishedAt time.Time            `json:"finished_at"`
+	TopParams  map[string]any        `json:"top_params"`
+	TopMetrics map[string]float64    `json:"top_metrics"`
+	StartedAt  time.Time             `json:"started_at"`
+	FinishedAt time.Time             `json:"finished_at"`
 }
 
 // OptimizeParams runs grid search over the parameter space.

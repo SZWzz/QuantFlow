@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 // CoinGeckoAdapter fetches crypto data from CoinGecko (free, no auth for basic tier).
@@ -19,7 +18,7 @@ func NewCoinGeckoAdapter() *CoinGeckoAdapter {
 	return &CoinGeckoAdapter{client: &http.Client{Timeout: 15 * time.Second}}
 }
 
-func (a *CoinGeckoAdapter) Name() string      { return "coingecko" }
+func (a *CoinGeckoAdapter) Name() string       { return "coingecko" }
 func (a *CoinGeckoAdapter) Markets() []string  { return []string{"CRYPTO"} }
 func (a *CoinGeckoAdapter) RequiresAuth() bool { return false }
 

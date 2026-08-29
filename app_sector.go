@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"sort"
-
 	"quantflow/internal/market"
+	"sort"
 )
 
 // GetSectorHeatmap returns industry heatmap data using the existing GetIndustryRanks.

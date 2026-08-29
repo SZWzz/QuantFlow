@@ -1,9 +1,8 @@
 package capabilities
 
 import (
-	"testing"
-
 	"quantflow/internal/ai"
+	"testing"
 )
 
 func TestRegisterFactorCapabilities_NoBridge(t *testing.T) {

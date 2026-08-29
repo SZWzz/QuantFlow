@@ -90,10 +90,10 @@ func createMasterKey() ([32]byte, error) {
 		return [32]byte{}, fmt.Errorf("home dir: %w", err)
 	}
 	dir := filepath.Join(home, ".config", "quantflow")
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return [32]byte{}, fmt.Errorf("mkdir: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "master.key"), []byte(encoded), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "master.key"), []byte(encoded), 0o600); err != nil {
 		return [32]byte{}, fmt.Errorf("key file write: %w", err)
 	}
 	return key, nil

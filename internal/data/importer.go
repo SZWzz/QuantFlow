@@ -35,9 +35,7 @@ func ImportCSV(db *sql.DB, filePath, table string) (int64, error) {
 	}
 
 	var cols []string
-	for _, h := range header {
-		cols = append(cols, h)
-	}
+	cols = append(cols, header...)
 
 	placeholders := "?" + repeatString(",?", len(cols)-1)
 	colList := ""
@@ -47,13 +45,14 @@ func ImportCSV(db *sql.DB, filePath, table string) (int64, error) {
 		}
 		colList += `"` + c + `"`
 	}
-	q := fmt.Sprintf("INSERT OR IGNORE INTO \"%s\" (%s) VALUES (%s)", table, colList, placeholders)
+	q := fmt.Sprintf("INSERT OR IGNORE INTO \"%s\" (%s) VALUES (%s)", table, colList, placeholders) //nolint:gosec // table 经白名单校验，值全走占位符
 
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	// Rollback after a successful Commit returns sql.ErrTxDone — safe to ignore
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.Prepare(q)
 	if err != nil {
@@ -114,13 +113,14 @@ func ImportParquet(db *sql.DB, filePath, table string) (int64, error) {
 		}
 		colList += `"` + c + `"`
 	}
-	q := fmt.Sprintf("INSERT OR IGNORE INTO \"%s\" (%s) VALUES (%s)", table, colList, placeholders)
+	q := fmt.Sprintf("INSERT OR IGNORE INTO \"%s\" (%s) VALUES (%s)", table, colList, placeholders) //nolint:gosec // table 经白名单校验，值全走占位符
 
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	// Rollback after a successful Commit returns sql.ErrTxDone — safe to ignore
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.Prepare(q)
 	if err != nil {

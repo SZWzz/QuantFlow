@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"quantflow/internal/portfolio"
 	"quantflow/internal/trading"
+	"strings"
 )
 
 // PlaceOrder submits an order to the trading engine (paper or live broker).
@@ -237,7 +236,9 @@ func (a *App) EmergencyClose(ctx context.Context) (map[string]interface{}, error
 	}
 
 	// Switch back to paper mode
-	a.tradingMode.SetMode(trading.TradingModePaper, true)
+	if _, err := a.tradingMode.SetMode(trading.TradingModePaper, true); err != nil {
+		return nil, fmt.Errorf("restore paper mode after kill switch: %w", err)
+	}
 	result["mode"] = "paper"
 
 	return result, nil

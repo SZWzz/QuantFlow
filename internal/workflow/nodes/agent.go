@@ -3,11 +3,11 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/ai"
 	"quantflow/internal/python"
-	pb "quantflow/internal/python/proto"
 	"quantflow/internal/workflow"
+
+	pb "quantflow/internal/python/proto"
 )
 
 // AgentNode is a workflow node that runs an AI agent with tool access.
@@ -43,14 +43,22 @@ func (n *AgentNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *AgentNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "profile", Type: "string", Default: "general",
-			Description: "Agent profile name (general, quant_analyst, trader, research_assistant)"},
-		{Name: "model", Type: "string", Default: "",
-			Description: "LLM model override (default: from profile)"},
-		{Name: "max_steps", Type: "int", Default: 5,
-			Description: "Maximum ReAct loop steps"},
-		{Name: "temperature", Type: "float", Default: 0.7,
-			Description: "LLM temperature (0.0-2.0)"},
+		{
+			Name: "profile", Type: "string", Default: "general",
+			Description: "Agent profile name (general, quant_analyst, trader, research_assistant)",
+		},
+		{
+			Name: "model", Type: "string", Default: "",
+			Description: "LLM model override (default: from profile)",
+		},
+		{
+			Name: "max_steps", Type: "int", Default: 5,
+			Description: "Maximum ReAct loop steps",
+		},
+		{
+			Name: "temperature", Type: "float", Default: 0.7,
+			Description: "LLM temperature (0.0-2.0)",
+		},
 	}
 }
 

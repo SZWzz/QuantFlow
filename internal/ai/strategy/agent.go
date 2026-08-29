@@ -5,9 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"quantflow/internal/workflow"
+	"strings"
 )
 
 // LLMCaller abstracts LLM invocation.

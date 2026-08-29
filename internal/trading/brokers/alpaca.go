@@ -9,11 +9,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"quantflow/internal/trading"
 	"strings"
 	"sync"
 	"time"
-
-	"quantflow/internal/trading"
 )
 
 // AlpacaConfig holds Alpaca Markets API credentials.
@@ -63,28 +62,6 @@ func NewAlpacaBroker(cfg AlpacaConfig) *AlpacaBroker {
 // IsPaper returns true if this is a paper (simulated) trading account.
 func (a *AlpacaBroker) IsPaper() bool {
 	return a.cfg.Environment != "live"
-}
-
-// alpacaUserFacingError maps common Alpaca API errors to human-readable messages.
-func alpacaUserFacingError(statusCode int, body string) string {
-	switch {
-	case statusCode == 401:
-		return "API 密钥无效，请检查 Alpaca API Key/Secret"
-	case statusCode == 403:
-		return "权限不足：Paper Key 不能访问 Live 账户，反之亦然"
-	case statusCode == 422:
-		return fmt.Sprintf("订单参数无效：%s", body)
-	case statusCode == 429:
-		return "请求过于频繁，请稍后再试"
-	case strings.Contains(body, "insufficient"):
-		return "资金不足，无法下单"
-	case strings.Contains(body, "not found"):
-		return "标的代码不存在"
-	case strings.Contains(body, "market closed"):
-		return "市场已关闭，请在交易时段下单"
-	default:
-		return fmt.Sprintf("Alpaca 错误 (HTTP %d): %s", statusCode, body)
-	}
 }
 
 // Name returns the broker identifier.
@@ -204,19 +181,19 @@ func (a *AlpacaBroker) GetOrders(ctx context.Context) ([]*trading.Order, error) 
 	body, _ := io.ReadAll(resp.Body)
 
 	var alpacaOrders []struct {
-		ID            string `json:"id"`
-		ClientOrderID string `json:"client_order_id"`
-		Symbol        string `json:"symbol"`
-		Side          string `json:"side"`
-		Type          string `json:"type"`
-		Qty           string `json:"qty"`
-		LimitPrice    string `json:"limit_price"`
-		StopPrice     string `json:"stop_price"`
-		FilledQty     string `json:"filled_qty"`
+		ID             string `json:"id"`
+		ClientOrderID  string `json:"client_order_id"`
+		Symbol         string `json:"symbol"`
+		Side           string `json:"side"`
+		Type           string `json:"type"`
+		Qty            string `json:"qty"`
+		LimitPrice     string `json:"limit_price"`
+		StopPrice      string `json:"stop_price"`
+		FilledQty      string `json:"filled_qty"`
 		FilledAvgPrice string `json:"filled_avg_price"`
-		Status        string `json:"status"`
-		CreatedAt     string `json:"created_at"`
-		FilledAt      string `json:"filled_at"`
+		Status         string `json:"status"`
+		CreatedAt      string `json:"created_at"`
+		FilledAt       string `json:"filled_at"`
 	}
 	if err := json.Unmarshal(body, &alpacaOrders); err != nil {
 		return nil, fmt.Errorf("alpaca get orders parse: %w", err)
@@ -259,11 +236,11 @@ func (a *AlpacaBroker) GetPositions(ctx context.Context) ([]*trading.Position, e
 	body, _ := io.ReadAll(resp.Body)
 
 	var alpacaPositions []struct {
-		Symbol        string `json:"symbol"`
-		Qty           string `json:"qty"`
-		AvgEntryPrice string `json:"avg_entry_price"`
-		CurrentPrice  string `json:"current_price"`
-		UnrealizedPL  string `json:"unrealized_pl"`
+		Symbol         string `json:"symbol"`
+		Qty            string `json:"qty"`
+		AvgEntryPrice  string `json:"avg_entry_price"`
+		CurrentPrice   string `json:"current_price"`
+		UnrealizedPL   string `json:"unrealized_pl"`
 		UnrealizedPLPC string `json:"unrealized_plpc"`
 	}
 	if err := json.Unmarshal(body, &alpacaPositions); err != nil {
@@ -400,7 +377,8 @@ func parseFloat(s string) float64 {
 		return 0
 	}
 	var v float64
-	fmt.Sscanf(s, "%f", &v)
+	// Best-effort parse: Alpaca occasionally sends non-numeric placeholders; degrade to 0
+	_, _ = fmt.Sscanf(s, "%f", &v)
 	return v
 }
 

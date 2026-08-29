@@ -3,8 +3,6 @@ package nodes
 import (
 	"context"
 	"testing"
-
-	"quantflow/internal/workflow"
 )
 
 func TestSentimentNode_Interface(t *testing.T) {
@@ -42,7 +40,6 @@ func TestSentimentNode_Ports(t *testing.T) {
 
 func TestSentimentNode_Execute_Mock(t *testing.T) {
 	node, _ := NewSentimentNode("test-1", map[string]any{})
-	_, _ = node.(workflow.BaseNode)
 
 	result, err := node.Execute(context.Background(),
 		map[string]any{"symbol": "AAPL"},

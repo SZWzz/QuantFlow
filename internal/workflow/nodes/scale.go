@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-
 	"quantflow/internal/workflow"
 )
 
@@ -19,8 +18,8 @@ func NewScaleNode(id string, params map[string]any) (workflow.BaseNode, error) {
 }
 
 func (n *ScaleNode) ID() string       { return n.id }
-func (n *ScaleNode) NodeType() string  { return "scale" }
-func (n *ScaleNode) Category() string  { return "alpha" }
+func (n *ScaleNode) NodeType() string { return "scale" }
+func (n *ScaleNode) Category() string { return "alpha" }
 
 func (n *ScaleNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{{Name: "values", Type: workflow.PortSeries, Required: true}}
@@ -32,8 +31,10 @@ func (n *ScaleNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *ScaleNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "method", Type: "string", Default: "zscore",
-			Description: "Scaling method: zscore or minmax"},
+		{
+			Name: "method", Type: "string", Default: "zscore",
+			Description: "Scaling method: zscore or minmax",
+		},
 	}
 }
 

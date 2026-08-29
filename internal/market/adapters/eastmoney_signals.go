@@ -7,10 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"quantflow/internal/market"
 	"sync"
 	"time"
-
-	"quantflow/internal/market"
 )
 
 // DragonTigerRecord represents a single stock's appearance on the 龙虎榜.
@@ -49,8 +48,8 @@ type EastMoneySignalsAdapter struct {
 	client  *http.Client
 	limiter *EastMoneyRateLimiter
 
-	availMu       sync.RWMutex
-	availResult   bool
+	availMu      sync.RWMutex
+	availResult  bool
 	availChecked time.Time
 }
 
@@ -210,15 +209,15 @@ func (a *EastMoneySignalsAdapter) FetchLockupExpiry(ctx context.Context, code st
 
 // IPORecord represents a new stock issuance/listing record.
 type IPORecord struct {
-	Code           string  `json:"code"`
-	Name           string  `json:"name"`
-	IssuePrice     float64 `json:"issue_price"`
-	PE             float64 `json:"pe"`
-	SubscriptionDate string `json:"subscription_date"`
-	ListingDate    string  `json:"listing_date"`
-	LotteryRate    float64 `json:"lottery_rate"`
-	IssueVolume    float64 `json:"issue_volume"`
-	Status         string  `json:"status"`
+	Code             string  `json:"code"`
+	Name             string  `json:"name"`
+	IssuePrice       float64 `json:"issue_price"`
+	PE               float64 `json:"pe"`
+	SubscriptionDate string  `json:"subscription_date"`
+	ListingDate      string  `json:"listing_date"`
+	LotteryRate      float64 `json:"lottery_rate"`
+	IssueVolume      float64 `json:"issue_volume"`
+	Status           string  `json:"status"`
 }
 
 // FetchIPOCalendar fetches upcoming and recent IPO calendar from EastMoney

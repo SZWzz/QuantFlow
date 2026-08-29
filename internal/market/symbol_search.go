@@ -181,7 +181,8 @@ func (s *SymbolSearchService) saveToDB(entries []StockEntry) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	// Rollback after a successful Commit returns sql.ErrTxDone — safe to ignore
+	defer func() { _ = tx.Rollback() }()
 
 	// Clear old data
 	if _, err := tx.Exec("DELETE FROM stock_list_cache"); err != nil {
@@ -227,24 +228,25 @@ func (s *SymbolSearchService) Search(query string, limit int) []StockEntry {
 	for _, e := range s.entries {
 		score := 0
 		// Exact code match: highest priority
-		if e.Code == q {
+		switch {
+		case e.Code == q:
 			score = 1000
-		} else if strings.HasPrefix(e.Code, q) {
+		case strings.HasPrefix(e.Code, q):
 			// Code prefix match
 			score = 800 + (6 - len(q)) // shorter query = more general
-		} else if strings.Contains(e.Name, q) {
+		case strings.Contains(e.Name, q):
 			// Name contains query (Chinese chars)
 			score = 500
-		} else if qLower == e.Pinyin {
+		case qLower == e.Pinyin:
 			// Exact pinyin match
 			score = 400
-		} else if strings.HasPrefix(e.Pinyin, qLower) {
+		case strings.HasPrefix(e.Pinyin, qLower):
 			// Pinyin prefix match
 			score = 300
-		} else if strings.Contains(strings.ToLower(e.Name), qLower) {
+		case strings.Contains(strings.ToLower(e.Name), qLower):
 			// Case-insensitive name contains
 			score = 200
-		} else {
+		default:
 			continue // no match
 		}
 		results = append(results, scored{e, score})
@@ -510,8 +512,12 @@ var charPinyin = map[rune]string{
 func (s *SymbolSearchService) ensureEmbeddedFallback() {
 	hasHK, hasUS := false, false
 	for _, e := range s.entries {
-		if e.Market == "HK" { hasHK = true }
-		if e.Market == "US" { hasUS = true }
+		if e.Market == "HK" {
+			hasHK = true
+		}
+		if e.Market == "US" {
+			hasUS = true
+		}
 	}
 	if !hasHK {
 		s.entries = append(s.entries, loadEmbeddedHKStockList()...)

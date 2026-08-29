@@ -2,10 +2,9 @@ package logging
 
 import (
 	"fmt"
+	"quantflow/internal/ws"
 	"testing"
 	"time"
-
-	"quantflow/internal/ws"
 )
 
 func TestRingBufferPushAndLines(t *testing.T) {

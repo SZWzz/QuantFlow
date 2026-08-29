@@ -25,12 +25,12 @@ func (s *AttributionService) ComputeAttribution(totalReturn float64) *FactorAttr
 		TotalReturn: totalReturn,
 		MarketBeta:  totalReturn * 0.7,
 		StyleFactors: map[string]float64{
-			"规模":  totalReturn * 0.05,
-			"价值":  totalReturn * 0.03,
-			"动量":  totalReturn * 0.04,
-			"波动":  totalReturn * -0.02,
-			"质量":  totalReturn * 0.06,
-			"成长":  totalReturn * 0.04,
+			"规模": totalReturn * 0.05,
+			"价值": totalReturn * 0.03,
+			"动量": totalReturn * 0.04,
+			"波动": totalReturn * -0.02,
+			"质量": totalReturn * 0.06,
+			"成长": totalReturn * 0.04,
 		},
 		IndustryFactors: map[string]float64{
 			"科技": totalReturn * 0.03,

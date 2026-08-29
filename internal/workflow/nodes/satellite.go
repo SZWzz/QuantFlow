@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"log/slog"
-
 	"quantflow/internal/research"
 	"quantflow/internal/workflow"
 )
@@ -22,8 +21,8 @@ func NewSatelliteNode(id string, params map[string]any) (workflow.BaseNode, erro
 }
 
 func (n *SatelliteNode) ID() string       { return n.id }
-func (n *SatelliteNode) NodeType() string  { return "satellite" }
-func (n *SatelliteNode) Category() string  { return "alternative_data" }
+func (n *SatelliteNode) NodeType() string { return "satellite" }
+func (n *SatelliteNode) Category() string { return "alternative_data" }
 
 func (n *SatelliteNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

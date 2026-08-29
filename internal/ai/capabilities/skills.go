@@ -4,17 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
-
 	"quantflow/internal/ai"
+	"strings"
 )
 
 // RegisterSkillCapabilities registers the search_skills capability.
 // Scans local resources and Python skills directories for matching files.
 func RegisterSkillCapabilities(reg *ai.CapabilityRegistry) {
-	reg.Register(&ai.Capability{
+	if err := reg.Register(&ai.Capability{
 		Name:        "search_skills",
 		Description: "Search the trading skill knowledge base for domain expertise. Use this to get detailed information about trading strategies, risk management, technical analysis, etc.",
 		Parameters: json.RawMessage(`{
@@ -66,5 +66,7 @@ func RegisterSkillCapabilities(reg *ai.CapabilityRegistry) {
 			return fmt.Sprintf("Found %d skill(s) matching %q:\n%s",
 				len(found), params.Query, strings.Join(found, "\n")), nil
 		},
-	})
+	}); err != nil {
+		slog.Error("register capability failed", "name", "search_skills", "error", err)
+	}
 }

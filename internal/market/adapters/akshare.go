@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
-	"sync"
-	"time"
-
 	"quantflow/internal/market"
 	"quantflow/internal/normalize"
+	"strings"
+	"time"
 )
 
 // AKShareAdapter fetches data via Tencent Finance HTTP API.
@@ -19,8 +17,6 @@ import (
 // which provides CN A-shares, HK stocks, and US (limited) — no API key required.
 type AKShareAdapter struct {
 	client *http.Client
-	hkAvailable bool
-	hkMu        sync.RWMutex
 }
 
 // NewAKShareAdapter creates a new AKShare adapter (Tencent-backed).
@@ -30,7 +26,7 @@ func NewAKShareAdapter() *AKShareAdapter {
 	}
 }
 
-func (a *AKShareAdapter) Name() string      { return "akshare" }
+func (a *AKShareAdapter) Name() string       { return "akshare" }
 func (a *AKShareAdapter) Markets() []string  { return []string{"CN", "HK", "US"} }
 func (a *AKShareAdapter) RequiresAuth() bool { return false }
 
@@ -243,7 +239,6 @@ func parseTencentKline(symbol string, body []byte) ([]market.OHLCVBar, error) {
 	}
 	return bars, nil
 }
-
 
 func (a *AKShareAdapter) HealthCheck(ctx context.Context) error {
 	_, err := a.FetchQuote(ctx, "600519")

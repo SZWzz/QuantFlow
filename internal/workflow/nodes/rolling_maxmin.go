@@ -3,12 +3,14 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // RollingMaxMinNode computes rolling maximum or minimum over N periods.
-type RollingMaxMinNode struct{ id string; params map[string]any }
+type RollingMaxMinNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewRollingMaxMinNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &RollingMaxMinNode{id: id, params: params}, nil

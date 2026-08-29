@@ -3,10 +3,9 @@ package research
 import (
 	"context"
 	"log/slog"
+	"quantflow/internal/market/adapters"
 	"sync"
 	"time"
-
-	"quantflow/internal/market/adapters"
 )
 
 // GeopoliticsService provides geopolitical risk data with TTL caching
@@ -30,10 +29,10 @@ type TopicRisk struct {
 	Title      string  `json:"title"`
 	TitleCN    string  `json:"title_cn"`
 	RiskLevel  string  `json:"risk_level"`  // high / medium / low
-	Tone       float64 `json:"tone"`         // current average tone
-	ToneChange float64 `json:"tone_change"`  // 7-day tone change
-	VolChange  float64 `json:"vol_change"`   // 7-day volume change (%)
-	Associated string  `json:"associated"`    // assets affected
+	Tone       float64 `json:"tone"`        // current average tone
+	ToneChange float64 `json:"tone_change"` // 7-day tone change
+	VolChange  float64 `json:"vol_change"`  // 7-day volume change (%)
+	Associated string  `json:"associated"`  // assets affected
 	UpdatedAt  int64   `json:"updated_at"`
 }
 
@@ -126,10 +125,10 @@ func (s *GeopoliticsService) GetTopicDetail(ctx context.Context, topicID, timesp
 	}
 
 	return map[string]interface{}{
-		"volumes":   volumes,
-		"tones":     tones,
-		"topic_id":  topicID,
-		"timespan":  timespan,
+		"volumes":      volumes,
+		"tones":        tones,
+		"topic_id":     topicID,
+		"timespan":     timespan,
 		"generated_at": time.Now().UnixMilli(),
 	}, nil
 }
@@ -321,11 +320,12 @@ func mockTopicRisk(tq adapters.TopicQuery) TopicRisk {
 	}
 
 	toneChange := 0.0
-	if data.tone < -2 {
+	switch {
+	case data.tone < -2:
 		toneChange = -1.5
-	} else if data.tone > 0 {
+	case data.tone > 0:
 		toneChange = 0.8
-	} else {
+	default:
 		toneChange = -0.5
 	}
 
@@ -386,15 +386,15 @@ func mockTonePoints(topicID, timespan string) []adapters.TonePoint {
 
 	// Realistic tone baselines per topic
 	toneBases := map[string]float64{
-		"middle-east":   -3.5,
-		"taiwan-strait": -1.8,
-		"ukraine-war":   -2.2,
-		"trade-tariffs": -1.5,
-		"north-korea":   -0.8,
-		"fed-policy":    0.5,
-		"europe-energy": -2.8,
-		"terrorism":     -4.2,
-		"china-economy": -1.2,
+		"middle-east":    -3.5,
+		"taiwan-strait":  -1.8,
+		"ukraine-war":    -2.2,
+		"trade-tariffs":  -1.5,
+		"north-korea":    -0.8,
+		"fed-policy":     0.5,
+		"europe-energy":  -2.8,
+		"terrorism":      -4.2,
+		"china-economy":  -1.2,
 		"semiconductors": -0.3,
 	}
 	base, ok := toneBases[topicID]

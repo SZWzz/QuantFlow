@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 const binanceFuturesAPI = "https://fapi.binance.com/fapi/v1"
@@ -21,8 +20,8 @@ func NewBinanceFuturesAdapter() *BinanceFuturesAdapter {
 	return &BinanceFuturesAdapter{client: &http.Client{Timeout: 10 * time.Second}}
 }
 
-func (b *BinanceFuturesAdapter) Name() string     { return "binance_futures" }
-func (b *BinanceFuturesAdapter) Markets() []string { return []string{"CRYPTO"} }
+func (b *BinanceFuturesAdapter) Name() string       { return "binance_futures" }
+func (b *BinanceFuturesAdapter) Markets() []string  { return []string{"CRYPTO"} }
 func (b *BinanceFuturesAdapter) RequiresAuth() bool { return false }
 
 func (b *BinanceFuturesAdapter) IsAvailable(ctx context.Context) bool {

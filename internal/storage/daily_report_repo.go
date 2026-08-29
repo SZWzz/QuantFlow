@@ -3,9 +3,8 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"time"
-
 	"quantflow/internal/trading"
+	"time"
 )
 
 // SaveDailyReport persists a daily report to the database.

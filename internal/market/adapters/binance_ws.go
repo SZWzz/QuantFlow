@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"quantflow/internal/market"
+	"quantflow/internal/market/wsconn"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/coder/websocket"
-
-	"quantflow/internal/market"
-	"quantflow/internal/market/wsconn"
 )
 
 const binanceWSBaseURL = "wss://stream.binance.com:9443/ws"
@@ -22,26 +21,26 @@ var _ wsconn.WSConnector = (*BinanceAdapter)(nil)
 
 // binanceWSEvent is the Binance WebSocket ticker event format.
 type binanceWSEvent struct {
-	EventType       string `json:"e"` // "24hrTicker"
-	EventTime       int64  `json:"E"`
-	Symbol          string `json:"s"`
-	PriceChange     string `json:"p"`
-	PriceChangePct  string `json:"P"`
+	EventType        string `json:"e"` // "24hrTicker"
+	EventTime        int64  `json:"E"`
+	Symbol           string `json:"s"`
+	PriceChange      string `json:"p"`
+	PriceChangePct   string `json:"P"`
 	WeightedAvgPrice string `json:"w"`
-	LastPrice       string `json:"c"`
-	LastQty         string `json:"Q"`
-	BidPrice        string `json:"b"`
-	BidQty          string `json:"B"`
-	AskPrice        string `json:"a"`
-	AskQty          string `json:"A"`
-	Open            string `json:"o"`
-	High            string `json:"h"`
-	Low             string `json:"l"`
-	Volume          string `json:"v"`
-	QuoteVolume     string `json:"q"`
-	OpenTime        int64  `json:"O"`
-	CloseTime       int64  `json:"C"`
-	TradeCount      int64  `json:"n"`
+	LastPrice        string `json:"c"`
+	LastQty          string `json:"Q"`
+	BidPrice         string `json:"b"`
+	BidQty           string `json:"B"`
+	AskPrice         string `json:"a"`
+	AskQty           string `json:"A"`
+	Open             string `json:"o"`
+	High             string `json:"h"`
+	Low              string `json:"l"`
+	Volume           string `json:"v"`
+	QuoteVolume      string `json:"q"`
+	OpenTime         int64  `json:"O"`
+	CloseTime        int64  `json:"C"`
+	TradeCount       int64  `json:"n"`
 }
 
 // binanceWSState holds the mutable WebSocket connection state.
@@ -90,6 +89,7 @@ func (a *BinanceAdapter) SupportsWS() bool { return true }
 func (a *BinanceAdapter) ExchangeName() string { return "binance" }
 
 func (s *binanceWSState) connect(ctx context.Context) error {
+	//nolint:bodyclose // coder/websocket: "You never need to close resp.Body yourself" (on success it is nil)
 	conn, _, err := websocket.Dial(ctx, binanceWSBaseURL, nil)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
@@ -203,6 +203,7 @@ func (s *binanceWSState) reconnect(ctx context.Context) bool {
 	case <-time.After(delay):
 	}
 
+	//nolint:bodyclose // coder/websocket: "You never need to close resp.Body yourself" (on success it is nil)
 	conn, _, err := websocket.Dial(ctx, binanceWSBaseURL, nil)
 	if err != nil {
 		slog.Warn("binance ws: reconnect failed", "error", err)

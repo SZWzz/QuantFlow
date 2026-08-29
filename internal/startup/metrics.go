@@ -1,23 +1,22 @@
 package startup
 
 import (
-	"time"
-
 	"quantflow/internal/logging"
+	"time"
 )
 
 // Metrics holds startup timing data for diagnostics.
 type Metrics struct {
-	StartTime    time.Time         `json:"start_time"`
-	ReadyTime    time.Time         `json:"ready_time"`
-	TotalMs      int64            `json:"total_ms"`
-	Phases       []PhaseMetric    `json:"phases"`
+	StartTime time.Time     `json:"start_time"`
+	ReadyTime time.Time     `json:"ready_time"`
+	TotalMs   int64         `json:"total_ms"`
+	Phases    []PhaseMetric `json:"phases"`
 }
 
 // PhaseMetric measures a single startup phase.
 type PhaseMetric struct {
-	Name   string `json:"name"`
-	ElapsedMs int64 `json:"elapsed_ms"`
+	Name      string `json:"name"`
+	ElapsedMs int64  `json:"elapsed_ms"`
 }
 
 var metrics = &Metrics{}

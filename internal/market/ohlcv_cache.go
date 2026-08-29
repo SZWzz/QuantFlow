@@ -212,7 +212,8 @@ func (oc *OHLCVCache) saveToDB(symbol, interval string, bars []OHLCVBar) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	// Rollback after a successful Commit returns sql.ErrTxDone — safe to ignore
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.Prepare(
 		"INSERT OR REPLACE INTO ohlcv_cache (symbol, interval, ts, open, high, low, close, volume, fetched_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",

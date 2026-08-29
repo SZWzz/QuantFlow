@@ -88,7 +88,7 @@ func ComputeMetrics(dailyPnL []*DailyPnL, totalValue float64, riskFreeRate float
 	}
 	sortino := 0.0
 	if downN > 0 {
-		downDev := math.Sqrt(downVar / float64(downN)) * math.Sqrt(252)
+		downDev := math.Sqrt(downVar/float64(downN)) * math.Sqrt(252)
 		if downDev > 0 {
 			sortino = ((mean * 252) - riskFreeRate) / downDev
 		}
@@ -99,7 +99,7 @@ func ComputeMetrics(dailyPnL []*DailyPnL, totalValue float64, riskFreeRate float
 	// Compute CAGR for Calmar ratio
 	nYears := float64(len(returns)) / 252.0
 	cagr := 0.0
-	if nYears > 0 && dailyPnL[0].TotalValue > 0 && dailyPnL[len(dailyPnL)-1].TotalValue > 0 {
+	if nYears > 0 && len(dailyPnL) > 1 && dailyPnL[0].TotalValue > 0 && dailyPnL[len(dailyPnL)-1].TotalValue > 0 {
 		cagr = math.Pow(dailyPnL[0].TotalValue/dailyPnL[len(dailyPnL)-1].TotalValue, 1.0/nYears) - 1.0
 	}
 

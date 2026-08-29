@@ -25,13 +25,13 @@ func NewCongressTradesAdapter() *CongressTradesAdapter {
 
 // CongressTradeItem is a single trade from the telep.io API.
 type CongressTradeItem struct {
-	PoliticianName string `json:"politician_name"`
-	Chamber        string `json:"chamber"`
-	State          string `json:"state"`
-	Party          string `json:"party"`
-	Ticker         string `json:"ticker"`
-	AssetName      string `json:"asset_name"`
-	AssetType      string `json:"asset_type"`
+	PoliticianName  string `json:"politician_name"`
+	Chamber         string `json:"chamber"`
+	State           string `json:"state"`
+	Party           string `json:"party"`
+	Ticker          string `json:"ticker"`
+	AssetName       string `json:"asset_name"`
+	AssetType       string `json:"asset_type"`
 	TransactionType string `json:"transaction_type"`
 	TransactionDate string `json:"transaction_date"`
 	DisclosureDate  string `json:"disclosure_date"`

@@ -8,11 +8,10 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"strconv"
-	"time"
-
 	"quantflow/internal/market"
 	"quantflow/internal/workflow"
+	"strconv"
+	"time"
 )
 
 // DataLoaderNode loads market data from various sources.
@@ -56,9 +55,13 @@ func (n *DataLoaderNode) ParamSchema() []workflow.ParamDef {
 }
 
 func parseDate(s string, fallback time.Time) time.Time {
-	if s == "" { return fallback }
+	if s == "" {
+		return fallback
+	}
 	t, err := time.Parse("2006-01-02", s)
-	if err != nil { return fallback }
+	if err != nil {
+		return fallback
+	}
 	return t
 }
 
@@ -70,23 +73,49 @@ func (n *DataLoaderNode) Execute(ctx context.Context, inputs map[string]any, par
 	startDate := ""
 	endDate := ""
 
-	if s, ok := n.params["source"]; ok { source = fmt.Sprint(s) }
-	if p, ok := n.params["path"]; ok { path = fmt.Sprint(p) }
-	if s, ok := n.params["symbol"]; ok { symbol = fmt.Sprint(s) }
-	if i, ok := n.params["interval"]; ok { interval = fmt.Sprint(i) }
-	if s, ok := n.params["start_date"]; ok { startDate = fmt.Sprint(s) }
-	if e, ok := n.params["end_date"]; ok { endDate = fmt.Sprint(e) }
-	if s, ok := params["source"]; ok { source = fmt.Sprint(s) }
-	if p, ok := params["path"]; ok { path = fmt.Sprint(p) }
-	if s, ok := params["symbol"]; ok { symbol = fmt.Sprint(s) }
-	if i, ok := params["interval"]; ok { interval = fmt.Sprint(i) }
-	if s, ok := params["start_date"]; ok { startDate = fmt.Sprint(s) }
-	if e, ok := params["end_date"]; ok { endDate = fmt.Sprint(e) }
+	if s, ok := n.params["source"]; ok {
+		source = fmt.Sprint(s)
+	}
+	if p, ok := n.params["path"]; ok {
+		path = fmt.Sprint(p)
+	}
+	if s, ok := n.params["symbol"]; ok {
+		symbol = fmt.Sprint(s)
+	}
+	if i, ok := n.params["interval"]; ok {
+		interval = fmt.Sprint(i)
+	}
+	if s, ok := n.params["start_date"]; ok {
+		startDate = fmt.Sprint(s)
+	}
+	if e, ok := n.params["end_date"]; ok {
+		endDate = fmt.Sprint(e)
+	}
+	if s, ok := params["source"]; ok {
+		source = fmt.Sprint(s)
+	}
+	if p, ok := params["path"]; ok {
+		path = fmt.Sprint(p)
+	}
+	if s, ok := params["symbol"]; ok {
+		symbol = fmt.Sprint(s)
+	}
+	if i, ok := params["interval"]; ok {
+		interval = fmt.Sprint(i)
+	}
+	if s, ok := params["start_date"]; ok {
+		startDate = fmt.Sprint(s)
+	}
+	if e, ok := params["end_date"]; ok {
+		endDate = fmt.Sprint(e)
+	}
 
 	switch source {
 	case "csv":
 		bars, err := loadCSV(path)
-		if err != nil { return nil, fmt.Errorf("data_loader: %w", err) }
+		if err != nil {
+			return nil, fmt.Errorf("data_loader: %w", err)
+		}
 		return barsResult(bars), nil
 
 	case "mock":
@@ -117,7 +146,9 @@ func (n *DataLoaderNode) Execute(ctx context.Context, inputs map[string]any, par
 
 func extractSeries(bars []market.OHLCVBar, sel func(market.OHLCVBar) float64) []float64 {
 	s := make([]float64, len(bars))
-	for i, b := range bars { s[i] = sel(b) }
+	for i, b := range bars {
+		s[i] = sel(b)
+	}
 	return s
 }
 
@@ -134,31 +165,47 @@ func barsResult(bars []market.OHLCVBar) map[string]any {
 
 func (n *DataLoaderNode) Validate() error {
 	source := "auto"
-	if s, ok := n.params["source"]; ok { source = fmt.Sprint(s) }
+	if s, ok := n.params["source"]; ok {
+		source = fmt.Sprint(s)
+	}
 	if source == "csv" {
 		path := ""
-		if p, ok := n.params["path"]; ok { path = fmt.Sprint(p) }
-		if path == "" { return fmt.Errorf("data_loader: path is required for csv source") }
+		if p, ok := n.params["path"]; ok {
+			path = fmt.Sprint(p)
+		}
+		if path == "" {
+			return fmt.Errorf("data_loader: path is required for csv source")
+		}
 	}
 	return nil
 }
 
 func loadCSV(path string) ([]market.OHLCVBar, error) {
 	f, err := os.Open(path)
-	if err != nil { return nil, fmt.Errorf("open csv: %w", err) }
+	if err != nil {
+		return nil, fmt.Errorf("open csv: %w", err)
+	}
 	defer f.Close()
 
 	r := csv.NewReader(f)
 	header, err := r.Read()
-	if err != nil { return nil, fmt.Errorf("read csv header: %w", err) }
+	if err != nil {
+		return nil, fmt.Errorf("read csv header: %w", err)
+	}
 	colIdx := make(map[string]int)
-	for i, col := range header { colIdx[col] = i }
+	for i, col := range header {
+		colIdx[col] = i
+	}
 
 	var bars []market.OHLCVBar
 	for {
 		record, err := r.Read()
-		if err == io.EOF { break }
-		if err != nil { return nil, fmt.Errorf("read csv row: %w", err) }
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("read csv row: %w", err)
+		}
 		bars = append(bars, market.OHLCVBar{
 			Symbol: "CSV",
 			Date:   record[colIdx["date"]],
@@ -178,7 +225,7 @@ func parseFloat(s string) float64 {
 }
 
 func generateMockData(symbol string, n int) []market.OHLCVBar {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // mock 行情数据生成，非安全用途
 	bars := make([]market.OHLCVBar, n)
 	startDate := time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC)
 	price := 50.0

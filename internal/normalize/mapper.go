@@ -192,7 +192,8 @@ func toFloat64(v any) float64 {
 		return float64(n)
 	case string:
 		var f float64
-		fmt.Sscanf(n, "%f", &f)
+		// Best-effort parse: malformed input degrades to 0 rather than failing the mapping
+		_, _ = fmt.Sscanf(n, "%f", &f)
 		return f
 	default:
 		return 0

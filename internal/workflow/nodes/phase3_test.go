@@ -2,11 +2,10 @@ package nodes
 
 import (
 	"context"
-	"testing"
-
 	"quantflow/internal/backtest"
 	"quantflow/internal/market"
 	"quantflow/internal/workflow"
+	"testing"
 )
 
 func TestFactorNode(t *testing.T) {

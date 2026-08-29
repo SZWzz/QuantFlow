@@ -22,6 +22,8 @@
 - [CI] backend/backend-coverage 在 ubuntu runner 上 `go build` 失败 — Wails v3 webview 经 CGO 链接 GTK4/WebKitGTK，两个 Go job 均补 `libgtk-4-dev libwebkitgtk-6.0-dev` 系统依赖安装步骤
 - [CI] amd64 链接失败 `parquet-go/hashprobe/aeshash: invalid reference to runtime.aeskeysched` — segmentio/parquet-go（2023 快照）的 linkname hack 与新 Go runtime 不兼容（仅 amd64 触发，本地 arm64 不可见）；升级为更名后持续维护的 `github.com/parquet-go/parquet-go` v0.32.0，已交叉编译 linux/amd64 验证
 - [CI] vitest 间歇性 `Uncaught Exception: window is not defined` — `@wailsio/runtime` 的 drag.js 在 import 时启动 `window.setInterval` 轮询，jsdom teardown 后回调访问 window 崩溃；vitest.setup.ts 加全局 mock（单文件 vi.mock 仍可覆盖）
+- [Engine] **通用 Runner 止损/止盈幻影成交 + 持仓记录归零** — lint 清理牵出两个真实 bug：① Runner 从不调用 `ClearT1Lock()`，买入后一切卖出被 OMS T+1 锁拒绝，旧代码忽略 `FillOrder` 错误仍记录交易并删除持仓（股票消失、现金不变），现已按交易日清理（与 CNEngine 一致）；② `TradeRecord` 在 `FillOrder` 成交后读取 `pos.Quantity` 活指针（已被扣减为 0），成交数量/PnL 记录为 0，CN/HK/US/Runner 四处均已改为成交前捕获 `posQty`
+- [CI] golangci-lint 步骤此前在 runner 上从未安装（exit 127 假绿），现固定安装 v1.64.8 并作为硬门禁；存量 226 项告警清理至 0（errcheck/unused/gosec/gocritic/gosimple/ineffassign/staticcheck/bodyclose 全修，revive/goconst 两个纯风格 linter 各 50 条噪音暂时移出配置并留 ratchet 注释）
 
 ### Added
 

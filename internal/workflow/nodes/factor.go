@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -39,10 +38,14 @@ func (n *FactorNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *FactorNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "factor_name", Type: "string", Default: "momentum_20d",
-			Description: "Factor name (e.g., momentum_20d, rsi_14)"},
-		{Name: "symbols", Type: "string", Default: "",
-			Description: "Comma-separated symbols (e.g., 000001.SZ,600519.SH)"},
+		{
+			Name: "factor_name", Type: "string", Default: "momentum_20d",
+			Description: "Factor name (e.g., momentum_20d, rsi_14)",
+		},
+		{
+			Name: "symbols", Type: "string", Default: "",
+			Description: "Comma-separated symbols (e.g., 000001.SZ,600519.SH)",
+		},
 	}
 }
 
@@ -58,7 +61,7 @@ func (n *FactorNode) Execute(ctx context.Context, inputs map[string]any, params 
 	}
 
 	// Get OHLCV data from inputs
-	ohlcvData, _ := inputs["ohlcv"]
+	ohlcvData := inputs["ohlcv"]
 
 	// Build result with factor metadata
 	result := map[string]any{

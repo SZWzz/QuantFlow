@@ -46,7 +46,7 @@ func (u *Updater) Replace(execPath, downloadedPath string) error {
 	if err := os.Rename(newBinary, execPath); err != nil {
 		return fmt.Errorf("replace binary: %w", err)
 	}
-	if err := os.Chmod(execPath, 0755); err != nil {
+	if err := os.Chmod(execPath, 0o755); err != nil {
 		return fmt.Errorf("chmod binary: %w", err)
 	}
 

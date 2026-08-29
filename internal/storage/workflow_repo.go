@@ -4,9 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"quantflow/internal/workflow"
+	"time"
 )
 
 // WorkflowMeta is a lightweight summary of a workflow, returned by List().
@@ -40,7 +39,8 @@ func (r *WorkflowRepo) Save(wf *workflow.Workflow) error {
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback()
+	// Rollback after a successful Commit returns sql.ErrTxDone — safe to ignore
+	defer func() { _ = tx.Rollback() }()
 
 	_, err = tx.Exec(`INSERT INTO workflows (id, name, description, updated_at)
 		VALUES (?, ?, ?, datetime('now'))

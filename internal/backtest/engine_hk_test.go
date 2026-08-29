@@ -3,9 +3,8 @@ package backtest
 import (
 	"context"
 	"math"
-	"testing"
-
 	"quantflow/internal/trading"
+	"testing"
 )
 
 // TestHKEngine_RoundTripChargesFeesBothSides 验证 HK 双边收费模型。

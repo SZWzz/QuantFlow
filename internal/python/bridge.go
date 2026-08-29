@@ -44,10 +44,10 @@ func DefaultOptions() BridgeOptions {
 
 // PythonBridge manages the gRPC connection to the Python sidecar.
 type PythonBridge struct {
-	conn         *grpc.ClientConn
-	FactorClient pb.FactorServiceClient
-	LLMClient    pb.LLMServiceClient
-	HealthClient pb.HealthServiceClient
+	conn            *grpc.ClientConn
+	FactorClient    pb.FactorServiceClient
+	LLMClient       pb.LLMServiceClient
+	HealthClient    pb.HealthServiceClient
 	DataClient      pb.DataServiceClient
 	SentimentClient pb.SentimentServiceClient
 	opts            BridgeOptions
@@ -60,6 +60,8 @@ func NewPythonBridge(opts BridgeOptions) (*PythonBridge, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), opts.DialTimeout)
 	defer cancel()
 
+	//nolint:staticcheck // DialContext+WithBlock: sidecar 启动后需要阻塞等待就绪；
+	// NewClient 是懒连接，迁移需改动就绪探测逻辑，待 gRPC 2.x 再迁
 	conn, err := grpc.DialContext(ctx, opts.Address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
@@ -69,10 +71,10 @@ func NewPythonBridge(opts BridgeOptions) (*PythonBridge, error) {
 	}
 
 	b := &PythonBridge{
-		conn:         conn,
-		FactorClient: pb.NewFactorServiceClient(conn),
-		LLMClient:    pb.NewLLMServiceClient(conn),
-		HealthClient: pb.NewHealthServiceClient(conn),
+		conn:            conn,
+		FactorClient:    pb.NewFactorServiceClient(conn),
+		LLMClient:       pb.NewLLMServiceClient(conn),
+		HealthClient:    pb.NewHealthServiceClient(conn),
 		DataClient:      pb.NewDataServiceClient(conn),
 		SentimentClient: pb.NewSentimentServiceClient(conn),
 		opts:            opts,
@@ -166,7 +168,9 @@ func (b *PythonBridge) runPython(module string, args ...string) (map[string]any,
 
 	select {
 	case <-ctx.Done():
-		cmd.Process.Kill()
+		if err := cmd.Process.Kill(); err != nil {
+			slog.Warn("kill timed-out python subprocess failed", "module", module, "error", err)
+		}
 		return nil, fmt.Errorf("python subprocess %s timed out", module)
 	case err := <-done:
 		if err != nil {

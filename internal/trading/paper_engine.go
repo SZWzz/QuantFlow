@@ -8,9 +8,9 @@ import (
 // PaperEngine executes trades against simulated (paper) market data.
 // It uses the OrderMatcher to fill orders against each bar.
 type PaperEngine struct {
-	oms           *OMS
-	matcher       *OrderMatcher
-	riskPipeline  *RiskPipeline
+	oms            *OMS
+	matcher        *OrderMatcher
+	riskPipeline   *RiskPipeline
 	portfolioValue float64
 }
 
@@ -43,16 +43,32 @@ func (pe *PaperEngine) OnBar(bar OHLCVBar) []*Trade {
 			// Close position at market
 			if pos.Quantity > 0 {
 				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, "", pos.Quantity, 0)
-				if err != nil { slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err); continue }
+				if err != nil {
+					slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
 				trade, err := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-				if err != nil { slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err); continue }
-				if trade != nil { trades = append(trades, trade) }
+				if err != nil {
+					slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
+				if trade != nil {
+					trades = append(trades, trade)
+				}
 			} else {
 				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, "", -pos.Quantity, 0)
-				if err != nil { slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err); continue }
+				if err != nil {
+					slog.Error("stop-loss place failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
 				trade, err := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
-				if err != nil { slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err); continue }
-				if trade != nil { trades = append(trades, trade) }
+				if err != nil {
+					slog.Error("stop-loss fill failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
+				if trade != nil {
+					trades = append(trades, trade)
+				}
 			}
 			continue
 		}
@@ -61,16 +77,32 @@ func (pe *PaperEngine) OnBar(bar OHLCVBar) []*Trade {
 			slog.Info("take profit triggered", "symbol", pos.Symbol, "price", bar.Close, "pnl", pos.PnL)
 			if pos.Quantity > 0 {
 				order, err := pe.oms.PlaceOrder(pos.Symbol, SideSell, TypeMarket, "", pos.Quantity, 0)
-				if err != nil { slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err); continue }
+				if err != nil {
+					slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
 				trade, err := pe.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-				if err != nil { slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err); continue }
-				if trade != nil { trades = append(trades, trade) }
+				if err != nil {
+					slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
+				if trade != nil {
+					trades = append(trades, trade)
+				}
 			} else {
 				order, err := pe.oms.PlaceOrder(pos.Symbol, SideBuy, TypeMarket, "", -pos.Quantity, 0)
-				if err != nil { slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err); continue }
+				if err != nil {
+					slog.Error("take-profit place failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
 				trade, err := pe.oms.FillOrder(order.ID, -pos.Quantity, bar.Close)
-				if err != nil { slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err); continue }
-				if trade != nil { trades = append(trades, trade) }
+				if err != nil {
+					slog.Error("take-profit fill failed", "symbol", pos.Symbol, "error", err)
+					continue
+				}
+				if trade != nil {
+					trades = append(trades, trade)
+				}
 			}
 		}
 	}

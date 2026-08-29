@@ -7,8 +7,8 @@ import (
 
 // RiskConfig defines the risk parameters for the trading engine.
 type RiskConfig struct {
-	InitialCapital  float64 // initial portfolio value (for drawdown calc)
-	PeakEquity      float64 // peak equity seen (updated externally)
+	InitialCapital float64 // initial portfolio value (for drawdown calc)
+	PeakEquity     float64 // peak equity seen (updated externally)
 	MaxPositionPct float64 // max single position as % of portfolio (0 = disabled)
 	StopLossPct    float64 // stop loss % from entry price (0 = disabled)
 	TakeProfitPct  float64 // take profit % from entry price (0 = disabled)
@@ -18,10 +18,10 @@ type RiskConfig struct {
 // DefaultRiskConfig returns sensible default risk parameters.
 func DefaultRiskConfig() RiskConfig {
 	return RiskConfig{
-		MaxPositionPct: 0.25,  // 25% per position
-		StopLossPct:    0.05,  // 5% stop loss
-		TakeProfitPct:  0.15,  // 15% take profit
-		MaxDrawdownPct: 0.20,  // 20% max drawdown
+		MaxPositionPct: 0.25, // 25% per position
+		StopLossPct:    0.05, // 5% stop loss
+		TakeProfitPct:  0.15, // 15% take profit
+		MaxDrawdownPct: 0.20, // 20% max drawdown
 	}
 }
 
@@ -58,7 +58,6 @@ func (r *RiskPipeline) CheckDrawdown(currentEquity float64) error {
 	}
 	return nil
 }
-
 
 func (r *RiskPipeline) CheckOrder(order *Order, position *Position, portfolioValue float64) error {
 	if portfolioValue <= 0 {

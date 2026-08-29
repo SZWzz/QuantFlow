@@ -13,17 +13,17 @@ import (
 type ResearchReport struct {
 	Title              string  `json:"title"`
 	PublishDate        string  `json:"publish_date"`
-	OrgName            string  `json:"org_name"`               // 机构简称
-	Analyst            string  `json:"analyst"`                // 分析师姓名
-	InfoCode           string  `json:"info_code"`              // PDF download code
-	PDFURL             string  `json:"pdf_url"`                // full PDF URL
-	Rating             string  `json:"rating"`                 // 评级(买入/增持/...)
-	TargetPriceLow     float64 `json:"target_price_low"`       // 目标价下限
-	TargetPriceHigh    float64 `json:"target_price_high"`      // 目标价上限
-	PredictThisYearEPS float64 `json:"predict_this_year_eps"`  // 今年EPS预测
-	PredictNextYearEPS float64 `json:"predict_next_year_eps"`  // 明年EPS预测
-	PredictNextTwoEPS  float64 `json:"predict_next_two_eps"`   // 后年EPS预测
-	Industry           string  `json:"industry"`               // 行业分类
+	OrgName            string  `json:"org_name"`              // 机构简称
+	Analyst            string  `json:"analyst"`               // 分析师姓名
+	InfoCode           string  `json:"info_code"`             // PDF download code
+	PDFURL             string  `json:"pdf_url"`               // full PDF URL
+	Rating             string  `json:"rating"`                // 评级(买入/增持/...)
+	TargetPriceLow     float64 `json:"target_price_low"`      // 目标价下限
+	TargetPriceHigh    float64 `json:"target_price_high"`     // 目标价上限
+	PredictThisYearEPS float64 `json:"predict_this_year_eps"` // 今年EPS预测
+	PredictNextYearEPS float64 `json:"predict_next_year_eps"` // 明年EPS预测
+	PredictNextTwoEPS  float64 `json:"predict_next_two_eps"`  // 后年EPS预测
+	Industry           string  `json:"industry"`              // 行业分类
 }
 
 // EastMoneyReportAdapter fetches analyst research reports from EastMoney.
@@ -102,20 +102,20 @@ func (a *EastMoneyReportAdapter) FetchReports(ctx context.Context, code string, 
 		}
 
 		for _, item := range result.Data {
-				report := ResearchReport{
-					Title:              item.Title,
-					PublishDate:        item.PublishDate,
-					OrgName:            item.OrgSName,
-					Analyst:            item.Researcher,
-					InfoCode:           item.InfoCode,
-					Rating:             item.EmRatingName,
-					Industry:           item.IndvInduName,
-					TargetPriceLow:     toFloat(item.IndvAimPriceL),
-					TargetPriceHigh:    toFloat(item.IndvAimPriceT),
-					PredictThisYearEPS: toFloat(item.PredictThisYearEps),
-					PredictNextYearEPS: toFloat(item.PredictNextYearEps),
-					PredictNextTwoEPS:  toFloat(item.PredictNextTwoYearEps),
-				}
+			report := ResearchReport{
+				Title:              item.Title,
+				PublishDate:        item.PublishDate,
+				OrgName:            item.OrgSName,
+				Analyst:            item.Researcher,
+				InfoCode:           item.InfoCode,
+				Rating:             item.EmRatingName,
+				Industry:           item.IndvInduName,
+				TargetPriceLow:     toFloat(item.IndvAimPriceL),
+				TargetPriceHigh:    toFloat(item.IndvAimPriceT),
+				PredictThisYearEPS: toFloat(item.PredictThisYearEps),
+				PredictNextYearEPS: toFloat(item.PredictNextYearEps),
+				PredictNextTwoEPS:  toFloat(item.PredictNextTwoYearEps),
+			}
 			if item.InfoCode != "" {
 				report.PDFURL = fmt.Sprintf("https://pdf.dfcfw.com/pdf/H3_%s_1.pdf", item.InfoCode)
 			}

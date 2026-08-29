@@ -205,7 +205,7 @@ func (r *AdapterRegistry) saveLastQuotes() {
 		return
 	}
 	tmpPath := r.lastQuotePath + ".tmp"
-	if err := os.WriteFile(tmpPath, b, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, b, 0o600); err != nil {
 		slog.Warn("write last quotes tmp", "error", err)
 		return
 	}

@@ -3,10 +3,9 @@ package backtest
 import (
 	"context"
 	"math"
+	"quantflow/internal/trading"
 	"testing"
 	"time"
-
-	"quantflow/internal/trading"
 )
 
 // makeBars creates a sequence of OHLCV bars with a linear price trend.

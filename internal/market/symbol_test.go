@@ -6,9 +6,9 @@ import (
 
 func TestNormalizeCN(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   string
-		wantOK  bool
+		name     string
+		input    string
+		wantOK   bool
 		wantCode string
 		wantMkt  string
 	}{
@@ -62,10 +62,8 @@ func TestNormalizeCN(t *testing.T) {
 				if id.Market != tt.wantMkt {
 					t.Errorf("Market = %q, want %q", id.Market, tt.wantMkt)
 				}
-			} else {
-				if err == nil {
-					t.Errorf("NormalizeCN(%q) should have returned error", tt.input)
-				}
+			} else if err == nil {
+				t.Errorf("NormalizeCN(%q) should have returned error", tt.input)
 			}
 		})
 	}

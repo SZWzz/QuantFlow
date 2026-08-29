@@ -1,10 +1,9 @@
 package portfolio
 
 import (
-	"sort"
-
 	"quantflow/internal/market"
 	"quantflow/internal/trading"
+	"sort"
 )
 
 // Service computes portfolio summaries, position details, and allocations

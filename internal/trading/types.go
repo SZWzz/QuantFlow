@@ -3,9 +3,8 @@
 package trading
 
 import (
-	"time"
-
 	"quantflow/internal/normalize"
+	"time"
 )
 
 // OrderSide represents the direction of an order.
@@ -98,8 +97,8 @@ type Order struct {
 	Side           OrderSide   `json:"side"`
 	OrderType      OrderType   `json:"order_type"`
 	Quantity       float64     `json:"quantity"`
-	Price          float64     `json:"price"`          // 0 for market orders
-	StopPrice      float64     `json:"stop_price"`     // for stop orders
+	Price          float64     `json:"price"`      // 0 for market orders
+	StopPrice      float64     `json:"stop_price"` // for stop orders
 	FilledQty      float64     `json:"filled_qty"`
 	FilledAvgPrice float64     `json:"filled_avg_price"`
 	Status         OrderStatus `json:"status"`
@@ -116,8 +115,8 @@ type Trade struct {
 	Side       OrderSide `json:"side"`
 	Quantity   float64   `json:"quantity"`
 	Price      float64   `json:"price"`
-	Commission float64   `json:"commission"`  // 佣金
-	StampTax   float64   `json:"stamp_tax"`   // 印花税 (仅卖出)
+	Commission float64   `json:"commission"` // 佣金
+	StampTax   float64   `json:"stamp_tax"`  // 印花税 (仅卖出)
 	Timestamp  time.Time `json:"timestamp"`
 	Name       string    `json:"name"` // 股票名称
 }
@@ -128,7 +127,7 @@ type Position struct {
 	Quantity    float64 `json:"quantity"`
 	AvgPrice    float64 `json:"avg_price"`
 	MarketPrice float64 `json:"market_price"`
-	PnL         float64 `json:"pnl"`          // Total P&L = RealizedPnl + unrealized
+	PnL         float64 `json:"pnl"` // Total P&L = RealizedPnl + unrealized
 	PnLPct      float64 `json:"pnl_pct"`
 	RealizedPnl float64 `json:"realized_pnl"` // Accumulated realized gains from closes
 	Name        string  `json:"name"`

@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
-
 	"quantflow/internal/market"
+	"time"
 )
 
 const binanceBaseURL = "https://api.binance.com/api/v3"
@@ -24,7 +23,7 @@ func NewBinanceAdapter() *BinanceAdapter {
 	}
 }
 
-func (a *BinanceAdapter) Name() string      { return "binance" }
+func (a *BinanceAdapter) Name() string       { return "binance" }
 func (a *BinanceAdapter) Markets() []string  { return []string{"CRYPTO"} }
 func (a *BinanceAdapter) RequiresAuth() bool { return false }
 
@@ -78,11 +77,11 @@ func (a *BinanceAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 	defer resp2.Body.Close()
 
 	var ticker24 struct {
-		OpenPrice  string `json:"openPrice"`
-		HighPrice  string `json:"highPrice"`
-		LowPrice   string `json:"lowPrice"`
-		Volume     string `json:"volume"`
-		PriceChange string `json:"priceChange"`
+		OpenPrice          string `json:"openPrice"`
+		HighPrice          string `json:"highPrice"`
+		LowPrice           string `json:"lowPrice"`
+		Volume             string `json:"volume"`
+		PriceChange        string `json:"priceChange"`
 		PriceChangePercent string `json:"priceChangePercent"`
 	}
 	if err := json.NewDecoder(resp2.Body).Decode(&ticker24); err != nil {
@@ -103,11 +102,10 @@ func (a *BinanceAdapter) FetchQuote(ctx context.Context, symbol string) (*market
 }
 
 func (a *BinanceAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, _ string, start, end int64) ([]market.OHLCVBar, error) {
-	// Map interval to Binance format
+	// Map interval to Binance format (pass-through for supported values, else 1d)
 	binanceInterval := interval
 	switch interval {
 	case "1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M":
-		binanceInterval = interval
 	default:
 		binanceInterval = "1d"
 	}
@@ -169,6 +167,7 @@ func toFloat(v any) float64 {
 
 func parseFloat(s string) float64 {
 	var f float64
-	fmt.Sscanf(s, "%f", &f)
+	// Best-effort parse: malformed input degrades to 0
+	_, _ = fmt.Sscanf(s, "%f", &f)
 	return f
 }

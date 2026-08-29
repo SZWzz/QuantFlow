@@ -3,10 +3,9 @@ package market
 import (
 	"context"
 	"log/slog"
+	"quantflow/internal/ws"
 	"sync"
 	"time"
-
-	"quantflow/internal/ws"
 )
 
 // MinutePoller periodically fetches minute ticks for symbols that have

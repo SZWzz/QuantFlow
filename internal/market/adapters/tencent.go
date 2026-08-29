@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"quantflow/internal/market"
+	"quantflow/internal/normalize"
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"quantflow/internal/market"
-	"quantflow/internal/normalize"
 )
 
 const (
@@ -29,7 +28,7 @@ func NewTencentAdapter() *TencentAdapter {
 	return &TencentAdapter{client: &http.Client{Timeout: 10 * time.Second}}
 }
 
-func (a *TencentAdapter) Name() string      { return "tencent" }
+func (a *TencentAdapter) Name() string       { return "tencent" }
 func (a *TencentAdapter) Markets() []string  { return []string{"CN", "HK"} }
 func (a *TencentAdapter) RequiresAuth() bool { return false }
 
@@ -82,6 +81,7 @@ var tencentIntervalMap = map[string]string{
 	"1M": "month",
 }
 
+//nolint:gocyclo // 多周期×复权×分页的笛卡尔分支，拆分反而割裂协议解析逻辑
 func (a *TencentAdapter) FetchOHLCV(ctx context.Context, symbol string, interval string, fqfactor string, start, end int64) ([]market.OHLCVBar, error) {
 	period, ok := tencentIntervalMap[strings.ToUpper(interval)]
 	if !ok {

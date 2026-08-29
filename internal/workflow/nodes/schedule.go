@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -18,9 +17,9 @@ func NewScheduleNode(id string, params map[string]any) (workflow.BaseNode, error
 	return &ScheduleNode{id: id, params: params}, nil
 }
 
-func (n *ScheduleNode) ID() string        { return n.id }
-func (n *ScheduleNode) NodeType() string  { return "schedule" }
-func (n *ScheduleNode) Category() string  { return "schedule" }
+func (n *ScheduleNode) ID() string       { return n.id }
+func (n *ScheduleNode) NodeType() string { return "schedule" }
+func (n *ScheduleNode) Category() string { return "schedule" }
 
 func (n *ScheduleNode) InputPorts() []workflow.PortDefinition { return nil }
 

@@ -15,8 +15,8 @@ type DupontBreakdown struct {
 
 // DupontTrend holds Dupont decomposition for a single period.
 type DupontTrend struct {
-	Period     string          `json:"period"`
-	Breakdown  DupontBreakdown `json:"breakdown"`
+	Period    string          `json:"period"`
+	Breakdown DupontBreakdown `json:"breakdown"`
 }
 
 // PeerRadar contains radar chart data for peer comparison.
@@ -78,12 +78,12 @@ func ComputePeerRadar(symbol string, peers []string, getFD func(string) *Financi
 			Symbol: sym,
 			Name:   sym,
 			Metrics: map[string]float64{
-				"ROE":       db.ROE,
-				"净利率":      db.NetMargin,
-				"周转率":      db.AssetTurnover,
-				"杠杆":       db.EquityMultiplier,
-				"毛利率":      db.GrossMargin,
-				"EPS":       db.EPS,
+				"ROE": db.ROE,
+				"净利率": db.NetMargin,
+				"周转率": db.AssetTurnover,
+				"杠杆":  db.EquityMultiplier,
+				"毛利率": db.GrossMargin,
+				"EPS": db.EPS,
 			},
 		})
 	}

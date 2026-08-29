@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-
 	"quantflow/internal/normalize"
-	pb "quantflow/internal/python/proto"
 	"quantflow/internal/python"
 	"quantflow/internal/workflow"
+
+	pb "quantflow/internal/python/proto"
 )
 
 // RiskModelNode computes GARCH volatility or covariance matrix via Python sidecar.
@@ -117,7 +117,7 @@ func (n *RiskModelNode) callPythonRiskModel(ctx context.Context, client *python.
 
 	// Build volatility series from response (single value per model period).
 	volatility := make([]float64, 0)
-	if resp.ResultData != nil && len(resp.ResultData) > 0 {
+	if len(resp.ResultData) > 0 {
 		// If Python returned result data, extract the volatility column.
 		volatility = append(volatility, 0) // placeholder
 	}

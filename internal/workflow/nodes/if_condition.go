@@ -3,7 +3,6 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
@@ -37,10 +36,14 @@ func (n *IfConditionNode) OutputPorts() []workflow.PortDefinition {
 
 func (n *IfConditionNode) ParamSchema() []workflow.ParamDef {
 	return []workflow.ParamDef{
-		{Name: "op", Type: "string", Default: "gt",
-			Description: "Comparison operator: gt, lt, gte, lte, eq"},
-		{Name: "threshold", Type: "float", Default: float64(0),
-			Description: "Threshold value to compare against"},
+		{
+			Name: "op", Type: "string", Default: "gt",
+			Description: "Comparison operator: gt, lt, gte, lte, eq",
+		},
+		{
+			Name: "threshold", Type: "float", Default: float64(0),
+			Description: "Threshold value to compare against",
+		},
 	}
 }
 

@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"quantflow/internal/research"
+	"strings"
 )
 
 // GetDupontAnalysis returns Dupont decomposition for a symbol.

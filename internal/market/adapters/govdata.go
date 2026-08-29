@@ -14,8 +14,10 @@ import (
 	"time"
 )
 
-const fredBaseURL = "https://api.stlouisfed.org/fred"
-const secEdgarBaseURL = "https://efts.sec.gov/LATEST/search-index"
+const (
+	fredBaseURL     = "https://api.stlouisfed.org/fred"
+	secEdgarBaseURL = "https://efts.sec.gov/LATEST/search-index"
+)
 
 // GovDataAdapter defines the interface for government/alternative economic data.
 // It covers FRED economic indicators and SEC EDGAR corporate filings.
@@ -40,7 +42,7 @@ type IndicatorPoint struct {
 // SECFiling represents a single SEC EDGAR filing entry.
 type SECFiling struct {
 	Company    string `json:"company"`
-	FormType   string `json:"form_type"`   // 10-K, 10-Q, 8-K, etc.
+	FormType   string `json:"form_type"` // 10-K, 10-Q, 8-K, etc.
 	FilingDate string `json:"filing_date"`
 	URL        string `json:"url"`
 }
@@ -269,10 +271,10 @@ func (a *GovDataHTTPAdapter) FetchCompanyFilings(ctx context.Context, cik string
 		Hits struct {
 			Hits []struct {
 				Source struct {
-					CompanyName    string `json:"company"`
-					FormType       string `json:"form"`
-					FilingDate     string `json:"date"`
-					URL            string `json:"url"`
+					CompanyName string `json:"company"`
+					FormType    string `json:"form"`
+					FilingDate  string `json:"date"`
+					URL         string `json:"url"`
 				} `json:"_source"`
 			} `json:"hits"`
 		} `json:"hits"`

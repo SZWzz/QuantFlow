@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
 	"quantflow/internal/workflow"
 )
 
@@ -19,9 +18,9 @@ func NewNotifyNode(id string, params map[string]any) (workflow.BaseNode, error) 
 	return &NotifyNode{id: id, params: params}, nil
 }
 
-func (n *NotifyNode) ID() string        { return n.id }
-func (n *NotifyNode) NodeType() string  { return "notify" }
-func (n *NotifyNode) Category() string  { return "notify" }
+func (n *NotifyNode) ID() string       { return n.id }
+func (n *NotifyNode) NodeType() string { return "notify" }
+func (n *NotifyNode) Category() string { return "notify" }
 
 func (n *NotifyNode) InputPorts() []workflow.PortDefinition {
 	return []workflow.PortDefinition{

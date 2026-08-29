@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"quantflow/internal/trading"
 	"strings"
 	"testing"
-
-	"quantflow/internal/trading"
 )
 
 func setupAlpacaTestServer() (*httptest.Server, *AlpacaBroker) {
@@ -30,11 +29,15 @@ func setupAlpacaTestServer() (*httptest.Server, *AlpacaBroker) {
 			switch r.Method {
 			case http.MethodGet:
 				json.NewEncoder(w).Encode([]map[string]interface{}{
-					{"id": "ord-001", "client_order_id": "cli-001", "symbol": "AAPL", "side": "buy", "type": "limit",
+					{
+						"id": "ord-001", "client_order_id": "cli-001", "symbol": "AAPL", "side": "buy", "type": "limit",
 						"qty": "100", "limit_price": "195.50", "filled_qty": "100", "filled_avg_price": "195.45",
-						"status": "filled", "created_at": "2026-06-19T10:00:00Z", "filled_at": "2026-06-19T10:05:00Z"},
-					{"id": "ord-002", "symbol": "TSLA", "side": "sell", "type": "market",
-						"qty": "50", "filled_qty": "0", "status": "pending_new", "created_at": "2026-06-19T11:00:00Z"},
+						"status": "filled", "created_at": "2026-06-19T10:00:00Z", "filled_at": "2026-06-19T10:05:00Z",
+					},
+					{
+						"id": "ord-002", "symbol": "TSLA", "side": "sell", "type": "market",
+						"qty": "50", "filled_qty": "0", "status": "pending_new", "created_at": "2026-06-19T11:00:00Z",
+					},
 				})
 			case http.MethodPost:
 				w.WriteHeader(http.StatusOK)
@@ -50,10 +53,14 @@ func setupAlpacaTestServer() (*httptest.Server, *AlpacaBroker) {
 			}
 		case path == "/v2/positions":
 			json.NewEncoder(w).Encode([]map[string]string{
-				{"symbol": "AAPL", "qty": "100", "avg_entry_price": "190.25",
-					"current_price": "198.50", "unrealized_pl": "825.00", "unrealized_plpc": "0.0434"},
-				{"symbol": "MSFT", "qty": "50", "avg_entry_price": "420.00",
-					"current_price": "435.75", "unrealized_pl": "787.50", "unrealized_plpc": "0.0375"},
+				{
+					"symbol": "AAPL", "qty": "100", "avg_entry_price": "190.25",
+					"current_price": "198.50", "unrealized_pl": "825.00", "unrealized_plpc": "0.0434",
+				},
+				{
+					"symbol": "MSFT", "qty": "50", "avg_entry_price": "420.00",
+					"current_price": "435.75", "unrealized_pl": "787.50", "unrealized_plpc": "0.0375",
+				},
 			})
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -200,11 +207,16 @@ func TestAlpacaStatus_Mapping(t *testing.T) {
 		alpaca string
 		want   trading.OrderStatus
 	}{
-		{"new", trading.StatusPending}, {"accepted", trading.StatusPending},
-		{"pending_new", trading.StatusPending}, {"partially_filled", trading.StatusPartial},
-		{"filled", trading.StatusFilled}, {"canceled", trading.StatusCancelled},
-		{"expired", trading.StatusCancelled}, {"rejected", trading.StatusRejected},
-		{"stopped", trading.StatusRejected}, {"unknown", trading.StatusPending},
+		{"new", trading.StatusPending},
+		{"accepted", trading.StatusPending},
+		{"pending_new", trading.StatusPending},
+		{"partially_filled", trading.StatusPartial},
+		{"filled", trading.StatusFilled},
+		{"canceled", trading.StatusCancelled},
+		{"expired", trading.StatusCancelled},
+		{"rejected", trading.StatusRejected},
+		{"stopped", trading.StatusRejected},
+		{"unknown", trading.StatusPending},
 	}
 	for _, tt := range tests {
 		t.Run(tt.alpaca, func(t *testing.T) {

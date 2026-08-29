@@ -119,7 +119,9 @@ func (s *Scheduler) executeTask(task *Task) {
 		status = "error"
 		slog.Error("task failed", "id", task.ID, "error", err)
 	}
-	s.repo.RecordRun(task.ID, status)
+	if err := s.repo.RecordRun(task.ID, status); err != nil {
+		slog.Warn("record task run failed", "id", task.ID, "error", err)
+	}
 	if s.notify != nil {
 		s.notify.SendTaskCompleted(task.Name, status == "success", execID)
 	}

@@ -3,13 +3,15 @@ package nodes
 import (
 	"context"
 	"fmt"
-
 	"quantflow/internal/workflow"
 )
 
 // IfElseNode selects values from a or b based on a condition series.
 // If condition[i] > 0 then a[i] else b[i].
-type IfElseNode struct{ id string; params map[string]any }
+type IfElseNode struct {
+	id     string
+	params map[string]any
+}
 
 func NewIfElseNode(id string, params map[string]any) (workflow.BaseNode, error) {
 	return &IfElseNode{id: id, params: params}, nil

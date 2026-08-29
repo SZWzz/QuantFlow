@@ -2,10 +2,9 @@ package logging
 
 import (
 	"encoding/json"
+	"quantflow/internal/ws"
 	"sync"
 	"time"
-
-	"quantflow/internal/ws"
 )
 
 type LogEntry struct {

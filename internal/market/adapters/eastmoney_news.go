@@ -60,11 +60,11 @@ func (a *EastMoneyNewsAdapter) FetchStockNews(ctx context.Context, symbol string
 
 	// Build JSONP request body (matching SKILL.md §5.1)
 	innerParams, err := json.Marshal(map[string]any{
-		"uid":          "",
-		"keyword":      symbol,
-		"type":         []string{"cmsArticleWebOld"},
-		"client":       "web",
-		"clientType":   "web",
+		"uid":           "",
+		"keyword":       symbol,
+		"type":          []string{"cmsArticleWebOld"},
+		"client":        "web",
+		"clientType":    "web",
 		"clientVersion": "curr",
 		"param": map[string]any{
 			"cmsArticleWebOld": map[string]any{

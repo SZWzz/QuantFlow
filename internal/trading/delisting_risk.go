@@ -31,12 +31,12 @@ type DelistingCategory struct {
 }
 
 type DelistingRiskResult struct {
-	Market      string             `json:"market"`
-	Board       string             `json:"board"`
-	IsST        bool               `json:"is_st"`
-	OverallRisk string             `json:"overall_risk"`
+	Market      string              `json:"market"`
+	Board       string              `json:"board"`
+	IsST        bool                `json:"is_st"`
+	OverallRisk string              `json:"overall_risk"`
 	Categories  []DelistingCategory `json:"categories"`
-	Summary     string             `json:"summary"`
+	Summary     string              `json:"summary"`
 }
 
 const (
@@ -84,7 +84,7 @@ type finPeriodItem struct {
 }
 
 type finPeriod struct {
-	Period string         `json:"period"`
+	Period string          `json:"period"`
 	Items  []finPeriodItem `json:"items"`
 }
 
@@ -179,69 +179,101 @@ func AssessCN(m *FinancialMetrics, board string, price, marketCap, volume, total
 		profitNeg := m.NetProfit < 0
 		switch {
 		case revBelow && profitNeg:
-			finItems = append(finItems, DelistingItem{"营收+净利润组合", "danger",
+			finItems = append(finItems, DelistingItem{
+				"营收+净利润组合", "danger",
 				formatValue(m.Revenue) + "/" + formatValue(m.NetProfit),
 				fmt.Sprintf("营收<%.0f亿且净利<0", revThresh/1e8),
-				"已触及财务类退市,年报披露后实施*ST"})
+				"已触及财务类退市,年报披露后实施*ST",
+			})
 		case m.Revenue > 0 && m.Revenue < revThresh*1.3:
-			finItems = append(finItems, DelistingItem{"营收+净利润组合", "warn",
+			finItems = append(finItems, DelistingItem{
+				"营收+净利润组合", "warn",
 				formatValue(m.Revenue) + "/" + formatValue(m.NetProfit),
 				fmt.Sprintf("营收<%.0f亿且净利<0", revThresh/1e8),
-				"营收接近退市线，需关注"})
+				"营收接近退市线，需关注",
+			})
 		default:
-			finItems = append(finItems, DelistingItem{"营收+净利润组合", "safe",
+			finItems = append(finItems, DelistingItem{
+				"营收+净利润组合", "safe",
 				formatValue(m.Revenue) + "/" + formatValue(m.NetProfit),
 				fmt.Sprintf("营收<%.0f亿且净利<0", revThresh/1e8),
-				"远离退市线"})
+				"远离退市线",
+			})
 		}
 		switch {
 		case m.NetAssets < 0:
-			finItems = append(finItems, DelistingItem{"净资产", "danger",
-				formatValue(m.NetAssets), "净资产<0", "资不抵债,触及财务类退市"})
+			finItems = append(finItems, DelistingItem{
+				"净资产", "danger",
+				formatValue(m.NetAssets), "净资产<0", "资不抵债,触及财务类退市",
+			})
 		case m.NetAssets < 1e8:
-			finItems = append(finItems, DelistingItem{"净资产", "warn",
-				formatValue(m.NetAssets), "净资产<0", "净资产偏低"})
+			finItems = append(finItems, DelistingItem{
+				"净资产", "warn",
+				formatValue(m.NetAssets), "净资产<0", "净资产偏低",
+			})
 		default:
-			finItems = append(finItems, DelistingItem{"净资产", "safe",
-				formatValue(m.NetAssets), "净资产<0", "净资产为正"})
+			finItems = append(finItems, DelistingItem{
+				"净资产", "safe",
+				formatValue(m.NetAssets), "净资产<0", "净资产为正",
+			})
 		}
 	} else {
-		finItems = append(finItems, DelistingItem{"营收+净利润组合", "safe",
-			"财务数据暂缺", "营收<阈值且净利<0", "无法判断"})
-		finItems = append(finItems, DelistingItem{"净资产", "safe",
-			"财务数据暂缺", "净资产<0", "无法判断"})
+		finItems = append(finItems, DelistingItem{
+			"营收+净利润组合", "safe",
+			"财务数据暂缺", "营收<阈值且净利<0", "无法判断",
+		})
+		finItems = append(finItems, DelistingItem{
+			"净资产", "safe",
+			"财务数据暂缺", "净资产<0", "无法判断",
+		})
 	}
-	finItems = append(finItems, DelistingItem{"审计意见类型", "safe",
-		"待获取", "无法表示/否定→退市", "数据源待补充"})
+	finItems = append(finItems, DelistingItem{
+		"审计意见类型", "safe",
+		"待获取", "无法表示/否定→退市", "数据源待补充",
+	})
 	cats = append(cats, DelistingCategory{"财务类退市", categoryLevel(finItems), finItems})
 
 	// 交易类退市
 	tradeItems := []DelistingItem{}
 	_ = volume // volume check simplified
-	if price > 0 && price < 1.0 {
-		tradeItems = append(tradeItems, DelistingItem{"面值(收盘价)", "danger",
-			fmt.Sprintf("%.2f元", price), "连续20日<1元", "已低于1元"})
-	} else if price > 0 && price < 1.3 {
-		tradeItems = append(tradeItems, DelistingItem{"面值(收盘价)", "warn",
+	switch {
+	case price > 0 && price < 1.0:
+		tradeItems = append(tradeItems, DelistingItem{
+			"面值(收盘价)", "danger",
+			fmt.Sprintf("%.2f元", price), "连续20日<1元", "已低于1元",
+		})
+	case price > 0 && price < 1.3:
+		tradeItems = append(tradeItems, DelistingItem{
+			"面值(收盘价)", "warn",
 			fmt.Sprintf("%.2f元", price), "连续20日<1元",
-			fmt.Sprintf("距1元仅%.0f%%", (price-1)/1*100)})
-	} else if price > 0 {
-		tradeItems = append(tradeItems, DelistingItem{"面值(收盘价)", "safe",
-			fmt.Sprintf("%.2f元", price), "连续20日<1元", "安全"})
+			fmt.Sprintf("距1元仅%.0f%%", (price-1)/1*100),
+		})
+	case price > 0:
+		tradeItems = append(tradeItems, DelistingItem{
+			"面值(收盘价)", "safe",
+			fmt.Sprintf("%.2f元", price), "连续20日<1元", "安全",
+		})
 	}
 	mcThresh := marketCapThresholdMainland
 	if board == "科创板" || board == "北交所" {
 		mcThresh = marketCapThresholdOther
 	}
-	if marketCap > 0 && marketCap < mcThresh {
-		tradeItems = append(tradeItems, DelistingItem{"总市值", "danger",
-			formatValue(marketCap), fmt.Sprintf("<%.0f亿", mcThresh/1e8), "低于市值退市标准"})
-	} else if marketCap > 0 && marketCap < mcThresh*1.2 {
-		tradeItems = append(tradeItems, DelistingItem{"总市值", "warn",
-			formatValue(marketCap), fmt.Sprintf("<%.0f亿", mcThresh/1e8), "市值接近退市线"})
-	} else if marketCap > 0 {
-		tradeItems = append(tradeItems, DelistingItem{"总市值", "safe",
-			formatValue(marketCap), fmt.Sprintf("<%.0f亿", mcThresh/1e8), "市值安全"})
+	switch {
+	case marketCap > 0 && marketCap < mcThresh:
+		tradeItems = append(tradeItems, DelistingItem{
+			"总市值", "danger",
+			formatValue(marketCap), fmt.Sprintf("<%.0f亿", mcThresh/1e8), "低于市值退市标准",
+		})
+	case marketCap > 0 && marketCap < mcThresh*1.2:
+		tradeItems = append(tradeItems, DelistingItem{
+			"总市值", "warn",
+			formatValue(marketCap), fmt.Sprintf("<%.0f亿", mcThresh/1e8), "市值接近退市线",
+		})
+	case marketCap > 0:
+		tradeItems = append(tradeItems, DelistingItem{
+			"总市值", "safe",
+			formatValue(marketCap), fmt.Sprintf("<%.0f亿", mcThresh/1e8), "市值安全",
+		})
 	}
 	cats = append(cats, DelistingCategory{"交易类退市", categoryLevel(tradeItems), tradeItems})
 
@@ -259,25 +291,37 @@ func AssessCN(m *FinancialMetrics, board string, price, marketCap, volume, total
 func AssessHK(price, marketCap, volume, totalShares float64) []DelistingCategory {
 	items := []DelistingItem{}
 	if price > 0 && price < 1.0 {
-		items = append(items, DelistingItem{"股价(仙股化)", "warn",
-			fmt.Sprintf("%.3f HKD", price), "<1 HKD", "仙股化风险"})
+		items = append(items, DelistingItem{
+			"股价(仙股化)", "warn",
+			fmt.Sprintf("%.3f HKD", price), "<1 HKD", "仙股化风险",
+		})
 	} else if price > 0 {
-		items = append(items, DelistingItem{"股价(仙股化)", "safe",
-			fmt.Sprintf("%.2f HKD", price), "<1 HKD", "股价正常"})
+		items = append(items, DelistingItem{
+			"股价(仙股化)", "safe",
+			fmt.Sprintf("%.2f HKD", price), "<1 HKD", "股价正常",
+		})
 	}
 	if marketCap > 0 && marketCap < 5e8 {
-		items = append(items, DelistingItem{"总市值", "warn",
-			formatValue(marketCap), "<5亿 HKD", "低于IPO最低市值"})
+		items = append(items, DelistingItem{
+			"总市值", "warn",
+			formatValue(marketCap), "<5亿 HKD", "低于IPO最低市值",
+		})
 	} else if marketCap > 0 {
-		items = append(items, DelistingItem{"总市值", "safe",
-			formatValue(marketCap), "<5亿 HKD", "市值正常"})
+		items = append(items, DelistingItem{
+			"总市值", "safe",
+			formatValue(marketCap), "<5亿 HKD", "市值正常",
+		})
 	}
 	if volume > 0 && totalShares > 0 && volume/totalShares < 0.0002 {
-		items = append(items, DelistingItem{"流动性(换手率)", "warn",
-			fmt.Sprintf("%.4f%%", volume/totalShares*100), ">0.02%", "流动性枯竭风险"})
+		items = append(items, DelistingItem{
+			"流动性(换手率)", "warn",
+			fmt.Sprintf("%.4f%%", volume/totalShares*100), ">0.02%", "流动性枯竭风险",
+		})
 	} else if volume > 0 && totalShares > 0 {
-		items = append(items, DelistingItem{"流动性(换手率)", "safe",
-			fmt.Sprintf("%.2f%%", volume/totalShares*100), ">0.02%", "流动性正常"})
+		items = append(items, DelistingItem{
+			"流动性(换手率)", "safe",
+			fmt.Sprintf("%.2f%%", volume/totalShares*100), ">0.02%", "流动性正常",
+		})
 	}
 	return []DelistingCategory{{"交易指标预警", categoryLevel(items), items}}
 }
@@ -285,18 +329,26 @@ func AssessHK(price, marketCap, volume, totalShares float64) []DelistingCategory
 func AssessUS(price, marketCap float64) []DelistingCategory {
 	items := []DelistingItem{}
 	if price > 0 && price < 1.0 {
-		items = append(items, DelistingItem{"股价(面值)", "warn",
-			fmt.Sprintf("$%.2f", price), "连续30日<$1", "NYSE/NASDAQ面值退市风险"})
+		items = append(items, DelistingItem{
+			"股价(面值)", "warn",
+			fmt.Sprintf("$%.2f", price), "连续30日<$1", "NYSE/NASDAQ面值退市风险",
+		})
 	} else if price > 0 {
-		items = append(items, DelistingItem{"股价(面值)", "safe",
-			fmt.Sprintf("$%.2f", price), "连续30日<$1", "股价正常"})
+		items = append(items, DelistingItem{
+			"股价(面值)", "safe",
+			fmt.Sprintf("$%.2f", price), "连续30日<$1", "股价正常",
+		})
 	}
 	if marketCap > 0 && marketCap < 5e7 {
-		items = append(items, DelistingItem{"总市值", "warn",
-			fmt.Sprintf("$%.0f万", marketCap/1e4), "<$5000万", "NYSE/NASDAQ市值退市风险"})
+		items = append(items, DelistingItem{
+			"总市值", "warn",
+			fmt.Sprintf("$%.0f万", marketCap/1e4), "<$5000万", "NYSE/NASDAQ市值退市风险",
+		})
 	} else if marketCap > 0 {
-		items = append(items, DelistingItem{"总市值", "safe",
-			fmt.Sprintf("$%.0f亿", marketCap/1e8), "<$5000万", "市值正常"})
+		items = append(items, DelistingItem{
+			"总市值", "safe",
+			fmt.Sprintf("$%.0f亿", marketCap/1e8), "<$5000万", "市值正常",
+		})
 	}
 	return []DelistingCategory{{"交易指标预警", categoryLevel(items), items}}
 }
