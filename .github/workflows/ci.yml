@@ -17,6 +17,10 @@ jobs:
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      # main.go embeds all:frontend/dist — create a placeholder so the backend
+      # job can compile without a full frontend build (real assets ship via the
+      # frontend job / release pipeline).
+      - run: mkdir -p frontend/dist && echo '<!doctype html><title>ci-placeholder</title>' > frontend/dist/index.html
       - run: go build ./...
       - run: go vet ./...
       - run: golangci-lint run ./... --timeout 5m

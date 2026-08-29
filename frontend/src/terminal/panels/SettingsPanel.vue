@@ -105,9 +105,13 @@ const apiKeys = ref({
 
 async function loadApiKeys() {
   for (const name of ['fred', 'finnhub', 'iwencai', 'qos']) {
-    const cred = await GetCredential(`${name}_api_key`)
-    if (cred?.keys?.api_key) {
-      apiKeys.value[name as keyof typeof apiKeys.value] = cred.keys.api_key
+    try {
+      const cred = await GetCredential(`${name}_api_key`)
+      if (cred?.keys?.api_key) {
+        apiKeys.value[name as keyof typeof apiKeys.value] = cred.keys.api_key
+      }
+    } catch {
+      // Silently ignore — Go backend may not be available in dev/browser mode
     }
   }
 }

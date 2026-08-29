@@ -3,7 +3,13 @@ import type { Page } from '@playwright/test'
 export async function setupMocks(page: Page) {
   await page.addInitScript(() => {
     // 跳过首次运行向导（mock 环境恒为首跑，向导遮罩会拦截点击）
-    try { localStorage.setItem('quantflow-first-run-completed', 'true') } catch {}
+    // 两套向导各有独立 localStorage key，都要预置：
+    // - quantflow-first-run-completed → FirstRunWizard (useFirstRun.ts)
+    // - quantflow_onboarding_done    → OnboardingOverlay (stores/session.ts)
+    try {
+      localStorage.setItem('quantflow-first-run-completed', 'true')
+      localStorage.setItem('quantflow_onboarding_done', 'true')
+    } catch {}
     // Mock Wails IPC — window.go.main.App
     const mockApp = {
       SearchSymbols: async (q: string, limit: number) => {

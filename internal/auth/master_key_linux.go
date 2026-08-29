@@ -77,14 +77,12 @@ func createMasterKey() ([32]byte, error) {
 	}
 	encoded := base64.StdEncoding.EncodeToString(key[:])
 
-	if cmd := exec.Command("secret-tool", "store",
-		"--label=QuantFlow Master Key", "quantflow", "master-key"); true {
-		cmd := exec.Command("secret-tool", "store",
-			"--label=QuantFlow Master Key", "quantflow", "master-key")
-		cmd.Stdin = strings.NewReader(encoded)
-		if err := cmd.Run(); err == nil {
-			return key, nil
-		}
+	// Try the desktop Secret Service (gnome-keyring via secret-tool) first.
+	cmd := exec.Command("secret-tool", "store",
+		"--label=QuantFlow Master Key", "quantflow", "master-key")
+	cmd.Stdin = strings.NewReader(encoded)
+	if err := cmd.Run(); err == nil {
+		return key, nil
 	}
 
 	home, err := os.UserHomeDir()

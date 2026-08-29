@@ -88,3 +88,4 @@ bin/
 .claude/
 **/.vite/
 **/node_modules/
+frontend/coverage/
