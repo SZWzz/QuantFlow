@@ -1,5 +1,14 @@
 .PHONY: build build-full build-frontend test lint vet clean bench coverage distclean python-setup
 .PHONY: release-darwin release-linux release-windows release-checksum release frontend-build
+.PHONY: check
+
+# Pre-push gate — mirrors AGENTS.md "full check before commit" and CI jobs.
+# Fails fast on the first red step: Go vet+test → frontend typecheck → vitest → pytest.
+check:
+	go vet ./... && go test ./... -count=1
+	cd frontend && npx vue-tsc --noEmit
+	cd frontend && npx vitest run
+	cd python && .venv/bin/python -m pytest tests/ -q
 
 build:
 	go build ./...

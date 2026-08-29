@@ -27,6 +27,9 @@
 
 - [Python] 重建测试 venv（uv，Python 3.12），pytest 恢复可运行：163 passed / 30 skipped；更新 3 个陈旧测试以匹配 2026-07-30 的有意变更（HK 分钟缓存 dict→lru_cache、pyproject build-system requires）
 - [Repo] 停止追踪编译产物 `mcp`（15.7MB）与任务草稿 `panel-shell-task-1`，加入 `.gitignore`；清理 13 个无改动的 agent worktree（2.3GB → 625MB，6 个含未提交改动的保留）
+- [CI] frontend job 的 `npx vue-tsc --noEmit` 门禁步骤保持不变（追溯确认该步骤一直存在，121 个类型错误漏入的原因是分支保护未启用导致红灯 PR 仍可合并，非门禁缺失）
+- [Repo] Gitea 侧 main 分支已启用保护规则（禁 force-push/删除，保留直接推送）；GitHub 私有仓库免费版不支持分支保护，需升级 Pro 或转公开后才能强制要求 CI 通过
+- [Build] Makefile 新增 `make check` — 一键运行与 CI 一致的完整门禁（go vet+test → vue-tsc → vitest → pytest）
 
 ## [2026.7.30] - 2026-07-30
 
