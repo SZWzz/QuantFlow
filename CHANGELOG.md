@@ -20,6 +20,8 @@
 - [CI] e2e 全部超时 — mock 预置的 localStorage key `quantflow-first-run-completed`（FirstRunWizard）与 OnboardingOverlay 实际读取的 `quantflow_onboarding_done`（session store）不一致，遮罩拦截所有点击；mock 现同时预置两个 key，本地 19/19 通过
 - [CI] frontend-coverage 缺 `@vitest/coverage-v8` 依赖 — 已补入 devDependencies（与 vitest 2.1 同版本）
 - [CI] backend/backend-coverage 在 ubuntu runner 上 `go build` 失败 — Wails v3 webview 经 CGO 链接 GTK4/WebKitGTK，两个 Go job 均补 `libgtk-4-dev libwebkitgtk-6.0-dev` 系统依赖安装步骤
+- [CI] amd64 链接失败 `parquet-go/hashprobe/aeshash: invalid reference to runtime.aeskeysched` — segmentio/parquet-go（2023 快照）的 linkname hack 与新 Go runtime 不兼容（仅 amd64 触发，本地 arm64 不可见）；升级为更名后持续维护的 `github.com/parquet-go/parquet-go` v0.32.0，已交叉编译 linux/amd64 验证
+- [CI] vitest 间歇性 `Uncaught Exception: window is not defined` — `@wailsio/runtime` 的 drag.js 在 import 时启动 `window.setInterval` 轮询，jsdom teardown 后回调访问 window 崩溃；vitest.setup.ts 加全局 mock（单文件 vi.mock 仍可覆盖）
 
 ### Added
 

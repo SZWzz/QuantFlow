@@ -9,6 +9,26 @@ mockWailsIPC()
 mockWebSocket()
 mockI18n()
 
+// 全局 mock @wailsio/runtime：真实模块在 import 时（dist/index.js → drag.js）启动
+// window.setInterval 轮询 Wails 环境，jsdom 环境 teardown 后定时器回调访问 window
+// 抛 ReferenceError，造成 vitest "Uncaught Exception"（时序依赖，间歇性失败）。
+// 单个测试文件（如 lib/__tests__/wails.test.ts）的 vi.mock 会覆盖此全局 mock。
+vi.mock('@wailsio/runtime', () => ({
+  Call: { ByName: vi.fn(async () => null) },
+  Dialogs: {
+    Question: vi.fn(async () => '确定'),
+    Info: vi.fn(async () => ''),
+    Warning: vi.fn(async () => ''),
+    Error: vi.fn(async () => ''),
+  },
+  Events: {
+    On: vi.fn(() => () => {}),
+    Once: vi.fn(() => () => {}),
+    Off: vi.fn(),
+    Emit: vi.fn(),
+  },
+}))
+
 const originalSetTimeout = global.setTimeout
 global.setTimeout = ((fn: any, ms: any, ...args: any[]) => {
   if (typeof fn === 'string' && fn.includes('window')) return 0

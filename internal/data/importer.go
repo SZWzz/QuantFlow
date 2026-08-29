@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/segmentio/parquet-go"
+	"github.com/parquet-go/parquet-go"
 )
 
 var validImportTables = map[string]bool{
