@@ -17,6 +17,9 @@ jobs:
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      # Wails v3 webview 在 Linux 上通过 CGO 链接 GTK4/WebKitGTK，ubuntu runner 需先装系统库
+      - name: Install GTK4/WebKitGTK system deps (Wails v3)
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
       # main.go embeds all:frontend/dist — create a placeholder so the backend
       # job can compile without a full frontend build (real assets ship via the
       # frontend job / release pipeline).

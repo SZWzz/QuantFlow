@@ -19,6 +19,7 @@
 - [CI] Linux 编译错误 — `internal/auth/master_key_linux.go` 中 `if cmd := exec.Command(...); true {` 残留调试代码导致外层 `cmd` 未使用，修复为直接执行（已用 GOOS=linux/windows vet 双验证）
 - [CI] e2e 全部超时 — mock 预置的 localStorage key `quantflow-first-run-completed`（FirstRunWizard）与 OnboardingOverlay 实际读取的 `quantflow_onboarding_done`（session store）不一致，遮罩拦截所有点击；mock 现同时预置两个 key，本地 19/19 通过
 - [CI] frontend-coverage 缺 `@vitest/coverage-v8` 依赖 — 已补入 devDependencies（与 vitest 2.1 同版本）
+- [CI] backend/backend-coverage 在 ubuntu runner 上 `go build` 失败 — Wails v3 webview 经 CGO 链接 GTK4/WebKitGTK，两个 Go job 均补 `libgtk-4-dev libwebkitgtk-6.0-dev` 系统依赖安装步骤
 
 ### Added
 
