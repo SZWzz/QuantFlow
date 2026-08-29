@@ -42,6 +42,8 @@
 - [Build] Makefile 新增 `make check` — 一键运行与 CI 一致的完整门禁（go vet+test → vue-tsc → vitest → pytest）
 - [CI] 覆盖率阈值改为 ratchet 基线（只许升不许降）— Go 60% → 38%（2026-08-29 实测 38.5%，根包 Wails 绑定层 app_*.go 仅 4.5% 拖低，internal/* 约 43%，目标 60%）；前端 functions 40 → 28（实测 28.98%，lines/branches/statements 阈值不变且已通过）
 - [Repo] GitHub 仓库转为公开并启用 main 分支保护 — required status checks（strict）覆盖全部 7 个 CI 检查（backend/frontend/python/e2e/test/backend-coverage/frontend-coverage），禁 force-push/删除；enforce_admins 关闭以便维护者紧急直推
+- [Deps] dependabot 首批 12 个 PR 全部清零 — 合并 10 个：Go 侧 x/net 0.58 / protobuf 1.36.12 / coder-websocket 1.8.15 / go-sqlite3 1.14.50，Python 侧 grpcio-health-checking >=1.83，前端 highlight.js 11.12 / vue 3.5.41 / @vitejs/plugin-vue 6（与 vite 6 兼容）/ vue-i18n 11（项目全部 Composition API `legacy: false`，本地 vue-tsc+vitest 262 条验证无 breaking）；x/sync 0.22 与 x/text 0.41 两个 PR 由其他依赖间接升级覆盖、dependabot 自动关闭
+- [Deps] vitest 2.1 → 4.1（PR #9）— 同步升级 `@vitest/coverage-v8` 至 4.x 解决版本配对，本地复跑 262 条测试与覆盖率阈值（lines 44.8/branches 31.2/functions 33.9/statements 48.1，全部达标）后手动 rebase 合并
 
 ## [2026.7.30] - 2026-07-30
 
