@@ -41,7 +41,7 @@
 - [Repo] Gitea 侧 main 分支已启用保护规则（禁 force-push/删除，保留直接推送）；GitHub 私有仓库免费版不支持分支保护，需升级 Pro 或转公开后才能强制要求 CI 通过
 - [Build] Makefile 新增 `make check` — 一键运行与 CI 一致的完整门禁（go vet+test → vue-tsc → vitest → pytest）
 - [CI] 覆盖率阈值改为 ratchet 基线（只许升不许降）— Go 60% → 38%（2026-08-29 实测 38.5%，根包 Wails 绑定层 app_*.go 仅 4.5% 拖低，internal/* 约 43%，目标 60%）；前端 functions 40 → 28（实测 28.98%，lines/branches/statements 阈值不变且已通过）
-- [Repo] GitHub 仓库转为公开，解锁免费版分支保护（required status checks）
+- [Repo] GitHub 仓库转为公开并启用 main 分支保护 — required status checks（strict）覆盖全部 7 个 CI 检查（backend/frontend/python/e2e/test/backend-coverage/frontend-coverage），禁 force-push/删除；enforce_admins 关闭以便维护者紧急直推
 
 ## [2026.7.30] - 2026-07-30
 
