@@ -83,3 +83,8 @@ vendor/
 .workbuddy/memory/
 **/node_modules/mcp
 bin/
+
+# AI agent artifacts
+.claude/
+**/.vite/
+**/node_modules/
