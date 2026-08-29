@@ -48,7 +48,7 @@ function formatDate(d: string): string { if (!d) return '--'; const parts = d.sp
 async function fetchSettlementInfo() {
   loading.value = true
   try {
-    const { data } = await fetchWithCache<HKSettlementInfo>('hk_settlement_info', () => app!.GetHKSettlementInfo(), 3600000)
+    const { data } = await fetchWithCache<HKSettlementInfo>('hk_settlement_info', () => app!.GetHKSettlementInfo() as Promise<HKSettlementInfo>, 3600000)
     settlementInfo.value = data || null
   } catch { settlementInfo.value = null }
   finally { loading.value = false }
@@ -57,7 +57,7 @@ async function fetchSettlementInfo() {
 async function fetchCalendar() {
   calendarLoading.value = true
   try {
-    const { data } = await fetchWithCache<CalendarResult>('hk_calendar:' + calendarYear.value, () => app!.GetHKTradeCalendar(calendarYear.value), 3600000)
+    const { data } = await fetchWithCache<CalendarResult>('hk_calendar:' + calendarYear.value, () => app!.GetHKTradingCalendar(calendarYear.value) as Promise<CalendarResult>, 3600000)
     calendarEntries.value = [...(data?.trading_days || []), ...(data?.holidays || [])]
   } catch { calendarEntries.value = [] }
   finally { calendarLoading.value = false }

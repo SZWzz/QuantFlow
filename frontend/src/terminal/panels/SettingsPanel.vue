@@ -129,10 +129,6 @@ async function onSaveApiKeys() {
 }
 
 onMounted(() => { loadApiKeys(); loadUpdateSettings() })
-
-function onExportData() {
-  alert('Export data stub — not yet implemented')
-}
 </script>
 
 <template>

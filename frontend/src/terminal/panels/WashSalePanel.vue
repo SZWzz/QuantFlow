@@ -28,7 +28,7 @@ async function checkWashSale() {
   loadError.value = ''
   loading.value = true
   try {
-    const { data } = await fetchWithCache('washsale:' + sym, () => app.CheckWashSale(sym))
+    const { data } = await fetchWithCache('washsale:' + sym, () => app!.CheckWashSale(sym))
     if (seq !== loadSeq) return
     events.value = Array.isArray(data) ? data : []
   } catch (e: any) {

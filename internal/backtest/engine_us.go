@@ -115,6 +115,12 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		e.oms.UpdateMarketPrice(bar.Symbol, bar.Close)
 		latestPrices[bar.Symbol] = bar.Close
 
+		// US is T+0 tradable (T+2 is cash settlement, not a sell lock):
+		// clear the OMS T+1 lock every bar so same-day sells are allowed.
+		// Without this, shares bought on any prior bar stay locked forever
+		// and every sell is silently rejected ("T+1 lock: cannot sell").
+		e.oms.ClearT1Lock()
+
 		// Calculate current equity for PDT check
 		currentEquity := portfolio.Equity(latestPrices)
 
@@ -125,44 +131,48 @@ func (e *USEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 			if e.risk.CheckStopLoss(pos, bar.Close) {
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-					tradeRecords = append(tradeRecords, TradeRecord{
-						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Close,
-						PnL:      (bar.Close - avgPrice) * pos.Quantity,
-					})
-					if dailyBuys[bar.Symbol] {
-						barDate, _ := time.Parse("2006-01-02", bar.Date)
-						if !barDate.IsZero() {
-							e.pdt.recordDayTrade(barDate)
+					// Only record the trade when the fill actually succeeds —
+					// recording a rejected fill produces phantom P&L.
+					if _, fillErr := e.oms.FillOrder(order.ID, pos.Quantity, bar.Close); fillErr == nil {
+						tradeRecords = append(tradeRecords, TradeRecord{
+							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+							Quantity: pos.Quantity, Price: bar.Close,
+							PnL:      (bar.Close - avgPrice) * pos.Quantity,
+						})
+						if dailyBuys[bar.Symbol] {
+							barDate, _ := time.Parse("2006-01-02", bar.Date)
+							if !barDate.IsZero() {
+								e.pdt.recordDayTrade(barDate)
+							}
 						}
+						portfolio.Cash = e.oms.GetCashBalance()
+						delete(portfolio.Positions, bar.Symbol)
+						delete(portfolio.AvgPrice, bar.Symbol)
+						goto recordEquityUS
 					}
 				}
-				portfolio.Cash = e.oms.GetCashBalance()
-				delete(portfolio.Positions, bar.Symbol)
-				delete(portfolio.AvgPrice, bar.Symbol)
-				goto recordEquityUS
 			}
 			if e.risk.CheckTakeProfit(pos, bar.Close) {
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-					tradeRecords = append(tradeRecords, TradeRecord{
-						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Close,
-						PnL:      (bar.Close - avgPrice) * pos.Quantity,
-					})
-					if dailyBuys[bar.Symbol] {
-						barDate, _ := time.Parse("2006-01-02", bar.Date)
-						if !barDate.IsZero() {
-							e.pdt.recordDayTrade(barDate)
+					if _, fillErr := e.oms.FillOrder(order.ID, pos.Quantity, bar.Close); fillErr == nil {
+						tradeRecords = append(tradeRecords, TradeRecord{
+							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+							Quantity: pos.Quantity, Price: bar.Close,
+							PnL:      (bar.Close - avgPrice) * pos.Quantity,
+						})
+						if dailyBuys[bar.Symbol] {
+							barDate, _ := time.Parse("2006-01-02", bar.Date)
+							if !barDate.IsZero() {
+								e.pdt.recordDayTrade(barDate)
+							}
 						}
+						portfolio.Cash = e.oms.GetCashBalance()
+						delete(portfolio.Positions, bar.Symbol)
+						delete(portfolio.AvgPrice, bar.Symbol)
+						goto recordEquityUS
 					}
 				}
-				portfolio.Cash = e.oms.GetCashBalance()
-				delete(portfolio.Positions, bar.Symbol)
-				delete(portfolio.AvgPrice, bar.Symbol)
-				goto recordEquityUS
 			}
 		}
 

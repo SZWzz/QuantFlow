@@ -133,7 +133,7 @@ async function confirmOrder() {
       await app.PlaceOrderWithStop(...args)
     } else if (app?.PlaceOrder) {
       // Fallback for backends without the stop-price binding
-      await app.PlaceOrder(...args.slice(0, 6))
+      await app.PlaceOrder(args[0], args[1], args[2], args[3], args[4], args[5])
     } else {
       throw new Error('下单接口不可用')
     }

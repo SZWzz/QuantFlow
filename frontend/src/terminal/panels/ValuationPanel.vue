@@ -53,7 +53,7 @@ function calcMargin(profit: number, rev: number): string { return rev ? (profit 
 
 const chartOption = computed(() => { const r = fcResult.value; if (!r) return {}; const pal = chartTheme.palette; return { tooltip: { trigger: 'axis' }, grid: { left: 50, right: 20, top: 10, bottom: 30 }, xAxis: { type: 'category', data: ['营收(亿)', '净利润(亿)'] }, yAxis: { type: 'value' }, series: [{ name: '保守', type: 'bar', data: [r.rev_low / 1e8, r.profit_low / 1e8], itemStyle: { color: pal[2] } }, { name: '基准', type: 'bar', data: [r.rev_base / 1e8, r.profit_base / 1e8], itemStyle: { color: pal[0] } }, { name: '乐观', type: 'bar', data: [r.rev_high / 1e8, r.profit_high / 1e8], itemStyle: { color: pal[1] } }] } })
 
-async function loadForecastData() { fcLoading.value = true; fcError.value = ''; try { if (!app?.GetFinancialForecast) return; const { data } = await fetchWithCache<any>(`forecast:${symbol.value}`, () => app.GetFinancialForecast(symbol.value), 3600000); fcResult.value = data || null } catch (e: any) { fcError.value = e?.message || String(e) } finally { fcLoading.value = false } }
+async function loadForecastData() { fcLoading.value = true; fcError.value = ''; try { if (!app?.GetForecast) return; const { data } = await fetchWithCache<any>(`forecast:${symbol.value}`, () => app.GetForecast(symbol.value), 3600000); fcResult.value = data || null } catch (e: any) { fcError.value = e?.message || String(e) } finally { fcLoading.value = false } }
 
 async function loadData() { if (activeView.value === 'dcf') loadDCFData(); else loadForecastData() }
 watch(symbol, loadData)

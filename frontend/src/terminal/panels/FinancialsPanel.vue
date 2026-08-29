@@ -132,7 +132,7 @@ async function loadCNData() {
   cnLoading.value = true
   cnError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => app?.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`financials:${symbol.value}`, () => app!.GetFinancialStatements(symbol.value), 10 * 60 * 1000)
     if (seq !== loadSeq) return
     statements.value = {
       income: res.income || [],
@@ -357,7 +357,7 @@ async function loadHKData() {
   hkLoading.value = true
   hkError.value = ''
   try {
-    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => app?.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
+    const { data: res } = await fetchWithCache<any>(`hk_financials:${symbol.value}`, () => app!.GetHKFinancialStatements(symbol.value), 10 * 60 * 1000)
     statements.value = {
       income: res.income || [],
       balance: res.balance || [],

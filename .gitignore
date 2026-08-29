@@ -1,5 +1,9 @@
 # Binary
 quantflow
+/mcp
+
+# Stray task drafts
+/panel-shell-task-*
 
 # Build output
 build/

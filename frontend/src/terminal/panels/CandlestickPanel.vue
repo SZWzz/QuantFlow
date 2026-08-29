@@ -167,13 +167,15 @@ async function loadDepth() {
         asks: depthResult.asks.map((l: any) => ({ price: l.price, size: l.size })),
       }
       depthSimulated.value = false
-    } else if (snapshot?.bid > 0 && snapshot?.ask > 0) {
+    } else if (snapshot && (snapshot.bid ?? 0) > 0 && (snapshot.ask ?? 0) > 0) {
+      const bid = snapshot.bid ?? 0
+      const ask = snapshot.ask ?? 0
       const bids: {price:number;size:number}[] = []
       const asks: {price:number;size:number}[] = []
-      const step = (snapshot.ask - snapshot.bid) / 5 || 0.02
+      const step = (ask - bid) / 5 || 0.02
       for (let i = 0; i < 5; i++) {
-        bids.push({ price: +(snapshot.bid - i * step).toFixed(2), size: Math.round(1000 / (i + 1)) })
-        asks.push({ price: +(snapshot.ask + i * step).toFixed(2), size: Math.round(800 / (i + 1)) })
+        bids.push({ price: +(bid - i * step).toFixed(2), size: Math.round(1000 / (i + 1)) })
+        asks.push({ price: +(ask + i * step).toFixed(2), size: Math.round(800 / (i + 1)) })
       }
       depthData.value = { bids, asks }
       depthSimulated.value = true

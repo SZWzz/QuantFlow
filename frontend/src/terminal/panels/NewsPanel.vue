@@ -37,15 +37,15 @@ async function loadNews() {
   loading.value = true
   try {
     const sym = props.params?.symbol || ctx.getGroupSymbol(pg.groupId) || ''
-    const { data } = await fetchWithCache(
+    const { data } = await fetchWithCache<NewsItem[]>(
       `news:${sym}`,
       async () => {
         const result = await app?.GetNews(sym, 20)
-        return Array.isArray(result) ? result : []
+        return (Array.isArray(result) ? result : []) as NewsItem[]
       },
       60 * 1000,
     )
-    items.value = data
+    items.value = data || []
   } catch(e) { console.error('[News] fetch:', e); items.value = [] }
   finally { loading.value = false }
 }

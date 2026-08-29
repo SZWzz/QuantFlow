@@ -45,8 +45,8 @@ const hkFiltered = computed(() => hkActiveTab.value === 'subscribing' ? subscrip
 const loading = computed(() => market.value === 'CN' ? cnLoading.value : hkLoading.value)
 function doFetch() { if (market.value === 'CN') fetchCNData(); else fetchHKData() }
 
-async function fetchCNData() { cnLoading.value = true; cnError.value = ''; try { const key = 'ipo_cn_data'; const { data } = await fetchWithCache<IPOItem[]>(key, () => app?.GetIPOData('CN'), 1800000); allData.value = data || [] } catch (e: any) { cnError.value = e?.message || String(e); allData.value = [] } finally { cnLoading.value = false } }
-async function fetchHKData() { hkLoading.value = true; hkError.value = ''; try { if (app?.GetHKIPOData) { const { data } = await fetchWithCache<any>('ipo_hk_data', () => app.GetHKIPOData(), 1800000); subscriptionData.value = data?.subscription || []; listingData.value = data?.upcoming || []; recentPerfData.value = data?.recent || [] } } catch (e: any) { hkError.value = e?.message || String(e) } finally { hkLoading.value = false } }
+async function fetchCNData() { cnLoading.value = true; cnError.value = ''; try { const key = 'ipo_cn_data'; const { data } = await fetchWithCache<IPOItem[]>(key, () => app!.GetIPOData('CN') as Promise<IPOItem[]>, 1800000); allData.value = data || [] } catch (e: any) { cnError.value = e?.message || String(e); allData.value = [] } finally { cnLoading.value = false } }
+async function fetchHKData() { hkLoading.value = true; hkError.value = ''; try { if (app?.GetHKIPOCalendar) { const { data } = await fetchWithCache<any>('ipo_hk_data', () => app.GetHKIPOCalendar(new Date().getFullYear()), 1800000); subscriptionData.value = data?.subscription || []; listingData.value = data?.listing || []; recentPerfData.value = data?.recent || [] } } catch (e: any) { hkError.value = e?.message || String(e) } finally { hkLoading.value = false } }
 function switchTab(key: string) { activeTab.value = key as CNTabKey }
 function switchHKTab(key: string) { hkActiveTab.value = key as HKTabKey }
 function onSymbolClick(code: string) { ctx.setGroupSymbol(ctx.getOrCreatePanelGroup(props.panelId).groupId, code) }

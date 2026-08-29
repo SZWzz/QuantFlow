@@ -93,7 +93,7 @@ async function loadList() {
   loading.value = true
   try {
     const res = await app?.ListBacktestHistory(100, 0)
-    items.value = res || []
+    items.value = (res || []) as BacktestSummary[]
   } catch (e) { console.error('ListBacktestHistory failed:', e) }
   finally { loading.value = false }
 }

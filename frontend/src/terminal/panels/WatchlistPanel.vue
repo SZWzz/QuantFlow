@@ -172,8 +172,9 @@ function rowClass(row: WatchRow): string {
 }
 
 async function refreshQuote(sym: string) {
+  if (!app) return
   try {
-    const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => app?.GetQuote(detectMarket(sym), sym), 10 * 1000)
+    const { data: result } = await fetchWithCache(`quote:${detectMarket(sym)}:${sym}`, () => app.GetQuote(detectMarket(sym), sym), 10 * 1000)
     const snap = Array.isArray(result) ? result[0] : result
     if (!snap) return
     const prev = quotes[sym]

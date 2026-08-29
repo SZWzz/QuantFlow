@@ -10,7 +10,8 @@ defineProps<{ panelId: string; params?: Record<string, any> }>()
 const { fetchWithCache } = usePanelCache()
 const app = useWailsApp()
 const statsFetcher = useDataFetch(async () => {
-  const { data } = await fetchWithCache<any>('system_stats', () => app?.GetSystemStats(), 5000)
+  if (!app) return null
+  const { data } = await fetchWithCache<any>('system_stats', () => app.GetSystemStats(), 5000)
   return data
 })
 

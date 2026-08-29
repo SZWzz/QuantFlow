@@ -3,6 +3,31 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [2026.8.29] - 2026-08-29
+
+### Fixed
+
+- [Engine] **HK/US 回测卖出全静默拒绝** — OMS `FillOrder` 对所有市场应用 T+1 锁，但仅 CN 引擎在日期变更时清理；HK/US 引擎从不清理导致买入后一切卖出被拒。HK/US 均为 T+0 可交易，修复为每根 bar 开头 `ClearT1Lock()`
+- [Engine] **HK/US 止损/止盈幻影成交** — `FillOrder` 错误被忽略，成交失败时仍写入交易记录与 P&L；修复为仅在成交成功时记录
+- [Storage] `ExecutionRepo.DeleteBefore` 时间格式不匹配 — `created_at` 列是 SQLite `datetime('now')`（空格分隔），cutoff 用 RFC3339（`T` 分隔），同日比较会误删新记录；统一为 SQLite datetime 格式
+- [Python] `Predict` 的 `predict_time_ms` 在快机器上被 `int()` 截断为 0 — 改为 `max(1, ceil(...))`
+- [Frontend] 修复 3 处面板调用了 Go 端不存在的方法（此前运行时必须靠 catch 兜底）：`GetHKTradeCalendar` → `GetHKTradingCalendar`（HKSettlementPanel）、`GetFinancialForecast` → `GetForecast`（ValuationPanel）、`GetHKIPOData()` → `GetHKIPOCalendar(year)`（IPOCalendarPanel，返回键 `upcoming` → 实际的 `listing`）
+- [Frontend] GovDataPanel 商品 K 线调用 `FetchOHLCV` 少传 `fq` 参数（5/6），运行时必然失败 — 已补齐
+- [Frontend] 删除 SettingsPanel 中无模板引用的死代码 `onExportData()` stub（使用了被禁用的 `alert()`）
+
+### Added
+
+- [Frontend] `WailsApp` 接口补齐 44 个方法声明（含 `turnover` 字段）— 消除 121 个 vue-tsc 类型错误，`npx vue-tsc --noEmit` 恢复为 0 错误的有效门禁；`TestBrokerConnection`/`ListFactors` 标记为 optional（Go 端尚未实现，调用点有守卫）
+- [Engine] 新增 HK 引擎测试 6 条 — 双边费用模型（印花税 0.13% + 交易费）、整手取整、不足一手拒单、现金不足拒单、空数据、止损成交价
+- [Engine] 新增 US 引擎测试 7 条 — 买卖闭环佣金模型、碎股默认 1 股、PDT 滚动窗口/触发条件/豁免、交易日提取、次日止损非日内交易
+- [Storage] 新增 repo 测试 7 条 — ExecutionRepo CRUD/Complete/DeleteBefore、DailyReport 覆盖写与格式化、Reconciliation 往返、BacktestRepo GetByRunID/ClearAll、WorkflowRepo SaveExecution；backtest 覆盖率 45.7%→78.5%，storage 38.9%→77.8%
+- [Docs] `AGENTS.md` 纳入版本控制，目录结构一节修正为现实结构（Go 代码在仓库根、面板 87 个、测试命令去掉 `cd app`）
+
+### Changed
+
+- [Python] 重建测试 venv（uv，Python 3.12），pytest 恢复可运行：163 passed / 30 skipped；更新 3 个陈旧测试以匹配 2026-07-30 的有意变更（HK 分钟缓存 dict→lru_cache、pyproject build-system requires）
+- [Repo] 停止追踪编译产物 `mcp`（15.7MB）与任务草稿 `panel-shell-task-1`，加入 `.gitignore`；清理 13 个无改动的 agent worktree（2.3GB → 625MB，6 个含未提交改动的保留）
+
 ## [2026.7.30] - 2026-07-30
 
 ### Fixed

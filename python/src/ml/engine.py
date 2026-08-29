@@ -149,7 +149,10 @@ class MLService(ml_pb2_grpc.MLServiceServicer):
             else:
                 raise ValueError(f"unknown model type: {model_info['type']}")
 
-            elapsed = int((time.time() - start) * 1000)
+            # Round up: int() truncation reports 0 for sub-millisecond
+            # predictions on fast machines, which reads as "not measured".
+            import math
+            elapsed = max(1, math.ceil((time.time() - start) * 1000))
             return ml_pb2.PredictResponse(
                 predictions=list(preds.to_pylist()),
                 predict_time_ms=elapsed,

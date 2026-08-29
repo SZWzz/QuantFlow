@@ -23,7 +23,8 @@ const sortDir = ref<'asc' | 'desc' | null>('desc')
 
 const { data: cryptos, loading, error, execute: refreshExec } = useDataFetch<CryptoRow[]>(async () => {
   const app = useWailsApp()
-  const { data: result } = await fetchWithCache<any>('crypto_overview', () => app?.GetCryptoOverview([]), 3 * 60 * 1000)
+  if (!app) return []
+  const { data: result } = await fetchWithCache<any>('crypto_overview', () => app.GetCryptoOverview([]), 3 * 60 * 1000)
   if (result?.cryptos) {
     return result.cryptos.map((c: any) => ({
       symbol: c.symbol?.replace('USDT', '') || c.symbol,

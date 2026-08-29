@@ -299,7 +299,7 @@ async function loadIndicatorDetail(signal: MacroSignal) {
         const start = end - 90 * 86400
         try {
           if (app?.FetchOHLCV) {
-            const result = await app.FetchOHLCV(detectMarket(tradingSymbol), tradingSymbol, '1D', start, end)
+            const result = await app.FetchOHLCV(detectMarket(tradingSymbol), tradingSymbol, '1D', '', start, end)
             if (seq !== detailSeq) return
             const bars = Array.isArray(result) ? result[0] : result
             indicatorData.value = (bars || []).map((b: any) => ({

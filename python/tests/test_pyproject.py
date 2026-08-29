@@ -5,7 +5,10 @@ def test_pyproject_has_build_system():
     with open("pyproject.toml", "rb") as f:
         data = tomllib.load(f)
     assert "build-system" in data, "Missing [build-system] table"
-    assert data["build-system"]["requires"] == ["setuptools>=64"]
+    requires = data["build-system"]["requires"]
+    # grpcio-tools is a build-time requirement (proto codegen), not a runtime dep
+    assert any(r.startswith("setuptools>=") for r in requires)
+    assert any(r.startswith("grpcio-tools>=") for r in requires)
 
 
 def test_mootdx_in_data_not_dev():

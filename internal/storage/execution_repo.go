@@ -86,8 +86,11 @@ func (r *ExecutionRepo) Get(runID string) (*ExecutionRecord, error) {
 }
 
 // Delete removes old execution records before a given date.
+// created_at uses SQLite's datetime('now') default ("YYYY-MM-DD HH:MM:SS"),
+// so the cutoff must be formatted identically — RFC3339's 'T' separator would
+// compare lexically greater than ' ' and match rows it should not.
 func (r *ExecutionRepo) DeleteBefore(before time.Time) (int64, error) {
-	res, err := r.db.Exec(`DELETE FROM executions WHERE created_at < ?`, before.UTC().Format(time.RFC3339))
+	res, err := r.db.Exec(`DELETE FROM executions WHERE created_at < ?`, before.UTC().Format("2006-01-02 15:04:05"))
 	if err != nil {
 		return 0, fmt.Errorf("prune executions: %w", err)
 	}

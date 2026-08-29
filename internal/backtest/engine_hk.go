@@ -64,6 +64,12 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 		e.oms.UpdateMarketPrice(bar.Symbol, bar.Close)
 		latestPrices[bar.Symbol] = bar.Close
 
+		// HK is T+0 tradable (T+2 is cash settlement, not a sell lock):
+		// clear the OMS T+1 lock every bar so same-day sells are allowed.
+		// Without this, shares bought on any prior bar stay locked forever
+		// and every sell is silently rejected ("T+1 lock: cannot sell").
+		e.oms.ClearT1Lock()
+
 		// 1. Check stop-loss/take-profit on existing positions
 		// P0: Fill at bar.Close — stop was triggered at close, so open has already passed.
 		if pos := e.oms.GetPosition(bar.Symbol); pos != nil && pos.Quantity > 0 {
@@ -71,18 +77,21 @@ func (e *HKEngine) Run(ctx context.Context, strategy Strategy, bars []trading.OH
 				avgPrice := pos.AvgPrice // capture before FillOrder clears it
 				order, err := e.oms.PlaceOrder(bar.Symbol, trading.SideSell, trading.TypeMarket, "", pos.Quantity, 0)
 				if err == nil {
-					e.oms.FillOrder(order.ID, pos.Quantity, bar.Close)
-					revenue := bar.Close*pos.Quantity - e.stampDuty(bar.Close*pos.Quantity) - e.tradeFee(bar.Close*pos.Quantity) - bar.Close*pos.Quantity*e.config.Commission
-					pnl := revenue - avgPrice*pos.Quantity
-					tradeRecords = append(tradeRecords, TradeRecord{
-						Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
-						Quantity: pos.Quantity, Price: bar.Close, PnL: pnl,
-					})
+					// Only record the trade when the fill actually succeeds —
+					// recording a rejected fill produces phantom P&L.
+					if _, fillErr := e.oms.FillOrder(order.ID, pos.Quantity, bar.Close); fillErr == nil {
+						revenue := bar.Close*pos.Quantity - e.stampDuty(bar.Close*pos.Quantity) - e.tradeFee(bar.Close*pos.Quantity) - bar.Close*pos.Quantity*e.config.Commission
+						pnl := revenue - avgPrice*pos.Quantity
+						tradeRecords = append(tradeRecords, TradeRecord{
+							Date: bar.Date, Symbol: bar.Symbol, Side: "sell",
+							Quantity: pos.Quantity, Price: bar.Close, PnL: pnl,
+						})
+						portfolio.Cash = e.oms.GetCashBalance()
+						delete(portfolio.Positions, bar.Symbol)
+						delete(portfolio.AvgPrice, bar.Symbol)
+						goto recordEquityHK
+					}
 				}
-				portfolio.Cash = e.oms.GetCashBalance()
-				delete(portfolio.Positions, bar.Symbol)
-				delete(portfolio.AvgPrice, bar.Symbol)
-				goto recordEquityHK
 			}
 		}
 
